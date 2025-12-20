@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@webcontainer/api": "^1.6.1"
+  }
+}

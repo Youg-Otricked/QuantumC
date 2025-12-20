@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollable Boxes</title>
+    <link rel="stylesheet" href="hello.css">
+    <script type="module" src="./hello.js" defer></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="box text-box">
+            <pre>This is a long block of non-editable text that will scroll if it exceeds the box height. 
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            This is a long block of non-editable text that will scroll if it exceeds the box height. 
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </pre>
+        </div>
+        <div class="box code-box">
+            <textarea id="code-editor" class="code-editor" spellcheck="false">
+#include <iostream>
+
+int main() {
+    std::cout << "Hello, World!" << '\n'; 
+    return 0; 
+}
+            </textarea>
+            <br>
+            <button id="run">Build & Run</button>
+            <pre id="out"></pre>
+        </div>
+    </div>
+</body>
+
+</html>
