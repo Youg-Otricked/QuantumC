@@ -23,10 +23,14 @@ int main() {
             std::cout << "\nAll whitespace" << '\n';
             continue;
         }
-        if (ast.ast.AST.has_value()) {
+        if (!ast.res.empty()) {
+            std::cout << '\n' << ast.res << '\n';
+        } else if (ast.ast.AST.has_value()) {
             tkz::AnyNode& node = *ast.ast.AST.value(); 
             std::string result = tkz::printAny(node);
             std::cout << '\n' << result << '\n';
+        } else {
+            std::cout << '\n' << "Honestly, what the heck did you type to produce absolutly no errors or output";
         }
     }
     return 0;

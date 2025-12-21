@@ -11,11 +11,12 @@
 #include <functional>
 #include <optional>
 #include <typeinfo>
+#include <type_traits>
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
 namespace tkz {
-    //////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     Position::Position() {
@@ -267,21 +268,89 @@ namespace tkz {
         };
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
-// THE ACTUAL FRIGGEN INTERPRETER ///////////////////////////////////////////////////////////
+// VALUES ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    void Interpreter::visit_NumberNode(NumberNode node) {
-        std::cout << "\nNumber Node found" << node.print() << '\n';
+    template <typename T>
+    Number<T>::Number(T val) : value(val), pos("", "", 0, 0, 0) {}
+
+    template <typename T>
+    Number<T>& Number<T>::set_pos(Position p) { 
+        this->pos = p;
+        return *this;
     }
-    void Interpreter::visit_BinOpNode(BinOpNode node) {
-        std::cout << "\nBinOp Node found" << node.print() << '\n';
+
+    template <typename T>
+    std::string Number<T>::print() {
+        return std::to_string(this->value);
     }
-    void Interpreter::visit_UnaryOpNode(UnaryOpNode node) {
-        std::cout << "\nUnaryOp Node found" << node.print() << '\n';
+
+    // Explicit instantiations
+    template class Number<int>;
+    template class Number<float>;
+    template class Number<double>;
+
+//////////////////////////////////////////////////////////////////
+// INTERPRETER //////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////
+
+    NumberVariant Interpreter::process(AnyNode& node) {
+        return std::visit(*this, node);
+    }
+
+    NumberVariant Interpreter::operator()(NumberNode& node) {
+        const std::string& s = node.tok.value;
+
+        try {
+            if (!s.empty() && (s.back() == 'f' || s.back() == 'F')) {
+                float val = std::stof(s);
+                return Number<float>(val).set_pos(node.tok.pos);
+            }
+            
+            if (s.find('.') != std::string::npos) {
+                double val = std::stod(s);
+                return Number<double>(val).set_pos(node.tok.pos);
+            }
+            
+            int val = std::stoi(s);
+            return Number<int>(val).set_pos(node.tok.pos);
+        } 
+        catch (const std::exception& e) {
+            std::cerr << "Value conversion error: " << s << " - " << e.what() << "\n";
+            return Number<int>(0);
+        };
+    }
+
+    NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant left = this->process(node->left_node);
+        NumberVariant right = this->process(node->right_node);
+        return std::visit([&node](const auto& L, const auto& R) -> NumberVariant {
+            return handle_binop(L, R, node->op_tok.type);
+        }, left, right);
+    }
+
+    NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
+        if (!node) return Number<int>(0);
+        NumberVariant number = this->process(node->node);
+
+        if (node->op_tok.type == TokenType::MINUS) {
+            return std::visit([](const auto& n) -> NumberVariant {
+                // Multiplying by Number<int>(-1) triggers the template math
+                return n.multed_by(Number<int>(-1));
+            }, number);
+        }
+        return number;
+    }
+
+    NumberVariant Interpreter::operator()(std::monostate) {
+        std::cerr << "Empty AST node encountered\n";
+        return Number<int>(0);
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    Mer run(std::string file, std::string text) {
+Mer run(std::string file, std::string text) {
     Lexer lexer(text, file);
     Ler resp = lexer.make_tokens();
     if (resp.error != nullptr) {
@@ -293,10 +362,35 @@ namespace tkz {
     
     Parser parser(resp.Tkns);
     Aer ast = parser.parse();
-    
+    if (ast.error) {
+        return Mer{std::move(ast), std::move(resp)};
+    }
+
+    Interpreter interpreter{}; 
+    if (ast.AST.has_value() && *ast.AST != nullptr) {
+        auto result = interpreter.process(**ast.AST);
+        std::string output = std::visit([](auto&& val) -> std::string {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return "None";
+            } else {
+                return val.print(); 
+            }
+        }, result);
+        return Mer{
+            std::move(ast),
+            std::move(resp),
+            output
+        };
+
+    } else {
+        return Mer{std::move(ast), std::move(resp), ""};
+    }
+
     return Mer{
         std::move(ast),
-        std::move(resp)
+        std::move(resp),
+        ""
     };
 }
 

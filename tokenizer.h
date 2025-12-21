@@ -5,6 +5,7 @@
 #include <list>
 #include <variant>
 #include <functional>
+#include <type_traits>
 #include <optional>
 bool isCharInSet(char, const std::string &);
 
@@ -79,6 +80,10 @@ namespace tkz {
     public:
         MissingSemicolonError(Position pos) : Error("Expected Semicolon on line and char", " ", pos) {}
     };
+    class RTError : public Error {
+    public:
+        RTError(Position pos) : Error("Error: ", " ", pos) {}
+    };
     struct Ler {
         std::list<Token> Tkns;
         std::unique_ptr<Error> error;
@@ -90,6 +95,7 @@ namespace tkz {
     struct Mer {
         Aer ast;
         Ler tokens;
+        std::string res;
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
@@ -136,6 +142,7 @@ namespace tkz {
         Prs success(AnyNode node);
         void failure(std::unique_ptr<Error>);
         Prs to_prs();
+        
     };
     
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,12 +163,67 @@ namespace tkz {
         
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
-// THE ACTUAL FRIGGEN INTERPRETER ///////////////////////////////////////////////////////////
+// VALUES ///////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+    template <typename T> class Number;
+    using NumberVariant = std::variant<Number<int>, Number<float>, Number<double>>;
+    template <typename T>
+    class Number {
+    public:
+        T value;
+        Position pos;
+
+        using value_type = T; 
+
+        Number(T val);
+        Number<T>& set_pos(Position p);
+        std::string print();
+
+        template <typename U>
+        auto added_to(const Number<U>& other) const {
+            using CommonT = std::common_type_t<T, U>;
+            return Number<CommonT>(static_cast<CommonT>(this->value) + other.value);
+        }
+
+        template <typename U>
+        auto subbed_by(const Number<U>& other) const {
+            using CommonT = std::common_type_t<T, U>;
+            return Number<CommonT>(static_cast<CommonT>(this->value) - other.value);
+        }
+
+        template <typename U>
+        auto multed_by(const Number<U>& other) const {
+            using CommonT = std::common_type_t<T, U>;
+            return Number<CommonT>(static_cast<CommonT>(this->value) * other.value);
+        }
+
+        template <typename U>
+        auto dived_by(const Number<U>& other) const {
+            using CommonT = std::common_type_t<T, U>;
+            return Number<CommonT>(static_cast<CommonT>(this->value) / other.value);
+        }
+    };
+
+    
+
+    template <typename T, typename U>
+    NumberVariant handle_binop(const Number<T>& L, const Number<U>& R, TokenType op) {
+        if (op == TokenType::PLUS)  return L.added_to(R);
+        if (op == TokenType::MINUS) return L.subbed_by(R);
+        if (op == TokenType::MUL)   return L.multed_by(R);
+        if (op == TokenType::DIV)   return L.dived_by(R);
+        return Number<int>(0);
+    }
+//////////////////////////////////////////////////////////////////////////////////////////////
+// INTERPRETER CLASS ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Interpreter {
-        void visit_NumberNode(NumberNode node);
-        void visit_BinOpNode(BinOpNode node);
-        void visit_UnaryOpNode(UnaryOpNode node);
+    public:
+        NumberVariant process(AnyNode& node);
+        NumberVariant operator()(NumberNode& node);
+        NumberVariant operator()(std::unique_ptr<BinOpNode>& node);
+        NumberVariant operator()(std::unique_ptr<UnaryOpNode>& node);
+        NumberVariant operator()(std::monostate);
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN// ////////////////////////////////////////////////////////////////////////////////////
