@@ -26,7 +26,8 @@ namespace tkz {
     };
     class NumberNode;
     class BinOpNode;
-    using AnyNode = std::variant<std::monostate, NumberNode, std::unique_ptr<BinOpNode>>;
+    class UnaryOpNode;
+    using AnyNode = std::variant<std::monostate, NumberNode, std::unique_ptr<BinOpNode>, std::unique_ptr<UnaryOpNode>>;
     inline std::string bad_chars = " \t";
     inline std::string DIGITS = "0123456789";
     enum class TokenType {
@@ -113,11 +114,18 @@ namespace tkz {
             
         std::string print();
     };
+    class UnaryOpNode {
+        public:
+        Token op_tok;
+        AnyNode node;
+        UnaryOpNode(Token op_tok, AnyNode node);
+        std::string print();
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
-    using Prs = std::variant<std::monostate, ParseResult, NumberNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>>;
+    using Prs = std::variant<std::monostate, ParseResult, NumberNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -146,6 +154,14 @@ namespace tkz {
         Prs bin_op(std::function<Prs()> func, TokenType type1, TokenType type2);
         Aer parse();
         
+    };
+//////////////////////////////////////////////////////////////////////////////////////////////
+// THE ACTUAL FRIGGEN INTERPRETER ///////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+    class Interpreter {
+        void visit_NumberNode(NumberNode node);
+        void visit_BinOpNode(BinOpNode node);
+        void visit_UnaryOpNode(UnaryOpNode node);
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN// ////////////////////////////////////////////////////////////////////////////////////

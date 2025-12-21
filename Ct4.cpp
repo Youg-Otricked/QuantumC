@@ -10,6 +10,7 @@
 #include <variant>
 #include <functional>
 #include <optional>
+#include <typeinfo>
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
@@ -69,12 +70,18 @@ namespace tkz {
     std::string printAny(AnyNode& node) {
         return std::visit([](auto&& arg) -> std::string {
             using T = std::decay_t<decltype(arg)>;
+            
             if constexpr (std::is_same_v<T, NumberNode>) {
                 return arg.print();
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
+            } 
+            else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
                 return arg->print();
-            } else {
-                return "<empty>"; // Handle std::monostate
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<UnaryOpNode>>) {
+                return arg->print();
+            }
+            else {
+                return "<empty>"; 
             }
         }, node);
     }
@@ -87,6 +94,13 @@ namespace tkz {
     std::string BinOpNode::print() {
         return "(" + printAny(left_node) + " " + op_tok.print() + " " + printAny(right_node) + ")";
     }
+    UnaryOpNode::UnaryOpNode(Token op_tok, AnyNode node) {
+      this->op_tok = op_tok;
+      this->node = std::move(node);  
+    }
+    std::string UnaryOpNode::print() {
+        return std::string{"("} + this->op_tok.print() + ", " + printAny(this->node) + ")";
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -94,41 +108,43 @@ namespace tkz {
         return res;
     }
     AnyNode ParseResult::reg(Prs res_variant) {
-        if (std::holds_alternative<std::unique_ptr<Error>>(res_variant)) {
-            this->error = std::move(std::get<std::unique_ptr<Error>>(res_variant));
+        if (std::holds_alternative<std::unique_ptr<tkz::Error>>(res_variant)) {
+            this->error = std::move(std::get<std::unique_ptr<tkz::Error>>(res_variant));
             return std::monostate{};
         }
-        return std::visit([](auto&& arg) -> AnyNode {
+        return std::visit([this](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
-
-            // Handle cases that don't fit into AnyNode
             if constexpr (std::is_same_v<T, std::monostate> || 
-                        std::is_same_v<T, std::unique_ptr<Error>> ||
+                        std::is_same_v<T, std::unique_ptr<tkz::Error>> || 
                         std::is_same_v<T, ParseResult>) {
-                return std::monostate{};
-            } else {
-                // Move valid types (NumberNode, unique_ptr<BinOpNode>)
-                return std::move(arg);
+                return AnyNode{std::monostate{}};
+            } 
+            else if constexpr (std::is_same_v<T, UnaryOpNode>) { 
+                return AnyNode{std::make_unique<UnaryOpNode>(std::move(arg))};
             }
-        }, std::move(res_variant));
+            else {
+                return AnyNode{std::move(arg)};
+            }
+        }, std::move(res_variant)); 
     }
+    
     Prs ParseResult::success(AnyNode node) {
-    this->node = std::move(node);
-    return std::visit([](auto&& arg) -> tkz::Prs {
-        return std::move(arg);
-    }, std::move(this->node));
-}
-    void ParseResult::failure(std::unique_ptr<Error> error) {
-        this->error = std::move(error);
-
+        this->node = std::move(node);
+        return std::visit([](auto&& arg) -> tkz::Prs {
+            return tkz::Prs{std::move(arg)}; 
+        }, std::move(this->node));
     }
     Prs ParseResult::to_prs() {
         if (this->error) {
-            return std::move(this->error); 
+            return tkz::Prs{std::move(this->error)}; 
         }
-        return std::visit([](auto&& arg) -> Prs {
-            return std::move(arg);
+        
+        return std::visit([](auto&& arg) -> tkz::Prs {
+            return tkz::Prs{std::move(arg)};
         }, std::move(this->node));
+    }
+    void ParseResult::failure(std::unique_ptr<Error> error) {
+        this->error = std::move(error);
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSER ///////////////////////////////////////////////////////////////////////////////////
@@ -154,10 +170,41 @@ namespace tkz {
         ParseResult res = ParseResult();
         Token tok = this->current_tok;
 
-        if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
-            res.reg(this->advance());
-            res.success(NumberNode(tok));
-            return res.to_prs();
+        if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS) {
+            this->advance();
+            AnyNode factor_node = res.reg(this->factor()); 
+            if (res.error) return res.to_prs();
+            return res.success(std::make_unique<UnaryOpNode>(tok, std::move(factor_node)));
+
+        } else if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
+            this->advance();
+            return res.success(NumberNode(tok));
+        } else if (tok.type == TokenType::LPAREN) {
+            res.reg_node(this->advance());
+            AnyNode any_expr = res.reg(this->expr());
+            if (res.error) return res.to_prs();
+            Prs expr = std::visit([](auto&& arg) -> Prs {
+                return std::forward<decltype(arg)>(arg);
+            }, std::move(any_expr));
+            if (this->current_tok.type == TokenType::RPAREN) {
+                res.reg_node(this->advance());
+                AnyNode any_node = std::visit([](auto&& arg) -> AnyNode {
+                    using T = std::decay_t<decltype(arg)>;
+                    
+                    if constexpr (std::is_constructible_v<AnyNode, T>) {
+                        return std::forward<decltype(arg)>(arg);
+                    } else {
+                        return std::monostate{}; 
+                    }
+                }, std::move(expr));
+
+            return res.success(std::move(any_node));
+            } else {
+                res.failure(std::make_unique<InvalidSyntaxError>(InvalidSyntaxError(
+                    "Expected ')'", this->current_tok.pos
+                )));
+                return res.to_prs();
+            }
         }
         res.failure(std::make_unique<InvalidSyntaxError>(
             InvalidSyntaxError("Expected an Int Float or double", tok.pos)
@@ -199,6 +246,7 @@ namespace tkz {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, NumberNode> || 
                         std::is_same_v<T, std::unique_ptr<BinOpNode>> ||
+                        std::is_same_v<T, std::unique_ptr<UnaryOpNode>> || 
                         std::is_same_v<T, std::monostate>) {
                 return std::move(arg);
             }
@@ -217,6 +265,18 @@ namespace tkz {
             std::make_unique<tkz::AnyNode>(std::move(ast)), 
             nullptr
         };
+    }
+//////////////////////////////////////////////////////////////////////////////////////////////
+// THE ACTUAL FRIGGEN INTERPRETER ///////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+    void Interpreter::visit_NumberNode(NumberNode node) {
+        std::cout << "\nNumber Node found" << node.print() << '\n';
+    }
+    void Interpreter::visit_BinOpNode(BinOpNode node) {
+        std::cout << "\nBinOp Node found" << node.print() << '\n';
+    }
+    void Interpreter::visit_UnaryOpNode(UnaryOpNode node) {
+        std::cout << "\nUnaryOp Node found" << node.print() << '\n';
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
@@ -341,6 +401,7 @@ namespace tkz {
         }
         tokens.push_back(Token(TokenType::EOFT, "", this->pos));
         return Ler {tokens, NULL};
+
     }
     
 };
