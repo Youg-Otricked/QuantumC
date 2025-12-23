@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// QUANTUM C 2025 ULTIMATE TORTURE TEST (300+ LINES)
+// QUANTUM C ULTIMATE TORTURE TEST
 // ==========================================================
 
 // SECTION 1: BASIC ARITHMETIC & OPERATOR PRECEDENCE
@@ -129,12 +129,11 @@ c3;
 
 // SECTION 13: BOOLEAN & LOGIC (if supported)
 // --------------------------------------------------
-// bool b1 = true;
-// bool b2 = false;
+bool b1 = true;
+bool b2 = false;
 // b1 && b2;               // false
 // b1 || b2;               // true
 // !b1;                    // false
-
 // SECTION 14: MIXED FLOAT & INT OPERATIONS
 // --------------------------------------------------
 int start = 10;

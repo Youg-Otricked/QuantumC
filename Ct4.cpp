@@ -24,6 +24,25 @@ namespace tkz {
     Position::Position() {
 
     }
+    std::string Position::arrow_string() const {
+        std::string result;
+
+        // find line start
+        int start = this->index;
+        while (start > 0 && this->Filetxt[start - 1] != '\n') start--;
+
+        // find line end
+        int end = this->index;
+        while (end < (int)this->Filetxt.size() && this->Filetxt[end] != '\n') end++;
+
+        std::string line = this->Filetxt.substr(start, end - start);
+
+        result += line + "\n";
+        result += std::string(this->column, ' ');
+        result += std::string(std::max(1, this->length), '^');
+        result += "\n";
+        return result;
+    }
     Position::Position(std::string Filename, std::string Filetxt, int index, int line, int column) {
         this->Filename = Filename;
         this->Filetxt = Filetxt;
@@ -44,10 +63,10 @@ namespace tkz {
         return Position(this->Filename, this->Filetxt, this->index, this->line, this->column);
     }
     Token::Token() {}
-    Token::Token(TokenType t, std::string val, Position p) {
-        this->type = t;
-        this->value = val;
-        this->pos = p;
+    Token::Token(TokenType t, std::string val, Position p)
+    : type(t), value(val), pos(p)
+    {
+        this->pos.length = val.size();
     }
     std::string Token::print() const {
         if (this->value.empty()) {
@@ -67,6 +86,42 @@ namespace tkz {
     std::string Error::as_string() {
         return std::format("{}: {} (File {}, Line {}:{})", this->error_name, this->details, this->pos.Filename, this->pos.line, this->pos.column);
     }
+    std::string RTError::as_string() {
+        std::string result;
+        result += "Runtime Error: " + this->details + "\n";
+        result += "File " + this->pos.Filename +
+                ", line " + std::to_string(this->pos.line + 1) +
+                ", col " + std::to_string(this->pos.column + 1) + "\n\n";
+        result += this->pos.arrow_string();
+        return result;
+    }
+    std::string MissingSemicolonError::as_string() {
+        std::string result;
+        result += "Missing Semicolon on";
+        result += "File " + this->pos.Filename +
+                ", line " + std::to_string(this->pos.line + 1) +
+                ", col " + std::to_string(this->pos.column + 1) + "\n\n";
+        result += this->pos.arrow_string();
+        return result;
+    }
+    std::string InvalidSyntaxError::as_string() {
+        std::string result;
+        result += "Invalid Syntax: " + this->details + "\n";
+        result += "File " + this->pos.Filename +
+                ", line " + std::to_string(this->pos.line + 1) +
+                ", col " + std::to_string(this->pos.column + 1) + "\n\n";
+        result += this->pos.arrow_string();
+        return result;
+    }
+    std::string IllegalCharError::as_string() {
+        std::string result;
+        result += "Illegal Charecter: " + this->details + "\n";
+        result += "File " + this->pos.Filename +
+                ", line " + std::to_string(this->pos.line + 1) +
+                ", col " + std::to_string(this->pos.column + 1) + "\n\n";
+        result += this->pos.arrow_string();
+        return result;
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +138,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, CharNode>) {
                 return arg.print();
             } 
+            else if constexpr (std::is_same_v<T, BoolNode>) { 
+                return arg.print();
+            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
                 return arg->print();
             }
@@ -150,6 +208,12 @@ namespace tkz {
     }
     StringNode::StringNode(Token tok) {
         this->tok = tok;
+    }
+    BoolNode::BoolNode(Token tok) {
+        this->tok = tok;
+    }
+    std::string BoolNode::print() {
+        return "(" + this->tok.print() + ")";
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
@@ -228,6 +292,8 @@ namespace tkz {
             return AnyNode{NumberNode(Token(TokenType::FLOAT, "0.0f", pos))}; // by value
         if (type_tok.value == "double")
             return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))}; // by value
+        if (type_tok.value == "bool")
+            return AnyNode{NumberNode(Token(TokenType::BOOL, "", pos))};      // by value
         return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};          // by value
     }
     Parser::Parser(std::list<Token> tokens) {
@@ -264,6 +330,9 @@ namespace tkz {
         } else if (tok.type == TokenType::CHAR) {
             this->advance();
             return res.success(CharNode(tok));
+        } else if (tok.type == TokenType::BOOL) {
+            this->advance();
+            return res.success(BoolNode(tok));
         } else if (tok.type == TokenType::LPAREN) {
             this->advance();
             AnyNode any_expr = res.reg(this->expr());
@@ -292,7 +361,7 @@ namespace tkz {
             }
         }
         res.failure(std::make_unique<InvalidSyntaxError>(
-            InvalidSyntaxError("Expected an Int Float Double '+', '-', Identifier, or '('", tok.pos)
+            InvalidSyntaxError("Expected an String, Char, Boolean, Int, Float, Double, '+', '-', Identifier, or '('", tok.pos)
         ));
         return res.to_prs(); 
     }
@@ -400,7 +469,6 @@ namespace tkz {
         if (tok.type == TokenType::KEYWORD) {
             Token type_tok = tok;
             this->advance();
-
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>("Expected identifier", this->current_tok.pos));
                 return res.to_prs();
@@ -417,7 +485,6 @@ namespace tkz {
             } else {
                 value = default_value_for_type(type_tok, var_name.pos);
             }
-
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
                 return res.to_prs();
@@ -518,10 +585,10 @@ namespace tkz {
 
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         NumberVariant value = this->process(node->value_node);
-
+        
         std::string declaredType = node->type_tok.value;
         std::string actualType   = context->get_type_name(value);
-
+        
         // strict check for float vs double
         if (declaredType == "float" && actualType != "float") {
             throw RTError("Type mismatch: expected float literal", node->var_name_tok.pos);
@@ -529,8 +596,13 @@ namespace tkz {
         if (declaredType == "double" && (actualType != "float" && actualType != "double")) {
             throw RTError("Type mismatch: expected double literal", node->var_name_tok.pos);
         }
-
-        // now define normally
+        if (declaredType == "int" && (actualType != "int")) {
+            throw RTError("Type mismatch: expected int literal", node->var_name_tok.pos);
+        }
+        if (declaredType == "bool" && actualType != "bool") {
+            throw RTError("Type mismatch: expected bool literal", node->var_name_tok.pos);
+        }
+        
         context->define(node->var_name_tok.value, declaredType, value);
         return value;
     }
@@ -544,7 +616,7 @@ namespace tkz {
         return last_result;
     }
     
-    NumberVariant tkz::Interpreter::operator()(tkz::NumberNode& node) {
+    NumberVariant Interpreter::operator()(NumberNode& node) {
         const std::string& s = node.tok.value;
 
         try {
@@ -604,9 +676,14 @@ namespace tkz {
                 throw RTError("Only '+' is supported for strings", node->op_tok.pos);
             } else if constexpr (std::is_same_v<T1, StringValue> ^ std::is_same_v<T2, StringValue>) {
                 throw RTError("Cannot add string to number", node->op_tok.pos);
+            } else if constexpr (std::is_same_v<T1, CharValue> || std::is_same_v<T2, CharValue>) {
+                throw RTError("Cannot preform arithmetic on a Char", node->op_tok.pos);
             }
             else if constexpr (std::is_same_v<T1, std::monostate> || std::is_same_v<T2, std::monostate>) {
                 throw RTError("Operation on uninitialized value", node->op_tok.pos);
+            }
+            else if constexpr (std::is_same_v<T1, BoolValue> || std::is_same_v<T2, BoolValue>) { 
+                throw RTError("Cannot preform arithmetic operations on a Boolean", node->op_tok.pos);
             }
             else{ 
                 return handle_binop(L, R, node->op_tok.type, this->error);
@@ -615,8 +692,6 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(tkz::CharNode& node) {
         if (node.tok.value.empty()) return Number<int>(0);
-        
-        // If your lexer provides the raw escape sequence like "\n"
         std::string s = node.tok.value;
         int char_val = 0;
         
@@ -635,6 +710,9 @@ namespace tkz {
         
         return Number<int>(char_val).set_pos(node.tok.pos);
     }
+    NumberVariant Interpreter::operator()(tkz::BoolNode& node) {
+        return BoolValue(node.tok.value).set_pos(node.tok.pos);
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
         if (!node) return Number<int>(0);
         NumberVariant value = this->process(node->value);
@@ -652,7 +730,7 @@ namespace tkz {
 
         return std::visit([&node](const auto& n) -> NumberVariant {
             using T = std::decay_t<decltype(n)>;
-            if constexpr (!std::is_same_v<T, StringValue> && !std::is_same_v<T, std::monostate>) {
+            if constexpr (!std::is_same_v<T, StringValue> && !std::is_same_v<T, std::monostate> && !std::is_same_v<T, CharValue> && !std::is_same_v<T, BoolValue>) {
                 if (node->op_tok.type == TokenType::MINUS) {
                     return n.multed_by(Number<int>(-1));
                 }
@@ -682,9 +760,14 @@ namespace tkz {
         if (text.starts_with("// @no-context") || text.starts_with("# no-context")) {
             use_context = false;
         }
-        // Lexer
         Lexer lexer(text, file);
-        Ler resp = lexer.make_tokens();
+        Ler resp;
+        try {
+            resp = lexer.make_tokens();
+        } catch(InvalidSyntaxError& e) {
+            std::cout << '\n' << e.as_string() << '\n';
+            return Mer{Aer{nullptr, nullptr}, std::move(resp), ""};
+        }
         if (resp.error != nullptr) {
             return Mer{Aer{nullptr, std::move(resp.error)}, std::move(resp), ""};
         }
@@ -699,7 +782,6 @@ namespace tkz {
         Interpreter interpreter(ctx);
         
         std::string output = "";
-
         if (ast.statements != nullptr) {
             try {
                 for (auto& stmt : ast.statements->statements) {
@@ -792,7 +874,9 @@ namespace tkz {
             id == "class" || id == "struct" || id == "enum") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
-        
+        if (id == "true" || id == "false") {
+            return Token(TokenType::BOOL, id, start_pos);
+        }
         return Token(TokenType::IDENTIFIER, id, start_pos);
     }
     Token Lexer::make_string() {
@@ -852,7 +936,7 @@ namespace tkz {
             this->advance();
         }
         if (this->current_char != '\'') {
-            throw RTError("Expected closing single quote", this->pos);
+            throw IllegalCharError("Expected closing single quote", this->pos);
         }
         this->advance();
         
@@ -962,6 +1046,24 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::NOT, "", start_pos));
                             break;
                         }
+                    case '>':
+                        this->advance();
+                        if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::MORE_EQ, ">=", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::MORE, "", start_pos));
+                            break;
+                        }
+                    case '<':
+                        this->advance();
+                        if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::LESS_EQ, "<=", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::LESS, "", start_pos));
+                            break;
+                        }
                     case '(':
                         tokens.push_back(Token(TokenType::LPAREN, "", start_pos));
                         this->advance();
@@ -985,7 +1087,6 @@ namespace tkz {
                         break;
                     default:
                         std::string unknown = std::string(1, this->current_char);
-                        this->advance();
                         return Ler {std::list<Token>(), std::make_unique<IllegalCharError>(unknown, this->pos)};
                 }
             }

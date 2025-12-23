@@ -11,6 +11,7 @@
 #include <cmath>
 #include <vector>
 #include <map>
+#include <iostream>
 bool isCharInSet(char, const std::string &);
 
 namespace tkz {
@@ -24,7 +25,9 @@ namespace tkz {
         int index;
         int line;
         int column;
+        int length = 1;
         Position();
+        std::string arrow_string() const;
         Position(std::string, std::string, int, int, int);
         void advance(char current_char);
         Position copy();
@@ -39,11 +42,13 @@ namespace tkz {
     class StringNode;
     class CharNode;
     class AssignExprNode;
+    class BoolNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
         StringNode,
         CharNode,
+        BoolNode,
         std::unique_ptr<BinOpNode>, 
         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
@@ -148,31 +153,35 @@ namespace tkz {
         std::string error_name;
         std::string details;
         Error(std::string err, std::string details, Position pos);
-        std::string as_string();
+        virtual std::string as_string();
         virtual ~Error() = default;
     };
     class IllegalCharError : public Error { 
     public:
         IllegalCharError(std::string details, Position pos) : Error("Illegal Character", details, pos) {}
+        std::string as_string() override;
     };
     class InvalidSyntaxError : public Error { 
     public:
         InvalidSyntaxError(std::string details, Position pos) : Error("Invalid Syntax: ", details, pos) {}
+        std::string as_string() override;
     };
     class MissingSemicolonError : public Error {
     public:
         MissingSemicolonError(Position pos) : Error("Expected Semicolon on line and char", " ", pos) {}
+        std::string as_string() override;
     };
     class RTError : public Error {
     public:
         RTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
+        std::string as_string() override;
     };
     struct Ler {
         std::list<Token> Tkns;
         std::unique_ptr<Error> error;
     };
     struct Aer {
-        std::unique_ptr<StatementsNode> statements;  // ← Not AnyNode!
+        std::unique_ptr<StatementsNode> statements;
         std::unique_ptr<Error> error;
     };
     struct Mer {
@@ -202,6 +211,12 @@ namespace tkz {
         public:
         Token tok;
         StringNode (Token tok);
+        std::string print();
+    };
+    class BoolNode {
+        public:
+        Token tok;
+        BoolNode (Token tok);
         std::string print();
     };
     class BinOpNode {
@@ -259,7 +274,7 @@ namespace tkz {
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
-    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>>;
+    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -327,7 +342,32 @@ public:
     std::string print() const { 
         return std::string(1, value); 
     }
-};    
+}; 
+class BoolValue {
+    public:
+    bool value;
+    Position pos;
+    BoolValue(std::string val) : pos("", "", 0, 0, 0) {
+        if (!val.empty()) {
+            if (val == "true") {
+                value = true;
+            } else if (val == "false") {
+                value = false;
+            } else {
+                throw RTError("Expected Boolean value to be either true or false", pos);
+            }
+        } else {
+            this->value = '\0';
+        }
+    }
+    BoolValue& set_pos(Position p) { 
+        this->pos = p; 
+        return *this; 
+    }
+    std::string print() const { 
+        return this->value ? "true" : "false";
+    }
+};  
 class StringValue {
     public:
         std::string value;
@@ -343,7 +383,7 @@ class StringValue {
         std::string print() const { return value; }
     };
     template <typename T> class Number;
-    using NumberVariant = std::variant<Number<int>, Number<float>, Number<double>, StringValue>;
+    using NumberVariant = std::variant<Number<int>, Number<float>, Number<double>, StringValue, CharValue, BoolValue>;
     template <typename T>
     class Number {
     public:
@@ -408,7 +448,6 @@ class StringValue {
             return L.dived_by(R);
         }
         if (op == TokenType::POWER) {
-            // Check 0^negative
             if (L.value == 0 && R.value < 0) { 
                 throw RTError("Cannot raise zero to negative power", L.pos);
             }
@@ -435,6 +474,7 @@ public:
                 if constexpr (std::is_same_v<T, Number<double>>) return "double";
                 if constexpr (std::is_same_v<T, StringValue>)    return "string";
                 if constexpr (std::is_same_v<T, CharValue>)      return "char";
+                if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 return "unknown";
             }, val);
         }
@@ -445,6 +485,7 @@ public:
 
         NumberVariant get(const std::string& name, Position pos) {
             auto it = symbols.find(name);
+            
             if (it != symbols.end()) {
                 return it->second.value;
             }
@@ -483,6 +524,7 @@ public:
         NumberVariant operator()(std::unique_ptr<VarAccessNode>& node);
         NumberVariant operator()(StringNode& node);
         NumberVariant operator()(CharNode& node);
+        NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
     };
