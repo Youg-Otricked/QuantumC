@@ -3,35 +3,93 @@
 #include "./tokenizer.h"
 #include <algorithm>
 #include <iterator>
-int main() {
-    while (true) {
-        std::cout << "Quantum C: ";
-        std::string code;
-        if (!std::getline(std::cin, code)) break; 
-        if (code.empty()) continue;
+#include <fstream>
+#include <sstream>
 
-        tkz::Mer ast = tkz::run("<stdin>", code);
-        if (ast.tokens.error != nullptr) { 
-            std::cout << "\n" << ast.tokens.error->as_string() << "\n";
-            continue;
-        }
-        if (ast.ast.error != nullptr) {
-            std::cout << '\n' << ast.ast.error->as_string() << '\n';
-            continue;
-        }
-        if (ast.tokens.Tkns.empty()) {
-            std::cout << "\nAll whitespace" << '\n';
-            continue;
-        }
-        if (!ast.res.empty()) {
-            std::cout << '\n' << ast.res << '\n';
-        } else if (ast.ast.AST.has_value()) {
-            tkz::AnyNode& node = *ast.ast.AST.value(); 
-            std::string result = tkz::printAny(node);
-            std::cout << '\n' << result << '\n';
+std::string read_file(std::string filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file '" << filename << "'" << std::endl;
+        exit(1);
+    }
+    
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+int main(int argc, char* argv[]) {
+    bool use_context = true;
+    std::string filename = "";
+    
+    // Parse arguments
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--no-context" || arg == "-nc") {
+            use_context = false;
+        } else if (arg == "--version" || arg == "-v") {
+            std::cout << R"(
+   _____ ___  _  _   
+  / ____|__ \| || |  
+ | |       ) | || |_ 
+ | |      / /|__   _|
+ | |____ / /_   | |  
+  \_____|____|  |_|  
+        Quantum C (C⁴) v0.1
+
+        The 4th Evolution of C
+        More Powerful Than Explosives
+
+        Features:
+        ✓ C++ Performance -- without the 20 #includes
+        ✓ C# Ergonomics  
+        ✓ Rust Safety
+        ✓ Quantum Booleans
+        ✓ Multi-return
+        ✓ Type Unions
+
+        github.com/Youg-Otricked/QuantumC
+        )" << std::endl;
+            return 0;
         } else {
-            std::cout << '\n' << "Honestly, what the heck did you type to produce absolutly no errors or output";
+            filename = arg;
         }
     }
+    
+    if (filename.empty()) {
+        // REPL mode
+        std::cout << "Quantum C REPL v0.1" << std::endl;
+        if (!use_context) {
+            std::cout << "(Context disabled)" << std::endl;
+        }
+        
+        while (true) {
+            std::cout << "qc> ";
+            std::string line;
+            std::getline(std::cin, line);
+            
+            if (line == "exit") break;
+            
+            auto result = tkz::run("<stdin>", line, use_context);
+            
+            if (result.ast.error) {
+                std::cout << result.ast.error->as_string() << std::endl;
+            } else {
+                std::cout << result.res;
+            }
+        }
+    } else {
+        // File mode
+        std::string code = read_file(filename);
+        auto result = tkz::run(filename, code, use_context);
+        
+        if (result.ast.error) {
+            std::cout << result.ast.error->as_string() << std::endl;
+            return 1;
+        }
+        
+        std::cout << result.res;
+    }
+    
     return 0;
 }

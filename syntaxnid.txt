@@ -14,6 +14,15 @@ expr    : term ((PLUS|MINUS) term)*
 
 term    : factor ((MUL|DIV) factor)*
 
-factor  : INT|FLOAT|DOUBLE
-        : (PLUS|MINUS) factor
+factor  : (PLUS|MINUS) factor
+        : power
+        
+power   : atom ((POWER) factor)*
+
+atom    : INT|FLOAT|DOUBLE
         : LPAREN expr RPAREN
+
+OR ||
+AND &&
+XOR $$
+NOT !
