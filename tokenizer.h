@@ -9,9 +9,10 @@
 #include <type_traits>
 #include <optional>
 #include <cmath>
-#include <vector>
 #include <map>
 #include <iostream>
+#include <mutex>
+#include <unordered_map>
 bool isCharInSet(char, const std::string &);
 
 namespace tkz {
@@ -43,6 +44,7 @@ namespace tkz {
     class CharNode;
     class AssignExprNode;
     class BoolNode;
+    class IfNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -53,15 +55,17 @@ namespace tkz {
         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
         std::unique_ptr<VarAssignNode>,
-        std::unique_ptr<AssignExprNode>
+        std::unique_ptr<AssignExprNode>,
+        std::unique_ptr<IfNode>
     >;
     class StatementsNode {
     public:
         std::vector<AnyNode> statements;
-        
-        StatementsNode(std::vector<AnyNode> stmts) 
-            : statements(std::move(stmts)) {}
-        
+        bool is_block = false;
+
+        StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
+            : statements(std::move(stmts)), is_block(is_block) {}
+
         std::string print();
     };
 
@@ -129,6 +133,10 @@ namespace tkz {
         OR,
         NOT,
         EQ,
+        IF,
+        ELSE,
+        LBRACE,
+        RBRACE,
         EOFT
     };
     TokenType stringToTokenType(const std::string& str);
@@ -250,12 +258,14 @@ namespace tkz {
     };
     class VarAssignNode {
     public:
+        bool is_const;
         Token type_tok;
         Token var_name_tok;
         AnyNode value_node;
         
-        VarAssignNode(Token type, Token name, AnyNode value)
-            : type_tok(std::move(type)), 
+        VarAssignNode(bool is_const, Token type, Token name, AnyNode value)
+            : is_const(is_const),
+            type_tok(std::move(type)), 
             var_name_tok(std::move(name)), 
             value_node(std::move(value)) {}
         
@@ -270,11 +280,32 @@ namespace tkz {
         
         std::string print();
     };
+    class IfNode {
+    public:
+        std::optional<AnyNode> init; // optional init statement (e.g., "int a = 5")
+        AnyNode condition;
+        std::unique_ptr<StatementsNode> then_branch;
+        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elif_branches;
+        std::unique_ptr<StatementsNode> else_branch; // nullptr if none
+
+        IfNode(std::optional<AnyNode> init_node,
+            AnyNode cond,
+            std::unique_ptr<StatementsNode> then_b,
+            std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elifs = {},
+            std::unique_ptr<StatementsNode> else_b = nullptr)
+            : init(std::move(init_node)),
+            condition(std::move(cond)),
+            then_branch(std::move(then_b)),
+            elif_branches(std::move(elifs)),
+            else_branch(std::move(else_b)) {}
+
+        std::string print();
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
-    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>>;
+    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -311,10 +342,15 @@ namespace tkz {
         Token advance();
         Prs factor();
         Prs term();
+        Prs comparison();
         Prs expr();
         Prs atom();
         Prs power();
-        Prs bin_op(std::function<Prs()> func, TokenType type1, TokenType type2);
+        Prs if_expr();
+        Prs bin_op(std::function<Prs()> func, 
+                   std::initializer_list<TokenType> ops);
+        Prs logical_and();
+        Prs logical_or();
         Aer parse();
         Prs statement();
         Prs assignment_expr();
@@ -431,6 +467,16 @@ class StringValue {
             }
             return Number<CommonT>(static_cast<CommonT>(result));
         }
+        template <typename U>
+        auto modded_by(const Number<U>& other) const {
+            using CommonT = std::common_type_t<T, U>;
+            if constexpr (std::is_floating_point_v<CommonT>) {
+                return Number<CommonT>(std::fmod(static_cast<CommonT>(this->value), other.value));
+            } else {
+                return Number<CommonT>(static_cast<CommonT>(this->value) % other.value);
+            }
+        }
+
     };
 
     
@@ -441,32 +487,97 @@ class StringValue {
         if (op == TokenType::MINUS) return L.subbed_by(R);
         if (op == TokenType::MUL) return L.multed_by(R);
         if (op == TokenType::DIV) {
-           
-            if (R.value == 0) { 
+            if (R.value == 0) {
                 throw RTError("Division by zero", R.pos);
             }
             return L.dived_by(R);
         }
+        if (op == TokenType::MOD) { 
+            if (R.value == 0) {
+                throw RTError("Modulo by zero", R.pos);
+            }
+            return L.modded_by(R);
+        }
         if (op == TokenType::POWER) {
-            if (L.value == 0 && R.value < 0) { 
+            if (L.value == 0 && R.value < 0) {
                 throw RTError("Cannot raise zero to negative power", L.pos);
             }
             return L.power_by(R);
         }
+           if (op == TokenType::EQ_TO) {
+        return BoolValue(L.value == R.value ? "true" : "false").set_pos(L.pos);
+        }
+        if (op == TokenType::NOT_EQ) {
+            return BoolValue(L.value != R.value ? "true" : "false").set_pos(L.pos);
+        }
+        if (op == TokenType::LESS) {
+            return BoolValue(L.value < R.value ? "true" : "false").set_pos(L.pos);
+        }
+        if (op == TokenType::LESS_EQ) {
+            return BoolValue(L.value <= R.value ? "true" : "false").set_pos(L.pos);
+        }
+        if (op == TokenType::MORE) {
+            return BoolValue(L.value > R.value ? "true" : "false").set_pos(L.pos);
+        }
+        if (op == TokenType::MORE_EQ) {
+            return BoolValue(L.value >= R.value ? "true" : "false").set_pos(L.pos);
+        }
+        
         throw RTError("Unknown operator", L.pos);
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // CONTEXT //////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     struct Symbol {
-    std::string declared_type;
-    NumberVariant value;
-};
+        std::string declared_type;
+        NumberVariant value;
+        bool is_const; 
+    };
 
-class Context {
-    std::unordered_map<std::string, Symbol> symbols;
-public:
-    std::string get_type_name(const NumberVariant& val) {
+    class Context {
+        std::vector<std::unordered_map<std::string, Symbol>> frames;
+    public:
+        Context() {
+            frames.emplace_back(); 
+        }
+        void push_scope() {
+            frames.emplace_back();
+        }
+        void pop_scope() {
+            if (frames.size() > 1) frames.pop_back();
+        }
+        void define(const std::string& name, const std::string& type, 
+                    NumberVariant val, bool is_const = false) {
+            frames.back()[name] = { type, val, is_const };
+        }
+        void set(const std::string& name, NumberVariant new_val, Position pos) {
+            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+                auto sym_it = it->find(name);
+                if (sym_it != it->end()) {
+                    if (sym_it->second.is_const) {
+                        throw RTError("Cannot assign to const variable '" + name + "'", pos);
+                    }
+                    std::string expected = sym_it->second.declared_type;
+                    std::string actual = get_type_name(new_val);
+                    if (expected != actual) {
+                        throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
+                    }
+                    sym_it->second.value = new_val;
+                    return;
+                }
+            }
+            throw RTError("Undefined variable: '" + name + "'", pos);
+        }
+        NumberVariant get(const std::string& name, Position pos) {
+            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+                auto sym_it = it->find(name);
+                if (sym_it != it->end()) {
+                    return sym_it->second.value;
+                }
+            }
+            throw RTError("Undefined variable: '" + name + "'", pos);
+        }
+        std::string get_type_name(const NumberVariant& val) {
             return std::visit([](auto&& arg) -> std::string {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>>)    return "int";
@@ -477,33 +588,6 @@ public:
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 return "unknown";
             }, val);
-        }
-
-        void define(const std::string& name, const std::string& type, NumberVariant val) {
-            symbols[name] = { type, val };
-        }
-
-        NumberVariant get(const std::string& name, Position pos) {
-            auto it = symbols.find(name);
-            
-            if (it != symbols.end()) {
-                return it->second.value;
-            }
-            throw RTError("Undefined variable: '" + name + "'", pos);
-        }
-
-        void set(const std::string& name, NumberVariant new_val, Position pos) {
-            if (symbols.find(name) == symbols.end()) {
-                throw RTError("Undefined variable: " + name, pos);
-            }
-            std::string expected = symbols[name].declared_type;
-            std::string actual   = get_type_name(new_val);
-
-            if (expected != actual) {
-                throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
-            }
-
-            symbols[name].value = new_val;
         }
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -526,6 +610,7 @@ public:
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
+        NumberVariant operator()(std::unique_ptr<IfNode>& node); 
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
     };
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
  | |      / /|__   _|
  | |____ / /_   | |  
   \_____|____|  |_|  
-        Quantum C (C⁴) v0.1
+        Quantum C (C⁴) v0.2
 
         The 4th Evolution of C
         More Powerful Than Explosives

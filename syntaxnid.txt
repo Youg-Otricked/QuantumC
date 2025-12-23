@@ -14,6 +14,10 @@ expr    : term ((PLUS|MINUS) term)*
 
 term    : factor ((MUL|DIV) factor)*
 
+logic   : factor ((*_EQ) factor)*
+
+and/or     
+
 factor  : (PLUS|MINUS) factor
         : power
         
@@ -24,5 +28,5 @@ atom    : INT|FLOAT|DOUBLE
 
 OR ||
 AND &&
-XOR $$
+XOR ^
 NOT !

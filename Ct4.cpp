@@ -159,6 +159,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::unique_ptr<AssignExprNode>>) {
                 return arg->print();
             }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
+                return arg->print();
+            }
             else if constexpr (std::is_same_v<T, std::monostate>) {
                 return "<empty>";
             }
@@ -215,6 +218,21 @@ namespace tkz {
     std::string BoolNode::print() {
         return "(" + this->tok.print() + ")";
     }
+    std::string IfNode::print() {
+        std::string res = "(if ";
+        if (init.has_value()) {
+            res += "init=" + printAny(init.value()) + "; ";
+        }
+        res += printAny(this->condition) + " " + this->then_branch->print();
+        for (auto &p : this->elif_branches) {
+            res += " elif " + printAny(p.first) + " " + p.second->print();
+        }
+        if (this->else_branch) {
+            res += " else " + this->else_branch->print();
+        }
+        res += ")";
+        return res;
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -228,33 +246,90 @@ namespace tkz {
         }
         return std::visit([this](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, std::monostate> || 
-                        std::is_same_v<T, std::unique_ptr<tkz::Error>> || 
+            if constexpr (std::is_same_v<T, std::monostate> ||
+                        std::is_same_v<T, std::unique_ptr<tkz::Error>> ||
                         std::is_same_v<T, ParseResult>) {
                 return AnyNode{std::monostate{}};
-            } 
-            else if constexpr (std::is_same_v<T, UnaryOpNode>) { 
+            }
+            else if constexpr (std::is_same_v<T, UnaryOpNode>) {
                 return AnyNode{std::make_unique<UnaryOpNode>(std::move(arg))};
             }
-            else {
+            else if constexpr (std::is_constructible_v<AnyNode, T>) {
                 return AnyNode{std::move(arg)};
             }
-        }, std::move(res_variant)); 
+            else {
+                return AnyNode{std::monostate{}};
+            }
+        }, std::move(res_variant));
     }
     
     Prs ParseResult::success(AnyNode node) {
         this->node = std::move(node);
-        return std::visit([](auto&& arg) -> tkz::Prs {
-            return tkz::Prs{std::move(arg)}; 
+        return std::visit([](auto&& arg) -> Prs {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return Prs{std::monostate{}};
+            } else if constexpr (std::is_same_v<T, NumberNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, StringNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, CharNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, BoolNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<UnaryOpNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<VarAccessNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<VarAssignNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<AssignExprNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<StatementsNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
+                return Prs{std::move(arg)};
+            } else {
+                // fallback to monostate for unknown/unsupported alternatives
+                return Prs{std::monostate{}};
+            }
         }, std::move(this->node));
     }
     Prs ParseResult::to_prs() {
         if (this->error) {
-            return tkz::Prs{std::move(this->error)}; 
+            return tkz::Prs{std::move(this->error)};
         }
-        
-        return std::visit([](auto&& arg) -> tkz::Prs {
-            return tkz::Prs{std::move(arg)};
+        return std::visit([](auto&& arg) -> Prs {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return Prs{std::monostate{}};
+            } else if constexpr (std::is_same_v<T, NumberNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, StringNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, CharNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, BoolNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<UnaryOpNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<VarAccessNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<VarAssignNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<AssignExprNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<StatementsNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
+                return Prs{std::move(arg)};
+            } else {
+                return Prs{std::monostate{}};
+            }
         }, std::move(this->node));
     }
     void ParseResult::failure(std::unique_ptr<Error> error) {
@@ -280,6 +355,20 @@ namespace tkz {
         }
         throw std::invalid_argument("Unknown TokenType string: " + str);
     }
+    struct ScopeGuard {
+        Context* ctx;
+        bool active;
+        ScopeGuard(Context* c) : ctx(c), active(false) {
+            if (ctx) {
+                ctx->push_scope();
+                active = true;
+            }
+        }
+        void dismiss() { active = false; }
+        ~ScopeGuard() {
+            if (ctx && active) ctx->pop_scope();
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSER ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -313,6 +402,199 @@ namespace tkz {
         }
         return this->current_tok;
     }
+    // EDIT FOR NEW STUFF VVVVVVVVVVVVVVVVVVVV
+    Prs Parser::if_expr() {
+        auto has_semicolon_before_closing_paren = [this]() -> bool {
+            size_t idx = static_cast<size_t>(std::distance(this->tokens.begin(), this->it));
+            int depth = 0;
+            for (size_t i = idx; i < this->tokens.size(); ++i) {
+                auto it = this->tokens.begin();
+                std::advance(it, i);   
+                const Token &t = *it;
+                if (t.type == TokenType::LPAREN) {
+                    ++depth;
+                } else if (t.type == TokenType::RPAREN) {
+                    if (depth == 0) {
+                        return false;
+                    }
+                    --depth;
+                } else if (t.type == TokenType::SEMICOLON && depth == 0) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        ParseResult res;
+        if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "if")) {
+            res.failure(std::make_unique<InvalidSyntaxError>("Expected 'if'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance(); 
+
+        if (this->current_tok.type != TokenType::LPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'if'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+
+        
+
+        std::optional<AnyNode> init_node = std::nullopt;
+
+        if (has_semicolon_before_closing_paren()) {
+            if (this->current_tok.type == TokenType::KEYWORD &&
+                (this->current_tok.value == "const" ||
+                this->current_tok.value == "int" ||
+                this->current_tok.value == "float" ||
+                this->current_tok.value == "double" ||
+                this->current_tok.value == "bool" ||
+                this->current_tok.value == "string" ||
+                this->current_tok.value == "char")) {
+
+                bool is_const = false;
+                Token tok = this->current_tok;
+                if (tok.value == "const") {
+                    is_const = true;
+                    this->advance();
+                    tok = this->current_tok;
+                    if (tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'const' in if-init", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                }
+                Token type_tok = tok;
+                this->advance();
+
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected identifier in if-init", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token var_name = this->current_tok;
+                this->advance();
+
+                AnyNode value;
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    value = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                } else {
+                    if (is_const) {
+                        res.failure(std::make_unique<InvalidSyntaxError>("const variables must be initialized in if-init", var_name.pos));
+                        return res.to_prs();
+                    }
+                    value = default_value_for_type(type_tok, var_name.pos);
+                }
+
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ';' after if-init declaration", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance(); 
+
+                init_node = AnyNode{std::make_unique<VarAssignNode>(is_const, type_tok, var_name, std::move(value))};
+            } else {
+                AnyNode expr_init = res.reg(this->assignment_expr());
+                if (res.error) return res.to_prs();
+
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ';' after if-init expression", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance(); 
+                init_node = std::move(expr_init);
+            }
+        }
+
+        AnyNode condition = res.reg(this->logical_or());
+        if (res.error) return res.to_prs();
+
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after condition", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance(); 
+
+        auto parse_block = [&](std::unique_ptr<StatementsNode>& out_block) -> bool {
+            if (this->current_tok.type == TokenType::LBRACE) {
+                this->advance(); 
+                std::vector<AnyNode> stmts;
+                while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                    Prs st = this->statement();
+                    if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                        res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                        return false;
+                    }
+                    AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
+                        using T = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_constructible_v<AnyNode, T>) {
+                            return AnyNode(std::move(arg));
+                        }
+                        return std::monostate{};
+                    }, std::move(st));
+                    stmts.push_back(std::move(any_stmt));
+                }
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected '}' after block", this->current_tok.pos));
+                    return false;
+                }
+                this->advance();
+                out_block = std::make_unique<StatementsNode>(std::move(stmts), true);
+                return true;
+            } else {
+                Prs st = this->statement();
+                if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                    res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                    return false;
+                }
+                AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_constructible_v<AnyNode, T>) {
+                        return AnyNode(std::move(arg));
+                    }
+                    return std::monostate{};
+                }, std::move(st));
+                std::vector<AnyNode> stmts;
+                stmts.push_back(std::move(any_stmt));
+                out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
+                return true;
+            }
+        };
+
+        std::unique_ptr<StatementsNode> then_branch;
+        if (!parse_block(then_branch)) return res.to_prs();
+
+        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elifs;
+        std::unique_ptr<StatementsNode> else_branch = nullptr;
+
+        while (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "else") {
+            this->advance(); 
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "if") {
+                this->advance();
+                if (this->current_tok.type != TokenType::LPAREN) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'else if'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                AnyNode elif_cond = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                if (this->current_tok.type != TokenType::RPAREN) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after 'else if' condition", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                std::unique_ptr<StatementsNode> elif_block;
+                if (!parse_block(elif_block)) return res.to_prs();
+                elifs.emplace_back(std::move(elif_cond), std::move(elif_block));
+                continue;
+            } else {
+                if (!parse_block(else_branch)) return res.to_prs();
+                break;
+            }
+        }
+
+        auto ifnode = std::make_unique<IfNode>(std::move(init_node), std::move(condition), std::move(then_branch), std::move(elifs), std::move(else_branch));
+        return res.success(std::move(ifnode));
+    }
     Prs Parser::atom() {
         ParseResult res = ParseResult();
         Token tok = this->current_tok;
@@ -335,7 +617,7 @@ namespace tkz {
             return res.success(BoolNode(tok));
         } else if (tok.type == TokenType::LPAREN) {
             this->advance();
-            AnyNode any_expr = res.reg(this->expr());
+            AnyNode any_expr = res.reg(this->logical_or()); 
             if (res.error) return res.to_prs();
             Prs expr = std::visit([](auto&& arg) -> Prs {
                 return std::forward<decltype(arg)>(arg);
@@ -365,6 +647,7 @@ namespace tkz {
         ));
         return res.to_prs(); 
     }
+    
     Prs Parser::power() {
         ParseResult res;
         AnyNode left = res.reg(this->atom());
@@ -373,6 +656,7 @@ namespace tkz {
         if (this->current_tok.type == TokenType::POWER) {
             Token op_tok = this->current_tok;
             this->advance();
+
             AnyNode right = res.reg(this->factor()); 
             if (res.error) return res.to_prs();
             left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
@@ -385,9 +669,11 @@ namespace tkz {
         Token tok = this->current_tok;
 
         if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS ||
-            tok.type == TokenType::INCREMENT || tok.type == TokenType::DECREMENT) {
+            tok.type == TokenType::INCREMENT || tok.type == TokenType::DECREMENT ||
+            tok.type == TokenType::NOT) {
+            
             this->advance();
-            AnyNode factor_node = res.reg(this->factor());  
+            AnyNode factor_node = res.reg(this->factor());
             if (res.error) return res.to_prs();
             return res.success(std::make_unique<UnaryOpNode>(tok, std::move(factor_node)));
         }
@@ -395,7 +681,65 @@ namespace tkz {
         return this->power();
     }
     Prs Parser::term() {
-        return this->bin_op([this]() { return this->factor(); }, TokenType::DIV, TokenType::MUL);
+        return this->bin_op([this]() { return this->factor(); }, 
+                            {TokenType::DIV, 
+                            TokenType::MUL, 
+                            TokenType::MOD});
+    }
+    Prs Parser::logical_and() {
+        ParseResult res;
+        AnyNode left = res.reg(this->comparison());
+        if (res.error) return res.to_prs();
+
+        while (this->current_tok.type == TokenType::AND) {
+            Token op_tok = this->current_tok;
+            this->advance();
+            AnyNode right = res.reg(this->comparison());
+            if (res.error) return res.to_prs();
+            
+            left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+        }
+
+        return res.success(std::move(left));
+    }
+
+    Prs Parser::logical_or() {
+        ParseResult res;
+        AnyNode left = res.reg(this->logical_and());
+        if (res.error) return res.to_prs();
+
+        while (this->current_tok.type == TokenType::OR) {
+            Token op_tok = this->current_tok;
+            this->advance();
+            AnyNode right = res.reg(this->logical_and());
+            if (res.error) return res.to_prs();
+            
+            left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+        }
+
+        return res.success(std::move(left));
+    }
+    Prs Parser::comparison() {
+        ParseResult res;
+        AnyNode left = res.reg(this->expr());
+        if (res.error) return res.to_prs();
+
+        while (this->current_tok.type == TokenType::EQ_TO ||
+            this->current_tok.type == TokenType::NOT_EQ ||
+            this->current_tok.type == TokenType::LESS ||
+            this->current_tok.type == TokenType::LESS_EQ ||
+            this->current_tok.type == TokenType::MORE ||
+            this->current_tok.type == TokenType::MORE_EQ) {
+            
+            Token op_tok = this->current_tok;
+            this->advance();
+            AnyNode right = res.reg(this->expr());
+            if (res.error) return res.to_prs();
+            
+            left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+        }
+
+        return res.success(std::move(left));
     }
     Prs Parser::expr() {
         ParseResult res;
@@ -406,6 +750,7 @@ namespace tkz {
             (this->current_tok.type == TokenType::PLUS || this->current_tok.type == TokenType::MINUS)) {
             Token op_tok = this->current_tok;
             this->advance();
+
             AnyNode right = res.reg(this->term());
             if (res.error) return res.to_prs();
             left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
@@ -413,12 +758,13 @@ namespace tkz {
 
         return res.success(std::move(left));
     }
-    Prs Parser::bin_op(std::function<Prs()> func, TokenType type1, TokenType type2) {
+    Prs Parser::bin_op(std::function<Prs()> func, 
+                   std::initializer_list<TokenType> ops) {
         ParseResult res;
         AnyNode left = res.reg(func());
         if (res.error) return res.to_prs();
 
-        while (this->current_tok.type == type1 || this->current_tok.type == type2) {
+        while (std::find(ops.begin(), ops.end(), this->current_tok.type) != ops.end()) {
             Token op_tok = this->current_tok;
             this->advance();
             
@@ -432,11 +778,14 @@ namespace tkz {
     }
     Prs Parser::assignment_expr() {
         ParseResult res;
-
-        AnyNode left = res.reg(this->expr());
+        AnyNode left = res.reg(this->logical_or());
         if (res.error) return res.to_prs();
-
-        if (this->current_tok.type == TokenType::EQ) {
+        if (this->current_tok.type == TokenType::EQ ||
+            this->current_tok.type == TokenType::PLUS_EQ ||
+            this->current_tok.type == TokenType::MINUS_EQ ||
+            this->current_tok.type == TokenType::MUL_EQ ||
+            this->current_tok.type == TokenType::DIV_EQ ||
+            this->current_tok.type == TokenType::MOD_EQ) {
             if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(left)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Left side of assignment must be a variable",
@@ -446,17 +795,42 @@ namespace tkz {
             }
 
             Token var = std::get<std::unique_ptr<VarAccessNode>>(left)->var_name_tok;
-            this->advance();  
+            Token op_tok = this->current_tok;
+            this->advance();
             AnyNode right;
-            auto next_it = std::next(it);
-            if (this->current_tok.type == TokenType::IDENTIFIER &&
-                next_it != tokens.end() && next_it->type == TokenType::EQ) {
-                right = res.reg(this->assignment_expr());
+            if (op_tok.type == TokenType::EQ) {
+                auto next_it = std::next(it);
+                if (this->current_tok.type == TokenType::IDENTIFIER &&
+                    next_it != tokens.end() && next_it->type == TokenType::EQ) {
+                    right = res.reg(this->assignment_expr());
+                } else {
+                    right = res.reg(this->expr());
+                }
             } else {
                 right = res.reg(this->expr());
             }
-
+            
             if (res.error) return res.to_prs();
+
+            if (op_tok.type != TokenType::EQ) {
+                TokenType binop_type;
+                if (op_tok.type == TokenType::PLUS_EQ) binop_type = TokenType::PLUS;
+                else if (op_tok.type == TokenType::MINUS_EQ) binop_type = TokenType::MINUS;
+                else if (op_tok.type == TokenType::MUL_EQ) binop_type = TokenType::MUL;
+                else if (op_tok.type == TokenType::DIV_EQ) binop_type = TokenType::DIV;
+                else if (op_tok.type == TokenType::MOD_EQ) binop_type = TokenType::MOD;
+                
+                Token binop_tok(binop_type, "", op_tok.pos);
+                AnyNode var_access = std::make_unique<VarAccessNode>(var);
+                AnyNode expanded = std::make_unique<BinOpNode>(
+                    std::move(var_access), 
+                    binop_tok, 
+                    std::move(right)
+                );
+                
+                return res.success(std::make_unique<AssignExprNode>(var, std::move(expanded)));
+            }
+
             return res.success(std::make_unique<AssignExprNode>(var, std::move(right)));
         }
 
@@ -465,12 +839,32 @@ namespace tkz {
     Prs Parser::statement() {
         ParseResult res;
         Token tok = this->current_tok;
-
+        if (tok.type == TokenType::KEYWORD && tok.value == "if") {
+            return this->if_expr();
+        }
+        // Variable declaration: int x = 5; or const int x = 5;
         if (tok.type == TokenType::KEYWORD) {
+            bool is_const = false;
+            
+            // Check for const
+            if (tok.value == "const") {
+                is_const = true;
+                this->advance();
+                tok = this->current_tok;
+                
+                if (tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected type after 'const'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+            }
+            
             Token type_tok = tok;
             this->advance();
+            
             if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(std::make_unique<InvalidSyntaxError>("Expected identifier", this->current_tok.pos));
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected identifier", this->current_tok.pos));
                 return res.to_prs();
             }
 
@@ -480,24 +874,38 @@ namespace tkz {
             AnyNode value;
             if (this->current_tok.type == TokenType::EQ) {
                 this->advance();
-                value = res.reg(this->expr());
+                value = res.reg(this->logical_or());
                 if (res.error) return res.to_prs();
             } else {
+                if (is_const) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "const variables must be initialized", var_name.pos));
+                    return res.to_prs();
+                }
                 value = default_value_for_type(type_tok, var_name.pos);
             }
+            
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
                 return res.to_prs();
             }
 
             this->advance(); 
-            return res.success(std::make_unique<VarAssignNode>(type_tok, var_name, std::move(value)));
+            return res.success(std::make_unique<VarAssignNode>(
+                is_const, type_tok, var_name, std::move(value)));
         }
 
-        // Handle assignments: var = expr;
+        // Assignment or compound assignment: x = 5; or x += 5;
         if (tok.type == TokenType::IDENTIFIER) {
             auto next_it = std::next(it);
-            if (next_it != tokens.end() && next_it->type == TokenType::EQ) {
+            if (next_it != tokens.end() && 
+                (next_it->type == TokenType::EQ ||
+                next_it->type == TokenType::PLUS_EQ ||
+                next_it->type == TokenType::MINUS_EQ ||
+                next_it->type == TokenType::MUL_EQ ||
+                next_it->type == TokenType::DIV_EQ ||
+                next_it->type == TokenType::MOD_EQ)) {
+                
                 AnyNode assign_node = res.reg(this->assignment_expr());
                 if (res.error) return res.to_prs();
 
@@ -506,13 +914,13 @@ namespace tkz {
                     return res.to_prs();
                 }
 
-                this->advance(); 
+                this->advance();
                 return res.success(std::move(assign_node));
             }
         }
 
-        // Expression statement: expr;
-        AnyNode node = res.reg(this->expr());
+        // Expression statement: 2 + 3;
+        AnyNode node = res.reg(this->logical_or()); 
         if (res.error) return res.to_prs();
 
         if (this->current_tok.type == TokenType::SEMICOLON) {
@@ -578,7 +986,21 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////
 // INTERPRETER //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
-
+bool is_truthy(const NumberVariant& val) {
+    return std::visit([](auto&& v) -> bool {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, BoolValue>) {
+            return v.value;
+        } else if constexpr (std::is_same_v<T, Number<int>> || 
+                             std::is_same_v<T, Number<float>> || 
+                             std::is_same_v<T, Number<double>>) {
+            return v.value != 0;
+        } else if constexpr (std::is_same_v<T, StringValue>) {
+            return !v.value.empty();
+        }
+        return false;
+    }, val);
+}
     NumberVariant Interpreter::process(AnyNode& node) {
         return std::visit(*this, node);
     }
@@ -603,7 +1025,7 @@ namespace tkz {
             throw RTError("Type mismatch: expected bool literal", node->var_name_tok.pos);
         }
         
-        context->define(node->var_name_tok.value, declaredType, value);
+        context->define(node->var_name_tok.value, declaredType, value, node->is_const);
         return value;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
@@ -662,7 +1084,19 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
         if (!node) return Number<int>(0);
-        
+        if (node->op_tok.type == TokenType::AND) {
+            NumberVariant left = this->process(node->left_node);
+            if (!is_truthy(left)) return BoolValue("false");
+                NumberVariant right = this->process(node->right_node);
+                return BoolValue(is_truthy(right) ? "true" : "false");
+        }
+    
+        if (node->op_tok.type == TokenType::OR) {
+            NumberVariant left = this->process(node->left_node);
+            if (is_truthy(left)) return BoolValue("true");
+                NumberVariant right = this->process(node->right_node);
+                return BoolValue(is_truthy(right) ? "true" : "false");
+        }
         NumberVariant left = this->process(node->left_node);
         NumberVariant right = this->process(node->right_node);
 
@@ -727,7 +1161,11 @@ namespace tkz {
     NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
         if (!node) return Number<int>(0);
         NumberVariant number = this->process(node->node);
-
+        if (node->op_tok.type == TokenType::NOT) {
+            return std::visit([](const auto& n) -> NumberVariant {
+                return BoolValue(is_truthy(n) ? "false" : "true");
+            }, number);
+        }
         return std::visit([&node](const auto& n) -> NumberVariant {
             using T = std::decay_t<decltype(n)>;
             if constexpr (!std::is_same_v<T, StringValue> && !std::is_same_v<T, std::monostate> && !std::is_same_v<T, CharValue> && !std::is_same_v<T, BoolValue>) {
@@ -751,6 +1189,48 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::monostate) {
         std::cerr << "Empty AST node encountered\n";
+        return Number<int>(0);
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<IfNode>& node) {
+        if (!node) return Number<int>(0);
+
+        bool created_init_scope = false;
+        ScopeGuard guard(this->context); 
+        if (!node->init.has_value()) {
+            guard.dismiss();
+        } else {
+            created_init_scope = true;
+            this->process(node->init.value());;
+        }
+
+        NumberVariant cond_val = this->process(node->condition);
+        if (is_truthy(cond_val)) {
+            NumberVariant last = Number<int>(0);
+            for (auto& stmt : node->then_branch->statements) {
+                last = this->process(stmt);
+            }
+            return last;
+        }
+
+        for (auto &p : node->elif_branches) {
+            NumberVariant ev = this->process(p.first);
+            if (is_truthy(ev)) {
+                NumberVariant last = Number<int>(0);
+                for (auto& stmt : p.second->statements) {
+                    last = this->process(stmt);
+                }
+                return last;
+            }
+        }
+
+        if (node->else_branch) {
+            NumberVariant last = Number<int>(0);
+            for (auto& stmt : node->else_branch->statements) {
+                last = this->process(stmt);
+            }
+            return last;
+        }
+
         return Number<int>(0);
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -870,8 +1350,8 @@ namespace tkz {
         if (id == "int" || id == "float" || id == "double" || id == "bool" || 
             id == "string" || id == "qbool" || id == "void" || id == "char" ||
             id == "if" || id == "else" || id == "while" || id == "for" || 
-            id == "return" || id == "qif" || id == "qswitch" || 
-            id == "class" || id == "struct" || id == "enum") {
+            id == "return" || id == "qif" || id == "qswitch" || id == "const" ||
+            id == "class" || id == "struct" || id == "enum" || id == "long" || id == "short") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -1000,6 +1480,7 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::MUL, "", start_pos));
                             break;
                         }
+                        break;
                     case '/':
                         this->advance();
                         if (this->current_char == '/') {
@@ -1037,15 +1518,17 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::EQ, "", start_pos));
                             break;
                         }
+                        break;
                     case '!':
                         this->advance();
                         if (current_char == '=') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::NOT_EQ, "==", start_pos));
+                            tokens.push_back(Token(TokenType::NOT_EQ, "!=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::NOT, "", start_pos));
+                            tokens.push_back(Token(TokenType::NOT, "!", start_pos));
                             break;
                         }
+                        break;
                     case '>':
                         this->advance();
                         if (current_char == '=') {
@@ -1055,6 +1538,7 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::MORE, "", start_pos));
                             break;
                         }
+                        break;
                     case '<':
                         this->advance();
                         if (current_char == '=') {
@@ -1064,12 +1548,21 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::LESS, "", start_pos));
                             break;
                         }
+                        break;
                     case '(':
                         tokens.push_back(Token(TokenType::LPAREN, "", start_pos));
                         this->advance();
                         break;
                     case ')':
                         tokens.push_back(Token(TokenType::RPAREN, "", start_pos));
+                        this->advance();
+                        break;
+                    case '{':
+                        tokens.push_back(Token(TokenType::LBRACE, "{", start_pos));
+                        this->advance();
+                        break;
+                    case '}':
+                        tokens.push_back(Token(TokenType::RBRACE, "}", start_pos));
                         this->advance();
                         break;
                     case '%':
@@ -1081,6 +1574,27 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::MOD, "", start_pos));
                             break;
                         }
+                        break;
+                    case '&':
+                        this->advance();
+                        if (current_char == '&') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::AND, "&&", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::DEF, "&", start_pos));
+                            break;
+                        }
+                        break;
+                    case '|':
+                        this->advance();
+                        if (current_char == '|') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::OR, "||", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::DEF, "|", start_pos));
+                            break;
+                        }
+                        break;
                     case ';':
                         tokens.push_back(Token(TokenType::SEMICOLON, "", start_pos));
                         this->advance();
