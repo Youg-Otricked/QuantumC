@@ -138,8 +138,8 @@ c3;
 // SECTION 14: MIXED FLOAT & INT OPERATIONS
 // --------------------------------------------------
 int start = 10;
-float end = start / 4.0f;   // 2.5
-double big_end = end * 1000000;
+int end = start * 10;
+double big_end = end * 1000000.0;
 big_end;
 
 // SECTION 15: COMMENT STRESS

@@ -108,6 +108,21 @@ namespace tkz {
         DECREMENT,
         IDENTIFIER,
         KEYWORD,
+        PLUS_EQ,
+        MINUS_EQ,
+        MUL_EQ,
+        DIV_EQ,
+        MOD,
+        MOD_EQ,
+        EQ_TO,
+        NOT_EQ,
+        MORE,
+        LESS,
+        MORE_EQ,
+        LESS_EQ,
+        AND,
+        OR,
+        NOT,
         EQ,
         EOFT
     };
@@ -405,25 +420,29 @@ class StringValue {
 // CONTEXT //////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     struct Symbol {
-        std::string declared_type;
-        NumberVariant value;
-    };
+    std::string declared_type;
+    NumberVariant value;
+};
 
-    class Context {
-        std::unordered_map<std::string, Symbol> symbols;
-    public:
-        std::string get_type_name(const NumberVariant& val) {
+class Context {
+    std::unordered_map<std::string, Symbol> symbols;
+public:
+    std::string get_type_name(const NumberVariant& val) {
             return std::visit([](auto&& arg) -> std::string {
                 using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, Number<int>>) return "int";
-                if constexpr (std::is_same_v<T, StringValue>) return "string";
-                if constexpr (std::is_same_v<T, CharValue>) return "char"; // Add this!
+                if constexpr (std::is_same_v<T, Number<int>>)    return "int";
+                if constexpr (std::is_same_v<T, Number<float>>)  return "float";
+                if constexpr (std::is_same_v<T, Number<double>>) return "double";
+                if constexpr (std::is_same_v<T, StringValue>)    return "string";
+                if constexpr (std::is_same_v<T, CharValue>)      return "char";
                 return "unknown";
             }, val);
         }
+
         void define(const std::string& name, const std::string& type, NumberVariant val) {
-            symbols[name] = {type, val};
+            symbols[name] = { type, val };
         }
+
         NumberVariant get(const std::string& name, Position pos) {
             auto it = symbols.find(name);
             if (it != symbols.end()) {
@@ -431,17 +450,18 @@ class StringValue {
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
         }
+
         void set(const std::string& name, NumberVariant new_val, Position pos) {
             if (symbols.find(name) == symbols.end()) {
                 throw RTError("Undefined variable: " + name, pos);
             }
             std::string expected = symbols[name].declared_type;
-            std::string actual = this->get_type_name(new_val); // Helper to get "int", "string", etc.
+            std::string actual   = get_type_name(new_val);
 
             if (expected != actual) {
-                throw RTError("Type Mismatch: Cannot assign " + actual + " to variable of type " + expected, pos);
+                throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
             }
-            
+
             symbols[name].value = new_val;
         }
     };

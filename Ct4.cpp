@@ -315,7 +315,6 @@ namespace tkz {
         ParseResult res;
         Token tok = this->current_tok;
 
-        // Handle unary operators (including ++ and --)
         if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS ||
             tok.type == TokenType::INCREMENT || tok.type == TokenType::DECREMENT) {
             this->advance();
@@ -334,7 +333,6 @@ namespace tkz {
         AnyNode left = res.reg(this->term());
         if (res.error) return res.to_prs();
 
-        // Only keep parsing + and -, but never consume a semicolon
         while (this->current_tok.type != TokenType::SEMICOLON &&
             (this->current_tok.type == TokenType::PLUS || this->current_tok.type == TokenType::MINUS)) {
             Token op_tok = this->current_tok;
@@ -366,13 +364,10 @@ namespace tkz {
     Prs Parser::assignment_expr() {
         ParseResult res;
 
-        // Parse the left side (this calls expr but we ensure expr won't pass semicolon)
         AnyNode left = res.reg(this->expr());
         if (res.error) return res.to_prs();
 
-        // If the next token is '=', create an AssignExpr
         if (this->current_tok.type == TokenType::EQ) {
-            // Left must be a variable
             if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(left)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Left side of assignment must be a variable",
@@ -382,16 +377,14 @@ namespace tkz {
             }
 
             Token var = std::get<std::unique_ptr<VarAccessNode>>(left)->var_name_tok;
-            this->advance();  // consume '='
-
-            // Right side: if another '=' follows on an identifier, recurse
+            this->advance();  
             AnyNode right;
             auto next_it = std::next(it);
             if (this->current_tok.type == TokenType::IDENTIFIER &&
                 next_it != tokens.end() && next_it->type == TokenType::EQ) {
                 right = res.reg(this->assignment_expr());
             } else {
-                right = res.reg(this->expr());  // expr that stops at semicolon
+                right = res.reg(this->expr());
             }
 
             if (res.error) return res.to_prs();
@@ -523,27 +516,23 @@ namespace tkz {
         return std::visit(*this, node);
     }
 
-    NumberVariant Interpreter::operator()(NumberNode& node) {
-        const std::string& s = node.tok.value;
+    NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
+        NumberVariant value = this->process(node->value_node);
 
-        try {
-            if (!s.empty() && (s.back() == 'f' || s.back() == 'F')) {
-                float val = std::stof(s);
-                return Number<float>(val).set_pos(node.tok.pos);
-            }
-            
-            if (s.find('.') != std::string::npos) {
-                double val = std::stod(s);
-                return Number<double>(val).set_pos(node.tok.pos);
-            }
-            
-            int val = std::stoi(s);
-            return Number<int>(val).set_pos(node.tok.pos);
-        } catch (const std::out_of_range& e) {
-        throw RTError(
-            "Number is too large (Overflow)", node.tok.pos
-        );
-        return Number<int>(0);}
+        std::string declaredType = node->type_tok.value;
+        std::string actualType   = context->get_type_name(value);
+
+        // strict check for float vs double
+        if (declaredType == "float" && actualType != "float") {
+            throw RTError("Type mismatch: expected float literal", node->var_name_tok.pos);
+        }
+        if (declaredType == "double" && (actualType != "float" && actualType != "double")) {
+            throw RTError("Type mismatch: expected double literal", node->var_name_tok.pos);
+        }
+
+        // now define normally
+        context->define(node->var_name_tok.value, declaredType, value);
+        return value;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
         NumberVariant last_result = Number<int>(0);
@@ -555,17 +544,25 @@ namespace tkz {
         return last_result;
     }
     
-    NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
-        NumberVariant value = this->process(node->value_node);
+    NumberVariant tkz::Interpreter::operator()(tkz::NumberNode& node) {
+        const std::string& s = node.tok.value;
 
-        if (node->type_tok.type == TokenType::IDENTIFIER) {
-            context->set(node->var_name_tok.value, value, node->var_name_tok.pos);
-        } 
-        else {
-            context->define(node->var_name_tok.value, node->type_tok.value, value);
+        try {
+            if (node.tok.type == TokenType::FLOAT) {
+                float val = std::stof(s);
+                return Number<float>(val).set_pos(node.tok.pos);
+            }
+            if (s.find('.') != std::string::npos) {
+                double val = std::stod(s);
+                return Number<double>(val).set_pos(node.tok.pos);
+            }
+
+            int val = std::stoi(s);
+            return Number<int>(val).set_pos(node.tok.pos);
+
+        } catch (const std::out_of_range&) {
+            throw RTError("Number is too large or too small (Overflow/Underflow)", node.tok.pos);
         }
-        
-        return value;
     }
 
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAccessNode>& node) {
@@ -884,8 +881,11 @@ namespace tkz {
                     case '+':
                         this->advance();
                         if (current_char == '+') {
-                            advance();
+                            this->advance();
                             tokens.push_back(Token(TokenType::INCREMENT, "++", start_pos));
+                        } else if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::PLUS_EQ, "+=", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::PLUS, "", start_pos));
                         }
@@ -894,8 +894,11 @@ namespace tkz {
                     case '-':
                         this->advance();
                         if (current_char == '-') {
-                            advance();
+                            this->advance();
                             tokens.push_back(Token(TokenType::DECREMENT, "--", start_pos));
+                        } else if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::MINUS_EQ, "-=", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::MINUS, "", start_pos));
                         }
@@ -903,12 +906,16 @@ namespace tkz {
                     case '*':
                         this->advance();
                         if (current_char == '*') {
-                            advance();
+                            this->advance();
                             tokens.push_back(Token(TokenType::POWER, "**", start_pos));
                             break;
+                        } else if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::MUL_EQ, "*=", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::MUL, "", start_pos));
+                            break;
                         }
-                        tokens.push_back(Token(TokenType::MUL, "", start_pos));
-                        break;
                     case '/':
                         this->advance();
                         if (this->current_char == '/') {
@@ -930,14 +937,31 @@ namespace tkz {
                                 }
                             }
                             continue;
+                        } else if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::DIV_EQ, "/=", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::DIV, "", start_pos));
                         }
                         break;
                     case '=':
                         this->advance();
-                        tokens.push_back(Token(TokenType::EQ, "", start_pos));
-                        break;
+                        if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::EQ_TO, "==", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::EQ, "", start_pos));
+                            break;
+                        }
+                    case '!':
+                        this->advance();
+                        if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::NOT_EQ, "==", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::NOT, "", start_pos));
+                            break;
+                        }
                     case '(':
                         tokens.push_back(Token(TokenType::LPAREN, "", start_pos));
                         this->advance();
@@ -946,6 +970,15 @@ namespace tkz {
                         tokens.push_back(Token(TokenType::RPAREN, "", start_pos));
                         this->advance();
                         break;
+                    case '%':
+                        this->advance();
+                        if (current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::MOD_EQ, "%=", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::MOD, "", start_pos));
+                            break;
+                        }
                     case ';':
                         tokens.push_back(Token(TokenType::SEMICOLON, "", start_pos));
                         this->advance();
