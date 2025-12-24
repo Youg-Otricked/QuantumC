@@ -1,0 +1,2 @@
+# This will home my custom programing language, QuantumC or C^4. sugest features in the issues, and ignore the EMSDK embeded repo, i was going to compile it to wasm after finshing
+### if you want to use this language, check out the vscode extention for syntax highlighting!
