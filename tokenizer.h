@@ -45,6 +45,12 @@ namespace tkz {
     class AssignExprNode;
     class BoolNode;
     class IfNode;
+    class SwitchNode;
+    class BreakNode;
+    class WhileNode;
+    class ForNode;
+    //class ForeachNode;
+    class ContinueNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -56,7 +62,14 @@ namespace tkz {
         std::unique_ptr<VarAccessNode>,
         std::unique_ptr<VarAssignNode>,
         std::unique_ptr<AssignExprNode>,
-        std::unique_ptr<IfNode>
+        std::unique_ptr<IfNode>,
+        std::unique_ptr<StatementsNode>,
+        std::unique_ptr<SwitchNode>,
+        std::unique_ptr<BreakNode>,
+        std::unique_ptr<WhileNode>,     // new
+        std::unique_ptr<ForNode>,       // new
+       // std::unique_ptr<ForeachNode>,   // maybe later
+        std::unique_ptr<ContinueNode>   // new
     >;
     class StatementsNode {
     public:
@@ -133,10 +146,16 @@ namespace tkz {
         OR,
         NOT,
         EQ,
+        SWITCH,
+        CASE,
+        DEFAULT,
         IF,
         ELSE,
         LBRACE,
         RBRACE,
+        COLON,
+        BREAK,
+        FUNC,
         EOFT
     };
     TokenType stringToTokenType(const std::string& str);
@@ -241,10 +260,13 @@ namespace tkz {
         std::string print();
     };
     class UnaryOpNode {
-        public:
+    public:
         Token op_tok;
         AnyNode node;
-        UnaryOpNode(Token op_tok, AnyNode node);
+        bool is_postfix;   // NEW
+
+        UnaryOpNode(Token op, AnyNode n, bool postfix = false)
+            : op_tok(op), node(std::move(n)), is_postfix(postfix) {}
         std::string print();
     };
     class AssignExprNode {
@@ -282,11 +304,11 @@ namespace tkz {
     };
     class IfNode {
     public:
-        std::optional<AnyNode> init; // optional init statement (e.g., "int a = 5")
+        std::optional<AnyNode> init;
         AnyNode condition;
         std::unique_ptr<StatementsNode> then_branch;
         std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elif_branches;
-        std::unique_ptr<StatementsNode> else_branch; // nullptr if none
+        std::unique_ptr<StatementsNode> else_branch; 
 
         IfNode(std::optional<AnyNode> init_node,
             AnyNode cond,
@@ -301,11 +323,83 @@ namespace tkz {
 
         std::string print();
     };
+    struct CaseLabel {
+        AnyNode expr;
+    };
+
+    class SwitchNode {
+    public:
+        AnyNode value;
+        struct Section {
+            std::vector<CaseLabel> cases;
+            bool is_default = false;
+            std::unique_ptr<StatementsNode> body;
+        };
+        std::vector<Section> sections;
+
+        std::string print() {return printAny(value);}
+    };
+
+    class BreakNode {
+        public:
+            Token tok;
+            BreakNode(Token t) : tok(std::move(t)) {}
+            std::string print() { return "(break)"; }
+        };
+    class WhileNode {
+    public:
+        AnyNode condition;
+        std::unique_ptr<StatementsNode> body;
+
+        WhileNode(AnyNode cond, std::unique_ptr<StatementsNode> b)
+            : condition(std::move(cond)), body(std::move(b)) {}
+
+        std::string print() {
+            return "(while " + printAny(condition) + " " + body->print() + ")";
+        }
+    };
+
+    class ForNode {
+    public:
+        std::optional<AnyNode> init;
+        AnyNode condition;
+        std::optional<AnyNode> update;
+        std::unique_ptr<StatementsNode> body;
+
+        ForNode(std::optional<AnyNode> i,
+                AnyNode cond,
+                std::optional<AnyNode> u,
+                std::unique_ptr<StatementsNode> b)
+            : init(std::move(i)),
+            condition(std::move(cond)),
+            update(std::move(u)),
+            body(std::move(b)) {}
+
+        std::string print() {
+        std::string res = "(for ";
+        if (this->init.has_value()) {
+            res += "init=" + printAny(this->init.value()) + "; ";
+        }
+        res += printAny(this->condition) + "; ";
+        if (update.has_value()) {
+            res += printAny(update.value());
+        }
+        res += ")";
+        return res;
+        }
+    };
+
+    class ContinueNode {
+    public:
+        Token tok;
+        ContinueNode(Token t) : tok(std::move(t)) {}
+        std::string print() { return "(continue)"; }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
-    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>>;
+    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -351,14 +445,64 @@ namespace tkz {
                    std::initializer_list<TokenType> ops);
         Prs logical_and();
         Prs logical_or();
+        Prs switch_stmt();
         Aer parse();
         Prs statement();
+        Prs while_stmt();
+        Prs for_stmt();
+        bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
+            if (this->current_tok.type == TokenType::LBRACE) {
+                this->advance();
+                std::vector<AnyNode> stmts;
+                while (this->current_tok.type != TokenType::RBRACE &&
+                    this->current_tok.type != TokenType::EOFT) {
+                    Prs st = this->statement();
+                    if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                        res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                        return false;
+                    }
+                    AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
+                        using T = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_constructible_v<AnyNode, T>) {
+                            return AnyNode(std::move(arg));
+                        }
+                        return std::monostate{};
+                    }, std::move(st));
+                    stmts.push_back(std::move(any_stmt));
+                }
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected '}' after block", this->current_tok.pos));
+                    return false;
+                }
+                this->advance();
+                out_block = std::make_unique<StatementsNode>(std::move(stmts), true);
+                return true;
+            } else {
+                Prs st = this->statement();
+                if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                    res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                    return false;
+                }
+                AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_constructible_v<AnyNode, T>) {
+                        return AnyNode(std::move(arg));
+                    }
+                    return std::monostate{};
+                }, std::move(st));
+                std::vector<AnyNode> stmts;
+                stmts.push_back(std::move(any_stmt));
+                out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
+                return true;
+            }
+        }
         Prs assignment_expr();
         
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+
 class CharValue {
 public:
     char value;
@@ -478,7 +622,14 @@ class StringValue {
         }
 
     };
+    struct ExecResult {
+        NumberVariant value;
+        bool did_break = false;
+        bool did_continue = false;
 
+        ExecResult(NumberVariant v = Number<int>(0), bool b = false, bool c = false)
+            : value(std::move(v)), did_break(b), did_continue(c) {}
+    };
     
 
     template <typename T, typename U>
@@ -610,7 +761,16 @@ class StringValue {
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
-        NumberVariant operator()(std::unique_ptr<IfNode>& node); 
+        NumberVariant operator()(std::unique_ptr<IfNode>& node);
+        NumberVariant operator()(std::unique_ptr<SwitchNode>& node); 
+        NumberVariant operator()(std::unique_ptr<BreakNode>& node); 
+        NumberVariant operator()(std::unique_ptr<ContinueNode>& node);
+        NumberVariant operator()(std::unique_ptr<WhileNode>& node);
+        NumberVariant operator()(std::unique_ptr<ForNode>& node);
+        ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
+        ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
+        ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);
+        ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
     };
 //////////////////////////////////////////////////////////////////////////////////////////////

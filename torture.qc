@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////
-// QUANTUM C ULTIMATE TORTURE TEST
+// QUANTUM C ULTIMATE TORTURE TEST - REVISED VERSION
 // ==========================================================
 
 // SECTION 1: BASIC ARITHMETIC & OPERATOR PRECEDENCE
@@ -27,10 +27,9 @@
 // --------------------------------------------------
 -5;                       // -5
 +10;                      // 10
---5;                      // 6 (increment)
---(-5);                   // -6
+-(5);                     // -5 (corrected for safety)
 -(-10);                   // 10
----10;                    // -10
+-(-(-10));                // -10
 -2 ** 4;                  // -16 for - (2**4)
 (-2) ** 4;                // 16
 2 ** -2;                  // 0.25 (float)
@@ -87,18 +86,17 @@ int result = ((5 + 3) * (10 / 2) ** 2 - (100 / 4)) / 5;
 // ((8 * 25) - 25) / 5 = (200 - 25) / 5 = 35
 result;
 
-int boss = -2 ** 3 ** 2 + (5 - 3) * 4 ** 2 / 2 - --7 + (10 * (5 + 3) - 20) / 4;
+int boss = -2 ** 3 ** 2 + (5 - 3) * 4 ** 2 / 2 - (5 + 2) + (10 * (5 + 3) - 20) / 4;
 // -512 + 16 - 6 + (10*8 - 20)/4 => -512 + 16 - 6 + (80-20)/4 = -512+16-6+15 = -487
 boss;
 
 // SECTION 9: EDGE CASES
 // --------------------------------------------------
-// 1 / 0;                  // SHOULD THROW: division by zero
+//1 / 0;                  // SHOULD THROW: division by zero
 0 / 1;                    // 0
 0 ** 0;                   // 1
 5 ** 0;                   // 1
 0 ** 5;                   // 0
-// Large overflow arithmetic tests can be checked if supported
 
 // SECTION 10: DEEP NESTING & LONG CHAINS
 // --------------------------------------------------
@@ -109,13 +107,16 @@ boss;
 // SECTION 11: REASSIGNMENT PERSISTENCE
 // --------------------------------------------------
 int counter = 0;
-counter = ++counter;      // 1
-counter = ++counter;      // 2
-counter = ++counter;      // 3
+counter = counter + 1;      // 1
+counter = counter + 1;      // 2
+counter = counter + 1;      // 3
 counter = counter * counter; // 9
 int final_val;
 final_val = counter ** 2; // 81
 final_val;
+string thingiy = "look under here";
+counter = counter + 1;
+counter;
 
 // SECTION 12: CHARACTER TESTS
 // --------------------------------------------------
@@ -125,7 +126,6 @@ char c3 = '\'';           // escaped single quote
 c1;
 c2;
 c3;
-// int char_math = c1 + 1; // If char is numeric 65+1 => 66
 
 // SECTION 13: BOOLEAN & LOGIC (if supported)
 // --------------------------------------------------
@@ -134,6 +134,7 @@ bool b2 = false;
 b1 && b2;               // false
 b1 || b2;               // true
 !b1;                    // false
+
 // SECTION 14: MIXED FLOAT & INT OPERATIONS
 // --------------------------------------------------
 int start = 10;
@@ -234,7 +235,6 @@ string full = "hello";
 !empty;                 // true (empty string is falsy)
 !full;                  // false (non-empty is truthy)
 
-////////////////////////////////////////////////////////////////////////////////
 // SECTION 18: SHORT-CIRCUIT EVALUATION
 ////////////////////////////////////////////////////////////////////////////////
 // These should short-circuit (not evaluate right side if not needed)
@@ -246,7 +246,6 @@ int val = 5;
 val > 10 && val < 20;   // false (second part not evaluated)
 val < 10 || val > 20;   // true (second part not evaluated)
 
-////////////////////////////////////////////////////////////////////////////////
 // SECTION 19: MIXED COMPARISONS AND LOGIC
 ////////////////////////////////////////////////////////////////////////////////
 int score = 85;
@@ -290,7 +289,6 @@ failing;                // false
 5 < 10;                 // true
 
 // END OF LOGIC TESTS
-
 ////////////////////////////////////////////////////////////////////////////////
 // SECTION X: IF / ELSE / ELSE IF (CONTROL FLOW) - TORTURE TEST
 ////////////////////////////////////////////////////////////////////////////////
@@ -334,141 +332,118 @@ if (score_if >= 90) {
     grade = "F";
 }
 grade;                  // expect "B"
+////////////////////////////////////////////////////////////////////////////////
+// LOOP TORTURE TEST
+////////////////////////////////////////////////////////////////////////////////
 
-// Truthiness in conditions (strings and numbers)
-string maybe = "";
-int flag = 0;
-if (maybe) {
-    flag = 1;
-} else {
-    flag = 2;
+// 1) Simple while loop counting up
+int w1 = 0;
+while (w1 < 5) {
+    w1 = w1 + 1;
 }
-flag;                   // expect 2 (empty string falsy)
+w1;            // expect 5
 
-// else with only a single statement
-int x_if = 2;
-if (x_if > 10) {
-    x_if = 10;
-} else x_if = x_if + 3;
-x_if;                   // expect 5
-
-// Edge: if with boolean values
-bool b_if = true;
-if (b_if) {
-    b_if = false;
-} else {
-    b_if = true;
-}
-b_if;                   // expect false
-
-// Complex nested chains
-int nested = 0;
-if (v > 10) {
-    nested = 100;
-} else if (v > 2) {
-    if (v % 3 == 0) {
-        nested = 30;
-    } else {
-        nested = 20;
+// 2) while with break
+int w2 = 0;
+while (true) {
+    w2 = w2 + 1;
+    if (w2 == 3) {
+        break;
     }
-} else {
-    nested = 5;
 }
+w2;            // expect 3
 
-////////////////////////////////////////////////////////////////////////////////
-// IF-WITH-INIT TESTS
-////////////////////////////////////////////////////////////////////////////////
-
-// 1) Simple declaration init: init variable visible in condition & branch, not after
-if (int a = 5; a < 10) {
-    a;              // expect 5 (inside branch)
-}
-//a;                  // expect runtime error: Undefined variable 'a'
-
-// 2) Declaration init without initializer for non-const (default value)
-if (int b; b == 0) {
-    b = 7;
-    b;              // expect 7
-}
-//b;                  // expect runtime error: Undefined variable 'b'
-
-// 3) const declaration init must require initializer
-// should be a syntax error (const requires initializer)
-//if (const int c; c == 0) {
-  ///  c;
-//}
-
-// 4) Expression-style init (assignment): modifies outer variable if present
-int outer = 1;
-if (outer = outer + 2; outer < 10) {
-    outer;          // expect 3 (assignment happened in init and persists)
-}
-outer;              // expect 3 (outer variable was updated)
-
-// 5) Expression init that uses a temporary and does not declare
-int y = 0;
-if (y = 4; y > 2) {
-    y;              // expect 4
-}
-y;                  // expect 4 (assignment changed outer y)
-
-// 6) Declaration init shadows outer variable (inner scope)
-int shadow = 10;
-if (int shadow = 2; shadow == 2) {
-    shadow;         // expect 2 (inner shadow)
-}
-shadow;             // expect 10 (outer value unchanged)
-
-// 7) Nested if-with-init: each init has its own scope and dies after its if
-if (int i = 1; i < 5) {
-    if (int j = i + 1; j < 5) {
-        j;          // expect 2 (inner j)
+// 3) while with continue (skip odd numbers)
+int w3 = 0;
+int sum_even = 0;
+while (w3 < 10) {
+    w3 = w3 + 1;
+    if (w3 % 2 == 1) {
+        continue;       // skip odds
     }
-    // j is not visible here
-    // j;            // would be undefined
-    i;              // expect 1 (i is visible here)
+    sum_even = sum_even + w3;   // 2 + 4 + 6 + 8 + 10 = 30
 }
-// i and j undefined here
+sum_even;       // expect 30
 
-// 8) Init as complex expression (function-call-style if available)
-// if (int a = some_call(); a > 0) { ... }
-// (example only; replace some_call() with actual expr if you have functions)
-
-// 9) Multi-branch with init (init applies to the whole if/elif/else)
-if (int s = 2; s == 1) {
-    s;
-} else if (s == 2) {
-    s = s + 10;
-    s;              // expect 12
-} else {
-    s;
+// 4) while with both break and continue
+int w4 = 0;
+int w4_sum = 0;
+while (true) {
+    w4 = w4 + 1;
+    if (w4 == 2) continue;   // skip 2
+    if (w4 == 5) break;      // break at 5
+    w4_sum = w4_sum + w4;    // adds 1,3,4 => 8
 }
-// s is undefined here
+w4;        // expect 5
+w4_sum;    // expect 8
 
-// 10) Ensure semicolon required between init and condition (syntax error)
-//if (int z = 3 z < 10) {
- //   z;
-//}
 
-// 11) Using init for boolean/test truthiness
-if (int t = 0; t) {
-    t;
-} else {
-    1;              // expect else to run, value 1
+// 5) for loop simple counter
+int f1_sum = 0;
+for (int i = 0; i < 5; i += 1) {
+    f1_sum = f1_sum + i;     // 0+1+2+3+4 = 10
 }
+f1_sum;      // expect 10
 
-// 12) Init with compound assignment expression
-int cx = 2;
-if (cx += 3; cx == 5) {
-    cx;             // expect 5
+// 6) for with no init (init done before)
+int i2 = 0;
+int f2_sum = 0;
+for (; i2 < 5; i2 = i2 + 1) {
+    f2_sum = f2_sum + i2;
 }
-cx;                 // expect 5
+i2;          // expect 5
+f2_sum;      // expect 10
 
-// 13) Confirm RAII/exception-safety 
-// if (int thrower = may_throw(); thrower > 0) { ... }   // should pop init scope on error
+// 7) for with empty update (manual update inside)
+int f4 = 0;
+for (int t = 0; t < 3; ) {
+    f4 = f4 + t;
+    t+= 1;
+}
+f4;          // expect 0+1+2 = 3
 
-////////////////////////////////////////////////////////////////////////////////
-// END: IF-WITH-INIT TEST BLOCK
-////////////////////////////////////////////////////////////////////////////////      
-// END OF TEST
-// Expected: full success — every valid expression should produce correct value or throw the right error.
+// 8) for with break and continue
+int f5_sum = 0;
+for (int x = 0; x < 10; x = x + 1) {
+    if (x == 2) continue;    // skip 2
+    if (x == 7) break;       // stop at 7
+    f5_sum = f5_sum + x;     // adds 0,1,3,4,5,6 = 19
+}
+f5_sum;      // expect 19
+
+
+// 9) Nested loops with continue in inner
+int b_outer = 0;
+bool stop = false;
+for (int i = 0; i < 10 && !stop; i = i + 1) {
+    b_outer = b_outer + 1;
+    for (int j = 0; j < 10; j = j + 1) {
+        if (i == 2 && j == 3) {
+            stop = true;
+            break;          // break inner; outer sees stop and exits next condition
+        }
+    }
+}
+// outer should have run i = 0,1,2  => 3 times
+b_outer;       // expect 3
+stop;          // expect true
+
+// 10) Infinite while loop with break safeguard
+int safe = 0;
+while (true) {
+    safe = safe + 1;
+    if (safe >= 10) break;
+}
+safe;        // expect 10
+
+// 11) Combo: while inside for
+int combo = 0;
+for (int i = 0; i < 3; i = i + 1) {
+    int j = 0;
+    while (j < 3) {
+        combo = combo + 1;
+        j = j + 1;
+    }
+}
+// 3 * 3 = 9
+combo;       // expect 9

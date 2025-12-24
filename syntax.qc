@@ -262,7 +262,7 @@ const string name = "Quantum C";
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// SECTION X: IF / ELSE / ELSE IF (CONTROL FLOW)
+// SECTION 17: IF / ELSE / ELSE IF (CONTROL FLOW)
 ////////////////////////////////////////////////////////////////////////////////
 
 // Basic if/else
@@ -351,6 +351,45 @@ nested;
 if (int this = 21; this < 22) {
     this = 1;
 }
+//=============================================================================
+// SECTION 18: switch statments
+// ============================================================================
+int x = 2;
+
+switch (x) {
+case 1:
+    x = 10;
+    break;
+case 2:
+    x = 20;
+    break;
+default:
+    x = 30;
+    break;
+}
+
+int i = 0;
+while (i < 10) {
+    i = i + 1;
+    if (i == 3) continue;
+    if (i == 5) break;
+}
+i;  // expect 5
+for (int j = 0; j < 5; j = j + 1) {
+    if (j == 1) continue;
+    if (j == 3) break;
+}
+int w2 = 0;
+int guard = 0;
+while (guard < 10) {
+    guard = guard + 1;
+    w2 = w2 + 1;
+    if (w2 == 3) {
+        break;
+    }
+}
+w2;     // should be 3
+guard;  // should be 3 or 4-ish, but definitely < 10
 // END OF DEMO
 // All features shown above are working in Quantum C v0.2!
 //==============================================================================
