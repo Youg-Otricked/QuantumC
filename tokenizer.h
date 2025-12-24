@@ -49,14 +49,20 @@ namespace tkz {
     class BreakNode;
     class WhileNode;
     class ForNode;
+    class CallNode;
+    class QOutExprNode;
     //class ForeachNode;
     class ContinueNode;
+    class FuncDefNode;
+    class QOutNode;
+    class ReturnNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
         StringNode,
         CharNode,
         BoolNode,
+        QOutNode,
         std::unique_ptr<BinOpNode>, 
         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
@@ -69,7 +75,12 @@ namespace tkz {
         std::unique_ptr<WhileNode>,     // new
         std::unique_ptr<ForNode>,       // new
        // std::unique_ptr<ForeachNode>,   // maybe later
-        std::unique_ptr<ContinueNode>   // new
+        std::unique_ptr<ContinueNode>,   // new
+        std::unique_ptr<CallNode>,
+        std::unique_ptr<FuncDefNode>,
+        std::unique_ptr<QOutExprNode>,
+        std::unique_ptr<ReturnNode>
+        
     >;
     class StatementsNode {
     public:
@@ -124,6 +135,9 @@ namespace tkz {
         POWER,
         LPAREN,
         RPAREN,
+        LSHIFT,
+        RSHIFT,
+        SCOPE,
         SEMICOLON,
         DEF,
         INCREMENT,
@@ -156,6 +170,7 @@ namespace tkz {
         COLON,
         BREAK,
         FUNC,
+        COMMA,
         EOFT
     };
     TokenType stringToTokenType(const std::string& str);
@@ -219,7 +234,10 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    
+    class QOutNode {
+    public:
+        std::string print() { return "std::qout"; }
+    };
     std::string printAny(AnyNode& node);
     class CharNode {
         public:
@@ -301,6 +319,17 @@ namespace tkz {
         VarAccessNode(Token name) : var_name_tok(std::move(name)) {}
         
         std::string print();
+    };
+    class QOutExprNode {
+    public:
+        std::vector<AnyNode> values;
+        
+        QOutExprNode(std::vector<AnyNode> vals) 
+            : values(std::move(vals)) {}
+        
+        std::string print() {
+            return "std::qout << (values)";
+        }
     };
     class IfNode {
     public:
@@ -395,11 +424,43 @@ namespace tkz {
         ContinueNode(Token t) : tok(std::move(t)) {}
         std::string print() { return "(continue)"; }
     };
+    class FuncDefNode {
+    public:
+        Token return_type; 
+        std::optional<Token> name_tok;
+        std::list<std::pair<Token, Token>> params;
+        std::unique_ptr<StatementsNode> body;
+        Position pos;
+        FuncDefNode(Token ret_type, std::optional<Token> name, 
+                std::list<std::pair<Token, Token>> parameters, 
+                std::unique_ptr<StatementsNode> func_body) 
+        : return_type(std::move(ret_type)),
+          name_tok(std::move(name)),
+          params(std::move(parameters)),
+          body(std::move(func_body)) {}
+
+        std::string print() { 
+            return return_type.value + " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}"; 
+        }
+    };
+    class CallNode {
+        public: 
+        AnyNode node_to_call;
+        std::list<AnyNode> arg_nodes;
+        CallNode(AnyNode node_to_call, std::list<AnyNode> arg_nodes) {
+            this->node_to_call = std::move(node_to_call);
+            this->arg_nodes = std::move(arg_nodes);
+        }
+        std::string print() {
+            return (printAny(node_to_call) + "(args)");
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
-    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>>;
+    using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
+        std::unique_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -441,15 +502,19 @@ namespace tkz {
         Prs atom();
         Prs power();
         Prs if_expr();
+        Prs return_stmt();
         Prs bin_op(std::function<Prs()> func, 
                    std::initializer_list<TokenType> ops);
         Prs logical_and();
+        Prs qout_expr();
         Prs logical_or();
         Prs switch_stmt();
         Aer parse();
         Prs statement();
         Prs while_stmt();
         Prs for_stmt();
+        Prs call(AnyNode node_to_call);
+        Prs func_def(Token return_type, Token func_name);
         bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
             if (this->current_tok.type == TokenType::LBRACE) {
                 this->advance();
@@ -687,6 +752,7 @@ class StringValue {
 
     class Context {
         std::vector<std::unordered_map<std::string, Symbol>> frames;
+        std::unordered_map<std::string, FuncDefNode*> functions;
     public:
         Context() {
             frames.emplace_back(); 
@@ -728,6 +794,16 @@ class StringValue {
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
         }
+        void define_function(const std::string& name, FuncDefNode* func) {
+            functions[name] = func;
+        }
+        
+        FuncDefNode* get_function(const std::string& name) {
+            if (functions.count(name)) {
+                return functions[name];
+            }
+            return nullptr;
+        }
         std::string get_type_name(const NumberVariant& val) {
             return std::visit([](auto&& arg) -> std::string {
                 using T = std::decay_t<decltype(arg)>;
@@ -739,6 +815,18 @@ class StringValue {
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 return "unknown";
             }, val);
+        }
+    };
+    class ReturnNode {
+    public:
+        AnyNode value;  
+        Position pos;
+        
+        ReturnNode(AnyNode val, Position p) 
+            : value(std::move(val)), pos(p) {}
+        
+        std::string print() {
+            return "return " + printAny(value);
         }
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -758,8 +846,13 @@ class StringValue {
         NumberVariant operator()(std::unique_ptr<VarAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<VarAccessNode>& node);
         NumberVariant operator()(StringNode& node);
+        NumberVariant operator()(std::unique_ptr<FuncDefNode>& node);
+        NumberVariant operator()(std::unique_ptr<CallNode>& node);
+        NumberVariant operator()(std::unique_ptr<ReturnNode>& node);
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
+        NumberVariant operator()(QOutNode& node);
+        NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         NumberVariant operator()(std::unique_ptr<IfNode>& node);
         NumberVariant operator()(std::unique_ptr<SwitchNode>& node); 

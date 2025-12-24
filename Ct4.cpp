@@ -178,6 +178,20 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<SwitchNode>>) {
                 return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<FuncDefNode>>) {
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
+                return arg->print();
+            } 
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutNode>>) {
+                return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
+                return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -312,7 +326,22 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ContinueNode>>) {
                 return Prs{std::move(arg)};
-            } else {
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<FuncDefNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, QOutNode>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
+                return Prs{std::move(arg)};
+            }  else {
                 return Prs{std::monostate{}};
             }
         }, std::move(this->node));
@@ -358,6 +387,21 @@ namespace tkz {
                 return Prs{std::move(arg)};
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ContinueNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<FuncDefNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, QOutNode>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
+                return Prs{std::move(arg)};
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
@@ -507,7 +551,7 @@ namespace tkz {
                 AnyNode value;
                 if (this->current_tok.type == TokenType::EQ) {
                     this->advance();
-                    value = res.reg(this->logical_or());
+                    value = res.reg(this->qout_expr());
                     if (res.error) return res.to_prs();
                 } else {
                     if (is_const) {
@@ -771,7 +815,7 @@ namespace tkz {
                 AnyNode value;
                 if (current_tok.type == TokenType::EQ) {
                     advance();
-                    value = res.reg(this->logical_or());
+                    value = res.reg(this->qout_expr());
                     if (res.error) return res.to_prs();
                 } else {
                     if (is_const) {
@@ -885,10 +929,121 @@ namespace tkz {
         );
         return res.success(std::move(fn));
     }
+    Prs Parser::func_def(Token return_type, Token func_name) {
+        ParseResult res;
+        this->advance();
+        std::list<std::pair<Token, Token>> params;
+        if (this->current_tok.type != TokenType::RPAREN) {
+            Token param_type = this->current_tok;
+            this->advance();
+            Token param_name = this->current_tok;
+            this->advance();
+            params.push_back({param_type, param_name});
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                
+                param_type = this->current_tok;
+                this->advance();
+                param_name = this->current_tok;
+                this->advance();
+                
+                params.push_back({param_type, param_name});
+            }
+        }
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ')' after parameters", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        if (this->current_tok.type != TokenType::LBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '{' to start function body", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        std::vector<AnyNode> body_stmts;
+        while (this->current_tok.type != TokenType::RBRACE && 
+            this->current_tok.type != TokenType::EOFT) {
+            AnyNode stmt = res.reg(this->statement());
+            if (res.error) return res.to_prs();
+            body_stmts.push_back(std::move(stmt));
+        }
+
+        if (this->current_tok.type != TokenType::RBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '}' to end function body", this->current_tok.pos));
+            return res.to_prs();
+        }
+        auto body = std::make_unique<StatementsNode>(std::move(body_stmts));
+        this->advance();
+        return res.success(std::make_unique<FuncDefNode>(
+            return_type, std::make_optional(func_name), std::move(params), std::move(body)));
+    }
+    Prs Parser::call(AnyNode node_to_call) {
+        ParseResult res;
+        
+        this->advance(); 
+        
+        std::list<AnyNode> args;
+        
+        
+        if (this->current_tok.type != TokenType::RPAREN) {
+            
+            AnyNode arg = res.reg(this->logical_or());
+            if (res.error) return res.to_prs();
+            args.push_back(std::move(arg));
+            
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();  
+                
+                arg = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                args.push_back(std::move(arg));
+            }
+        }
+        
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ')' after function arguments", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();  
+        
+        return res.success(std::make_unique<CallNode>(
+            std::move(node_to_call), std::move(args)));
+    }
+    Prs Parser::qout_expr() {
+        ParseResult res;
+        AnyNode left = res.reg(this->logical_or());  
+        if (res.error) return res.to_prs();
+        if (std::holds_alternative<QOutNode>(left)) {
+            std::vector<AnyNode> values;
+            
+            while (this->current_tok.type == TokenType::LSHIFT) {
+                this->advance();  
+                AnyNode value = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                values.push_back(std::move(value));
+            }
+            return res.success(std::make_unique<QOutExprNode>(std::move(values)));
+        }
+        
+        return res.success(std::move(left));
+    }
     Prs Parser::atom() {
         ParseResult res = ParseResult();
         Token tok = this->current_tok;
-        
+        if (tok.value == "std") {
+            this->advance();
+            if (this->current_tok.type == TokenType::SCOPE) {  // ::
+                this->advance();
+                if (this->current_tok.value == "qout") {
+                    this->advance();
+                    return res.success(QOutNode());
+                }
+            }
+        }
         if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
             this->advance();
             return res.success(NumberNode(tok));
@@ -898,6 +1053,9 @@ namespace tkz {
         }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
+            if (this->current_tok.type == TokenType::LPAREN) {
+                return this->call(std::make_unique<VarAccessNode>(tok));
+            }
             if (current_tok.type == TokenType::INCREMENT ||
                 current_tok.type == TokenType::DECREMENT) {
 
@@ -920,24 +1078,12 @@ namespace tkz {
             return res.success(BoolNode(tok));
         } else if (tok.type == TokenType::LPAREN) {
             this->advance();
-            AnyNode any_expr = res.reg(this->logical_or()); 
+            AnyNode any_expr = res.reg(this->logical_or());
             if (res.error) return res.to_prs();
-            Prs expr = std::visit([](auto&& arg) -> Prs {
-                return std::forward<decltype(arg)>(arg);
-            }, std::move(any_expr));
+
             if (this->current_tok.type == TokenType::RPAREN) {
                 this->advance();
-                AnyNode any_node = std::visit([](auto&& arg) -> AnyNode {
-                    using T = std::decay_t<decltype(arg)>;
-                    
-                    if constexpr (std::is_constructible_v<AnyNode, T>) {
-                        return std::forward<decltype(arg)>(arg);
-                    } else {
-                        return std::monostate{}; 
-                    }
-                }, std::move(expr));
-            
-            return res.success(std::move(any_node));
+                return res.success(std::move(any_expr));
             } else {
                 res.failure(std::make_unique<InvalidSyntaxError>(InvalidSyntaxError(
                     "Expected ')'", this->current_tok.pos
@@ -1092,9 +1238,34 @@ namespace tkz {
 
         return res.success(std::move(left));
     }
+    Prs Parser::return_stmt() {
+        ParseResult res;
+        Position start_pos = this->current_tok.pos;
+        this->advance();
+        
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance();
+            return res.success(std::make_unique<ReturnNode>(
+                std::monostate{}, start_pos));
+        }
+        
+        AnyNode value = res.reg(this->logical_or());
+        if (res.error) return res.to_prs();
+        
+        if (this->current_tok.type != TokenType::SEMICOLON) {
+            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        return res.success(std::make_unique<ReturnNode>(
+            std::move(value), start_pos));
+    }
     Prs Parser::assignment_expr() {
         ParseResult res;
-        AnyNode left = res.reg(this->logical_or());
+    
+        AnyNode left = res.reg(this->qout_expr());
+    
         if (res.error) return res.to_prs();
         if (this->current_tok.type == TokenType::EQ ||
             this->current_tok.type == TokenType::PLUS_EQ ||
@@ -1176,6 +1347,9 @@ namespace tkz {
             this->advance();
             return res.success(std::make_unique<ContinueNode>(tok));
         }
+        if (tok.type == TokenType::KEYWORD && tok.value == "return") {
+            return this->return_stmt();
+        }
         if (tok.type == TokenType::KEYWORD && tok.value == "break") {
             this->advance();
             if (current_tok.type != TokenType::SEMICOLON) {
@@ -1215,9 +1389,14 @@ namespace tkz {
             this->advance();
 
             AnyNode value;
+            if (this->current_tok.type == TokenType::LPAREN) {
+                auto func_def = res.reg(this->func_def(type_tok, var_name));
+                if (res.error) return res.to_prs();
+                return res.success(std::move(func_def));
+            }
             if (this->current_tok.type == TokenType::EQ) {
                 this->advance();
-                value = res.reg(this->logical_or());
+                value = res.reg(this->qout_expr());
                 if (res.error) return res.to_prs();
             } else {
                 if (is_const) {
@@ -1237,7 +1416,6 @@ namespace tkz {
             return res.success(std::make_unique<VarAssignNode>(
                 is_const, type_tok, var_name, std::move(value)));
         }
-
         // Assignment or compound assignment: x = 5; or x += 5;
         if (tok.type == TokenType::IDENTIFIER) {
             auto next_it = std::next(it);
@@ -1263,7 +1441,16 @@ namespace tkz {
         }
 
         // Expression statement: 2 + 3;
-        AnyNode node = res.reg(this->logical_or()); 
+        AnyNode node = res.reg(this->assignment_expr()); 
+        if (res.error) return res.to_prs();
+
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance(); 
+            return res.success(std::move(node));
+        }
+
+        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+        return res.to_prs();
         if (res.error) return res.to_prs();
 
         if (this->current_tok.type == TokenType::SEMICOLON) {
@@ -1277,19 +1464,33 @@ namespace tkz {
 
     Aer Parser::parse() {
         std::vector<AnyNode> stmts;
+        bool has_main = false;
+        FuncDefNode* main_func_ptr = nullptr;
         
         while (this->current_tok.type != TokenType::EOFT) {
             Prs result = this->statement();
-
+            
             if (std::holds_alternative<std::unique_ptr<Error>>(result)) {
-                return Aer{
-                    nullptr, 
-                    std::get<std::unique_ptr<Error>>(std::move(result))
-                };
+                return Aer{nullptr, std::get<std::unique_ptr<Error>>(std::move(result))};
             }
 
-            AnyNode stmt = std::visit([](auto&& arg) -> AnyNode {
+            AnyNode stmt = std::visit([&has_main, &main_func_ptr](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
+                
+                // Check if it's a function definition named "main"
+                if constexpr (std::is_same_v<T, std::unique_ptr<FuncDefNode>>) {
+                    if (arg->name_tok.has_value() && arg->name_tok->value == "main") {
+                        if (arg->return_type.value != "int") {
+                            throw InvalidSyntaxError("main() must return int, not " + arg->return_type.value, arg->return_type.pos);
+                        }
+                        if (!arg->params.empty()) {
+                            throw InvalidSyntaxError("main() must have no parameters", arg->return_type.pos);
+                        }
+                        has_main = true;
+                        main_func_ptr = arg.get();
+                    }
+                }
+                
                 if constexpr (std::is_constructible_v<AnyNode, T>) {
                     return AnyNode(std::move(arg));
                 }
@@ -1298,11 +1499,15 @@ namespace tkz {
             
             stmts.push_back(std::move(stmt));
         }
-                
-        return Aer{
-            std::make_unique<StatementsNode>(std::move(stmts)),
-            nullptr
-        };
+        
+        if (!has_main) {
+            return Aer{nullptr, std::make_unique<Error>(
+                "Missing main function", 
+                "Program must have an 'int main()' function", 
+                Position())};
+        }
+        
+        return Aer{std::make_unique<StatementsNode>(std::move(stmts)), nullptr};
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
@@ -1379,6 +1584,15 @@ namespace tkz {
     NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
         throw RTError("Unexpected 'break' outside loop or switch",
                     node ? node->tok.pos : Position());
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<FuncDefNode>& node) {
+        if (!node || !node->name_tok.has_value()) {
+            throw RTError("Anonymous functions not yet supported", Position());
+        }
+        
+        context->define_function(node->name_tok->value, node.get());
+        
+        return Number<int>(0);
     }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode& node) {
         return std::visit([this](auto& n) -> ExecResult {
@@ -1514,6 +1728,19 @@ namespace tkz {
 
         return last;
     }
+    NumberVariant Interpreter::operator()(std::unique_ptr<QOutExprNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        for (auto& val : node->values) {
+            NumberVariant result = this->process(val);
+            std::cout << std::visit([](auto&& v) { return v.print(); }, result);
+        }
+        
+        return Number<int>(0);
+    }
+    NumberVariant Interpreter::operator()(QOutNode& node) {
+        return Number<int>(0);
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<ForNode>& node) {
         if (!node) return Number<int>(0);
 
@@ -1572,7 +1799,6 @@ namespace tkz {
             }
             if (start_index != -1) break;
         }
-
         if (start_index == -1) start_index = default_index;
         if (start_index == -1) return Number<int>(0); 
 
@@ -1592,6 +1818,93 @@ namespace tkz {
         }
 
         return last;
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode>& node) {
+        if (!node) return Number<int>(0);
+        return this->process(node->value);
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
+            throw RTError("Can only call named functions", Position());
+        }
+        
+        std::string func_name = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call)->var_name_tok.value;
+        
+        if (func_name == "print" || func_name == "println") {
+            
+            for (auto& arg : node->arg_nodes) {
+                NumberVariant val = this->process(arg);
+                std::cout << std::visit([](auto&& v) { return v.print(); }, val);
+            }
+            if (func_name == "println") std::cout << std::endl;
+            return Number<int>(0);
+        }
+        
+        FuncDefNode* func = context->get_function(func_name);
+        if (!func) {
+            throw RTError("Undefined function: '" + func_name + "'", Position());
+        }
+        
+        if (node->arg_nodes.size() != func->params.size()) {
+            throw RTError("Function '" + func_name + "' expects " + 
+                        std::to_string(func->params.size()) + " arguments, got " + 
+                        std::to_string(node->arg_nodes.size()), Position());
+        }
+        
+        std::vector<NumberVariant> arg_values;
+        for (auto& arg : node->arg_nodes) {
+            arg_values.push_back(this->process(arg));
+        }
+        
+        context->push_scope();
+        
+        size_t i = 0;
+        for (auto& param : func->params) {
+            Token param_type = param.first;
+            Token param_name = param.second;
+            
+            std::string expected_type = param_type.value;
+            std::string actual_type = context->get_type_name(arg_values[i]);
+            
+            if (expected_type != actual_type) {
+                context->pop_scope();
+                throw RTError("Argument " + std::to_string(i + 1) + " to '" + func_name + 
+                            "': expected " + expected_type + ", got " + actual_type, Position());
+            }
+            
+            context->define(param_name.value, expected_type, arg_values[i]);
+            i++;
+        }
+        
+        NumberVariant return_value = Number<int>(0);
+        try {
+            for (auto& stmt : func->body->statements) {
+                if (std::holds_alternative<std::unique_ptr<ReturnNode>>(stmt)) {
+                    auto& ret_node = std::get<std::unique_ptr<ReturnNode>>(stmt);
+                    return_value = this->process(ret_node->value);
+                    std::string expected_return = func->return_type.value;
+                    std::string actual_return = context->get_type_name(return_value);
+                    
+                    if (expected_return != actual_return && expected_return != "void") {
+                        context->pop_scope();
+                        throw RTError("Function '" + func_name + "' should return " + 
+                                    expected_return + ", got " + actual_return, Position());
+                    }
+                    
+                    break;
+                }
+                
+                this->process(stmt);
+            }
+        } catch (...) {
+            context->pop_scope();
+            throw;
+        }
+        
+        context->pop_scope();
+        return return_value;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         NumberVariant value = this->process(node->value_node);
@@ -1881,39 +2194,52 @@ namespace tkz {
             return Mer{Aer{nullptr, std::move(resp.error)}, std::move(resp), ""};
         }
         
-        // Parser
         Parser parser(resp.Tkns);
         Aer ast = parser.parse();
         if (ast.error) {
             return Mer{std::move(ast), std::move(resp), ""};
         }
-        Context* ctx = use_context ? new Context() : nullptr;
+        
+        Context* ctx = new Context();
         Interpreter interpreter(ctx);
         
         std::string output = "";
-        if (ast.statements != nullptr) {
-            try {
-                for (auto& stmt : ast.statements->statements) {
-                    auto result = interpreter.process(stmt);
-                    
-                    output += std::visit([](auto&& val) -> std::string {
-                        using T = std::decay_t<decltype(val)>;
-                        if constexpr (std::is_same_v<T, std::monostate>) {
-                            return "";
-                        } else {
-                            return val.print() + "\n";
-                        }
-                    }, result);
+        int exit_code = 0;
+        
+        try {
+            for (auto& stmt : ast.statements->statements) {
+                if (std::holds_alternative<std::unique_ptr<FuncDefNode>>(stmt)) {
+                    interpreter.process(stmt);
                 }
-            } catch (RTError& e) {
-                std::cout << e.as_string() << std::endl;
-                if (ctx) delete ctx;
-                ast.error = std::make_unique<RTError>(e);
-                return Mer{std::move(ast), std::move(resp), ""};
             }
+            FuncDefNode* main_func = ctx->get_function("main");
+            if (!main_func) {
+                throw RTError("No main() function found", Position());
+            }
+            auto main_call_node = std::make_unique<CallNode>(
+                std::make_unique<VarAccessNode>(Token(TokenType::IDENTIFIER, "main", Position())),
+                std::list<AnyNode>{}
+            );
+            AnyNode node_variant = std::move(main_call_node);
+            NumberVariant result = interpreter.process(node_variant);
+            
+            exit_code = std::visit([](auto&& v) -> int {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, Number<int>>) {
+                    return v.value;
+                }
+                return 0;
+            }, result);
+            
+            output = "Program exited with code: " + std::to_string(exit_code);
+            
+        } catch (RTError& e) {
+            std::cout << e.as_string() << std::endl;
+            delete ctx;
+            return Mer{std::move(ast), std::move(resp), ""};
         }
         
-        if (ctx) delete ctx;
+        delete ctx;
         return Mer{std::move(ast), std::move(resp), output};
     }
 
@@ -2171,7 +2497,10 @@ namespace tkz {
                         break;
                     case '<':
                         this->advance();
-                        if (current_char == '=') {
+                        if (current_char == '<') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::LSHIFT, "<<", start_pos));
+                        } else if (current_char == '=') {
                             this->advance();
                             tokens.push_back(Token(TokenType::LESS_EQ, "<=", start_pos));
                         } else {
@@ -2225,9 +2554,19 @@ namespace tkz {
                             break;
                         }
                         break;
+                    case ',':
+                        this->advance();
+                        tokens.push_back(Token(TokenType::COMMA, ",", start_pos));
+                        break;
                     case ':':
                         this->advance();
-                        tokens.push_back(Token(TokenType::COLON, ":", start_pos));
+                        if (current_char == ':') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::SCOPE, "::", start_pos));
+                            break;
+                        } else {
+                            tokens.push_back(Token(TokenType::COLON, ":", start_pos));
+                        }
                         break;
                     case ';':
                         tokens.push_back(Token(TokenType::SEMICOLON, "", start_pos));

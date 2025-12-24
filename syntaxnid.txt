@@ -25,6 +25,11 @@ power   : atom ((POWER) factor)*
 
 atom    : INT|FLOAT|DOUBLE
         : LPAREN expr RPAREN
+        : if-def
+        : for-def
+        : switch_def
+        : while-def
+        : func-def
 
 OR ||
 AND &&
