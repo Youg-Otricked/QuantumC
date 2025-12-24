@@ -29,12 +29,12 @@ int main(int argc, char* argv[]) {
             use_context = false;
         } else if (arg == "--version" || arg == "-v") {
             std::cout << R"(
-   _____ ___  _  _   
-  / ____|__ \| || |  
- | |       ) | || |_ 
- | |      / /|__   _|
- | |____ / /_   | |  
-  \_____|____|  |_|  
+          _____ ___  _  _   
+         / ____|__ \| || |  
+        | |       ) | || |_ 
+        | |      / /|__   _|
+        | |____ / /_   | |  
+         \_____|____|  |_|  
         Quantum C (C⁴) v1.0
 
         The 4th Evolution of C
