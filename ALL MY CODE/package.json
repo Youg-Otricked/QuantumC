@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "@wasmer/sdk": "^0.9.0",
+    "@wasmer/wasmfs": "^0.12.0",
+    "monaco-editor": "^0.54.0"
+  }
+}

@@ -1,0 +1,8 @@
+DUDE qc file extention because Quantum C sounds SICK
+
+like std::cout as printing to conasole. <ight call it std:qout becuase why not
+
+OH MY GOSH IM COOKING make using namespace std; error becuase that is stupid
+force nullptr ccheclig, and also use malloc free instead of new delete
+muyst return from main function
+allow both using free delete malloc and new

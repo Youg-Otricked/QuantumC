@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Textio Click-a-thon Prototype</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+      }
+      button {
+        margin: 5px 5px 5px 0;
+        padding: 8px 14px;
+        cursor: pointer;
+      }
+      #timer,
+      #counter {
+        font-weight: bold;
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Textio "Click-a-thon" Challenge</h1>
+    <p>
+      We found that letting users click a button for 5 minutes keeps them too
+      busy to send support emails. Once the timer hits 0, it just
+      <em>resets</em>, so they can keep going!
+    </p>
+    <button id="startButton">Start</button>
+    <button id="clickButton" disabled>Click me!</button>
+    <p id="timer">Time left: 300</p>
+    <p id="counter">Clicks: 0</p>
+
+    <script>
+      let clicks = 0;
+      let countdown = 300;
+
+      function updateUI() {
+        document.getElementById("timer").textContent =
+          `Time left: ${countdown}`;
+        document.getElementById("counter").textContent = `Clicks: ${clicks}`;
+      }
+
+      function tick() {
+        countdown -= 1;
+        if (countdown < 1) {
+            countdown = 300;
+            clicks = 0;
+        }
+        updateUI();
+      }
+
+      function onClick() {
+        clicks += 1;
+        updateUI();
+      }
+
+      function onStart() {
+        document.getElementById("clickButton").disabled = false;
+        document.getElementById("startButton").disabled = true;
+        setInterval((() => {tick()}), 1000);
+      }
+
+      document.getElementById("startButton").addEventListener("click", onStart);
+      document.getElementById("clickButton").addEventListener("click", onClick);
+      document.getElementById("clickButton").disabled = true;
+    </script>
+  </body>
+</html>
