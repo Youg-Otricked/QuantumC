@@ -474,7 +474,12 @@ int main() {
 
     // Recursion
     println(factorial(5));        // prints 120
-
+    ////////////////////////////////////////////////////////
+    // F strings
+    ///////////////////////////////////////////////////////
+    // f strings are python style
+    string this = f"Hello, {add(1, 2)}, {w2}";
+    std::qout << this;
     // END OF DEMO
     // All features shown above are working in Quantum C v1.0!
     //==============================================================================

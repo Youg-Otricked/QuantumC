@@ -7,5 +7,9 @@ int main() {
   println(add(1,2));
   just_print();
   just_print();
+  string name = "Me";
+  int age = 0;
+  string msg = f"Hello {name}, you are {age} years old!\n";
+  std::qout << '\n' << msg;
   return 0;
 }

@@ -1054,7 +1054,7 @@ namespace tkz {
         Token tok = this->current_tok;
         if (tok.value == "std") {
             this->advance();
-            if (this->current_tok.type == TokenType::SCOPE) {  // ::
+            if (this->current_tok.type == TokenType::SCOPE) {
                 this->advance();
                 if (this->current_tok.value == "qout") {
                     this->advance();
@@ -1109,6 +1109,65 @@ namespace tkz {
                 return res.to_prs();
             }
         }
+        else if (tok.type == TokenType::FSTRING) {
+            this->advance();
+
+            std::vector<std::string> parts;
+            std::vector<std::string> exprs;
+
+            std::string current = "";
+            bool in_expr = false;
+
+            for (char c : tok.value) {
+                if (c == '\x01') {
+                    if (in_expr) exprs.push_back(current);
+                    else parts.push_back(current);
+                    current = "";
+                    in_expr = !in_expr;
+                } else {
+                    current += c;
+                }
+            }
+
+            if (!current.empty()) {
+                if (in_expr) exprs.push_back(current);
+                else parts.push_back(current);
+            }
+
+            if (parts.empty()) parts.push_back("");
+
+            AnyNode result = StringNode(Token(TokenType::STRING, parts[0], tok.pos));
+
+            size_t num_exprs = exprs.size();
+
+            for (size_t i = 0; i < num_exprs; i++) {
+                Lexer expr_lexer(exprs[i], "<fstring>");
+                auto expr_tokens = expr_lexer.make_tokens();
+                Parser expr_parser(expr_tokens.Tkns);
+                AnyNode expr_node = res.reg(expr_parser.logical_or());
+                if (res.error) return res.to_prs();
+
+                result = std::make_unique<BinOpNode>(
+                    std::move(result),
+                    Token(TokenType::PLUS, "+", tok.pos),
+                    std::move(expr_node),
+                    true
+                );
+
+                if (i + 1 < parts.size()) {
+                    result = std::make_unique<BinOpNode>(
+                        std::move(result),
+                        Token(TokenType::PLUS, "+", tok.pos),
+                        StringNode(Token(TokenType::STRING, parts[i + 1], tok.pos)),
+                        true
+                    );
+                }
+            }
+
+            return res.success(std::move(result));
+        }
+
+
         else if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
             ParseResult pres;
             this->advance();
@@ -2116,7 +2175,32 @@ namespace tkz {
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
-            if constexpr (std::is_same_v<T1, StringValue> && std::is_same_v<T2, StringValue>) {
+            if (node->is_f) {
+                auto to_string_variant = [](auto&& v) -> std::string {
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, Number<int>> ||
+                                std::is_same_v<T, Number<double>> ||
+                                std::is_same_v<T, Number<float>>)
+                        return std::to_string(v.value);
+                    else if constexpr (std::is_same_v<T, CharValue>)
+                        return std::string(1, v.value);
+                    else if constexpr (std::is_same_v<T, BoolValue>)
+                        return v.value ? "true" : "false";
+                    else if constexpr (std::is_same_v<T, StringValue>)
+                        return v.value;
+                    else if constexpr (std::is_same_v<T, VoidValue>)
+                        return "<void>";
+                    else
+                        return "<unknown>";
+                };
+
+                auto l_str = to_string_variant(L);
+                auto r_str = to_string_variant(R);
+
+                return StringValue(l_str + r_str).set_pos(node->op_tok.pos);
+            }
+
+            else if constexpr (std::is_same_v<T1, StringValue> && std::is_same_v<T2, StringValue>) {
                 if (node->op_tok.type == TokenType::PLUS) {
                     return StringValue(L.value + R.value).set_pos(node->op_tok.pos);
                 }
@@ -2496,6 +2580,91 @@ namespace tkz {
         
         return Token(TokenType::CHAR, val, start_pos);
     }
+    Token Lexer::make_fstring() {
+        Position start_pos = this->pos.copy();
+        this->advance(); 
+
+        std::vector<std::string> parts;
+        std::vector<std::string> exprs;
+
+        std::string current = "";
+        bool escape = false;
+
+        while (this->current_char != '\0' && (this->current_char != '"' || escape)) {
+            if (escape) {
+                switch (this->current_char) {
+                    case 'n': current += '\n'; break;
+                    case 't': current += '\t'; break;
+                    case 'r': current += '\r'; break;
+                    case '\\': current += '\\'; break;
+                    case '"': current += '"'; break;
+                    default: current += this->current_char; break;
+                }
+                escape = false;
+                this->advance();
+                continue;
+            }
+
+            if (this->current_char == '\\') {
+                escape = true;
+                this->advance();
+                continue;
+            }
+
+            if (this->current_char == '{' && this->text[this->pos.index + 1] == '{') {
+                current += '{';
+                this->advance();
+                this->advance();
+                continue;
+            }
+
+            if (this->current_char == '}' && this->text[this->pos.index + 1] == '}') {
+                current += '}';
+                this->advance();
+                this->advance();
+                continue;
+            }
+
+            if (this->current_char == '{') {
+                parts.push_back(current);
+                current = "";
+                this->advance(); 
+
+                std::string expr = "";
+                int brace_depth = 1;
+
+                while (this->current_char != '\0' && brace_depth > 0) {
+                    if (this->current_char == '{') brace_depth++;
+                    else if (this->current_char == '}') brace_depth--;
+
+                    if (brace_depth > 0) expr += this->current_char;
+
+                    this->advance();
+                }
+
+                if (brace_depth != 0)
+                    throw IllegalCharError("Unclosed brace in f-string", this->pos);
+
+                exprs.push_back(expr);
+            } else {
+                current += this->current_char;
+                this->advance();
+            }
+        }
+
+        parts.push_back(current);
+
+        if (this->current_char != '"') throw IllegalCharError("Unterminated f-string", this->pos);
+        this->advance(); 
+        std::string encoded = "";
+        for (size_t i = 0; i < parts.size(); i++) {
+            encoded += parts[i];
+            if (i < exprs.size()) encoded += "\x01" + exprs[i] + "\x01";
+        }
+
+        return Token(TokenType::FSTRING, encoded, start_pos);
+    }
+
     Ler Lexer::make_tokens() {
         std::list<Token> tokens;
 
@@ -2507,6 +2676,9 @@ namespace tkz {
             } else if (isCharInSet(this->current_char, DIGITS)) {
                 tokens.push_back(this->make_number());
                 continue;
+            } else if (this->current_char == 'f' && this->text[this->pos.index + 1] == '"') {
+                this->advance();
+                tokens.push_back(this->make_fstring());
             } else if (isCharInSet(this->current_char, LETTERS + "_")) {
                 tokens.push_back(this->make_identifier());
             } else if (this->current_char == '"') {

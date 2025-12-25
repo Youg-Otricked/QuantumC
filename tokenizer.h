@@ -161,6 +161,7 @@ namespace tkz {
         OR,
         NOT,
         EQ,
+        FSTRING,
         SWITCH,
         CASE,
         DEFAULT,
@@ -267,14 +268,15 @@ namespace tkz {
     };
     class BinOpNode {
     public:
+        bool is_f;
         AnyNode left_node;
         Token op_tok;
         AnyNode right_node;
 
-        BinOpNode(AnyNode left, Token op, AnyNode right) 
+        BinOpNode(AnyNode left, Token op, AnyNode right, bool is_f = false) 
             : left_node(std::move(left)), 
             op_tok(std::move(op)), 
-            right_node(std::move(right)) {}
+            right_node(std::move(right)) {this->is_f = is_f;}
             
         std::string print();
     };
@@ -910,6 +912,7 @@ class StringValue {
         Ler make_tokens();
         Token make_identifier();
         Token make_number();
+        Token make_fstring();
     };
 }
 #endif
