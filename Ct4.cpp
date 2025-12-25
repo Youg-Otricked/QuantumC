@@ -936,23 +936,39 @@ namespace tkz {
     Prs Parser::func_def(Token return_type, std::optional<Token> func_name) {
         ParseResult res;
         this->advance();
-
-        std::list<std::pair<Token, Token>> params;
+        
+        std::list<Parameter> params;
+        
         if (this->current_tok.type != TokenType::RPAREN) {
             Token param_type = this->current_tok;
             this->advance();
             Token param_name = this->current_tok;
             this->advance();
-            params.push_back({param_type, param_name});
+            
+            std::optional<AnyNode> default_val;
+            if (this->current_tok.type == TokenType::EQ) {
+                this->advance();  
+                default_val = std::move(res.reg(this->logical_or()));;
+                if (res.error) return res.to_prs();
+            }
+            
+            params.push_back({param_type, param_name, std::move(default_val)});
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
-
+                
                 param_type = this->current_tok;
                 this->advance();
                 param_name = this->current_tok;
                 this->advance();
-
-                params.push_back({param_type, param_name});
+                
+                default_val = std::nullopt;
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    default_val = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                }
+                
+                params.push_back({param_type, param_name, std::move(default_val)});
             }
         }
         if (this->current_tok.type != TokenType::RPAREN) {
@@ -994,7 +1010,7 @@ namespace tkz {
             return res.to_prs();
         }
         auto body = std::make_unique<StatementsNode>(std::move(body_stmts));
-        this->advance(); // consume '}'
+        this->advance(); 
         return res.success(std::make_shared<FuncDefNode>(
             return_type, func_name, std::move(params), std::move(body)));
     }
@@ -1985,11 +2001,12 @@ namespace tkz {
     NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
         if (!node) return Number<int>(0);
 
-        // Resolve callee
+        std::string func_name = "<anonymous>";
         NumberVariant target_val;
+
         if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
             auto& varacc = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
-            std::string func_name = varacc->var_name_tok.value;
+            func_name = varacc->var_name_tok.value;
 
             if (func_name == "print" || func_name == "println") {
                 for (auto& arg : node->arg_nodes) {
@@ -2003,97 +2020,109 @@ namespace tkz {
             try {
                 target_val = context->get(func_name, varacc->var_name_tok.pos);
             } catch (RTError&) {
-                std::shared_ptr<FuncDefNode> func = context->get_function(func_name);
-                if (!func) {
-                    throw RTError("Undefined function: '" + func_name + "'", Position());
-                }
-                FunctionValue fv(func);
-                target_val = fv;
+                auto func = context->get_function(func_name);
+                if (!func) throw RTError("Undefined function: '" + func_name + "'", Position());
+                target_val = FunctionValue(func);
             }
         } else {
             target_val = this->process(node->node_to_call);
         }
 
-        if (!std::holds_alternative<FunctionValue>(target_val)) {
+        if (!std::holds_alternative<FunctionValue>(target_val))
             throw RTError("Can only call functions", Position());
-        }
-        FunctionValue fval = std::get<FunctionValue>(target_val);
-        if (!fval.func) {
-            throw RTError("Attempting to call a null/invalid function value", Position());
-        }
-        std::shared_ptr<FuncDefNode> func = fval.func;
-        if (!func) throw RTError("Invalid function value", Position());
 
-        if (node->arg_nodes.size() != func->params.size()) {
-            throw RTError("Function '" + (func->name_tok ? func->name_tok->value : "<lambda>") +
-                        "' expects " + std::to_string(func->params.size()) + " arguments, got " +
-                        std::to_string(node->arg_nodes.size()), Position());
-        }
+        FunctionValue fval = std::get<FunctionValue>(target_val);
+        if (!fval.func)
+            throw RTError("Invalid function value", Position());
+
+        auto func = fval.func;
+
+        size_t required_args = 0;
+        for (auto& p : func->params)
+            if (!p.default_value.has_value()) required_args++;
+
+        if (node->arg_nodes.size() < required_args)
+            throw RTError("Function '" + func_name + "' requires at least " +
+                        std::to_string(required_args) + " arguments", Position());
+
+        if (node->arg_nodes.size() > func->params.size())
+            throw RTError("Function '" + func_name + "' expects at most " +
+                        std::to_string(func->params.size()) + " arguments", Position());
 
         std::vector<NumberVariant> arg_values;
-        for (auto& arg : node->arg_nodes) {
+        arg_values.reserve(node->arg_nodes.size());
+        for (auto& arg : node->arg_nodes)
             arg_values.push_back(this->process(arg));
-        }
 
         context->push_scope();
         try {
             size_t i = 0;
             for (auto& param : func->params) {
-                Token param_type = param.first;
-                Token param_name = param.second;
-                std::string expected_type = param_type.value;
-                std::string actual_type = context->get_type_name(arg_values[i]);
+                NumberVariant value;
 
-                if (expected_type != "auto" && expected_type != actual_type) {
-                    context->pop_scope();
-                    throw RTError("Argument " + std::to_string(i + 1) + " to function: expected " +
-                                expected_type + ", got " + actual_type, Position());
+                if (i < arg_values.size()) value = arg_values[i];
+                else value = this->process(param.default_value.value());
+
+                std::string expected_type = param.type.value;
+                std::string actual_type = context->get_type_name(value);
+
+                if (expected_type == "auto") {
+                    context->define(param.name.value, actual_type, value);
                 }
-                context->define(param_name.value, expected_type == "auto" ? actual_type : expected_type, arg_values[i]);
-                ++i;
+                else {
+                    if (expected_type != actual_type) {
+                        context->pop_scope();
+                        throw RTError(
+                            "Argument " + std::to_string(i + 1) +
+                            ": expected " + expected_type +
+                            ", got " + actual_type,
+                            Position()
+                        );
+                    }
+                    context->define(param.name.value, expected_type, value);
+                }
+
+                i++;
             }
 
-            try {
-                for (auto& stmt : func->body->statements) {
-                    this->process(stmt);
-                }
+            for (auto& stmt : func->body->statements)
+                this->process(stmt);
 
-                std::string expected_return = func->return_type.value;
-                NumberVariant def = VoidValue();
-                if (expected_return == "void" || expected_return == "auto") {
-                    def = VoidValue();
-                } else if (expected_return == "int") {
-                    def = Number<int>(0);
-                } else if (expected_return == "float") {
-                    def = Number<float>(0.0f);
-                } else if (expected_return == "double") {
-                    def = Number<double>(0.0);
-                } else if (expected_return == "string") {
-                    def = StringValue("");
-                } else if (expected_return == "bool") {
-                    def = BoolValue("false");
-                } else {
-                    def = VoidValue();
-                }
+            std::string ret = func->return_type.value;
+            NumberVariant def;
 
+            if (ret == "void") def = VoidValue();
+            else if (ret == "int") def = Number<int>(0);
+            else if (ret == "float") def = Number<float>(0.0f);
+            else if (ret == "double") def = Number<double>(0.0);
+            else if (ret == "string") def = StringValue("");
+            else if (ret == "bool") def = BoolValue(""); 
+            else def = VoidValue();
+
+            context->pop_scope();
+            return def;
+
+        } catch (const ReturnException& re) {
+            std::string expected = func->return_type.value;
+            std::string actual = context->get_type_name(re.value);
+
+            if (expected != "void" && expected != "auto" && expected != actual) {
                 context->pop_scope();
-                return def;
-            } catch (const ReturnException& re) {
-                std::string expected_return = func->return_type.value;
-                std::string actual_return = context->get_type_name(re.value);
-                if (expected_return != "void" && expected_return != "auto" && expected_return != actual_return) {
-                    context->pop_scope();
-                    throw RTError("Function should return " + expected_return + ", got " + actual_return, Position());
-                }
-                context->pop_scope();
-                return re.value;
+                throw RTError(
+                    "Function should return " + expected + ", got " + actual,
+                    Position()
+                );
             }
 
+            context->pop_scope();
+            return re.value;
         } catch (...) {
             context->pop_scope();
             throw;
         }
     }
+
+
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
         NumberVariant last_result = Number<int>(0);
         

@@ -412,11 +412,16 @@ int main() {
         }
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 2: Void function (no return value)
+        // EXAMPLE 2: Void function with default arguments(no return value)
         ////////////////////////////////////////////////////////////////////////////////
-        void greet(string name) {
-            print("Hello, " + name + "\n");
+        void greet(string name = "world", int times = 1) {
+            int i = 0;
+            while (i < times) {
+                print("Hello, " + name + "!");
+                i = i + 1;
+            }
         }
+
 
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 3: Assigning a lambda to a variable (use auto)
@@ -456,7 +461,9 @@ int main() {
     println(r1);
 
     // Void function
-    greet("Alice");               // prints "Hello, Alice"
+    greet();               
+    greet("Alice");        
+    greet("Bob", 3);      
 
     // Lambda assigned to variable
     auto sum = make_adder;

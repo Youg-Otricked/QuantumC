@@ -427,21 +427,26 @@ namespace tkz {
         ContinueNode(Token t) : tok(std::move(t)) {}
         std::string print() { return "(continue)"; }
     };
-    class FuncDefNode {
-    public:
-        Token return_type; 
-        std::optional<Token> name_tok;
-        std::list<std::pair<Token, Token>> params;
-        std::unique_ptr<StatementsNode> body;
-        Position pos;
-        FuncDefNode(Token ret_type, std::optional<Token> name, 
-                std::list<std::pair<Token, Token>> parameters, 
-                std::unique_ptr<StatementsNode> func_body) 
-        : return_type(std::move(ret_type)),
-          name_tok(std::move(name)),
-          params(std::move(parameters)),
-          body(std::move(func_body)) {}
+    struct Parameter {
+    Token type;
+    Token name;
+    std::optional<AnyNode> default_value;  
+};
 
+class FuncDefNode {
+    public:
+        Token return_type;
+        std::optional<Token> name_tok;
+        std::list<Parameter> params; 
+        std::unique_ptr<StatementsNode> body;
+        
+        FuncDefNode(Token ret_type, std::optional<Token> name, 
+                    std::list<Parameter> parameters, 
+                    std::unique_ptr<StatementsNode> func_body) 
+            : return_type(std::move(ret_type)),
+            name_tok(std::move(name)),
+            params(std::move(parameters)),
+            body(std::move(func_body)) {}
         std::string print() { 
             return return_type.value + " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}"; 
         }

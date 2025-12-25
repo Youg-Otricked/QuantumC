@@ -35,13 +35,14 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v1.0
+        Quantum C (C⁴) v1.1
 
         The 4th Evolution of C
         More Powerful Than Explosives
         Now turing complete.
         Functions comming: NOW
-        Beter syntax guide comming: SOON
+        Beter syntax guide comming: NOW
+        Beter function errors comming: AFTER QBOOL LONG SHORT AND ARRAYS
         Features:
         ✓ C++ Performance -- without the 20 #includes
         ✓ C# Ergonomics  
@@ -60,7 +61,7 @@ int main(int argc, char* argv[]) {
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v1.0" << std::endl;
+        std::cout << "Quantum C REPL v1.1" << std::endl;
         if (!use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }
