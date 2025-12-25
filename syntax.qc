@@ -399,6 +399,82 @@ int main() {
 
     print("Hello, World!\n");
     println("Hello, World!\n");
+
+////////////////////////////////////////////////////////////////////////////////
+// SECTION: FUNCTIONS & LAMBDAS.
+////////////////////////////////////////////////////////////////////////////////
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 1: Named function (returning value)
+        ////////////////////////////////////////////////////////////////////////////////
+        int add(int a, int b) {
+            return a + b;
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 2: Void function (no return value)
+        ////////////////////////////////////////////////////////////////////////////////
+        void greet(string name) {
+            print("Hello, " + name + "\n");
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 3: Assigning a lambda to a variable (use auto)
+        ////////////////////////////////////////////////////////////////////////////////
+        auto make_adder = fn(int x, int y) {
+            return x + y;
+        };
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 4: Immediate invocation of a lambda (call right away)
+        ////////////////////////////////////////////////////////////////////////////////
+        auto immediate_result = fn(int a, int b) { return a * b; }(3, 4); // 12
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 5: Higher-order function (accepts a function)
+        ////////////////////////////////////////////////////////////////////////////////
+        void twice(auto f, int v) {
+            f(v);
+            f(v);
+        }
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 6: Lambda calling a void function
+        ////////////////////////////////////////////////////////////////////////////////
+        auto hello_lambda = fn() {
+            greet("Lambda");
+        };
+
+        ////////////////////////////////////////////////////////////////////////////////
+        // EXAMPLE 7: Recursion using a variable-held lambda
+        ////////////////////////////////////////////////////////////////////////////////
+        auto factorial = fn(int n) {
+            if (n <= 1) return 1;
+            return n * factorial(--n); // recursion through the variable name
+        };
+    int r1 = add(2, 3);           // 5
+    println(r1);
+
+    // Void function
+    greet("Alice");               // prints "Hello, Alice"
+
+    // Lambda assigned to variable
+    auto sum = make_adder;
+    println(sum(10, 20));         // prints 30
+
+    // Immediate invocation
+    println(immediate_result);    // prints 12
+
+    // Higher-order usage
+    auto printer = fn(int n) { println(n); };
+    twice(printer, 7);            // prints 7 twice
+
+    // Lambda that calls a void function
+    hello_lambda();               // prints "Hello, Lambda"
+
+    // Recursion
+    println(factorial(5));        // prints 120
+
     // END OF DEMO
     // All features shown above are working in Quantum C v1.0!
     //==============================================================================

@@ -77,7 +77,7 @@ namespace tkz {
        // std::unique_ptr<ForeachNode>,   // maybe later
         std::unique_ptr<ContinueNode>,   // new
         std::unique_ptr<CallNode>,
-        std::unique_ptr<FuncDefNode>,
+        std::shared_ptr<FuncDefNode>,
         std::unique_ptr<QOutExprNode>,
         std::unique_ptr<ReturnNode>
         
@@ -126,6 +126,7 @@ namespace tkz {
         ENUM,
         CLASS,
         STRUCT,
+        ARROW,
         BOOL,
         QBOOL,
         PLUS,
@@ -460,7 +461,7 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
     using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
-        std::unique_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>>;
+        std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -514,7 +515,7 @@ namespace tkz {
         Prs while_stmt();
         Prs for_stmt();
         Prs call(AnyNode node_to_call);
-        Prs func_def(Token return_type, Token func_name);
+        Prs func_def(Token return_type, std::optional<Token> func_name);
         bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
             if (this->current_tok.type == TokenType::LBRACE) {
                 this->advance();
@@ -567,7 +568,21 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-
+class VoidValue {
+    public:
+        Position pos;
+        VoidValue() : pos("", "", 0, 0, 0) {}
+        VoidValue& set_pos(Position p) { this->pos = p; return *this; }
+        std::string print() const { return ""; }
+};
+class FunctionValue {
+    public:
+        std::shared_ptr<FuncDefNode> func;
+        Position pos;
+        FunctionValue(std::shared_ptr<FuncDefNode> f = nullptr) : func(f), pos("", "", 0, 0, 0) {}
+        FunctionValue& set_pos(Position p) { this->pos = p; return *this; }
+        std::string print() const { return "<function>"; }
+};
 class CharValue {
 public:
     char value;
@@ -628,7 +643,11 @@ class StringValue {
         std::string print() const { return value; }
     };
     template <typename T> class Number;
-    using NumberVariant = std::variant<Number<int>, Number<float>, Number<double>, StringValue, CharValue, BoolValue>;
+    using NumberVariant = std::variant<
+        Number<int>, Number<float>, Number<double>,
+        StringValue, CharValue, BoolValue,
+        FunctionValue, VoidValue
+    >;
     template <typename T>
     class Number {
     public:
@@ -689,11 +708,12 @@ class StringValue {
     };
     struct ExecResult {
         NumberVariant value;
-        bool did_break = false;
-        bool did_continue = false;
-
-        ExecResult(NumberVariant v = Number<int>(0), bool b = false, bool c = false)
-            : value(std::move(v)), did_break(b), did_continue(c) {}
+        bool did_break;
+        bool did_continue;
+        bool did_return;
+        ExecResult() : value(Number<int>(0)), did_break(false), did_continue(false), did_return(false) {}
+        ExecResult(NumberVariant v, bool b, bool c, bool r = false)
+            : value(std::move(v)), did_break(b), did_continue(c), did_return(r) {}
     };
     
 
@@ -752,7 +772,7 @@ class StringValue {
 
     class Context {
         std::vector<std::unordered_map<std::string, Symbol>> frames;
-        std::unordered_map<std::string, FuncDefNode*> functions;
+        std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
     public:
         Context() {
             frames.emplace_back(); 
@@ -763,7 +783,7 @@ class StringValue {
         void pop_scope() {
             if (frames.size() > 1) frames.pop_back();
         }
-        void define(const std::string& name, const std::string& type, 
+        void define(const std::string& name, const std::string& type,
                     NumberVariant val, bool is_const = false) {
             frames.back()[name] = { type, val, is_const };
         }
@@ -794,14 +814,13 @@ class StringValue {
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
         }
-        void define_function(const std::string& name, FuncDefNode* func) {
-            functions[name] = func;
+        void define_function(const std::string& name, std::shared_ptr<FuncDefNode> func) {
+            functions[name] = std::move(func);
         }
         
-        FuncDefNode* get_function(const std::string& name) {
-            if (functions.count(name)) {
-                return functions[name];
-            }
+        std::shared_ptr<FuncDefNode> get_function(const std::string& name) {
+            auto it = functions.find(name);
+            if (it != functions.end()) return it->second;
             return nullptr;
         }
         std::string get_type_name(const NumberVariant& val) {
@@ -813,10 +832,13 @@ class StringValue {
                 if constexpr (std::is_same_v<T, StringValue>)    return "string";
                 if constexpr (std::is_same_v<T, CharValue>)      return "char";
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
+                if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
+                if constexpr (std::is_same_v<T, VoidValue>)      return "void";
                 return "unknown";
             }, val);
         }
     };
+    
     class ReturnNode {
     public:
         AnyNode value;  
@@ -846,7 +868,7 @@ class StringValue {
         NumberVariant operator()(std::unique_ptr<VarAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<VarAccessNode>& node);
         NumberVariant operator()(StringNode& node);
-        NumberVariant operator()(std::unique_ptr<FuncDefNode>& node);
+        NumberVariant operator()(std::shared_ptr<FuncDefNode>& node);
         NumberVariant operator()(std::unique_ptr<CallNode>& node);
         NumberVariant operator()(std::unique_ptr<ReturnNode>& node);
         NumberVariant operator()(CharNode& node);
