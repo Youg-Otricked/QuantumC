@@ -345,7 +345,11 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
-            }  else {
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {  // ← ADD THIS!
+                return Prs{std::move(arg)}; 
+            } else {
                 return Prs{std::monostate{}};
             }
         }, std::move(this->node));
@@ -407,6 +411,10 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {  // ← ADD THIS!
+                return Prs{std::move(arg)}; 
             } else {
                 return Prs{std::monostate{}};
             }
@@ -934,85 +942,8 @@ namespace tkz {
         return res.success(std::move(fn));
     }
     Prs Parser::func_def(Token return_type, std::optional<Token> func_name) {
-        ParseResult res;
-        this->advance();
-        
-        std::list<Parameter> params;
-        
-        if (this->current_tok.type != TokenType::RPAREN) {
-            Token param_type = this->current_tok;
-            this->advance();
-            Token param_name = this->current_tok;
-            this->advance();
-            
-            std::optional<AnyNode> default_val;
-            if (this->current_tok.type == TokenType::EQ) {
-                this->advance();  
-                default_val = std::move(res.reg(this->logical_or()));;
-                if (res.error) return res.to_prs();
-            }
-            
-            params.push_back({param_type, param_name, std::move(default_val)});
-            while (this->current_tok.type == TokenType::COMMA) {
-                this->advance();
-                
-                param_type = this->current_tok;
-                this->advance();
-                param_name = this->current_tok;
-                this->advance();
-                
-                default_val = std::nullopt;
-                if (this->current_tok.type == TokenType::EQ) {
-                    this->advance();
-                    default_val = res.reg(this->logical_or());
-                    if (res.error) return res.to_prs();
-                }
-                
-                params.push_back({param_type, param_name, std::move(default_val)});
-            }
-        }
-        if (this->current_tok.type != TokenType::RPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after parameters", this->current_tok.pos));
-            return res.to_prs();
-        }
-        this->advance(); 
-
-        if (this->current_tok.type == TokenType::ARROW) {
-            Token arrow_tok = this->current_tok;
-            this->advance();
-            if (this->current_tok.type != TokenType::KEYWORD) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected return type after '->' or ':'", this->current_tok.pos));
-                return res.to_prs();
-            }
-            return_type = this->current_tok;
-            this->advance(); 
-        }
-
-        if (this->current_tok.type != TokenType::LBRACE) {
-            res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '{' to start function body", this->current_tok.pos));
-            return res.to_prs();
-        }
-        this->advance();
-        std::vector<AnyNode> body_stmts;
-        while (this->current_tok.type != TokenType::RBRACE && 
-            this->current_tok.type != TokenType::EOFT) {
-            AnyNode stmt = res.reg(this->statement());
-            if (res.error) return res.to_prs();
-            body_stmts.push_back(std::move(stmt));
-        }
-
-        if (this->current_tok.type != TokenType::RBRACE) {
-            res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '}' to end function body", this->current_tok.pos));
-            return res.to_prs();
-        }
-        auto body = std::make_unique<StatementsNode>(std::move(body_stmts));
-        this->advance(); 
-        return res.success(std::make_shared<FuncDefNode>(
-            return_type, func_name, std::move(params), std::move(body)));
+        std::vector<Token> return_types = {return_type};
+        return this->func_def_multi(return_types, func_name);
     }
     Prs Parser::call(AnyNode node_to_call) {
         ParseResult res;
@@ -1195,7 +1126,14 @@ namespace tkz {
             }
 
             if (!std::holds_alternative<std::shared_ptr<FuncDefNode>>(fn_pr)) {
-                return pres.success(std::monostate{}); 
+                auto fn_ptr = std::get<std::shared_ptr<FuncDefNode>>(std::move(fn_pr));
+                AnyNode fn_node = fn_ptr;
+
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    return this->call(std::move(fn_node));
+                }
+
+                return pres.success(std::move(fn_node)); 
             }
             auto fn_ptr = std::get<std::shared_ptr<FuncDefNode>>(std::move(fn_pr));
             AnyNode fn_node = AnyNode{std::move(fn_ptr)};
@@ -1356,6 +1294,7 @@ namespace tkz {
     Prs Parser::return_stmt() {
         ParseResult res;
         Position start_pos = this->current_tok.pos;
+        
         this->advance();
         
         if (this->current_tok.type == TokenType::SEMICOLON) {
@@ -1364,8 +1303,19 @@ namespace tkz {
                 std::monostate{}, start_pos));
         }
         
-        AnyNode value = res.reg(this->logical_or());
-        if (res.error) return res.to_prs();
+        std::vector<AnyNode> values;
+        values.push_back(res.reg(this->logical_or()));
+        if (res.error) {
+            return res.to_prs();
+        }
+        
+        
+        while (this->current_tok.type == TokenType::COMMA) {
+            this->advance();
+            values.push_back(res.reg(this->logical_or()));
+            if (res.error) return res.to_prs();
+        }
+        
         
         if (this->current_tok.type != TokenType::SEMICOLON) {
             res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
@@ -1373,8 +1323,15 @@ namespace tkz {
         }
         this->advance();
         
-        return res.success(std::make_unique<ReturnNode>(
-            std::move(value), start_pos));
+        if (values.size() == 1) {
+            std::cerr << "DEBUG: return_stmt creating ReturnNode (single value)" << std::endl;
+            return res.success(std::make_unique<ReturnNode>(
+                std::move(values[0]), start_pos));
+        }
+
+        std::cerr << "DEBUG: return_stmt creating MultiReturnNode (" << values.size() << " values)" << std::endl;
+        return res.success(std::make_unique<MultiReturnNode>(
+            std::move(values), start_pos));
     }
     Prs Parser::assignment_expr() {
         ParseResult res;
@@ -1438,6 +1395,165 @@ namespace tkz {
 
         return res.success(std::move(left));
     }
+    static bool is_statement_node(const Prs& st) {
+        return std::visit([](auto&& arg) -> bool {
+            using T = std::decay_t<decltype(arg)>;
+
+            if constexpr (std::is_same_v<T, std::unique_ptr<Error>>) {
+                return true;
+            }
+
+            if constexpr (std::is_same_v<T, ParseResult> ||
+                        std::is_same_v<T, std::monostate>) {
+                return false;
+            }
+
+            return true;
+        }, st);
+    }
+    AnyNode to_any_node(Prs&& prs) {
+        return std::visit([](auto&& arg) -> AnyNode {
+            using T = std::decay_t<decltype(arg)>;
+            
+            std::cerr << "DEBUG: to_any_node called with type: " << typeid(T).name() << std::endl;
+
+            if constexpr (std::is_same_v<T, std::unique_ptr<tkz::Error>>) {
+                return std::monostate{};
+            } else if constexpr (std::is_same_v<T, tkz::ParseResult>) {
+                std::cerr << "DEBUG: Extracting node from ParseResult, variant index: " 
+                        << arg.node.index() << std::endl;
+                return std::move(arg.node);
+            } else if constexpr (
+                std::is_same_v<T, tkz::QOutNode> ||
+                std::is_same_v<T, std::unique_ptr<tkz::BinOpNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::UnaryOpNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::VarAccessNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::VarAssignNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::AssignExprNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::IfNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::StatementsNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::SwitchNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::BreakNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::WhileNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::ForNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::ContinueNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::CallNode>> ||
+                std::is_same_v<T, std::shared_ptr<tkz::FuncDefNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::QOutExprNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::ReturnNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::MultiReturnNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::MultiVarDeclNode>>
+            ) {
+                return std::move(arg);
+            } else {
+                return arg;
+            }
+        }, std::move(prs));
+    }
+
+
+    Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
+        ParseResult res;
+        this->advance();  
+        
+        std::list<Parameter> params;
+        
+        if (this->current_tok.type != TokenType::RPAREN) {
+            Token param_type = this->current_tok;
+            this->advance();
+            Token param_name = this->current_tok;
+            this->advance();
+            
+            std::optional<AnyNode> default_val;
+            if (this->current_tok.type == TokenType::EQ) {
+                this->advance(); 
+                default_val = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+            }
+            
+            params.push_back({param_type, param_name, std::move(default_val)});
+            
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                
+                param_type = this->current_tok;
+                this->advance();
+                param_name = this->current_tok;
+                this->advance();
+                
+                default_val = std::nullopt;
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    default_val = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                }
+                
+                params.push_back({param_type, param_name, std::move(default_val)});
+            }
+        }
+        
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ')' after parameters", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance(); 
+        
+        if (this->current_tok.type != TokenType::LBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '{' to start function body", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();  
+        
+        std::vector<AnyNode> body_stmts;
+        while (true) {
+            if (this->current_tok.type == TokenType::RBRACE)
+                break;
+
+            if (this->current_tok.type == TokenType::EOFT) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Unexpected end of file in function body",
+                    this->current_tok.pos
+                ));
+                return res.to_prs();
+            }
+
+            Prs st = this->statement();
+
+            if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                return res.to_prs();
+            }
+
+            if (!is_statement_node(st)) {
+                continue;
+            }
+
+            AnyNode node = to_any_node(std::move(st));
+
+            if (std::holds_alternative<std::monostate>(node)) {
+                continue;
+            }
+
+            body_stmts.push_back(std::move(node));
+        }
+
+        if (this->current_tok.type != TokenType::RBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '}' to end function body", this->current_tok.pos));
+            return res.to_prs();
+        }
+        
+        auto body = std::make_unique<StatementsNode>(std::move(body_stmts));
+        this->advance();  
+        
+        return res.success(std::make_unique<FuncDefNode>(
+            return_types,  
+            func_name, 
+            std::move(params), 
+            std::move(body)));
+    }
     Prs Parser::statement() {
         ParseResult res;
         Token tok = this->current_tok;
@@ -1450,10 +1566,10 @@ namespace tkz {
                 return res.to_prs();
             }
             
-            // Parse as function with no name
             Token dummy_return_type(TokenType::KEYWORD, "auto", tok.pos);
-            return this->func_def(dummy_return_type, std::nullopt);
-        }
+            std::vector<Token> return_types = {dummy_return_type};
+            return this->func_def_multi(return_types, std::nullopt);
+}
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
             return this->if_expr();
         }
@@ -1506,19 +1622,83 @@ namespace tkz {
             
             Token type_tok = tok;
             this->advance();
-            
+
+            std::vector<Token> return_types = {type_tok};
+            if (this->current_tok.type == TokenType::COMMA) {
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected type", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    
+                    return_types.push_back(this->current_tok);
+                    this->advance();
+                }
+                
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected identifier", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                Token name_tok = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
+                    if (res.error) return res.to_prs();
+                    return res.success(std::move(func_def));
+                }
+                
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Invalid syntax: use 'int x, string y = ...' for multi-variable declarations",
+                    name_tok.pos));
+                return res.to_prs();
+            }
+
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Expected identifier", this->current_tok.pos));
                 return res.to_prs();
             }
 
-            Token var_name = this->current_tok;
+            Token name_tok = this->current_tok;
             this->advance();
 
+            if (this->current_tok.type == TokenType::LPAREN) {
+                auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
+                if (res.error) return res.to_prs();
+                return res.success(std::move(func_def));
+            }
+            std::vector<Token> var_names = {name_tok};
+
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected type", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                return_types.push_back(this->current_tok);
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected identifier", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                var_names.push_back(this->current_tok);
+                this->advance();
+            }
+
+            
             AnyNode value;
             if (this->current_tok.type == TokenType::LPAREN) {
-                auto func_def = res.reg(this->func_def(type_tok, var_name));
+                auto func_def = res.reg(this->func_def_multi(return_types, std::make_optional(var_names[0])));
                 if (res.error) return res.to_prs();
                 return res.success(std::move(func_def));
             }
@@ -1529,10 +1709,10 @@ namespace tkz {
             } else {
                 if (is_const) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "const variables must be initialized", var_name.pos));
+                        "const variables must be initialized", var_names[0].pos));
                     return res.to_prs();
                 }
-                value = default_value_for_type(type_tok, var_name.pos);
+                value = default_value_for_type(type_tok, var_names[0].pos);
             }
             
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -1540,9 +1720,21 @@ namespace tkz {
                 return res.to_prs();
             }
 
-            this->advance(); 
-            return res.success(std::make_unique<VarAssignNode>(
-                is_const, type_tok, var_name, std::move(value)));
+            this->advance();  
+            if (return_types.size() > 1 || var_names.size() > 1) {
+                
+                
+                if (return_types.size() != var_names.size()) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Number of types must match number of variables", var_names[0].pos));
+                    return res.to_prs();
+                }
+                return res.success(std::make_unique<MultiVarDeclNode>(
+                    is_const, return_types, var_names, std::move(value)));
+            } else {
+                return res.success(std::make_unique<VarAssignNode>(
+                    is_const, return_types[0], var_names[0], std::move(value)));
+            }
         }
         // Assignment or compound assignment: x = 5; or x += 5;
         if (tok.type == TokenType::IDENTIFIER) {
@@ -1604,15 +1796,16 @@ namespace tkz {
 
             AnyNode stmt = std::visit([&has_main, &main_func_ptr](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
-                
-                // Check if it's a function definition named "main"
                 if constexpr (std::is_same_v<T, std::shared_ptr<FuncDefNode>>) {
                     if (arg->name_tok.has_value() && arg->name_tok->value == "main") {
-                        if (arg->return_type.value != "int") {
-                            throw InvalidSyntaxError("main() must return int, not " + arg->return_type.value, arg->return_type.pos);
+                        if (arg->return_types.empty() || arg->return_types[0].value != "int") {
+                            std::string actual = arg->return_types.empty() ? "void" : arg->return_types[0].value;
+                            throw InvalidSyntaxError("main() must return int, not " + actual, 
+                                                    arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
                         if (!arg->params.empty()) {
-                            throw InvalidSyntaxError("main() must have no parameters", arg->return_type.pos);
+                            throw InvalidSyntaxError("main() must have no parameters", 
+                                arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
                         has_main = true;
                         main_func_ptr = arg;
@@ -1673,6 +1866,8 @@ namespace tkz {
                 return v.value != 0;
             } else if constexpr (std::is_same_v<T, StringValue>) {
                 return !v.value.empty();
+            } else if constexpr (std::is_same_v<T, MultiValue>) { 
+                return true; 
             }
             return false;
         }, val);
@@ -1701,28 +1896,34 @@ namespace tkz {
             ) {
                 return static_cast<double>(v.value)
                     == static_cast<double>(std::get<T>(b).value);
+            } else if constexpr (std::is_same_v<T, MultiValue>) {
+                throw RTError("Cannot compare multi-values in switch", pos);
             } else {
                 throw RTError("Invalid switch comparison type", pos);
             }
         }, a);
     }
     NumberVariant Interpreter::process(AnyNode& node) {
-        return std::visit(*this, node);
+        
+        return std::visit([this](auto& n) -> NumberVariant {
+            using T = std::decay_t<decltype(n)>;
+            return (*this)(n);
+        }, node);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
         throw RTError("Unexpected 'break' outside loop or switch",
                     node ? node->tok.pos : Position());
     }
     NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         if (node->name_tok.has_value()) {
             context->define_function(node->name_tok->value, node);
-            return Number<int>(0);
+            return std::move(Number<int>(0));
         }
 
         FunctionValue fv(node);
-        return fv;
+        return std::move(fv);
     }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode& node) {
         return std::visit([this](auto& n) -> ExecResult {
@@ -1777,32 +1978,44 @@ namespace tkz {
         return { std::move(last), false, false, false };
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
-    if (!node) return Number<int>(0);
-    // Evaluate RHS
-    NumberVariant value = this->process(node->value_node);
+        if (!node) return std::move(Number<int>(0));
+        NumberVariant value = this->process(node->value_node);
 
-    std::string declaredType = node->type_tok.value;
-        std::string actualType   = context->get_type_name(value);
+        std::string declaredType = node->type_tok.value;
+        std::string actualType = context->get_type_name(value);
+
         if (declaredType != "auto") {
-            if (declaredType == "float" && actualType != "float") {
-                throw RTError("Type mismatch: expected float literal", node->var_name_tok.pos);
+            bool type_matches = false;
+            
+            if (declaredType == "float" && actualType == "float") {
+                type_matches = true;
+            } else if (declaredType == "double" && (actualType == "float" || actualType == "double")) {
+                type_matches = true;
+            } else if (declaredType == "int" && actualType == "int") {
+                type_matches = true;
+            } else if (declaredType == "bool" && actualType == "bool") {
+                type_matches = true;
+            } else if (declaredType == "string" && actualType == "string") {
+                type_matches = true;
+            } else if (declaredType == "char" && actualType == "char") {
+                type_matches = true;
+            } else if (declaredType == "function" && actualType == "function") {
+                type_matches = true;
             }
-            if (declaredType == "double" && (actualType != "float" && actualType != "double")) {
-                throw RTError("Type mismatch: expected double literal", node->var_name_tok.pos);
-            }
-            if (declaredType == "int" && (actualType != "int")) {
-                throw RTError("Type mismatch: expected int literal", node->var_name_tok.pos);
-            }
-            if (declaredType == "bool" && actualType != "bool") {
-                throw RTError("Type mismatch: expected bool literal", node->var_name_tok.pos);
-            }
-            if (declaredType == "function" && actualType != "function") {
-                throw RTError("Type mismatch: expected function value", node->var_name_tok.pos);
+            
+            if (!type_matches) {
+                throw RTError(
+                    "Type mismatch: expected " + declaredType + ", got " + actualType,
+                    node->var_name_tok.pos
+                );
             }
         }
 
-        context->define(node->var_name_tok.value, declaredType == "auto" ? actualType : declaredType, value, node->is_const);
-        return value;
+        context->define(node->var_name_tok.value, 
+                        declaredType == "auto" ? actualType : declaredType, 
+                        std::move(value), 
+                        node->is_const);
+        return std::move(value);
     }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode& ifn) {
         if (ifn.init.has_value())
@@ -1855,7 +2068,7 @@ namespace tkz {
                 ExecResult r = exec_stmt_in_loop_or_switch(body);
 
                 if (r.did_break)
-                    return { r.value, false, false, false };
+                    return { std::move(r.value), false, false, false };
 
                 return r;
             }
@@ -1870,8 +2083,23 @@ namespace tkz {
         throw RTError("Unexpected 'continue' outside loop",
                     node ? node->tok.pos : Position());
     }
+    NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode>& node) {
+        std::cerr << "DEBUG: MultiReturnNode handler called!" << std::endl;
+        std::cerr << "DEBUG: Number of return values: " << node->values.size() << std::endl;
+        
+        std::vector<NumberVariant> return_values;
+        for (size_t i = 0; i < node->values.size(); i++) {
+            std::cerr << "DEBUG: Processing return value " << i << std::endl;
+            auto val = this->process(node->values[i]);
+            std::cerr << "DEBUG: Got type: " << context->get_type_name(val) << std::endl;
+            return_values.push_back(std::move(val));
+        }
+        
+        std::cerr << "DEBUG: About to throw MultiReturnException with " << return_values.size() << " values" << std::endl;
+        throw MultiReturnException(std::move(return_values));
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         NumberVariant last = Number<int>(0);
 
@@ -1884,7 +2112,7 @@ namespace tkz {
                 last = std::move(r.value);
 
                 if (r.did_break) {
-                    return last;
+                    return std::move(last);
                 }
                 if (r.did_continue) {
                     goto while_update; 
@@ -1895,23 +2123,23 @@ namespace tkz {
             ;
         }
 
-        return last;
+        return std::move(last);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<QOutExprNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
         
         for (auto& val : node->values) {
             NumberVariant result = this->process(val);
-            std::cout << std::visit([](auto&& v) { return v.print(); }, result);
+            std::cout << std::visit([](auto&& v) -> std::string {if constexpr (requires { v->print(); }) {return v->print();} else {return v.print();}}, std::move(result));
         }
         
-        return Number<int>(0);
+        return std::move(Number<int>(0));
     }
     NumberVariant Interpreter::operator()(QOutNode& node) {
-        return Number<int>(0);
+        return std::move(Number<int>(0));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ForNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         ScopeGuard guard(this->context); 
         NumberVariant last = Number<int>(0);
@@ -1929,7 +2157,7 @@ namespace tkz {
                 last = std::move(r.value);
 
                 if (r.did_break) {
-                    return last;      
+                    return std::move(last);      
                 }
                 if (r.did_continue) {
                     goto for_update;   
@@ -1942,10 +2170,10 @@ namespace tkz {
             }
         }
 
-        return last;
+        return std::move(last);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         NumberVariant switch_val = this->process(node->value);
 
@@ -1981,7 +2209,7 @@ namespace tkz {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break) {
-                    return last;
+                    return std::move(last);
                 }
             }
         }
@@ -1989,7 +2217,7 @@ namespace tkz {
         return last;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         if (std::holds_alternative<std::monostate>(node->value)) {
             throw ReturnException(VoidValue().set_pos(node->pos));
@@ -1998,28 +2226,37 @@ namespace tkz {
         NumberVariant val = this->process(node->value);
         throw ReturnException(std::move(val));
     }
+    NumberVariant def_value_for_type(const std::string& type_name) {
+        if (type_name == "int") return Number<int>(0);
+        else if (type_name == "float") return Number<float>(0.0f);
+        else if (type_name == "double") return Number<double>(0.0);
+        else if (type_name == "string") return StringValue("");
+        else if (type_name == "char") return CharValue("");
+        else if (type_name == "bool") return BoolValue("");
+        else return VoidValue();
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
         if (!node) return Number<int>(0);
 
-        std::string func_name = "<anonymous>";
         NumberVariant target_val;
+        std::string func_name = "<anonymous>";
 
         if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
             auto& varacc = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
             func_name = varacc->var_name_tok.value;
 
             if (func_name == "print" || func_name == "println") {
-                for (auto& arg : node->arg_nodes) {
-                    NumberVariant val = this->process(arg);
-                    std::cout << std::visit([](auto&& v) { return v.print(); }, val);
-                }
+                for (auto& arg : node->arg_nodes)
+                    std::cout << std::visit([](auto&& v) -> std::string { 
+                        if constexpr (requires { v->print(); }) return v->print();
+                        else return v.print(); 
+                    }, this->process(arg));
                 if (func_name == "println") std::cout << std::endl;
                 return Number<int>(0);
             }
 
-            try {
-                target_val = context->get(func_name, varacc->var_name_tok.pos);
-            } catch (RTError&) {
+            try { target_val = context->get(func_name, varacc->var_name_tok.pos); }
+            catch (RTError&) {
                 auto func = context->get_function(func_name);
                 if (!func) throw RTError("Undefined function: '" + func_name + "'", Position());
                 target_val = FunctionValue(func);
@@ -2032,109 +2269,90 @@ namespace tkz {
             throw RTError("Can only call functions", Position());
 
         FunctionValue fval = std::get<FunctionValue>(target_val);
-        if (!fval.func)
-            throw RTError("Invalid function value", Position());
+        if (!fval.func) throw RTError("Invalid function value", Position());
 
         auto func = fval.func;
-
-        size_t required_args = 0;
-        for (auto& p : func->params)
-            if (!p.default_value.has_value()) required_args++;
-
-        if (node->arg_nodes.size() < required_args)
-            throw RTError("Function '" + func_name + "' requires at least " +
-                        std::to_string(required_args) + " arguments", Position());
-
-        if (node->arg_nodes.size() > func->params.size())
-            throw RTError("Function '" + func_name + "' expects at most " +
-                        std::to_string(func->params.size()) + " arguments", Position());
-
-        std::vector<NumberVariant> arg_values;
-        arg_values.reserve(node->arg_nodes.size());
-        for (auto& arg : node->arg_nodes)
-            arg_values.push_back(this->process(arg));
-
         context->push_scope();
+        
         try {
-            size_t i = 0;
-            for (auto& param : func->params) {
+            for (size_t i = 0; i < func->params.size(); i++) {
                 NumberVariant value;
+                auto it_param = func->params.begin();
+                std::advance(it_param, i);
 
-                if (i < arg_values.size()) value = arg_values[i];
-                else value = this->process(param.default_value.value());
+                if (i < node->arg_nodes.size()) {
+                    auto it_arg = node->arg_nodes.begin();
+                    std::advance(it_arg, i);
+                    value = this->process(*it_arg);
+                }
+                else if (it_param->default_value.has_value()) {
+                    value = this->process(it_param->default_value.value());
+                }
+                else throw RTError("Missing argument", Position());
 
-                std::string expected_type = param.type.value;
+                std::string expected_type = it_param->type.value;
                 std::string actual_type = context->get_type_name(value);
 
                 if (expected_type == "auto") {
-                    context->define(param.name.value, actual_type, value);
-                }
-                else {
+                    context->define(it_param->name.value, actual_type, std::move(value));
+                } else {
                     if (expected_type != actual_type) {
                         context->pop_scope();
-                        throw RTError(
-                            "Argument " + std::to_string(i + 1) +
-                            ": expected " + expected_type +
-                            ", got " + actual_type,
-                            Position()
-                        );
+                        throw RTError("Argument type mismatch", Position());
                     }
-                    context->define(param.name.value, expected_type, value);
+                    context->define(it_param->name.value, expected_type, std::move(value));
                 }
-
-                i++;
             }
-
-            for (auto& stmt : func->body->statements)
+            
+            for (auto& stmt : func->body->statements) {
                 this->process(stmt);
-
-            std::string ret = func->return_type.value;
-            NumberVariant def;
-
-            if (ret == "void") def = VoidValue();
-            else if (ret == "int") def = Number<int>(0);
-            else if (ret == "float") def = Number<float>(0.0f);
-            else if (ret == "double") def = Number<double>(0.0);
-            else if (ret == "string") def = StringValue("");
-            else if (ret == "bool") def = BoolValue(""); 
-            else def = VoidValue();
-
-            context->pop_scope();
-            return def;
-
-        } catch (const ReturnException& re) {
-            std::string expected = func->return_type.value;
-            std::string actual = context->get_type_name(re.value);
-
-            if (expected != "void" && expected != "auto" && expected != actual) {
-                context->pop_scope();
-                throw RTError(
-                    "Function should return " + expected + ", got " + actual,
-                    Position()
-                );
             }
-
+            
+            if (func->return_types.size() > 1) {
+                std::vector<NumberVariant> defaults;
+                for (auto& rt : func->return_types)
+                    defaults.push_back(def_value_for_type(rt.value));
+                context->pop_scope();
+                return std::make_unique<MultiValue>(std::move(defaults));
+            } else if (func->return_types.size() == 1) {
+                context->pop_scope();
+                return def_value_for_type(func->return_types[0].value);
+            } else {
+                context->pop_scope();
+                return VoidValue();
+            }
+            
+        } catch (ReturnException& re) {
+            std::cerr << "DEBUG: Caught ReturnException" << std::endl;
             context->pop_scope();
-            return re.value;
+            return std::move(re.value);
+            
+        } catch (MultiReturnException& mre) {
+            std::cerr << "DEBUG: Caught MultiReturnException with " << mre.values.size() << " values" << std::endl;
+            for (size_t i = 0; i < mre.values.size(); i++) {
+                std::cerr << "  Value " << i << ": " << context->get_type_name(mre.values[i]) << std::endl;
+            }
+            context->pop_scope();
+            return std::make_unique<MultiValue>(std::move(mre.values));
+            
         } catch (...) {
             context->pop_scope();
             throw;
         }
     }
 
-
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
         NumberVariant last_result = Number<int>(0);
         
         for (auto& stmt : node->statements) {
             ExecResult r = exec_stmt_in_loop_or_switch(stmt);
-            last_result = r.value;
+            last_result = std::move(r.value);
 
             if (r.did_break || r.did_continue)
-                return last_result;
+                return std::move(last_result);
         }
         
-        return last_result;
+        return std::move(last_result);
     }
     
     NumberVariant Interpreter::operator()(NumberNode& node) {
@@ -2143,15 +2361,15 @@ namespace tkz {
         try {
             if (node.tok.type == TokenType::FLOAT) {
                 float val = std::stof(s);
-                return Number<float>(val).set_pos(node.tok.pos);
+                return std::move(Number<float>(val).set_pos(node.tok.pos));
             }
             if (s.find('.') != std::string::npos) {
                 double val = std::stod(s);
-                return Number<double>(val).set_pos(node.tok.pos);
+                return std::move(Number<double>(val).set_pos(node.tok.pos));
             }
 
             int val = std::stoi(s);
-            return Number<int>(val).set_pos(node.tok.pos);
+            return std::move(Number<int>(val).set_pos(node.tok.pos));
 
         } catch (const std::out_of_range&) {
             throw RTError("Number is too large or too small (Overflow/Underflow)", node.tok.pos);
@@ -2162,19 +2380,21 @@ namespace tkz {
         if (!context) {
             throw RTError("Context not initialized", node->var_name_tok.pos);
         }
-        return context->get(node->var_name_tok.value, node->var_name_tok.pos);
+        return std::move(context->get(node->var_name_tok.value, node->var_name_tok.pos));
     }
     std::string Interpreter::run_statements(std::unique_ptr<StatementsNode>& node) {
         std::string output = "";
         
         for (auto& stmt : node->statements) {
             ExecResult r = exec_stmt_in_loop_or_switch(stmt);
-            auto result = r.value;
+            auto result = std::move(r.value);
 
             output += std::visit([](auto&& val) -> std::string {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, std::monostate>) {
                     return "";
+                } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiValue>>) {
+                    return val->print() + "\n";
                 } else {
                     return val.print() + "\n";
                 }
@@ -2184,22 +2404,22 @@ namespace tkz {
         return output;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
         if (node->op_tok.type == TokenType::AND) {
-            NumberVariant left = this->process(node->left_node);
-            if (!is_truthy(left)) return BoolValue("false");
-                NumberVariant right = this->process(node->right_node);
-                return BoolValue(is_truthy(right) ? "true" : "false");
+            NumberVariant left = std::move(this->process(node->left_node));
+            if (!is_truthy(left)) return std::move(BoolValue("false"));
+                NumberVariant right = std::move(this->process(node->right_node));
+                return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
         }
     
         if (node->op_tok.type == TokenType::OR) {
-            NumberVariant left = this->process(node->left_node);
-            if (is_truthy(left)) return BoolValue("true");
-                NumberVariant right = this->process(node->right_node);
-                return BoolValue(is_truthy(right) ? "true" : "false");
+            NumberVariant left = std::move(this->process(node->left_node));
+            if (is_truthy(left)) return std::move(BoolValue("true"));
+                NumberVariant right = std::move(this->process(node->right_node));
+                return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
         }
-        NumberVariant left = this->process(node->left_node);
-        NumberVariant right = this->process(node->right_node);
+        NumberVariant left = std::move(this->process(node->left_node));
+        NumberVariant right = std::move(this->process(node->right_node));
 
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
@@ -2223,15 +2443,15 @@ namespace tkz {
                         return "<unknown>";
                 };
 
-                auto l_str = to_string_variant(L);
-                auto r_str = to_string_variant(R);
+                auto l_str = std::move(to_string_variant(L));
+                auto r_str = std::move(to_string_variant(R));
 
-                return StringValue(l_str + r_str).set_pos(node->op_tok.pos);
+                return std::move(StringValue(l_str + r_str).set_pos(node->op_tok.pos));
             }
 
             else if constexpr (std::is_same_v<T1, StringValue> && std::is_same_v<T2, StringValue>) {
                 if (node->op_tok.type == TokenType::PLUS) {
-                    return StringValue(L.value + R.value).set_pos(node->op_tok.pos);
+                    return std::move(StringValue(L.value + R.value).set_pos(node->op_tok.pos));
                 }
                 throw RTError("Only '+' is supported for strings", node->op_tok.pos);
             } else if constexpr (std::is_same_v<T1, StringValue> ^ std::is_same_v<T2, StringValue>) {
@@ -2251,42 +2471,87 @@ namespace tkz {
             else if constexpr (std::is_same_v<T1, VoidValue> || std::is_same_v<T2, VoidValue>) { 
                 throw RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos);
             }
+            else if constexpr (std::is_same_v<T1, MultiValue> || std::is_same_v<T2, MultiValue>) { 
+                throw RTError("How ius a return value in this function", node->op_tok.pos);
+            }
+            else if constexpr (std::is_same_v<T1, std::unique_ptr<MultiValue>> || 
+                            std::is_same_v<T2, std::unique_ptr<MultiValue>>) {
+                throw RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos);
+            }
             else{ 
-                return handle_binop(L, R, node->op_tok.type, this->error);
+                return std::move(handle_binop(L, R, node->op_tok.type, this->error));
             }
         }, left, right);
     }
+    NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode>& node) {
+
+        std::unique_ptr<MultiValue> mv;
+
+        try {
+            auto result = this->process(node->value);
+            mv = std::get_if<std::unique_ptr<MultiValue>>(&result)
+                    ? std::move(*std::get_if<std::unique_ptr<MultiValue>>(&result))
+                    : nullptr;
+        } catch (MultiReturnException& mre) {
+            mv = std::make_unique<MultiValue>(std::move(mre.values));
+        }
+
+        if (!mv) {
+            throw RTError("Expected multi-return value", node->var_names[0].pos);
+        }
+
+        if (mv->values.size() != node->var_names.size()) {
+            throw RTError(
+                "Expected " + std::to_string(node->var_names.size()) +
+                " values, got " + std::to_string(mv->values.size()),
+                node->var_names[0].pos
+            );
+        }
+
+        for (size_t i = 0; i < node->var_names.size(); i++) {
+
+            context->define(
+                node->var_names[i].value,
+                node->type_toks[i].value,
+                std::move(mv->values[i]),
+                node->is_const
+            );
+        }
+
+        return VoidValue();
+    }
     NumberVariant Interpreter::operator()(tkz::CharNode& node) {
         CharValue cv(node.tok.value);
-        return cv.set_pos(node.tok.pos);
+        return std::move(cv.set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(tkz::BoolNode& node) {
-        return BoolValue(node.tok.value).set_pos(node.tok.pos);
+        return std::move(BoolValue(node.tok.value).set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
         if (!node) return Number<int>(0);
-        NumberVariant value = this->process(node->value);
-        context->set(
-            node->var_name.value,
-            value,
-            node->var_name.pos
-        );
+        NumberVariant value = std::move(this->process(node->value));
+        context->set(node->var_name.value, std::move(value), node->var_name.pos);
 
-        return value;
+        return std::move(value);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
         if (!node) return Number<int>(0);
-
+        
         if (node->op_tok.type == TokenType::NOT) {
-            NumberVariant val = this->process(node->node);
-            return std::visit([](const auto& n) -> NumberVariant {
-                return BoolValue(is_truthy(n) ? "false" : "true");
+            
+            NumberVariant val = std::move(this->process(node->node));
+            return std::visit([&](auto&& n) -> NumberVariant {
+                using T = std::decay_t<decltype(n)>;
+                if constexpr (std::is_same_v<T, std::unique_ptr<MultiValue>>) {
+                    throw RTError("Cannot use ! operator on multi-return values", node->op_tok.pos);
+                } else {
+                    return std::move(BoolValue(is_truthy(n) ? "false" : "true"));
+                }
             }, val);
         }
-
         if (node->op_tok.type == TokenType::INCREMENT ||
             node->op_tok.type == TokenType::DECREMENT) {
-
+            
             auto* var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
             if (!var) {
                 throw RTError("Increment/decrement must target a variable",
@@ -2296,33 +2561,33 @@ namespace tkz {
             const std::string name = (*var)->var_name_tok.value;
             Position pos = (*var)->var_name_tok.pos;
 
-            NumberVariant old_val = context->get(name, pos);
+            NumberVariant old_val = std::move(context->get(name, pos));
 
-            NumberVariant new_val = std::visit([&](auto& n) -> NumberVariant {
+            NumberVariant new_val = std::move(std::visit([&](auto& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (
                     !std::is_same_v<T, StringValue> &&
                     !std::is_same_v<T, CharValue> &&
                     !std::is_same_v<T, BoolValue> &&
                     !std::is_same_v<T, FunctionValue> &&
-                    !std::is_same_v<T, VoidValue>
+                    !std::is_same_v<T, VoidValue> &&
+                    !std::is_same_v<T, std::unique_ptr<MultiValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
-                        return n.added_to(Number<int>(1));
+                        return std::move(n.added_to(Number<int>(1)));
                     else
-                        return n.subbed_by(Number<int>(1));
+                        return std::move(n.subbed_by(Number<int>(1)));
                 }
                 throw RTError("Invalid operand for ++/--", pos);
-            }, old_val);
+            }, old_val));
 
-            context->set(name, new_val, pos);
-
-            return node->is_postfix ? old_val : new_val;
+            context->set(name, std::move(new_val), pos);
+            return std::move(node->is_postfix ? old_val : new_val);
         }
 
-        NumberVariant number = this->process(node->node);
+        NumberVariant number = std::move(this->process(node->node));
 
-        return std::visit([&node](const auto& n) -> NumberVariant {
+        return std::move(std::visit([&node](const auto& n) -> NumberVariant {
             using T = std::decay_t<decltype(n)>;
 
             if constexpr (
@@ -2331,29 +2596,30 @@ namespace tkz {
                 !std::is_same_v<T, BoolValue> &&
                 !std::is_same_v<T, FunctionValue> &&
                 !std::is_same_v<T, VoidValue> &&
-                !std::is_same_v<T, std::monostate>
+                !std::is_same_v<T, std::monostate> &&
+                !std::is_same_v<T, std::unique_ptr<MultiValue>>
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
-                    return n.multed_by(Number<int>(-1));
+                    return std::move(n.multed_by(Number<int>(-1)));
                 }
-                return n;
+                return std::move(n);
             } else {
                 throw RTError("Unary operator not supported for this type",
                             node->op_tok.pos);
             }
-        }, number);
+        }, number));
     }
 
 
     NumberVariant Interpreter::operator()(StringNode& node) {
-        return StringValue(node.tok.value).set_pos(node.tok.pos);
+        return std::move(StringValue(node.tok.value).set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(std::monostate) {
         std::cerr << "Empty AST node encountered\n";
-        return Number<int>(0);
+        return std::move(Number<int>(0));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<IfNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return std::move(Number<int>(0));
 
         bool created_init_scope = false;
         ScopeGuard guard(this->context); 
@@ -2371,10 +2637,10 @@ namespace tkz {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break || r.did_continue) {
-                    return last;
+                    return std::move(last);
                 }
             }
-            return last;
+            return std::move(last);
         }
 
         for (auto &p : node->elif_branches) {
@@ -2385,26 +2651,26 @@ namespace tkz {
                     ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                     last = std::move(r.value);
                     if (r.did_break || r.did_continue) {
-                        return last;
+                        return std::move(last);
                     }
                 }
-                return last;
+                return std::move(last);
             }
         }
 
         if (node->else_branch) {
-            NumberVariant last = Number<int>(0);
+            NumberVariant last = std::move(Number<int>(0));
             for (auto& stmt : node->else_branch->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break || r.did_continue) {
-                    return last;
+                    return std::move(last);
                 }
             }
-            return last;
+            return std::move(last);
         }
 
-        return Number<int>(0);
+        return std::move(Number<int>(0));
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
@@ -2452,7 +2718,7 @@ namespace tkz {
                 std::list<AnyNode>{}
             );
             AnyNode node_variant = std::move(main_call_node);
-            NumberVariant result = interpreter.process(node_variant);
+            NumberVariant result = std::move(interpreter.process(node_variant));
             
             exit_code = std::visit([](auto&& v) -> int {
                 using T = std::decay_t<decltype(v)>;

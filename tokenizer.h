@@ -56,6 +56,8 @@ namespace tkz {
     class FuncDefNode;
     class QOutNode;
     class ReturnNode;
+    class MultiReturnNode;
+    class MultiVarDeclNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -72,15 +74,16 @@ namespace tkz {
         std::unique_ptr<StatementsNode>,
         std::unique_ptr<SwitchNode>,
         std::unique_ptr<BreakNode>,
-        std::unique_ptr<WhileNode>,     // new
-        std::unique_ptr<ForNode>,       // new
-       // std::unique_ptr<ForeachNode>,   // maybe later
-        std::unique_ptr<ContinueNode>,   // new
+        std::unique_ptr<WhileNode>,    
+        std::unique_ptr<ForNode>,       
+       // std::unique_ptr<ForeachNode>,  
+        std::unique_ptr<ContinueNode>,   
         std::unique_ptr<CallNode>,
         std::shared_ptr<FuncDefNode>,
         std::unique_ptr<QOutExprNode>,
-        std::unique_ptr<ReturnNode>
-        
+        std::unique_ptr<ReturnNode>,
+        std::unique_ptr<MultiReturnNode>,
+        std::unique_ptr<MultiVarDeclNode>
     >;
     class StatementsNode {
     public:
@@ -190,7 +193,7 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ERRORS ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    
+   
     class Error {
         public:
         Position pos;
@@ -236,6 +239,7 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    
     class QOutNode {
     public:
         std::string print() { return "std::qout"; }
@@ -260,6 +264,7 @@ namespace tkz {
         StringNode (Token tok);
         std::string print();
     };
+    
     class BoolNode {
         public:
         Token tok;
@@ -435,40 +440,87 @@ namespace tkz {
 
 class FuncDefNode {
     public:
-        Token return_type;
+        std::vector<Token> return_types; 
         std::optional<Token> name_tok;
-        std::list<Parameter> params; 
+        std::list<Parameter> params;
         std::unique_ptr<StatementsNode> body;
+        Position pos;
         
-        FuncDefNode(Token ret_type, std::optional<Token> name, 
+        FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, 
                     std::list<Parameter> parameters, 
                     std::unique_ptr<StatementsNode> func_body) 
-            : return_type(std::move(ret_type)),
+            : return_types(std::move(ret_types)),
             name_tok(std::move(name)),
             params(std::move(parameters)),
             body(std::move(func_body)) {}
-        std::string print() { 
-            return return_type.value + " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}"; 
+        
+        std::string print() {
+            std::string result = "";
+            for (size_t i = 0; i < return_types.size(); i++) {
+                result += return_types[i].value;
+                if (i < return_types.size() - 1) result += ", ";
+            }
+            result += " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}";
+            return result;
         }
+        
+        bool is_multi_return() const { return return_types.size() > 1; }
     };
+    std::string printAny(AnyNode& node);    
     class CallNode {
-        public: 
+    public:
         AnyNode node_to_call;
         std::list<AnyNode> arg_nodes;
-        CallNode(AnyNode node_to_call, std::list<AnyNode> arg_nodes) {
-            this->node_to_call = std::move(node_to_call);
-            this->arg_nodes = std::move(arg_nodes);
-        }
+        
+        CallNode(AnyNode node, std::list<AnyNode> args) 
+            : node_to_call(std::move(node)), arg_nodes(std::move(args)) {}
+        
         std::string print() {
-            return (printAny(node_to_call) + "(args)");
+            return printAny(node_to_call) + "(args)";
         }
+    };
+    class MultiReturnNode {
+    public:
+        std::vector<AnyNode> values;
+        Position pos;
+        
+        MultiReturnNode(std::vector<AnyNode> vals, Position p)
+            : values(std::move(vals)), pos(p) {}
+        
+        std::string print() {
+            std::string result = "return ";
+            for (size_t i = 0; i < values.size(); i++) {
+                result += printAny(values[i]);
+                if (i < values.size() - 1) result += ", ";
+            }
+            return result + ";";
+        }
+    };    
+    class MultiVarDeclNode {
+    public:
+        bool is_const;
+        std::vector<Token> type_toks;   
+        std::vector<Token> var_names;   
+        AnyNode value;                   
+        
+        MultiVarDeclNode(
+            bool is_const,
+            std::vector<Token> type_toks,
+            std::vector<Token> var_names,
+            AnyNode value
+        ) : is_const(is_const),
+            type_toks(std::move(type_toks)),
+            var_names(std::move(var_names)),
+            value(std::move(value)) {}
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
     using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
-        std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>>;
+        std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>,
+        std::unique_ptr<MultiReturnNode>,
+        std::unique_ptr<MultiVarDeclNode>>;
     class ParseResult {
         public:
         AnyNode node;
@@ -523,6 +575,16 @@ class FuncDefNode {
         Prs for_stmt();
         Prs call(AnyNode node_to_call);
         Prs func_def(Token return_type, std::optional<Token> func_name);
+        Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name);
+        inline AnyNode prs_to_anynode(Prs&& st) {
+            return std::visit([](auto&& arg) -> AnyNode {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_constructible_v<AnyNode, T>) {
+                    return AnyNode(std::move(arg));
+                }
+                return std::monostate{};
+            }, std::move(st));
+        }
         bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
             if (this->current_tok.type == TokenType::LBRACE) {
                 this->advance();
@@ -534,13 +596,7 @@ class FuncDefNode {
                         res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
                         return false;
                     }
-                    AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
-                        using T = std::decay_t<decltype(arg)>;
-                        if constexpr (std::is_constructible_v<AnyNode, T>) {
-                            return AnyNode(std::move(arg));
-                        }
-                        return std::monostate{};
-                    }, std::move(st));
+                    AnyNode any_stmt = prs_to_anynode(std::move(st));
                     stmts.push_back(std::move(any_stmt));
                 }
                 if (this->current_tok.type != TokenType::RBRACE) {
@@ -556,13 +612,7 @@ class FuncDefNode {
                     res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
                     return false;
                 }
-                AnyNode any_stmt = std::visit([](auto&& arg) -> AnyNode {
-                    using T = std::decay_t<decltype(arg)>;
-                    if constexpr (std::is_constructible_v<AnyNode, T>) {
-                        return AnyNode(std::move(arg));
-                    }
-                    return std::monostate{};
-                }, std::move(st));
+                AnyNode any_stmt = prs_to_anynode(std::move(st));  // ← CHANGED!
                 std::vector<AnyNode> stmts;
                 stmts.push_back(std::move(any_stmt));
                 out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
@@ -649,11 +699,12 @@ class StringValue {
 
         std::string print() const { return value; }
     };
+    class MultiValue;
     template <typename T> class Number;
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         StringValue, CharValue, BoolValue,
-        FunctionValue, VoidValue
+        FunctionValue, VoidValue, std::unique_ptr<MultiValue>
     >;
     template <typename T>
     class Number {
@@ -713,6 +764,35 @@ class StringValue {
         }
 
     };
+    class MultiValue {
+    public:
+        std::vector<NumberVariant> values;
+        
+        MultiValue(std::vector<NumberVariant>&& vals) : values(std::move(vals)) {}
+        
+        std::string print() const {
+            std::string result = "(";
+            for (size_t i = 0; i < values.size(); i++) {
+                result += std::visit([](auto&& v) -> std::string {
+                    using T = std::decay_t<decltype(v)>;
+                    
+                    if constexpr (requires { v->print(); }) {
+                        return v->print();  
+                    }
+                    else if constexpr (requires { v.print(); }) {
+                        return v.print();   
+                    }
+                    else {
+                        return "<unknown>";
+                    }
+                }, values[i]);
+                
+                if (i < values.size() - 1) result += ", ";
+            }
+            return result + ")";
+        }
+    };
+    
     struct ExecResult {
         NumberVariant value;
         bool did_break;
@@ -722,7 +802,13 @@ class StringValue {
         ExecResult(NumberVariant v, bool b, bool c, bool r = false)
             : value(std::move(v)), did_break(b), did_continue(c), did_return(r) {}
     };
-    
+    class MultiReturnException {
+    public:
+        std::vector<NumberVariant> values;
+        
+        MultiReturnException(std::vector<NumberVariant> vals) 
+            : values(std::move(vals)) {}
+    };
 
     template <typename T, typename U>
     NumberVariant handle_binop(const Number<T>& L, const Number<U>& R, TokenType op, InterpEer& error) {
@@ -792,7 +878,7 @@ class StringValue {
         }
         void define(const std::string& name, const std::string& type,
                     NumberVariant val, bool is_const = false) {
-            frames.back()[name] = { type, val, is_const };
+            frames.back()[name] = { type, std::move(val), is_const };
         }
         void set(const std::string& name, NumberVariant new_val, Position pos) {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
@@ -806,7 +892,7 @@ class StringValue {
                     if (expected != actual) {
                         throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
                     }
-                    sym_it->second.value = new_val;
+                    sym_it->second.value = std::move(new_val);
                     return;
                 }
             }
@@ -816,7 +902,7 @@ class StringValue {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
-                    return sym_it->second.value;
+                    return std::move(sym_it->second.value);
                 }
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
@@ -841,6 +927,7 @@ class StringValue {
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
                 if constexpr (std::is_same_v<T, VoidValue>)      return "void";
+                if constexpr (std::is_same_v<T, MultiValue>)     return "multi";  
                 return "unknown";
             }, val);
         }
@@ -881,6 +968,7 @@ class StringValue {
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(QOutNode& node);
+        NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         NumberVariant operator()(std::unique_ptr<IfNode>& node);
@@ -889,6 +977,7 @@ class StringValue {
         NumberVariant operator()(std::unique_ptr<ContinueNode>& node);
         NumberVariant operator()(std::unique_ptr<WhileNode>& node);
         NumberVariant operator()(std::unique_ptr<ForNode>& node);
+        NumberVariant operator()(std::unique_ptr<MultiReturnNode>& node);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);

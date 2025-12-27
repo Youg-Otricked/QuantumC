@@ -487,8 +487,58 @@ int main() {
     // f strings are python style
     string this = f"Hello, {add(1, 2)}, {w2}";
     std::qout << this;
+    //=============================================================================
+    // SECTION 21: Multi-Return Values
+    //=============================================================================
+
+    // Single return (traditional)
+    int add(int a, int b) {
+        return a + b;
+    }
+
+    // Multi-return function - returns multiple values
+    int, string get_user() {
+        return 123, "Alice";
+    }
+
+    // Multi-return with 3+ values
+    int, float, bool get_data() {
+        return 100, 3.14f, true;
+    }
+
+    // Multi-variable declaration - destructuring multi-return
+    int id, string name = get_user();
+    id;    // 123
+    name;  // "Alice"
+
+    // Multi-return with 3 variables
+    int code, float pi, bool flag = get_data();
+    code;  // 100
+    pi;    // 3.14
+    flag;  // true
+
+    // Multi-return with default parameters
+    int, string greet(string name = "World") {
+        return 200, "Hello, " + name;
+    }
+
+    int status1, string msg1 = greet();
+    status1;  // 200
+    msg1;     // "Hello, World"
+
+    int status2, string msg2 = greet("Quantum C");
+    status2;  // 200
+    msg2;     // "Hello, Quantum C"
+
+    // Type checking still applies
+    int x, string y = get_user();  // ✓ Correct types
+    // int x, int y = get_user();   // ✗ Error: type mismatch
+
+    // Must match number of return values
+    // int x = get_user();          // ✗ Error: can't assign multi-return to single variable
+    // int x, string y, bool z = get_user();  // ✗ Error: expected 2 values, got 3
     // END OF DEMO
-    // All features shown above are working in Quantum C v1.0!
+    // All features shown above are working in Quantum C v2.0!
     //==============================================================================
     return 0;
 }
