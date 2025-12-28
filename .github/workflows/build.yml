@@ -10,7 +10,7 @@ jobs:
       
       - name: Build
         run: |
-          clang++ *.cpp *.h -o qc-macos -std=c++20 -fconstexpr-ops-limit=100000000
+          clang++ *.cpp -o qc-macos -std=c++20
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -25,7 +25,7 @@ jobs:
       
       - name: Build
         run: |
-          g++ *.cpp *.h -o qc-linux -std=c++20 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc-linux -std=c++20 -fconstexpr-ops-limit=100000000
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -40,7 +40,7 @@ jobs:
       
       - name: Build with MinGW
         run: |
-          g++ *.cpp *.h -o qc-windows.exe -std=c++20 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc-windows.exe -std=c++20 -fconstexpr-ops-limit=100000000
       
       - name: Upload artifact
         uses: actions/upload-artifact@v4
