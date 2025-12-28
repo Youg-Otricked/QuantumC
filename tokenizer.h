@@ -58,8 +58,6 @@ namespace tkz {
     class ReturnNode;
     class MultiReturnNode;
     class MultiVarDeclNode;
-    class ArrayLiteralNode;
-    class IndexNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
