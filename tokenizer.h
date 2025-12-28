@@ -58,6 +58,8 @@ namespace tkz {
     class ReturnNode;
     class MultiReturnNode;
     class MultiVarDeclNode;
+    class ArrayLiteralNode;
+    class IndexNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -84,6 +86,7 @@ namespace tkz {
         std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>
+        
     >;
     class StatementsNode {
     public:
@@ -170,6 +173,8 @@ namespace tkz {
         DEFAULT,
         IF,
         ELSE,
+        LBRACKET,
+        RBRACKET,
         LBRACE,
         RBRACE,
         COLON,
@@ -512,6 +517,24 @@ class FuncDefNode {
             type_toks(std::move(type_toks)),
             var_names(std::move(var_names)),
             value(std::move(value)) {}
+    };
+    class ArrayLiteralNode {
+    public:
+        std::vector<AnyNode> elements;
+        Position pos;
+        
+        ArrayLiteralNode(std::vector<AnyNode> elems, Position p)
+            : elements(std::move(elems)), pos(p) {}
+    };
+
+    class IndexNode {
+    public:
+        AnyNode array_expr;
+        AnyNode index_expr;
+        Position pos;
+        
+        IndexNode(AnyNode arr, AnyNode idx, Position p)
+            : array_expr(std::move(arr)), index_expr(std::move(idx)), pos(p) {}
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////

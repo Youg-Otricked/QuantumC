@@ -12,7 +12,7 @@ int main() {
     100 - 42;       // 58
     7 * 8;          // 56
     100 / 4;        // 25
-    10 % 3;         // 1 //SOON^TM
+    10 % 3;         // 1
 
     //==============================================================================
     // POWER OPERATOR (C++'s missing feature!)
@@ -404,39 +404,23 @@ int main() {
 // SECTION: FUNCTIONS & LAMBDAS.
 ////////////////////////////////////////////////////////////////////////////////
 
-        ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 1: Named function (returning value)
-        ////////////////////////////////////////////////////////////////////////////////
-        int add(int a, int b) {
-            return a + b;
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 2: Void function with default arguments(no return value)
-        ////////////////////////////////////////////////////////////////////////////////
-        void greet(string name = "world", int times = 1) {
-            int i = 0;
-            while (i < times) {
-                print("Hello, " + name + "!");
-                i = i + 1;
-            }
-        }
+       
 
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 3: Assigning a lambda to a variable (use auto)
+        // EXAMPLE 1: Assigning a lambda to a variable (use auto)
         ////////////////////////////////////////////////////////////////////////////////
         auto make_adder = fn(int x, int y) {
             return x + y;
         };
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 4: Immediate invocation of a lambda (call right away)
+        // EXAMPLE 2: Immediate invocation of a lambda (call right away)
         ////////////////////////////////////////////////////////////////////////////////
         auto immediate_result = fn(int a, int b) { return a * b; }(3, 4); // 12
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 5: Higher-order function (accepts a function)
+        // EXAMPLE 3: Higher-order function (accepts a function)
         ////////////////////////////////////////////////////////////////////////////////
         void twice(auto f, int v) {
             f(v);
@@ -444,14 +428,14 @@ int main() {
         }
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 6: Lambda calling a void function
+        // EXAMPLE 4: Lambda calling a void function
         ////////////////////////////////////////////////////////////////////////////////
         auto hello_lambda = fn() {
             greet("Lambda");
         };
 
         ////////////////////////////////////////////////////////////////////////////////
-        // EXAMPLE 7: Recursion using a variable-held lambda
+        // EXAMPLE 5: Recursion using a variable-held lambda
         ////////////////////////////////////////////////////////////////////////////////
         auto factorial = fn(int n) {
             if (n <= 1) return 1;
@@ -492,9 +476,7 @@ int main() {
     //=============================================================================
 
     // Single return (traditional)
-    int add(int a, int b) {
-        return a + b;
-    }
+   
 
     // Multi-return function - returns multiple values
     int, string get_user() {
@@ -531,9 +513,9 @@ int main() {
     msg2;     // "Hello, Quantum C"
 
     // Type checking still applies
-    int x, string y = get_user();  // ✓ Correct types
-    // int x, int y = get_user();   // ✗ Error: type mismatch
-
+    int z, string d = get_user();  // ✓ Correct types
+    // int z, int d = get_user();   // ✗ Error: type mismatch
+    
     // Must match number of return values
     // int x = get_user();          // ✗ Error: can't assign multi-return to single variable
     // int x, string y, bool z = get_user();  // ✗ Error: expected 2 values, got 3
@@ -542,3 +524,11 @@ int main() {
     //==============================================================================
     return 0;
 }
+//==============================================================================
+// COMING SOON:
+// - Arrays and Lists
+// - Structs/Classes
+// - Error handling (try/catch)
+// - String methods
+// - Standard library
+//==============================================================================

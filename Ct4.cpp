@@ -1904,11 +1904,17 @@ namespace tkz {
         }, a);
     }
     NumberVariant Interpreter::process(AnyNode& node) {
-        
-        return std::visit([this](auto& n) -> NumberVariant {
-            using T = std::decay_t<decltype(n)>;
-            return (*this)(n);
-        }, node);
+        try {
+            return std::visit([this](auto& n) -> NumberVariant {
+                return (*this)(n);
+            }, node);
+        } catch (const std::bad_variant_access& e) {
+            throw RTError("Internal error: Invalid node type", Position());
+        } catch (const std::exception& e) {
+            throw RTError(std::string("Runtime error: ") + e.what(), Position());
+        } catch (...) {
+            throw RTError("Unknown runtime error occurred", Position());
+        }
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
         throw RTError("Unexpected 'break' outside loop or switch",
@@ -3102,6 +3108,14 @@ namespace tkz {
                         break;
                     case ')':
                         tokens.push_back(Token(TokenType::RPAREN, "", start_pos));
+                        this->advance();
+                        break;
+                    case '[':
+                        tokens.push_back(Token(TokenType::LBRACKET, "[", start_pos));
+                        this->advance();
+                        break;
+                    case ']':
+                        tokens.push_back(Token(TokenType::RBRACKET, "]", start_pos));
                         this->advance();
                         break;
                     case '{':
