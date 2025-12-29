@@ -1,0 +1,68 @@
+name: Build Quantum C
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: |
+          g++ *.cpp -o qc-linux -std=c++23 -fconstexpr-ops-limit=100000000
+      
+      - name: Test
+        run: |
+          echo 'int main() { return 0; }' > test.qc
+          ./qc-linux test.qc
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc-linux
+          path: qc-linux
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: |
+          clang++ *.cpp -o qc-macos -std=c++23
+      
+      - name: Test
+        run: |
+          echo 'int main() { return 0; }' > test.qc
+          ./qc-macos test.qc
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc-macos
+          path: qc-macos
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build
+        run: |
+          g++ *.cpp -o qc-windows.exe -std=c++23 -fconstexpr-ops-limit=100000000
+      
+      - name: Test
+        run: |
+          echo 'int main() { return 0; }' > test.qc
+          ./qc-windows.exe test.qc
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc-windows
+          path: qc-windows.exe
