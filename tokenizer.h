@@ -704,7 +704,7 @@ class StringValue {
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         StringValue, CharValue, BoolValue,
-        FunctionValue, VoidValue, std::unique_ptr<MultiValue>
+        FunctionValue, VoidValue, std::shared_ptr<MultiValue>
     >;
     template <typename T>
     class Number {
@@ -902,7 +902,7 @@ class StringValue {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
-                    return std::move(sym_it->second.value);
+                    return sym_it->second.value;
                 }
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
@@ -927,7 +927,7 @@ class StringValue {
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
                 if constexpr (std::is_same_v<T, VoidValue>)      return "void";
-                if constexpr (std::is_same_v<T, MultiValue>)     return "multi";  
+                if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>)     return "multi";  
                 return "unknown";
             }, val);
         }

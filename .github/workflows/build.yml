@@ -27,25 +27,7 @@ jobs:
           name: qc-linux
           path: qc-linux
 
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Build
-        run: |
-          clang++ *.cpp -o qc-macos -std=c++23
-      
-      - name: Test
-        run: |
-          echo 'int main() { return 0; }' > test.qc
-          ./qc-macos test.qc
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: qc-macos
-          path: qc-macos
+  
 
   build-windows:
     runs-on: windows-latest

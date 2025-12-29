@@ -1324,12 +1324,10 @@ namespace tkz {
         this->advance();
         
         if (values.size() == 1) {
-            std::cerr << "DEBUG: return_stmt creating ReturnNode (single value)" << std::endl;
             return res.success(std::make_unique<ReturnNode>(
                 std::move(values[0]), start_pos));
         }
 
-        std::cerr << "DEBUG: return_stmt creating MultiReturnNode (" << values.size() << " values)" << std::endl;
         return res.success(std::make_unique<MultiReturnNode>(
             std::move(values), start_pos));
     }
@@ -1415,13 +1413,10 @@ namespace tkz {
         return std::visit([](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
             
-            std::cerr << "DEBUG: to_any_node called with type: " << typeid(T).name() << std::endl;
 
             if constexpr (std::is_same_v<T, std::unique_ptr<tkz::Error>>) {
                 return std::monostate{};
             } else if constexpr (std::is_same_v<T, tkz::ParseResult>) {
-                std::cerr << "DEBUG: Extracting node from ParseResult, variant index: " 
-                        << arg.node.index() << std::endl;
                 return std::move(arg.node);
             } else if constexpr (
                 std::is_same_v<T, tkz::QOutNode> ||
@@ -1896,7 +1891,7 @@ namespace tkz {
             ) {
                 return static_cast<double>(v.value)
                     == static_cast<double>(std::get<T>(b).value);
-            } else if constexpr (std::is_same_v<T, MultiValue>) {
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                 throw RTError("Cannot compare multi-values in switch", pos);
             } else {
                 throw RTError("Invalid switch comparison type", pos);
@@ -2084,18 +2079,13 @@ namespace tkz {
                     node ? node->tok.pos : Position());
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode>& node) {
-        std::cerr << "DEBUG: MultiReturnNode handler called!" << std::endl;
-        std::cerr << "DEBUG: Number of return values: " << node->values.size() << std::endl;
         
         std::vector<NumberVariant> return_values;
         for (size_t i = 0; i < node->values.size(); i++) {
-            std::cerr << "DEBUG: Processing return value " << i << std::endl;
             auto val = this->process(node->values[i]);
-            std::cerr << "DEBUG: Got type: " << context->get_type_name(val) << std::endl;
             return_values.push_back(std::move(val));
         }
         
-        std::cerr << "DEBUG: About to throw MultiReturnException with " << return_values.size() << " values" << std::endl;
         throw MultiReturnException(std::move(return_values));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode>& node) {
@@ -2275,6 +2265,7 @@ namespace tkz {
         context->push_scope();
         
         try {
+            
             for (size_t i = 0; i < func->params.size(); i++) {
                 NumberVariant value;
                 auto it_param = func->params.begin();
@@ -2294,26 +2285,26 @@ namespace tkz {
                 std::string actual_type = context->get_type_name(value);
 
                 if (expected_type == "auto") {
-                    context->define(it_param->name.value, actual_type, std::move(value));
+                    context->define(it_param->name.value, actual_type, value);
                 } else {
                     if (expected_type != actual_type) {
                         context->pop_scope();
                         throw RTError("Argument type mismatch", Position());
                     }
-                    context->define(it_param->name.value, expected_type, std::move(value));
+                    context->define(it_param->name.value, expected_type, value);
                 }
             }
-            
             for (auto& stmt : func->body->statements) {
                 this->process(stmt);
             }
+            
             
             if (func->return_types.size() > 1) {
                 std::vector<NumberVariant> defaults;
                 for (auto& rt : func->return_types)
                     defaults.push_back(def_value_for_type(rt.value));
                 context->pop_scope();
-                return std::make_unique<MultiValue>(std::move(defaults));
+                return std::make_shared<MultiValue>(std::move(defaults));
             } else if (func->return_types.size() == 1) {
                 context->pop_scope();
                 return def_value_for_type(func->return_types[0].value);
@@ -2323,17 +2314,12 @@ namespace tkz {
             }
             
         } catch (ReturnException& re) {
-            std::cerr << "DEBUG: Caught ReturnException" << std::endl;
             context->pop_scope();
             return std::move(re.value);
             
         } catch (MultiReturnException& mre) {
-            std::cerr << "DEBUG: Caught MultiReturnException with " << mre.values.size() << " values" << std::endl;
-            for (size_t i = 0; i < mre.values.size(); i++) {
-                std::cerr << "  Value " << i << ": " << context->get_type_name(mre.values[i]) << std::endl;
-            }
             context->pop_scope();
-            return std::make_unique<MultiValue>(std::move(mre.values));
+            return std::make_shared<MultiValue>(std::move(mre.values));
             
         } catch (...) {
             context->pop_scope();
@@ -2380,8 +2366,11 @@ namespace tkz {
         if (!context) {
             throw RTError("Context not initialized", node->var_name_tok.pos);
         }
-        return std::move(context->get(node->var_name_tok.value, node->var_name_tok.pos));
+        auto result = context->get(node->var_name_tok.value, node->var_name_tok.pos);
+        return result;
     }
+
+
     std::string Interpreter::run_statements(std::unique_ptr<StatementsNode>& node) {
         std::string output = "";
         
@@ -2393,7 +2382,7 @@ namespace tkz {
                 using T = std::decay_t<decltype(val)>;
                 if constexpr (std::is_same_v<T, std::monostate>) {
                     return "";
-                } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiValue>>) {
+                } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                     return val->print() + "\n";
                 } else {
                     return val.print() + "\n";
@@ -2471,11 +2460,11 @@ namespace tkz {
             else if constexpr (std::is_same_v<T1, VoidValue> || std::is_same_v<T2, VoidValue>) { 
                 throw RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos);
             }
-            else if constexpr (std::is_same_v<T1, MultiValue> || std::is_same_v<T2, MultiValue>) { 
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || std::is_same_v<T2, std::shared_ptr<MultiValue>>) { 
                 throw RTError("How ius a return value in this function", node->op_tok.pos);
             }
-            else if constexpr (std::is_same_v<T1, std::unique_ptr<MultiValue>> || 
-                            std::is_same_v<T2, std::unique_ptr<MultiValue>>) {
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
+                            std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
                 throw RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos);
             }
             else{ 
@@ -2485,15 +2474,15 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode>& node) {
 
-        std::unique_ptr<MultiValue> mv;
+        std::shared_ptr<MultiValue> mv;
 
         try {
             auto result = this->process(node->value);
-            mv = std::get_if<std::unique_ptr<MultiValue>>(&result)
-                    ? std::move(*std::get_if<std::unique_ptr<MultiValue>>(&result))
+            mv = std::get_if<std::shared_ptr<MultiValue>>(&result)
+                    ? std::move(*std::get_if<std::shared_ptr<MultiValue>>(&result))
                     : nullptr;
         } catch (MultiReturnException& mre) {
-            mv = std::make_unique<MultiValue>(std::move(mre.values));
+            mv = std::make_shared<MultiValue>(std::move(mre.values));
         }
 
         if (!mv) {
@@ -2542,7 +2531,7 @@ namespace tkz {
             NumberVariant val = std::move(this->process(node->node));
             return std::visit([&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
-                if constexpr (std::is_same_v<T, std::unique_ptr<MultiValue>>) {
+                if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                     throw RTError("Cannot use ! operator on multi-return values", node->op_tok.pos);
                 } else {
                     return std::move(BoolValue(is_truthy(n) ? "false" : "true"));
@@ -2571,7 +2560,7 @@ namespace tkz {
                     !std::is_same_v<T, BoolValue> &&
                     !std::is_same_v<T, FunctionValue> &&
                     !std::is_same_v<T, VoidValue> &&
-                    !std::is_same_v<T, std::unique_ptr<MultiValue>>
+                    !std::is_same_v<T, std::shared_ptr<MultiValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
@@ -2597,7 +2586,7 @@ namespace tkz {
                 !std::is_same_v<T, FunctionValue> &&
                 !std::is_same_v<T, VoidValue> &&
                 !std::is_same_v<T, std::monostate> &&
-                !std::is_same_v<T, std::unique_ptr<MultiValue>>
+                !std::is_same_v<T, std::shared_ptr<MultiValue>>
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
                     return std::move(n.multed_by(Number<int>(-1)));
