@@ -85,16 +85,7 @@ namespace tkz {
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>
     >;
-    class StatementsNode {
-    public:
-        std::vector<AnyNode> statements;
-        bool is_block = false;
-
-        StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
-            : statements(std::move(stmts)), is_block(is_block) {}
-
-        std::string print();
-    };
+    
 
     enum class Keywords {
         INT,
@@ -269,6 +260,16 @@ namespace tkz {
         public:
         Token tok;
         BoolNode (Token tok);
+        std::string print();
+    };
+    class StatementsNode {
+    public:
+        std::vector<AnyNode> statements;
+        bool is_block = false;
+
+        StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
+            : statements(std::move(stmts)), is_block(is_block) {}
+
         std::string print();
     };
     class BinOpNode {
