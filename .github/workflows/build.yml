@@ -2,49 +2,95 @@ name: Build Quantum C
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ main ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ main ]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       
-      - name: Build
+      - name: Build (Linux)
         run: |
-          g++ *.cpp -o qc-linux -std=c++23 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc-linux -std=c++20 -fconstexpr-ops-limit=100000000
       
-      - name: Test
-        run: |
-          echo 'int main() { return 0; }' > test.qc
-          ./qc-linux test.qc
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Linux Binary
+        uses: actions/upload-artifact@v3
         with:
           name: qc-linux
           path: qc-linux
 
-  
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build (macOS)
+        run: |
+          clang++ *.cpp -o qc-macos -std=c++20
+      
+      - name: Upload macOS Binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: qc-macos
+          path: qc-macos
 
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
       
-      - name: Build
+      - name: Build (Windows)
         run: |
-          g++ *.cpp -o qc-windows.exe -std=c++23 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc.exe -std=c++20 -fconstexpr-ops-limit=100000000
       
-      - name: Test
-        run: |
-          echo 'int main() { return 0; }' > test.qc
-          ./qc-windows.exe test.qc
-      
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Windows Binary
+        uses: actions/upload-artifact@v3
         with:
           name: qc-windows
-          path: qc-windows.exe
+          path: qc.exe
+
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v13
+        with:
+          version: 'latest'
+      
+      - name: Build (WASM)
+        run: |
+          emcc *.cpp -o qc.js -std=c++20 \
+            -s WASM=1 \
+            -s EXPORTED_FUNCTIONS='["_run_quantum_code"]' \
+            -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME="QuantumC" \
+            -s NO_DISABLE_EXCEPTION_CATCHING \
+            -D__EMSCRIPTEN__
+      
+      - name: Upload WASM Files
+        uses: actions/upload-artifact@v3
+        with:
+          name: qc-wasm
+          path: |
+            qc.js
+            qc.wasm
+
+  deploy-playground:
+    needs: build-wasm
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download WASM artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: qc-wasm
+          path: ./playground

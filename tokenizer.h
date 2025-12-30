@@ -32,7 +32,10 @@ namespace tkz {
         Position(std::string, std::string, int, int, int);
         void advance(char current_char);
         Position copy();
+        bool operator==(const Position&) const = default;
     };
+    
+    // Forward declarations
     class ListNode;
     class NumberNode;
     class BinOpNode;
@@ -51,13 +54,13 @@ namespace tkz {
     class ForNode;
     class CallNode;
     class QOutExprNode;
-    //class ForeachNode;
     class ContinueNode;
     class FuncDefNode;
     class QOutNode;
     class ReturnNode;
     class MultiReturnNode;
     class MultiVarDeclNode;
+    
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -76,7 +79,6 @@ namespace tkz {
         std::unique_ptr<BreakNode>,
         std::unique_ptr<WhileNode>,    
         std::unique_ptr<ForNode>,       
-       // std::unique_ptr<ForeachNode>,  
         std::unique_ptr<ContinueNode>,   
         std::unique_ptr<CallNode>,
         std::shared_ptr<FuncDefNode>,
@@ -85,100 +87,31 @@ namespace tkz {
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>
     >;
-    class StatementsNode {
-    public:
-        std::vector<AnyNode> statements;
-        bool is_block = false;
 
-        StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
-            : statements(std::move(stmts)), is_block(is_block) {}
-
-        std::string print();
-    };
-
+//////////////////////////////////////////////////////////////////////////////////////////////
+// ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
     enum class Keywords {
-        INT,
-        STRING,
-        FLOAT,
-        DOUBLE,
-        CHAR,
-        MAP,
-        LIST,
-        ARRAY,
-        VOID,
-        ENUM,
-        CLASS,
-        STRUCT,
-        BOOL,
-        QBOOL
+        INT, STRING, FLOAT, DOUBLE, CHAR, MAP, LIST, ARRAY,
+        VOID, ENUM, CLASS, STRUCT, BOOL, QBOOL
     };
+    
     inline std::string bad_chars = " \t\n\r";
     inline std::string DIGITS = "0123456789";
     inline std::string LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     inline std::string LETTERSDIGITS = LETTERS + DIGITS;
+    
     enum class TokenType {
-        INT,
-        STRING,
-        FLOAT,
-        DOUBLE,
-        CHAR,
-        MAP,
-        LIST,
-        ARRAY,
-        VOID,
-        ENUM,
-        CLASS,
-        STRUCT,
-        ARROW,
-        BOOL,
-        QBOOL,
-        PLUS,
-        MINUS,
-        MUL,
-        DIV,
-        POWER,
-        LPAREN,
-        RPAREN,
-        LSHIFT,
-        RSHIFT,
-        SCOPE,
-        SEMICOLON,
-        DEF,
-        INCREMENT,
-        DECREMENT,
-        IDENTIFIER,
-        KEYWORD,
-        PLUS_EQ,
-        MINUS_EQ,
-        MUL_EQ,
-        DIV_EQ,
-        MOD,
-        MOD_EQ,
-        EQ_TO,
-        NOT_EQ,
-        MORE,
-        LESS,
-        MORE_EQ,
-        LESS_EQ,
-        AND,
-        OR,
-        NOT,
-        EQ,
-        FSTRING,
-        SWITCH,
-        CASE,
-        DEFAULT,
-        IF,
-        ELSE,
-        LBRACE,
-        RBRACE,
-        COLON,
-        BREAK,
-        FUNC,
-        COMMA,
-        EOFT
+        INT, STRING, FLOAT, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
+        ARROW, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
+        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
+        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR,
+        NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, COLON, BREAK,
+        FUNC, COMMA, EOFT
     };
+    
     TokenType stringToTokenType(const std::string& str);
+    
     class Token {
         public: 
         TokenType type;
@@ -193,7 +126,6 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ERRORS ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-   
     class Error {
         public:
         Position pos;
@@ -203,61 +135,71 @@ namespace tkz {
         virtual std::string as_string();
         virtual ~Error() = default;
     };
+    
     class IllegalCharError : public Error { 
     public:
         IllegalCharError(std::string details, Position pos) : Error("Illegal Character", details, pos) {}
         std::string as_string() override;
     };
+    
     class InvalidSyntaxError : public Error { 
     public:
         InvalidSyntaxError(std::string details, Position pos) : Error("Invalid Syntax: ", details, pos) {}
         std::string as_string() override;
     };
+    
     class MissingSemicolonError : public Error {
     public:
         MissingSemicolonError(Position pos) : Error("Expected Semicolon on line and char", " ", pos) {}
         std::string as_string() override;
     };
+    
     class RTError : public Error {
     public:
         RTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
         std::string as_string() override;
     };
+    
     struct Ler {
         std::list<Token> Tkns;
         std::unique_ptr<Error> error;
     };
+    
     struct Aer {
         std::unique_ptr<StatementsNode> statements;
         std::unique_ptr<Error> error;
     };
+    
     struct Mer {
         Aer ast;
         Ler tokens;
         std::string res;
     };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
-// NODES ////////////////////////////////////////////////////////////////////////////////////
+// VALUE NODES //////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    std::string printAny(AnyNode& node);
     
     class QOutNode {
     public:
         std::string print() { return "std::qout"; }
     };
-    std::string printAny(AnyNode& node);
+    
     class CharNode {
         public:
         Token tok;
-
         CharNode(Token t) : tok(t) {}
         std::string print();
     };
+    
     class NumberNode {
         public:
         Token tok;
         NumberNode(Token tok);
         std::string print();
     };
+    
     class StringNode {
         public:
         Token tok;
@@ -271,6 +213,24 @@ namespace tkz {
         BoolNode (Token tok);
         std::string print();
     };
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// StatementsNode ///////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+    class StatementsNode {
+    public:
+        std::vector<AnyNode> statements;
+        bool is_block = false;
+
+        StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
+            : statements(std::move(stmts)), is_block(is_block) {}
+
+        std::string print();
+    };
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// OTHER NODES //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
     class BinOpNode {
     public:
         bool is_f;
@@ -285,16 +245,18 @@ namespace tkz {
             
         std::string print();
     };
+    
     class UnaryOpNode {
     public:
         Token op_tok;
         AnyNode node;
-        bool is_postfix;   // NEW
+        bool is_postfix;
 
         UnaryOpNode(Token op, AnyNode n, bool postfix = false)
             : op_tok(op), node(std::move(n)), is_postfix(postfix) {}
         std::string print();
     };
+    
     class AssignExprNode {
         public:
         Token var_name;
@@ -304,6 +266,7 @@ namespace tkz {
             return "(" + var_name.print() + " = " + printAny(value) + ")";
         }
     };
+    
     class VarAssignNode {
     public:
         bool is_const;
@@ -328,6 +291,7 @@ namespace tkz {
         
         std::string print();
     };
+    
     class QOutExprNode {
     public:
         std::vector<AnyNode> values;
@@ -339,6 +303,7 @@ namespace tkz {
             return "std::qout << (values)";
         }
     };
+    
     class IfNode {
     public:
         std::optional<AnyNode> init;
@@ -360,6 +325,7 @@ namespace tkz {
 
         std::string print();
     };
+    
     struct CaseLabel {
         AnyNode expr;
     };
@@ -382,7 +348,8 @@ namespace tkz {
             Token tok;
             BreakNode(Token t) : tok(std::move(t)) {}
             std::string print() { return "(break)"; }
-        };
+    };
+    
     class WhileNode {
     public:
         AnyNode condition;
@@ -413,16 +380,16 @@ namespace tkz {
             body(std::move(b)) {}
 
         std::string print() {
-        std::string res = "(for ";
-        if (this->init.has_value()) {
-            res += "init=" + printAny(this->init.value()) + "; ";
-        }
-        res += printAny(this->condition) + "; ";
-        if (update.has_value()) {
-            res += printAny(update.value());
-        }
-        res += ")";
-        return res;
+            std::string res = "(for ";
+            if (this->init.has_value()) {
+                res += "init=" + printAny(this->init.value()) + "; ";
+            }
+            res += printAny(this->condition) + "; ";
+            if (update.has_value()) {
+                res += printAny(update.value());
+            }
+            res += ")";
+            return res;
         }
     };
 
@@ -432,41 +399,42 @@ namespace tkz {
         ContinueNode(Token t) : tok(std::move(t)) {}
         std::string print() { return "(continue)"; }
     };
+    
     struct Parameter {
-    Token type;
-    Token name;
-    std::optional<AnyNode> default_value;  
-};
-
-class FuncDefNode {
-    public:
-        std::vector<Token> return_types; 
-        std::optional<Token> name_tok;
-        std::list<Parameter> params;
-        std::unique_ptr<StatementsNode> body;
-        Position pos;
-        
-        FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, 
-                    std::list<Parameter> parameters, 
-                    std::unique_ptr<StatementsNode> func_body) 
-            : return_types(std::move(ret_types)),
-            name_tok(std::move(name)),
-            params(std::move(parameters)),
-            body(std::move(func_body)) {}
-        
-        std::string print() {
-            std::string result = "";
-            for (size_t i = 0; i < return_types.size(); i++) {
-                result += return_types[i].value;
-                if (i < return_types.size() - 1) result += ", ";
-            }
-            result += " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}";
-            return result;
-        }
-        
-        bool is_multi_return() const { return return_types.size() > 1; }
+        Token type;
+        Token name;
+        std::optional<AnyNode> default_value;  
     };
-    std::string printAny(AnyNode& node);    
+
+    class FuncDefNode {
+        public:
+            std::vector<Token> return_types; 
+            std::optional<Token> name_tok;
+            std::list<Parameter> params;
+            std::unique_ptr<StatementsNode> body;
+            Position pos;
+            
+            FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, 
+                        std::list<Parameter> parameters, 
+                        std::unique_ptr<StatementsNode> func_body) 
+                : return_types(std::move(ret_types)),
+                name_tok(std::move(name)),
+                params(std::move(parameters)),
+                body(std::move(func_body)) {}
+            
+            std::string print() {
+                std::string result = "";
+                for (size_t i = 0; i < return_types.size(); i++) {
+                    result += return_types[i].value;
+                    if (i < return_types.size() - 1) result += ", ";
+                }
+                result += " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}";
+                return result;
+            }
+            
+            bool is_multi_return() const { return return_types.size() > 1; }
+    };
+    
     class CallNode {
     public:
         AnyNode node_to_call;
@@ -479,7 +447,7 @@ class FuncDefNode {
             return printAny(node_to_call) + "(args)";
         }
     };
-    class MultiReturnNode {
+        class MultiReturnNode {
     public:
         std::vector<AnyNode> values;
         Position pos;
@@ -495,7 +463,8 @@ class FuncDefNode {
             }
             return result + ";";
         }
-    };    
+    };
+    
     class MultiVarDeclNode {
     public:
         bool is_const;
@@ -513,6 +482,20 @@ class FuncDefNode {
             var_names(std::move(var_names)),
             value(std::move(value)) {}
     };
+    
+    class ReturnNode {
+    public:
+        AnyNode value;  
+        Position pos;
+        
+        ReturnNode(AnyNode val, Position p) 
+            : value(std::move(val)), pos(p) {}
+        
+        std::string print() {
+            return "return " + printAny(value);
+        }
+    };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -521,6 +504,7 @@ class FuncDefNode {
         std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>>;
+        
     class ParseResult {
         public:
         AnyNode node;
@@ -531,9 +515,7 @@ class FuncDefNode {
         Prs success(AnyNode node);
         void failure(std::unique_ptr<Error>);
         Prs to_prs();
-        
     };
-// Int err //////////////////////////////////////////////////////////////////////////////////
 
     class InterpEer {
         public:
@@ -545,6 +527,7 @@ class FuncDefNode {
             this->pos = pos;
         }
     };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSER ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -576,6 +559,7 @@ class FuncDefNode {
         Prs call(AnyNode node_to_call);
         Prs func_def(Token return_type, std::optional<Token> func_name);
         Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name);
+        
         inline AnyNode prs_to_anynode(Prs&& st) {
             return std::visit([](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
@@ -585,6 +569,7 @@ class FuncDefNode {
                 return std::monostate{};
             }, std::move(st));
         }
+        
         bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
             if (this->current_tok.type == TokenType::LBRACE) {
                 this->advance();
@@ -612,7 +597,7 @@ class FuncDefNode {
                     res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
                     return false;
                 }
-                AnyNode any_stmt = prs_to_anynode(std::move(st));  // ← CHANGED!
+                AnyNode any_stmt = prs_to_anynode(std::move(st));
                 std::vector<AnyNode> stmts;
                 stmts.push_back(std::move(any_stmt));
                 out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
@@ -620,92 +605,99 @@ class FuncDefNode {
             }
         }
         Prs assignment_expr();
-        
     };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-class VoidValue {
+    class VoidValue {
+        public:
+            Position pos;
+            VoidValue() : pos("", "", 0, 0, 0) {}
+            VoidValue& set_pos(Position p) { this->pos = p; return *this; }
+            std::string print() const { return ""; }
+    };
+    
+    class FunctionValue {
+        public:
+            std::shared_ptr<FuncDefNode> func;
+            Position pos;
+            FunctionValue(std::shared_ptr<FuncDefNode> f = nullptr) : func(f), pos("", "", 0, 0, 0) {}
+            FunctionValue& set_pos(Position p) { this->pos = p; return *this; }
+            std::string print() const { return "<function>"; }
+    };
+    
+        class CharValue {
     public:
+        char value;
         Position pos;
-        VoidValue() : pos("", "", 0, 0, 0) {}
-        VoidValue& set_pos(Position p) { this->pos = p; return *this; }
-        std::string print() const { return ""; }
-};
-class FunctionValue {
-    public:
-        std::shared_ptr<FuncDefNode> func;
-        Position pos;
-        FunctionValue(std::shared_ptr<FuncDefNode> f = nullptr) : func(f), pos("", "", 0, 0, 0) {}
-        FunctionValue& set_pos(Position p) { this->pos = p; return *this; }
-        std::string print() const { return "<function>"; }
-};
-class CharValue {
-public:
-    char value;
-    Position pos;
-    CharValue(std::string val) : pos("", "", 0, 0, 0) {
-        if (!val.empty()) {
-            this->value = val[0];
-        } else {
-            this->value = '\0';
-        }
-    }
-
-    CharValue& set_pos(Position p) { 
-        this->pos = p; 
-        return *this; 
-    }
-    std::string print() const { 
-        return std::string(1, value); 
-    }
-}; 
-class BoolValue {
-    public:
-    bool value;
-    Position pos;
-    BoolValue(std::string val) : pos("", "", 0, 0, 0) {
-        if (!val.empty()) {
-            if (val == "true") {
-                value = true;
-            } else if (val == "false") {
-                value = false;
+        CharValue(std::string val) : pos("", "", 0, 0, 0) {
+            if (!val.empty()) {
+                this->value = val[0];
             } else {
-                throw RTError("Expected Boolean value to be either true or false", pos);
+                this->value = '\0';
             }
-        } else {
-            this->value = '\0';
         }
-    }
-    BoolValue& set_pos(Position p) { 
-        this->pos = p; 
-        return *this; 
-    }
-    std::string print() const { 
-        return this->value ? "true" : "false";
-    }
-};  
-class StringValue {
-    public:
-        std::string value;
-        Position pos;
 
-        StringValue(std::string val) : value(val), pos("", "", 0, 0, 0) {}
-        
-        StringValue& set_pos(Position p) { 
+        CharValue& set_pos(Position p) { 
             this->pos = p; 
             return *this; 
         }
+        std::string print() const { 
+            return std::string(1, value); 
+        }
+    }; 
+    
+    class BoolValue {
+        public:
+        bool value;
+        Position pos;
+        BoolValue(std::string val) : pos("", "", 0, 0, 0) {
+            if (!val.empty()) {
+                if (val == "true") {
+                    value = true;
+                } else if (val == "false") {
+                    value = false;
+                } else {
+                    throw RTError("Expected Boolean value to be either true or false", pos);
+                }
+            } else {
+                this->value = '\0';
+            }
+        }
+        BoolValue& set_pos(Position p) { 
+            this->pos = p; 
+            return *this; 
+        }
+        std::string print() const { 
+            return this->value ? "true" : "false";
+        }
+    };  
+    
+    class StringValue {
+        public:
+            std::string value;
+            Position pos;
 
-        std::string print() const { return value; }
+            StringValue(std::string val) : value(val), pos("", "", 0, 0, 0) {}
+            
+            StringValue& set_pos(Position p) { 
+                this->pos = p; 
+                return *this; 
+            }
+
+            std::string print() const { return value; }
     };
+    
     class MultiValue;
     template <typename T> class Number;
+    
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         StringValue, CharValue, BoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>
     >;
+    
     template <typename T>
     class Number {
     public:
@@ -741,6 +733,7 @@ class StringValue {
             using CommonT = std::common_type_t<T, U>;
             return Number<CommonT>(static_cast<CommonT>(this->value) / other.value);
         }
+        
         template <typename U>
         auto power_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
@@ -753,6 +746,7 @@ class StringValue {
             }
             return Number<CommonT>(static_cast<CommonT>(result));
         }
+        
         template <typename U>
         auto modded_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
@@ -762,8 +756,8 @@ class StringValue {
                 return Number<CommonT>(static_cast<CommonT>(this->value) % other.value);
             }
         }
-
     };
+    
     class MultiValue {
     public:
         std::vector<NumberVariant> values;
@@ -802,6 +796,7 @@ class StringValue {
         ExecResult(NumberVariant v, bool b, bool c, bool r = false)
             : value(std::move(v)), did_break(b), did_continue(c), did_return(r) {}
     };
+    
     class MultiReturnException {
     public:
         std::vector<NumberVariant> values;
@@ -833,13 +828,13 @@ class StringValue {
             }
             return L.power_by(R);
         }
-           if (op == TokenType::EQ_TO) {
-        return BoolValue(L.value == R.value ? "true" : "false").set_pos(L.pos);
+        if (op == TokenType::EQ_TO) {
+            return BoolValue(L.value == R.value ? "true" : "false").set_pos(L.pos);
         }
         if (op == TokenType::NOT_EQ) {
             return BoolValue(L.value != R.value ? "true" : "false").set_pos(L.pos);
         }
-        if (op == TokenType::LESS) {
+                if (op == TokenType::LESS) {
             return BoolValue(L.value < R.value ? "true" : "false").set_pos(L.pos);
         }
         if (op == TokenType::LESS_EQ) {
@@ -854,6 +849,7 @@ class StringValue {
         
         throw RTError("Unknown operator", L.pos);
     }
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // CONTEXT //////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -902,7 +898,7 @@ class StringValue {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
-                    return sym_it->second.value;
+                    return sym_it->second.value;  // REMOVED std::move!
                 }
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
@@ -932,19 +928,7 @@ class StringValue {
             }, val);
         }
     };
-    
-    class ReturnNode {
-    public:
-        AnyNode value;  
-        Position pos;
-        
-        ReturnNode(AnyNode val, Position p) 
-            : value(std::move(val)), pos(p) {}
-        
-        std::string print() {
-            return "return " + printAny(value);
-        }
-    };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // INTERPRETER CLASS ////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -984,8 +968,9 @@ class StringValue {
         ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
     };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
-// RUN// ////////////////////////////////////////////////////////////////////////////////////
+// RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     Mer run(std::string file, std::string text, bool use_context = true);
 
@@ -1005,8 +990,9 @@ class StringValue {
         Token make_string();
         Ler make_tokens();
         Token make_identifier();
-        Token make_number();
+                Token make_number();
         Token make_fstring();
     };
 }
 #endif
+    

@@ -96,3 +96,29 @@ int main(int argc, char* argv[]) {
     
     return 0;
 }
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#include <sstream>
+
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+    const char* run_quantum_code(const char* code) {
+        static std::string output;
+        output.clear();
+        
+        std::stringstream buffer;
+        std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
+        
+        auto result = tkz::run("<wasm>", code, true);
+        
+        if (result.ast.error) {
+            output = result.ast.error->as_string();
+        } else {
+            output = buffer.str() + result.res;
+        }
+        
+        std::cout.rdbuf(old);
+        return output.c_str();
+    }
+}
+#endif
