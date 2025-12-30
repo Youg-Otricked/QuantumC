@@ -74,13 +74,13 @@ jobs:
             -s NO_DISABLE_EXCEPTION_CATCHING \
             -D__EMSCRIPTEN__
       
-#      - name: Upload WASM Files
- #       uses: actions/upload-artifact@v4
-  #      with:
-   #       name: qc-wasm
-    #      path: |
-     #       qc.js
-      #      qc.wasm
+      - name: Upload WASM Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: qc-wasm
+          path: |
+            qc.js
+            qc.wasm
 
   #deploy-to-website:
   #  needs: build-wasm
