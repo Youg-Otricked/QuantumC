@@ -19,7 +19,7 @@ C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Ru
 ---
 
 ##  Quick Start
-
+Just install the binarys from the github OR
 ### Installation
 
 **macOS:**
