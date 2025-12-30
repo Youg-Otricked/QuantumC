@@ -74,23 +74,51 @@ jobs:
             -s NO_DISABLE_EXCEPTION_CATCHING \
             -D__EMSCRIPTEN__
       
-      - name: Upload WASM Files
-        uses: actions/upload-artifact@v3
-        with:
-          name: qc-wasm
-          path: |
-            qc.js
-            qc.wasm
+#      - name: Upload WASM Files
+ #       uses: actions/upload-artifact@v3
+  #      with:
+   #       name: qc-wasm
+    #      path: |
+     #       qc.js
+      #      qc.wasm
 
-  deploy-playground:
-    needs: build-wasm
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Download WASM artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: qc-wasm
-          path: ./playground
+  #deploy-to-website:
+  #  needs: build-wasm
+   # runs-on: ubuntu-latest
+   # if: github.ref == 'refs/heads/main'
+   # steps:
+   #   - name: Checkout website repo
+    #    uses: actions/checkout@v3
+    #    with:
+   #       repository: Youg-Otricked/  # soon
+  #        token: ${{ secrets.PAT_TOKEN }}
+  #        path: website
+  #    
+  #    - name: Download WASM artifacts
+  #      uses: actions/download-artifact@v3
+  #      with:
+  #        name: qc-wasm
+ #         path: ./wasm-files
+ #     
+ #     - name: Checkout QuantumC repo for playground files
+#        uses: actions/checkout@v3
+#        with:
+#          path: quantum
+#      
+#      - name: Copy files to website repo
+ #       run: |
+ #         mkdir -p website/qc
+ #         cp wasm-files/qc.js website/qc/
+ #         cp wasm-files/qc.wasm website/qc/
+ #         cp quantum/index.html website/qc/
+ #         cp quantum/quantum.css website/qc/
+#          cp quantum/quantum-ui.js website/qc/
+#      
+#      - name: Commit and push to website repo
+#        run: |
+#          cd website
+#          git config user.name "GitHub Actions"
+#          git config user.email "actions@github.com"
+#          git add qc/
+#          git commit -m "Update Quantum C playground" || echo "No changes"
+#          git push
