@@ -10,14 +10,14 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Build (Linux)
         run: |
           g++ *.cpp -o qc-linux -std=c++20 -fconstexpr-ops-limit=100000000
       
       - name: Upload Linux Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qc-linux
           path: qc-linux
@@ -25,14 +25,14 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Build (macOS)
         run: |
           clang++ *.cpp -o qc-macos -std=c++20
       
       - name: Upload macOS Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qc-macos
           path: qc-macos
@@ -40,14 +40,14 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Build (Windows)
         run: |
           g++ *.cpp -o qc.exe -std=c++20 -fconstexpr-ops-limit=100000000
       
       - name: Upload Windows Binary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: qc-windows
           path: qc.exe
@@ -55,7 +55,7 @@ jobs:
   build-wasm:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v13
@@ -75,7 +75,7 @@ jobs:
             -D__EMSCRIPTEN__
       
 #      - name: Upload WASM Files
- #       uses: actions/upload-artifact@v3
+ #       uses: actions/upload-artifact@v4
   #      with:
    #       name: qc-wasm
     #      path: |
@@ -88,20 +88,20 @@ jobs:
    # if: github.ref == 'refs/heads/main'
    # steps:
    #   - name: Checkout website repo
-    #    uses: actions/checkout@v3
+    #    uses: actions/checkout@v4
     #    with:
    #       repository: Youg-Otricked/  # soon
   #        token: ${{ secrets.PAT_TOKEN }}
   #        path: website
   #    
   #    - name: Download WASM artifacts
-  #      uses: actions/download-artifact@v3
+  #      uses: actions/download-artifact@v4
   #      with:
   #        name: qc-wasm
  #         path: ./wasm-files
  #     
  #     - name: Checkout QuantumC repo for playground files
-#        uses: actions/checkout@v3
+#        uses: actions/checkout@v4
 #        with:
 #          path: quantum
 #      
