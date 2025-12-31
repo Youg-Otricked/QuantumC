@@ -1,5 +1,7 @@
 # Quantum C (C⁴)
 ### The 4th Evolution of C
+Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](learnhardcode.dpdns.org/QuantumC/qc.html).
+
 
 **More Powerful Than Explosives™**
 

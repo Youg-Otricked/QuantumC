@@ -1,5 +1,5 @@
 /* 
-If you want to learn this language better, read along while checking it out at <TBA>   */
+If you want to learn this language better, read along while actually codeing in it at learnhardcode.dpdns.org/QuantumC/qc.html   */
 ////////////////////////////////////////////////////////////////////////////////
 // QUANTUM C (C^4) - INTERACTIVE DEMO
 // Run this file to see all current features in action!
