@@ -60,7 +60,9 @@ namespace tkz {
     class ReturnNode;
     class MultiReturnNode;
     class MultiVarDeclNode;
-    
+    class ArrayDeclNode;
+    class ArrayLiteralNode;
+    class ArrayAccessNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -85,7 +87,10 @@ namespace tkz {
         std::unique_ptr<QOutExprNode>,
         std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
-        std::unique_ptr<MultiVarDeclNode>
+        std::unique_ptr<MultiVarDeclNode>,
+        std::unique_ptr<ArrayDeclNode>,        
+        std::unique_ptr<ArrayLiteralNode>,     
+        std::unique_ptr<ArrayAccessNode> 
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +111,7 @@ namespace tkz {
         ARROW, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR,
-        NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, COLON, BREAK,
+        NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
         FUNC, COMMA, EOFT
     };
     
@@ -482,7 +487,61 @@ namespace tkz {
             var_names(std::move(var_names)),
             value(std::move(value)) {}
     };
-    
+    class ArrayDeclNode {
+    public:
+        bool is_const;
+        Token type_tok;
+        Token var_name_tok;
+        AnyNode value; 
+        std::optional<int> size;  
+        
+        ArrayDeclNode(bool is_const, Token type, Token name, AnyNode value, std::optional<int> size)
+            : is_const(is_const),
+            type_tok(std::move(type)),
+            var_name_tok(std::move(name)),
+            value(std::move(value)),
+            size(size) {}
+        
+        std::string print() {
+            std::string result = type_tok.value + " " + var_name_tok.value + "[";
+            if (size.has_value()) {
+                result += std::to_string(size.value());
+            }
+            result += "] = " + printAny(value);
+            return result;
+        }
+    };
+
+    class ArrayLiteralNode {
+    public:
+        std::vector<AnyNode> elements;
+        Position pos;
+        
+        ArrayLiteralNode(std::vector<AnyNode> elems, Position p)
+            : elements(std::move(elems)), pos(p) {}
+        
+        std::string print() {
+            std::string result = "[";
+            for (size_t i = 0; i < elements.size(); i++) {
+                result += printAny(elements[i]);
+                if (i < elements.size() - 1) result += ", ";
+            }
+            return result + "]";
+        }
+    };
+
+    class ArrayAccessNode {
+    public:
+        Token array_name;
+        AnyNode index;
+        
+        ArrayAccessNode(Token name, AnyNode idx)
+            : array_name(std::move(name)), index(std::move(idx)) {}
+        
+        std::string print() {
+            return array_name.value + "[" + printAny(index) + "]";
+        }
+    };
     class ReturnNode {
     public:
         AnyNode value;  
@@ -503,7 +562,11 @@ namespace tkz {
     using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
         std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
-        std::unique_ptr<MultiVarDeclNode>>;
+        std::unique_ptr<MultiVarDeclNode>,
+        std::unique_ptr<ArrayDeclNode>,       
+        std::unique_ptr<ArrayLiteralNode>,     
+        std::unique_ptr<ArrayAccessNode>
+    >;
         
     class ParseResult {
         public:
@@ -556,6 +619,7 @@ namespace tkz {
         Prs statement();
         Prs while_stmt();
         Prs for_stmt();
+        Prs array_literal();
         Prs call(AnyNode node_to_call);
         Prs func_def(Token return_type, std::optional<Token> func_name);
         Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name);
@@ -690,12 +754,13 @@ namespace tkz {
     };
     
     class MultiValue;
+    class ArrayValue;
     template <typename T> class Number;
     
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         StringValue, CharValue, BoolValue,
-        FunctionValue, VoidValue, std::shared_ptr<MultiValue>
+        FunctionValue, VoidValue, std::shared_ptr<MultiValue>, std::shared_ptr<ArrayValue>
     >;
     
     template <typename T>
@@ -786,7 +851,33 @@ namespace tkz {
             return result + ")";
         }
     };
-    
+    class ArrayValue {
+    public:
+        std::string element_type;
+        std::vector<NumberVariant> elements;
+        size_t size;
+        
+        ArrayValue(std::string type, std::vector<NumberVariant> elems, size_t sz)
+            : element_type(type), elements(std::move(elems)), size(sz) {}
+        
+        std::string print() const {
+            std::string result = "[";
+            for (size_t i = 0; i < elements.size(); i++) {
+                result += std::visit([](auto&& v) -> std::string {
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (requires { v->print(); }) {
+                        return v->print();
+                    } else if constexpr (requires { v.print(); }) {
+                        return v.print();
+                    } else {
+                        return "<unknown>";
+                    }
+                }, elements[i]);
+                if (i < elements.size() - 1) result += ", ";
+            }
+            return result + "]";
+        }
+    };
     struct ExecResult {
         NumberVariant value;
         bool did_break;
@@ -923,7 +1014,10 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
                 if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
                 if constexpr (std::is_same_v<T, VoidValue>)      return "void";
-                if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>)     return "multi";  
+                if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) return "multi";
+                if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {
+                    return arg->element_type + "[]";  
+                }
                 return "unknown";
             }, val);
         }
@@ -962,6 +1056,9 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<WhileNode>& node);
         NumberVariant operator()(std::unique_ptr<ForNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiReturnNode>& node);
+        NumberVariant operator()(std::unique_ptr<ArrayDeclNode>& node);
+        NumberVariant operator()(std::unique_ptr<ArrayLiteralNode>& node);
+        NumberVariant operator()(std::unique_ptr<ArrayAccessNode>& node);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);

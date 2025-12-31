@@ -192,6 +192,15 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayDeclNode>>) {
+                return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayLiteralNode>>) {
+                return arg->print();
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -347,8 +356,16 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>>) {
                 return Prs{std::move(arg)};
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {  // ← ADD THIS!
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {
                 return Prs{std::move(arg)}; 
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {
+                return Prs{std::move(arg)}; 
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayLiteralNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -413,8 +430,16 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>>) {
                 return Prs{std::move(arg)};
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {  // ← ADD THIS!
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) { 
                 return Prs{std::move(arg)}; 
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiReturnNode>>) {
+                return Prs{std::move(arg)}; 
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayLiteralNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -996,9 +1021,51 @@ namespace tkz {
         
         return res.success(std::move(left));
     }
+    Prs Parser::array_literal() {
+        ParseResult res;
+        Position start_pos = this->current_tok.pos;
+        
+        this->advance();  
+        
+        std::vector<AnyNode> elements;
+        
+        if (this->current_tok.type == TokenType::RBRACKET) {
+            this->advance();
+            return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
+        }
+        
+        while (true) {
+            AnyNode elem = res.reg(this->expr());
+            if (res.error) return res.to_prs();
+            
+            elements.push_back(std::move(elem));
+            
+            if (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                continue;
+            }
+            
+            if (this->current_tok.type == TokenType::RBRACKET) {
+                break;
+            }
+            
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ',' or ']' in array literal", this->current_tok.pos));
+            return res.to_prs();
+        }
+        
+        this->advance();  
+        
+        return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
+    }
     Prs Parser::atom() {
         ParseResult res = ParseResult();
         Token tok = this->current_tok;
+
+        if (tok.type == TokenType::LBRACKET) {
+            return this->array_literal();
+        }
+
         if (tok.value == "std") {
             this->advance();
             if (this->current_tok.type == TokenType::SCOPE) {
@@ -1018,9 +1085,33 @@ namespace tkz {
         }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
+            
             if (this->current_tok.type == TokenType::LPAREN) {
                 return this->call(std::make_unique<VarAccessNode>(tok));
             }
+            
+            if (this->current_tok.type == TokenType::LBRACKET) {
+                AnyNode base = std::make_unique<VarAccessNode>(tok);
+                
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    
+                    AnyNode index = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ']'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    
+                    base = std::make_unique<ArrayAccessNode>(tok, std::move(index));
+                }
+                
+                return res.success(std::move(base));
+            }
+            
             if (current_tok.type == TokenType::INCREMENT ||
                 current_tok.type == TokenType::DECREMENT) {
 
@@ -1437,7 +1528,10 @@ namespace tkz {
                 std::is_same_v<T, std::unique_ptr<tkz::QOutExprNode>> ||
                 std::is_same_v<T, std::unique_ptr<tkz::ReturnNode>> ||
                 std::is_same_v<T, std::unique_ptr<tkz::MultiReturnNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::MultiVarDeclNode>>
+                std::is_same_v<T, std::unique_ptr<tkz::MultiVarDeclNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::ArrayDeclNode>> ||        
+                std::is_same_v<T, std::unique_ptr<tkz::ArrayLiteralNode>> ||     
+                std::is_same_v<T, std::unique_ptr<tkz::ArrayAccessNode>>        
             ) {
                 return std::move(arg);
             } else {
@@ -1552,6 +1646,7 @@ namespace tkz {
     Prs Parser::statement() {
         ParseResult res;
         Token tok = this->current_tok;
+        
         if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
             this->advance();
             
@@ -1564,7 +1659,7 @@ namespace tkz {
             Token dummy_return_type(TokenType::KEYWORD, "auto", tok.pos);
             std::vector<Token> return_types = {dummy_return_type};
             return this->func_def_multi(return_types, std::nullopt);
-}
+        }
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
             return this->if_expr();
         }
@@ -1641,7 +1736,25 @@ namespace tkz {
                 
                 Token name_tok = this->current_tok;
                 this->advance();
-                
+                std::optional<int> array_size;
+                bool is_array = false;
+
+                if (this->current_tok.type == TokenType::LBRACKET) {
+                    is_array = true;
+                    this->advance();
+                    
+                    if (this->current_tok.type == TokenType::INT) {
+                        array_size = std::stoi(this->current_tok.value);
+                        this->advance();
+                    }
+                    
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ']'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
                 if (this->current_tok.type == TokenType::LPAREN) {
                     auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
                     if (res.error) return res.to_prs();
@@ -1663,10 +1776,54 @@ namespace tkz {
             Token name_tok = this->current_tok;
             this->advance();
 
+            std::optional<int> array_size;
+            bool is_array = false;
+
+            if (this->current_tok.type == TokenType::LBRACKET) {
+                is_array = true;
+                this->advance();
+                
+                if (this->current_tok.type == TokenType::INT) {
+                    array_size = std::stoi(this->current_tok.value);
+                    this->advance();
+                }
+                
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+            }
             if (this->current_tok.type == TokenType::LPAREN) {
                 auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
                 if (res.error) return res.to_prs();
                 return res.success(std::move(func_def));
+            }
+            
+            if (is_array) {
+                AnyNode value;
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    value = res.reg(this->qout_expr());
+                    if (res.error) return res.to_prs();
+                } else {
+                    if (is_const) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "const variables must be initialized", name_tok.pos));
+                        return res.to_prs();
+                    }
+                    value = default_value_for_type(type_tok, name_tok.pos);
+                }
+                
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                return res.success(std::make_unique<ArrayDeclNode>(
+                    is_const, type_tok, name_tok, std::move(value), array_size));
             }
             std::vector<Token> var_names = {name_tok};
 
@@ -1690,7 +1847,6 @@ namespace tkz {
                 this->advance();
             }
 
-            
             AnyNode value;
             if (this->current_tok.type == TokenType::LPAREN) {
                 auto func_def = res.reg(this->func_def_multi(return_types, std::make_optional(var_names[0])));
@@ -1716,9 +1872,8 @@ namespace tkz {
             }
 
             this->advance();  
+            
             if (return_types.size() > 1 || var_names.size() > 1) {
-                
-                
                 if (return_types.size() != var_names.size()) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Number of types must match number of variables", var_names[0].pos));
@@ -2384,6 +2539,8 @@ namespace tkz {
                     return "";
                 } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                     return val->print() + "\n";
+                } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {  
+                    return val->print() + "\n";
                 } else {
                     return val.print() + "\n";
                 }
@@ -2460,6 +2617,10 @@ namespace tkz {
             else if constexpr (std::is_same_v<T1, VoidValue> || std::is_same_v<T2, VoidValue>) { 
                 throw RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos);
             }
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<ArrayValue>> || std::is_same_v<T2, std::shared_ptr<ArrayValue>>) { 
+                throw RTError("Cannot preform arithmetic operations on arrays", node->op_tok.pos);
+            }
+            
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || std::is_same_v<T2, std::shared_ptr<MultiValue>>) { 
                 throw RTError("How ius a return value in this function", node->op_tok.pos);
             }
@@ -2560,7 +2721,8 @@ namespace tkz {
                     !std::is_same_v<T, BoolValue> &&
                     !std::is_same_v<T, FunctionValue> &&
                     !std::is_same_v<T, VoidValue> &&
-                    !std::is_same_v<T, std::shared_ptr<MultiValue>>
+                    !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
+                    !std::is_same_v<T, std::shared_ptr<ArrayValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
@@ -2586,7 +2748,9 @@ namespace tkz {
                 !std::is_same_v<T, FunctionValue> &&
                 !std::is_same_v<T, VoidValue> &&
                 !std::is_same_v<T, std::monostate> &&
-                !std::is_same_v<T, std::shared_ptr<MultiValue>>
+                !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
+                !std::is_same_v<T, std::shared_ptr<ArrayValue>>
+
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
                     return std::move(n.multed_by(Number<int>(-1)));
@@ -2660,6 +2824,104 @@ namespace tkz {
         }
 
         return std::move(Number<int>(0));
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant init_value = this->process(node->value);
+        
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(init_value)) {
+            throw RTError("Array must be initialized with array literal", node->var_name_tok.pos);
+        }
+        
+        auto array_val = std::get<std::shared_ptr<ArrayValue>>(init_value);
+        
+        if (node->size.has_value()) {
+            if (array_val->elements.size() != node->size.value()) {
+                throw RTError(
+                    "Array size mismatch: declared " + std::to_string(node->size.value()) + 
+                    " but initialized with " + std::to_string(array_val->elements.size()),
+                    node->var_name_tok.pos);
+            }
+        }
+        
+        std::string array_type = node->type_tok.value + "[]"; 
+        
+        context->define(
+            node->var_name_tok.value,
+            array_type,  
+            init_value,
+            node->is_const
+        );
+        
+        return VoidValue();
+    }
+
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        std::vector<NumberVariant> elements;
+        std::string element_type = "";
+        
+        for (auto& elem : node->elements) {
+            NumberVariant val = this->process(elem);
+            
+            if (element_type.empty()) {
+                element_type = context->get_type_name(val);
+            } else {
+                std::string current_type = context->get_type_name(val);
+                if (current_type != element_type) {
+                    throw RTError(
+                        "Array elements must be same type. Expected " + element_type + 
+                        " but got " + current_type,
+                        node->pos);
+                }
+            }
+            
+            elements.push_back(std::move(val));
+        }
+        
+        if (element_type.empty()) {
+            element_type = "int";
+        }
+        
+        return std::make_shared<ArrayValue>(element_type, std::move(elements), elements.size());
+    }
+
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant array_var = context->get(node->array_name.value, node->array_name.pos);
+        
+        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(array_var)) {
+            throw RTError("Cannot index non-array type", node->array_name.pos);
+        }
+        
+        auto array = std::get<std::shared_ptr<ArrayValue>>(array_var);
+        
+        NumberVariant index_val = this->process(node->index);
+        
+        int index = std::visit([](auto&& arg) -> int {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (std::is_same_v<T, Number<int>>) {
+                return arg.value;
+            } else if constexpr (std::is_same_v<T, Number<float>>) {
+                return static_cast<int>(arg.value);
+            } else if constexpr (std::is_same_v<T, Number<double>>) {
+                return static_cast<int>(arg.value);
+            } else {
+                throw RTError("Array index must be a number", Position());
+            }
+        }, index_val);
+        
+        if (index < 0 || index >= static_cast<int>(array->elements.size())) {
+            throw RTError(
+                "Array index out of bounds: " + std::to_string(index) + 
+                " (size: " + std::to_string(array->elements.size()) + ")",
+                node->array_name.pos);
+        }
+        
+        return array->elements[index];
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
@@ -2744,7 +3006,7 @@ namespace tkz {
     void Lexer::advance() {
         this->pos.advance(this->current_char);
         if (this->pos.index < this->text.length()){
-            this->current_char = this->text[pos.index];
+            this->current_char = this->text[this->pos.index];
         } else {
             this->current_char = '\0';
         }
@@ -3101,6 +3363,14 @@ namespace tkz {
                         tokens.push_back(Token(TokenType::RBRACE, "}", start_pos));
                         this->advance();
                         break;
+                    case '[':
+                        tokens.push_back(Token(TokenType::LBRACKET, "[", start_pos));
+                        this->advance();
+                        break;
+                    case ']':
+                        tokens.push_back(Token(TokenType::RBRACKET, "]", start_pos));
+                        this->advance();
+                        break;
                     case '%':
                         this->advance();
                         if (current_char == '=') {
@@ -3159,7 +3429,7 @@ namespace tkz {
         return Ler {tokens, NULL};
 
     }
-    
-};
+
+}
 
 

@@ -1,45 +1,13 @@
-// Single return (should still work)
-int add(int a, int b) {
-    return a + b;
-}
-
-// Multi-return function
-int, string get_user() {
-    return 42, "Alice";
-}
-
-// Multi-return with 3 values
-int, float, bool get_data() {
-    return 100, 3.14f, true;
-}
-
-// Multi-return with default args
-int, string greet(string name = "World") {
-    return 200, "Hello, " + name;
-}
-
 int main() {
-    // Test single return
-    int sum = add(5, 10);
-    std::qout << "5 + 10 = " << sum << '\n';
+    int numbers[5] = [1, 2, 3, 4, 5];
+    int values[] = [10, 20, 30];
+    string names[] = ["Alice", "Bob", "Charlie"];
+    float prices[] = [9.99, 19.99, 29.99];
+    double coords[] = [1.5, 2.7, 3.9];
     
-    // Test multi-return
-    int id, string name = get_user();
-    std::qout << "User ID: " << id << '\n';
-    std::qout << "User Name: " << name << '\n';
-    
-    // Test 3-value return
-    int code, float pi, bool flag = get_data();
-    std::qout << "Code: " << code << '\n';
-    std::qout << "Pi: " << pi << '\n';
-    std::qout << "Flag: " << flag << '\n';
-    
-    // Test with default args
-    int status1, string msg1 = greet();
-    std::qout << status1 << ": " << msg1 << '\n';
-    
-    int status2, string msg2 = greet("Quantum C");
-    std::qout << status2 << ": " << msg2 << '\n';
+    println(numbers[0]);
+    println(values[1]);
+    println(names[2]);
     
     return 0;
 }

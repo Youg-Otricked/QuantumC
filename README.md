@@ -71,7 +71,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.0 - "Multi Return functions and Lambdas (+ collection types)"
+Current Version: v2.21 - "Arrays"
 
 ## Working:
 
@@ -83,12 +83,15 @@ Lambdas & higher-order functions
 Multi-return values
 F-strings
 Constants (const)
+Arrays
 
 ## Coming Soon:
 
 Static typing on lambda ret-types
 Mulit return Lambdas
-Arrays
+Lists
+Spread syntax for arrays (@)
+Length memeber for arrays (maybe probably not usefull)
 Union Types (TypeScript-style)
 Structs
 Quantum Booleans (superposition!)

@@ -533,12 +533,23 @@ int main() {
     // Type checking still applies
     int x, string y = get_user();  // ✓ Correct types
     // int x, int y = get_user();   // ✗ Error: type mismatch
-
+    //======================================
+    // SECTION 22: arrays
+    //=======================================
+    int numbers[5] = [1, 2, 3, 4, 5];
+    int values[] = [10, 20, 30];
+    string names[] = ["Alice", "Bob", "Charlie"];
+    float prices[] = [9.99, 19.99, 29.99];
+    double coords[] = [1.5, 2.7, 3.9];
+    
+    println(numbers[0]);
+    println(values[1]);
+    println(names[2]);
     // Must match number of return values
     // int x = get_user();          // ✗ Error: can't assign multi-return to single variable
     // int x, string y, bool z = get_user();  // ✗ Error: expected 2 values, got 3
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.0!
+    // All features shown above are working in Quantum C v2.21!
     //==============================================================================
     return 0;
 }
