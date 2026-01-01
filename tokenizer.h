@@ -492,25 +492,34 @@ namespace tkz {
         bool is_const;
         Token type_tok;
         Token var_name_tok;
-        AnyNode value; 
-        std::optional<int> size;  
-        
-        ArrayDeclNode(bool is_const, Token type, Token name, AnyNode value, std::optional<int> size)
+        AnyNode value;
+
+        int dimensions;
+        std::vector<std::optional<int>> sizes;
+
+        ArrayDeclNode(bool is_const, Token type_tok, Token var_name_tok, 
+              AnyNode&& value,
+              int dims, std::vector<std::optional<int>> sizes)
             : is_const(is_const),
-            type_tok(std::move(type)),
-            var_name_tok(std::move(name)),
+            type_tok(type_tok),
+            var_name_tok(var_name_tok),
             value(std::move(value)),
-            size(size) {}
-        
+            dimensions(dims),
+            sizes(std::move(sizes))
+        {}
         std::string print() {
-            std::string result = type_tok.value + " " + var_name_tok.value + "[";
-            if (size.has_value()) {
-                result += std::to_string(size.value());
+            std::string result = type_tok.value + " " + var_name_tok.value;
+            for (int i = 0; i < dimensions; i++) {
+                result += "[";
+                if (sizes[i].has_value())
+                    result += std::to_string(*sizes[i]);
+                result += "]";
             }
-            result += "] = " + printAny(value);
+            result += " = " + printAny(value);
             return result;
         }
     };
+
 
     class ArrayLiteralNode {
     public:
@@ -532,14 +541,21 @@ namespace tkz {
 
     class ArrayAccessNode {
     public:
-        Token array_name;
-        AnyNode index;
-        
-        ArrayAccessNode(Token name, AnyNode idx)
-            : array_name(std::move(name)), index(std::move(idx)) {}
-        
+        AnyNode base;                    
+        std::vector<AnyNode> indices;    
+
+        // Correct constructor: use the member names!
+        ArrayAccessNode(AnyNode&& base_node, std::vector<AnyNode>&& idxs)
+            : base(std::move(base_node)), indices(std::move(idxs)) {}
+
         std::string print() {
-            return array_name.value + "[" + printAny(index) + "]";
+            std::string s = printAny(base) + "[";
+            for (size_t i = 0; i < indices.size(); ++i) {
+                s += printAny(indices[i]);
+                if (i != indices.size() - 1) s += ", ";
+            }
+            s += "]";
+            return s;
         }
     };
     class ReturnNode {
@@ -855,17 +871,32 @@ namespace tkz {
     public:
         std::string element_type;
         std::vector<NumberVariant> elements;
-        size_t size;
-        
-        ArrayValue(std::string type, std::vector<NumberVariant> elems, size_t sz)
-            : element_type(type), elements(std::move(elems)), size(sz) {}
-        
+        std::vector<std::vector<size_t>> nested_sizes;
+
+        ArrayValue(std::string type, std::vector<NumberVariant> elems)
+            : element_type(type), elements(std::move(elems))
+        {
+            nested_sizes.resize(elements.size());
+            for (size_t i = 0; i < elements.size(); i++) {
+                if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&elements[i])) {
+                    nested_sizes[i] = (*arr_ptr)->sizes();
+                }
+            }
+        }
+        size_t size() const {  
+            return elements.size();
+        }
+        std::vector<size_t> sizes() const {
+            std::vector<size_t> result = { elements.size() };
+            return result; 
+        }
+
         std::string print() const {
             std::string result = "[";
             for (size_t i = 0; i < elements.size(); i++) {
                 result += std::visit([](auto&& v) -> std::string {
                     using T = std::decay_t<decltype(v)>;
-                    if constexpr (requires { v->print(); }) {
+                    if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {
                         return v->print();
                     } else if constexpr (requires { v.print(); }) {
                         return v.print();
@@ -878,6 +909,7 @@ namespace tkz {
             return result + "]";
         }
     };
+
     struct ExecResult {
         NumberVariant value;
         bool did_break;

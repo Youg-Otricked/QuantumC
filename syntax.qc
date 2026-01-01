@@ -533,23 +533,182 @@ int main() {
     // Type checking still applies
     int x, string y = get_user();  // ✓ Correct types
     // int x, int y = get_user();   // ✗ Error: type mismatch
-    //======================================
-    // SECTION 22: arrays
-    //=======================================
-    int numbers[5] = [1, 2, 3, 4, 5];
-    int values[] = [10, 20, 30];
-    string names[] = ["Alice", "Bob", "Charlie"];
-    float prices[] = [9.99, 19.99, 29.99];
-    double coords[] = [1.5, 2.7, 3.9];
+     // ========================================
+    // 1D ARRAYS (Basic)
+    // ========================================
     
-    println(numbers[0]);
-    println(values[1]);
-    println(names[2]);
-    // Must match number of return values
-    // int x = get_user();          // ✗ Error: can't assign multi-return to single variable
-    // int x, string y, bool z = get_user();  // ✗ Error: expected 2 values, got 3
+    int numbers[] = [1, 2, 3, 4, 5];
+    println(numbers[0]);  // 1
+    println(numbers[4]);  // 5
+    
+    string names[] = ["Alice", "Bob", "Charlie"];
+    println(names[1]);  // Bob
+    
+    float prices[] = [9.99, 19.99, 29.99];
+    println(prices[2]);  // 29.99
+    
+    
+    // ========================================
+    // 2D ARRAYS (Grids)
+    // ========================================
+    
+    // Uniform grid (all rows same length)
+    int grid[][] = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ];
+    println(grid[0][0]);  // 1
+    println(grid[1][1]);  // 5
+    println(grid[2][2]);  // 9
+    
+    // String grid
+    string board[][] = [
+        ["X", "O", "X"],
+        ["O", "X", "O"],
+        ["X", "O", "X"]
+    ];
+    println(board[0][1]);  // O
+    
+    
+    // ========================================
+    // JAGGED ARRAYS (Different row lengths!)
+    // ========================================
+    
+    int jagged[][] = [
+        [1, 2],           // Row 0: 2 elements
+        [3, 4, 5],        // Row 1: 3 elements
+        [6],              // Row 2: 1 element
+        [7, 8, 9, 10]     // Row 3: 4 elements
+    ];
+    println(jagged[0][0]);  // 1
+    println(jagged[1][2]);  // 5
+    println(jagged[2][0]);  // 6
+    println(jagged[3][3]);  // 10
+    
+    // Jagged string array (like a paragraph)
+    string paragraph[][] = [
+        ["The", "quick", "brown"],
+        ["fox"],
+        ["jumps", "over", "the", "lazy", "dog"]
+    ];
+    println(paragraph[0][1]);  // quick
+    println(paragraph[2][4]);  // dog
+    
+    
+    // ========================================
+    // 3D ARRAYS (Cubes)
+    // ========================================
+    
+    // 2x2x2 cube
+    int cube[][][] = [
+        [
+            [1, 2],
+            [3, 4]
+        ],
+        [
+            [5, 6],
+            [7, 8]
+        ]
+    ];
+    println(cube[0][0][0]);  // 1
+    println(cube[0][1][1]);  // 4
+    println(cube[1][0][1]);  // 6
+    println(cube[1][1][1]);  // 8
+    
+    // RGB image (3x3 pixels, 3 color channels)
+    int image[][][] = [
+        [[255, 0, 0], [0, 255, 0], [0, 0, 255]],  // Row 1
+        [[255, 255, 0], [255, 0, 255], [0, 255, 255]],  // Row 2
+        [[128, 128, 128], [0, 0, 0], [255, 255, 255]]   // Row 3
+    ];
+    println(image[0][0][0]);  // 255 (red channel of pixel 0,0)
+    println(image[1][2][1]);  // 255 (green channel of pixel 1,2)
+    
+    
+    // ========================================
+    // JAGGED 3D ARRAYS (Different depths!)
+    // ========================================
+    
+    int jagged3d[][][] = [
+        [
+            [1, 2],
+            [3, 4, 5]  // Different length!
+        ],
+        [
+            [6],       // Single element
+            [7, 8, 9, 10]  // Four elements!
+        ]
+    ];
+    println(jagged3d[0][1][2]);  // 5
+    println(jagged3d[1][1][3]);  // 10
+    
+    
+    // ========================================
+    // 4D ARRAYS (Tesseracts/Hypercubes!)
+    // ========================================
+    
+    // 2x2x2x2 tesseract
+    int tesseract[][][][] = [
+        [
+            [
+                [1, 2],
+                [3, 4]
+            ],
+            [
+                [5, 6],
+                [7, 8]
+            ]
+        ],
+        [
+            [
+                [9, 10],
+                [11, 12]
+            ],
+            [
+                [13, 14],
+                [15, 16]
+            ]
+        ]
+    ];
+    println(tesseract[0][0][0][0]);  // 1
+    println(tesseract[0][1][1][1]);  // 8
+    println(tesseract[1][0][1][0]);  // 11
+    println(tesseract[1][1][1][1]);  // 16
+    
+    // Video data (time, height, width, RGB)
+    // 2 frames, 2x2 pixels, 3 color channels
+    int video[][][][] = [
+        [  // Frame 1
+            [[255, 0, 0], [0, 255, 0]],     // Row 1
+            [[0, 0, 255], [255, 255, 0]]    // Row 2
+        ],
+        [  // Frame 2
+            [[255, 0, 255], [0, 255, 255]],  // Row 1
+            [[128, 128, 128], [0, 0, 0]]     // Row 2
+        ]
+    ];
+    println(video[0][0][0][0]);  // 255 (Frame 1, pixel 0,0, red)
+    println(video[1][1][1][2]);  // 0   (Frame 2, pixel 1,1, blue)
+    
+    
+    // ========================================
+    // MIXED TYPES
+    // ========================================
+    
+    double matrix[][] = [
+        [1.1, 2.2, 3.3],
+        [4.4, 5.5, 6.6]
+    ];
+    println(matrix[1][2]);  // 6.6
+    
+    char letters[][] = [
+        ['a', 'b', 'c'],
+        ['x', 'y', 'z']
+    ];
+    println(letters[0][2]);  // c
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.21!
+    // All features shown above are working in Quantum C v2.5!
     //==============================================================================
     return 0;
 }
