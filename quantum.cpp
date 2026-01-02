@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v2.56
+        Quantum C (C⁴) v2.6
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
         Beter syntax guide comming: NOW
         
         Now on a higher version than Geometry Dash
-        Now officaly one version 1(byte)
+        Now officaly past version 1(byte)
         Features:
         ✓ C++ Performance -- without the 20 #includes
         ✓ C# Ergonomics  
@@ -57,6 +57,8 @@ int main(int argc, char* argv[]) {
         )" << std::endl;
         } else if (arg == "--loose-types" || arg == "-lt") {
             looser = true;
+        } else if (arg == "--demo" || arg == "-d") {
+            filename = "./syntax.qc";
         } else {
             filename = arg;
         }
@@ -64,7 +66,7 @@ int main(int argc, char* argv[]) {
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v2.56" << std::endl;
+        std::cout << "Quantum C REPL v2.6" << std::endl;
         if (!use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }

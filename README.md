@@ -34,7 +34,7 @@ cd QuantumC
 clang++ *.cpp -o qc -std=c++23
 
 # Run the demo
-./qc syntax.qc
+./qc -d
 ```
 **Linux (ubuntu):**
 ```bash
@@ -49,7 +49,7 @@ cd QuantumC
     g++ *.cpp -o qc -std=c++23 -fconstexpr-ops-limit=100000000
 # Else
 # Read while running the syntax guide
-    ./qc syntax.qc
+    ./qc -d
 # Or enter the REPL
     ./qc
 ```
@@ -62,7 +62,7 @@ cd QuantumC
 # Compile
 g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
 # Run the syntax guide
-qc.exe syntax.qc
+qc.exe -d
 ```
 
 ---
@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.56 - "Arrays and Lists"
+Current Version: v2.6 - "Arrays and Lists"
 
 ## Working:
 

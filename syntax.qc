@@ -736,15 +736,78 @@ int main() {
     // =======================================
     // returning colleciton types from functions (im not sure if this works yet)
     // =======================================
-    int[] make_list() {
-        int[] x = [1,2,3];
-        return x;
+    
+    int[] make_array() {
+        return [1, 2, 3];
     }
 
-    int[] y = make_list();
-    println(f"\n{y}");
+    void print_any(auto v) {
+        println(v);
+    }
+
+    int[] bbb = make_array();
+    int bb[] = make_array();
+    println(bbb);           // should print [1, 2, 3]
+    print_any(bbb);         // should also print [1, 2, 3]
+    void print_int_list(list<int> xs) {
+        println(xs);
+    }
+
+    int[] a = [1, 2, 3];
+    print_int_list(a); 
+    int[] copyInt(list<int> x) {
+        return x;
+    }
+    int[] copyIntArr(int[] z) {
+        return z;
+    }
+    int[] cpl = [9, 9, 1, 4];
+    int cpa[] = [1, 99999, 34234];
+    int[] copyed = copyInt(cpl);
+    int copyedArr[] = copyIntArr(cpa);
+    std::qout << cpl << cpa << copyed << copyedArr << '\n';
+    // --- list<int> params, return, and multi-return ---
+    int[] id_list(list<int> xs) {
+        return xs;
+    }
+
+   
+
+    void print_int_list(list<int> xs) {
+        println(xs);
+    }
+
+    int[] base = [1, 2, 3, 4];
+    int[] copy = id_list(base);        // base is list<int> internally
+    print_int_list(copy);                  // [1, 2, 3, 4]
+
+
+    // --- mixing arrays and lists ---
+
+    int grid[][] = [
+        [1, 2],
+        [3, 4]
+    ];
+    println(grid);         // [[1, 2], [3, 4]]
+    println(grid[0][1]);   // 2
+
+    int[] l1 = [5, 6, 7];
+    int[] l2 = l1;
+    l2.push(8);
+    println(l1);           // [5, 6, 7, 8] if aliasing, or [5,6,7] if copied
+    println(l2);           // [5, 6, 7, 8]
+
+    // LIST AND ARRAY SUMMARY
+    // define a array with type name[] = value
+    string example[] = ["This is an example"];
+    // define a list with type[] name = value
+    string[] listexample = ["This is a list"];
+    // add to list with .push and subtract with .pop
+    listexample.push("This");
+    listexample.pop();
+    // when returnign a array or list use the type[] syntax amd when passing one as argument arrays are type[] and lists are list<type>
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.56!
+    // All features shown above are working in Quantum C v2.6!
     //==============================================================================
     return 0;
 }

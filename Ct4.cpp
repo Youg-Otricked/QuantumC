@@ -1096,7 +1096,7 @@ namespace tkz {
                 }
             }
         }
-
+        
         if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
             this->advance();
             return res.success(NumberNode(tok));
@@ -1580,15 +1580,55 @@ namespace tkz {
     }
 
 
-    Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
+   Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
         ParseResult res;
-        this->advance();  
+        this->advance();
         
         std::list<Parameter> params;
         
         if (this->current_tok.type != TokenType::RPAREN) {
             Token param_type = this->current_tok;
             this->advance();
+
+            if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
+                this->advance();
+
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected element type in list<T>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token elem_type = this->current_tok;
+                this->advance();
+
+                if (this->current_tok.type != TokenType::MORE) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '>' in list<T>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+
+                param_type = Token(
+                    TokenType::KEYWORD,
+                    "list<" + elem_type.value + ">",
+                    param_type.pos
+                );
+            }
+            if (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']' after [ in paramater", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    param_type.value += "[]";
+            }
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected parameter name", this->current_tok.pos));
+                return res.to_prs();
+            }
             Token param_name = this->current_tok;
             this->advance();
             
@@ -1604,9 +1644,49 @@ namespace tkz {
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
                 
-                param_type = this->current_tok;
+                Token param_type = this->current_tok;
                 this->advance();
-                param_name = this->current_tok;
+
+                if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
+                    this->advance(); 
+
+                    if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected element type in list<T>", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    Token elem_type = this->current_tok;
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::MORE) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected '>' in list<T>", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance(); 
+
+                    param_type = Token(
+                        TokenType::KEYWORD,
+                        "list<" + elem_type.value + ">",
+                        param_type.pos
+                    );
+                }
+                if (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']' after [ in paramater", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    param_type.value += "[]";
+                }
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected parameter name", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token param_name = this->current_tok;
                 this->advance();
                 
                 default_val = std::nullopt;
@@ -1748,6 +1828,7 @@ namespace tkz {
                     return res.to_prs();
                 }
             }
+            
             Token name_tok;
             Token type_tok = tok;
             this->advance();
