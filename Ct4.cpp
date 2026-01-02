@@ -17,6 +17,7 @@
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
+bool loose;
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
@@ -25,21 +26,29 @@ namespace tkz {
 
     }
     std::string Position::arrow_string() const {
-        std::string result;
+        if (Filetxt.empty() || index < 0 || index > (int)Filetxt.size()) {
+            return "\n"; 
+        }
 
-        // find line start
-        int start = this->index;
-        while (start > 0 && this->Filetxt[start - 1] != '\n') start--;
+        int start = index;
+        while (start > 0 && Filetxt[start - 1] != '\n') start--;
 
-        // find line end
-        int end = this->index;
-        while (end < (int)this->Filetxt.size() && this->Filetxt[end] != '\n') end++;
+        int end = index;
+        while (end < (int)Filetxt.size() && Filetxt[end] != '\n') end++;
 
-        std::string line = this->Filetxt.substr(start, end - start);
+        if (start < 0) start = 0;
+        if (end < start) end = start;
 
+        std::string line = Filetxt.substr(start, end - start);
+
+        std::string result = "\n";
         result += line + "\n";
-        result += std::string(this->column, ' ');
-        result += std::string(std::max(1, this->length), '^');
+
+        int col = std::max(0, column);
+        int len = std::max(1, length);
+
+        result += std::string(col, ' ');
+        result += std::string(len, '^');
         result += "\n";
         return result;
     }
@@ -125,7 +134,7 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    std::string printAny(AnyNode& node) {
+    std::string printAny(const AnyNode& node) {
         return std::visit([](auto&& arg) -> std::string {
             using T = std::decay_t<decltype(arg)>;
             
@@ -201,33 +210,37 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ListDeclNode>>) {
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
         }, node);
     }
-    std::string VarAssignNode::print() {
+    std::string VarAssignNode::print() const {
         return "(" + this->type_tok.print() + " " + this->var_name_tok.print() + " " + printAny(this->value_node) + ")";
     }
-    std::string VarAccessNode::print() {
+    std::string VarAccessNode::print() const {
         return "(" + this->var_name_tok.print() + ")";
     }
     NumberNode::NumberNode(Token tok) {
         this->tok = tok;
     }
-    std::string CharNode::print() {
+    std::string CharNode::print() const {
         return this->tok.print();
     }
-    std::string NumberNode::print() {
+    std::string NumberNode::print() const {
         return this->tok.print();
     }
-    std::string BinOpNode::print() {
+    std::string BinOpNode::print() const {
         return "(" + printAny(left_node) + " " + op_tok.print() + " " + printAny(right_node) + ")";
     }
-    std::string UnaryOpNode::print() {
+    std::string UnaryOpNode::print() const {
         return std::string{"("} + this->op_tok.print() + ", " + printAny(this->node) + ")";
     }
-    std::string StatementsNode::print() {
+    std::string StatementsNode::print() const {
         std::string res = "[";
         for (size_t i = 0; i < statements.size(); i++) {
             res += printAny(statements[i]);
@@ -238,7 +251,7 @@ namespace tkz {
         res += "]";
         return res;
     }
-    std::string StringNode::print() {
+    std::string StringNode::print() const {
         return "(" + this->tok.print() + ")";
     }
     StringNode::StringNode(Token tok) {
@@ -247,10 +260,10 @@ namespace tkz {
     BoolNode::BoolNode(Token tok) {
         this->tok = tok;
     }
-    std::string BoolNode::print() {
+    std::string BoolNode::print() const {
         return "(" + this->tok.print() + ")";
     }
-    std::string IfNode::print() {
+    std::string IfNode::print() const {
         std::string res = "(if ";
         if (init.has_value()) {
             res += "init=" + printAny(init.value()) + "; ";
@@ -366,6 +379,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ListDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -440,6 +457,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ListDeclNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -458,7 +479,7 @@ namespace tkz {
             {"MINUS", TokenType::MINUS}, {"MUL", TokenType::MUL}, {"DIV", TokenType::DIV},
             {"POWER", TokenType::POWER}, {"LPAREN", TokenType::LPAREN}, {"RPAREN", TokenType::RPAREN},
             {"SEMICOLON", TokenType::SEMICOLON}, {"DEF", TokenType::DEF}, {"INCREMENT", TokenType::INCREMENT},
-            {"DECREMENT", TokenType::DECREMENT}, {"IDENTIFIER", TokenType::IDENTIFIER},
+            {"DECREMENT", TokenType::DECREMENT}, {"IDENTIFIER", TokenType::IDENTIFIER}, 
             {"KEYWORD", TokenType::KEYWORD}, {"EQ", TokenType::EQ}, {"EOFT", TokenType::EOFT}, {"ARROW", TokenType::ARROW}
         };
 
@@ -796,7 +817,7 @@ namespace tkz {
     }
     Prs Parser::for_stmt() {
         ParseResult res;
-
+        Token type_tok;
         if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "for")) {
             res.failure(std::make_unique<InvalidSyntaxError>("Expected 'for'", current_tok.pos));
             return res.to_prs();
@@ -837,7 +858,7 @@ namespace tkz {
                     }
                 }
 
-                Token type_tok = tok;
+                type_tok = tok;
                 advance();
 
                 if (current_tok.type != TokenType::IDENTIFIER) {
@@ -1094,7 +1115,44 @@ namespace tkz {
         }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
-
+            if (this->current_tok.type == TokenType::DOT) {
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected method name after '.'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                Token method_name = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    this->advance();
+                    
+                    std::vector<AnyNode> args;
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        args.push_back(res.reg(this->logical_or()));
+                        if (res.error) return res.to_prs();
+                        
+                        while (this->current_tok.type == TokenType::COMMA) {
+                            this->advance();
+                            args.push_back(res.reg(this->logical_or()));
+                            if (res.error) return res.to_prs();
+                        }
+                    }
+                    
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ')'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    
+                    return res.success(std::make_unique<MethodCallNode>(
+                        tok, method_name, std::move(args)));
+                }
+            }
             if (this->current_tok.type == TokenType::LPAREN)
                 return this->call(std::make_unique<VarAccessNode>(tok));
 
@@ -1690,10 +1748,21 @@ namespace tkz {
                     return res.to_prs();
                 }
             }
-            
+            Token name_tok;
             Token type_tok = tok;
             this->advance();
-
+            bool is_list = false;
+            if (this->current_tok.type == TokenType::LBRACKET) {
+                this->advance();
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']' for list declaration", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                is_list = true; 
+            }
+            
             std::vector<Token> return_types = {type_tok};
             if (this->current_tok.type == TokenType::COMMA) {
                 while (this->current_tok.type == TokenType::COMMA) {
@@ -1715,7 +1784,7 @@ namespace tkz {
                     return res.to_prs();
                 }
                 
-                Token name_tok = this->current_tok;
+                name_tok = this->current_tok;
                 this->advance();
                 int dimensions = 0;
                 std::vector<std::optional<int>> sizes;
@@ -1759,11 +1828,8 @@ namespace tkz {
                     "Expected identifier", this->current_tok.pos));
                 return res.to_prs();
             }
-
-            Token name_tok = this->current_tok;
+            name_tok = this->current_tok;
             this->advance();
-
-
             std::vector<std::optional<int>> array_sizes; 
             int dimensions = 0;
 
@@ -1791,7 +1857,30 @@ namespace tkz {
                 if (res.error) return res.to_prs();
                 return res.success(std::move(func_def));
             }
-            
+            if (is_list) {
+                AnyNode value;
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    value = res.reg(this->qout_expr());
+                    if (res.error) return res.to_prs();
+                } else {
+                    if (is_const) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "const variables must be initialized", name_tok.pos));
+                        return res.to_prs();
+                    }
+                    value = std::make_unique<ArrayLiteralNode>(std::vector<AnyNode>{}, name_tok.pos);
+                }
+                
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                return res.success(std::make_unique<ListDeclNode>(
+                    is_const, type_tok, name_tok, std::move(value)));
+            }
             if (is_array) {
                 AnyNode value;
                 if (this->current_tok.type == TokenType::EQ) {
@@ -1985,7 +2074,7 @@ namespace tkz {
     }
 
     template <typename T>
-    std::string Number<T>::print() {
+    std::string Number<T>::print() const {
         return std::to_string(this->value);
     }
 
@@ -2012,6 +2101,21 @@ namespace tkz {
                 return true; 
             }
             return false;
+        }, val);
+    }
+    std::string value_to_string(const NumberVariant& val) {
+        return std::visit([](auto const& v) -> std::string {
+            using T = std::decay_t<decltype(v)>;
+
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return "";
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
+                                std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
+                                std::is_same_v<T, std::shared_ptr<ListValue>>) {
+                return v->print();
+            } else {
+                return v.print();
+            }
         }, val);
     }
     bool values_equal(const NumberVariant& a,
@@ -2263,14 +2367,14 @@ namespace tkz {
         return std::move(last);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<QOutExprNode>& node) {
-        if (!node) return std::move(Number<int>(0));
-        
+        if (!node) return Number<int>(0);
+
         for (auto& val : node->values) {
             NumberVariant result = this->process(val);
-            std::cout << std::visit([](auto&& v) -> std::string {if constexpr (requires { v->print(); }) {return v->print();} else {return v.print();}}, std::move(result));
+            std::cout << value_to_string(result);
         }
-        
-        return std::move(Number<int>(0));
+
+        return Number<int>(0);
     }
     NumberVariant Interpreter::operator()(QOutNode& node) {
         return std::move(Number<int>(0));
@@ -2525,21 +2629,36 @@ namespace tkz {
             ExecResult r = exec_stmt_in_loop_or_switch(stmt);
             auto result = std::move(r.value);
 
-            output += std::visit([](auto&& val) -> std::string {
-                using T = std::decay_t<decltype(val)>;
-                if constexpr (std::is_same_v<T, std::monostate>) {
-                    return "";
-                } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
-                    return val->print() + "\n";
-                } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {  
-                    return val->print() + "\n";
-                } else {
-                    return val.print() + "\n";
-                }
-            }, result);
+            output += value_to_string(result) + "\n";
         }
         
         return output;
+    }
+    std::string MultiValue::print() const {
+        std::string result = "(";
+        for (size_t i = 0; i < values.size(); i++) {
+            result += value_to_string(values[i]);
+            if (i < values.size() - 1) result += ", ";
+        }
+        return result + ")";
+    }
+
+    std::string ArrayValue::print() const {
+        std::string result = "[";
+        for (size_t i = 0; i < elements.size(); i++) {
+            result += value_to_string(elements[i]);
+            if (i < elements.size() - 1) result += ", ";
+        }
+        return result + "]";
+    }
+
+    std::string ListValue::print() const {
+        std::string result = "[";
+        for (size_t i = 0; i < elements.size(); i++) {
+            result += value_to_string(elements[i]);
+            if (i < elements.size() - 1) result += ", ";
+        }
+        return result + "]";
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
         if (!node) return std::move(Number<int>(0));
@@ -2556,34 +2675,40 @@ namespace tkz {
                 NumberVariant right = std::move(this->process(node->right_node));
                 return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
         }
-        NumberVariant left = std::move(this->process(node->left_node));
+        NumberVariant left  = std::move(this->process(node->left_node));
         NumberVariant right = std::move(this->process(node->right_node));
 
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
+
             if (node->is_f) {
-                auto to_string_variant = [](auto&& v) -> std::string {
+                auto to_string_variant = [](auto const& v) -> std::string {
                     using T = std::decay_t<decltype(v)>;
+
                     if constexpr (std::is_same_v<T, Number<int>> ||
                                 std::is_same_v<T, Number<double>> ||
-                                std::is_same_v<T, Number<float>>)
+                                std::is_same_v<T, Number<float>>) {
                         return std::to_string(v.value);
-                    else if constexpr (std::is_same_v<T, CharValue>)
+                    } else if constexpr (std::is_same_v<T, CharValue>) {
                         return std::string(1, v.value);
-                    else if constexpr (std::is_same_v<T, BoolValue>)
+                    } else if constexpr (std::is_same_v<T, BoolValue>) {
                         return v.value ? "true" : "false";
-                    else if constexpr (std::is_same_v<T, StringValue>)
+                    } else if constexpr (std::is_same_v<T, StringValue>) {
                         return v.value;
-                    else if constexpr (std::is_same_v<T, VoidValue>)
+                    } else if constexpr (std::is_same_v<T, VoidValue>) {
                         return "<void>";
-                    else
+                    } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
+                                        std::is_same_v<T, std::shared_ptr<ListValue>> ||
+                                        std::is_same_v<T, std::shared_ptr<MultiValue>>) {
+                        return v ? v->print() : "<null>";
+                    } else {
                         return "<unknown>";
+                    }
                 };
 
-                auto l_str = std::move(to_string_variant(L));
-                auto r_str = std::move(to_string_variant(R));
-
+                std::string l_str = to_string_variant(L);
+                std::string r_str = to_string_variant(R);
                 return std::move(StringValue(l_str + r_str).set_pos(node->op_tok.pos));
             }
 
@@ -2612,9 +2737,8 @@ namespace tkz {
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ArrayValue>> || std::is_same_v<T2, std::shared_ptr<ArrayValue>>) { 
                 throw RTError("Cannot preform arithmetic operations on arrays", node->op_tok.pos);
             }
-            
-            else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || std::is_same_v<T2, std::shared_ptr<MultiValue>>) { 
-                throw RTError("How ius a return value in this function", node->op_tok.pos);
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<ListValue>> || std::is_same_v<T2, std::shared_ptr<ListValue>>) { 
+                throw RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos);
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
                             std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
@@ -2714,7 +2838,8 @@ namespace tkz {
                     !std::is_same_v<T, FunctionValue> &&
                     !std::is_same_v<T, VoidValue> &&
                     !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
-                    !std::is_same_v<T, std::shared_ptr<ArrayValue>>
+                    !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
+                    !std::is_same_v<T, std::shared_ptr<ListValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
@@ -2741,7 +2866,8 @@ namespace tkz {
                 !std::is_same_v<T, VoidValue> &&
                 !std::is_same_v<T, std::monostate> &&
                 !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
-                !std::is_same_v<T, std::shared_ptr<ArrayValue>>
+                !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
+                !std::is_same_v<T, std::shared_ptr<ListValue>>
 
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
@@ -2851,7 +2977,33 @@ namespace tkz {
         return VoidValue();
     }
 
+    NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ListDeclNode>& node) {
+        if (!node) return Number<int>(0);
 
+        NumberVariant init_value = this->process(node->value);
+
+        if (std::holds_alternative<std::shared_ptr<ArrayValue>>(init_value)) {
+            auto array_val = std::get<std::shared_ptr<ArrayValue>>(init_value);
+
+            auto list_val = std::make_shared<ListValue>(
+                array_val->element_type,
+                std::move(array_val->elements)
+            );
+
+            std::string list_type = "list<" + node->type_tok.value + ">";
+            context->define(node->var_name_tok.value, list_type, list_val, node->is_const);
+            return VoidValue();
+        }
+
+        if (std::holds_alternative<std::shared_ptr<ListValue>>(init_value)) {
+            auto list_val = std::get<std::shared_ptr<ListValue>>(init_value);
+            std::string list_type = "list<" + node->type_tok.value + ">";
+            context->define(node->var_name_tok.value, list_type, list_val, node->is_const);
+            return VoidValue();
+        }
+
+        throw RTError("List must be initialized with array literal or another list", node->var_name_tok.pos);
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ArrayLiteralNode>& node) {
         if (!node) return Number<int>(0);
 
@@ -2884,46 +3036,115 @@ namespace tkz {
 
         NumberVariant base_value = this->process(node->base);
 
-        if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(base_value))
-            throw RTError("Cannot index non-array type", Position());
+        bool is_array = std::holds_alternative<std::shared_ptr<ArrayValue>>(base_value);
+        bool is_list  = std::holds_alternative<std::shared_ptr<ListValue>>(base_value);
 
-        std::shared_ptr<ArrayValue> current = std::get<std::shared_ptr<ArrayValue>>(base_value);
+        if (!is_array && !is_list)
+            throw RTError("Cannot index non-array/list type", Position());
+
+        std::shared_ptr<ArrayValue> current_array;
+        std::shared_ptr<ListValue>  current_list;
+
+        if (is_array) current_array = std::get<std::shared_ptr<ArrayValue>>(base_value);
+        if (is_list)  current_list  = std::get<std::shared_ptr<ListValue>>(base_value);
 
         for (size_t dim = 0; dim < node->indices.size(); ++dim) {
             NumberVariant index_val = this->process(node->indices[dim]);
-            
             int index = std::visit([&](auto&& arg) -> int {
                 using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, Number<int>>) return arg.value;
-                else if constexpr (std::is_same_v<T, Number<float>>) return static_cast<int>(arg.value);
-                else if constexpr (std::is_same_v<T, Number<double>>) return static_cast<int>(arg.value);
-                else throw RTError("Array index must be a number", Position());
+                if constexpr (std::is_same_v<T, Number<int>>)    return arg.value;
+                if constexpr (std::is_same_v<T, Number<float>>)  return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<double>>) return (int)arg.value;
+                throw RTError("Index must be a number", Position());
             }, index_val);
 
-            if (index < 0 || static_cast<size_t>(index) >= current->size())
-                throw RTError("Array index out of bounds: " + std::to_string(index), Position());
+            if (current_array) {
+                if (index < 0 || (size_t)index >= current_array->size())
+                    throw RTError("Array index out of bounds: " + std::to_string(index), Position());
+                NumberVariant next = current_array->elements[index];
 
-            NumberVariant next = current->elements[index];
+                if (dim == node->indices.size() - 1)
+                    return next;
 
-            if (dim == node->indices.size() - 1)
-                return next;
+                if (auto next_arr = std::get_if<std::shared_ptr<ArrayValue>>(&next)) {
+                    current_array = *next_arr;
+                    current_list.reset();
+                } else if (auto next_list = std::get_if<std::shared_ptr<ListValue>>(&next)) {
+                    current_list = *next_list;
+                    current_array.reset();
+                } else {
+                    throw RTError("Cannot index inside non-array/list", Position());
+                }
+            } else if (current_list) {
+                if (index < 0 || (size_t)index >= current_list->elements.size())
+                    throw RTError("List index out of bounds: " + std::to_string(index), Position());
+                NumberVariant next = current_list->elements[index];
 
-            if (auto next_arr = std::get_if<std::shared_ptr<ArrayValue>>(&next))
-                current = *next_arr;
-            else
-                throw RTError("Cannot index non-array type", Position());
+                if (dim == node->indices.size() - 1)
+                    return next;
+
+                if (auto next_arr = std::get_if<std::shared_ptr<ArrayValue>>(&next)) {
+                    current_array = *next_arr;
+                    current_list.reset();
+                } else if (auto next_list = std::get_if<std::shared_ptr<ListValue>>(&next)) {
+                    current_list = *next_list;
+                    current_array.reset();
+                } else {
+                    throw RTError("Cannot index inside non-array/list", Position());
+                }
+            } else {
+                throw RTError("Internal error: lost array/list during indexing", Position());
+            }
         }
 
         return Number<int>(0);  
     }
-
+    NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant obj = context->get(node->object_name.value, node->object_name.pos);
+        
+        if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
+            auto list = *list_ptr;
+            
+            if (node->method_name.value == "push") {
+                if (node->args.size() != 1) {
+                    throw RTError("push() requires exactly 1 argument", node->method_name.pos);
+                }
+                NumberVariant val = this->process(node->args[0]);
+                std::string name = context->get_type_name(val);
+                if (name.find(list->element_type) == std::string::npos && !loose) {
+                    throw RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
+                } else if (name != list->element_type && name.find("list<") == std::string::npos && name.find("[]") == std::string::npos) {
+                    throw RTError("(loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
+                }
+                list->push(std::move(val));
+                return VoidValue();
+            }
+            
+            if (node->method_name.value == "pop") {
+                if (node->args.size() != 0) {
+                    throw RTError("pop() takes no arguments", node->method_name.pos);
+                }
+                return list->pop();
+            }
+            
+            throw RTError("Unknown method: " + node->method_name.value, node->method_name.pos);
+        }
+        
+        throw RTError("Object does not support methods", node->object_name.pos);
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    Mer run(std::string file, std::string text, bool use_context) { 
-        if (text.starts_with("// @no-context") || text.starts_with("# no-context")) {
+    Mer run(std::string file, std::string text, bool use_context, bool looser_types) { 
+        if (text.find("// @no-context") != std::string::npos) {
             use_context = false;
         }
+        if (text.find("// @looser-types") != std::string::npos) {
+            looser_types = true;
+        }
+        loose = looser_types;
         Lexer lexer(text, file);
         Ler resp;
         try {
@@ -3413,6 +3634,11 @@ namespace tkz {
                         tokens.push_back(Token(TokenType::SEMICOLON, "", start_pos));
                         this->advance();
                         break;
+                    case '.':
+                        tokens.push_back(Token(TokenType::DOT, ".", start_pos));
+                        this->advance();
+                        break;
+                    
                     default:
                         std::string unknown = std::string(1, this->current_char);
                         return Ler {std::list<Token>(), std::make_unique<IllegalCharError>(unknown, this->pos)};

@@ -707,8 +707,44 @@ int main() {
         ['x', 'y', 'z']
     ];
     println(letters[0][2]);  // c
+    std::qout << matrix << '\n';
+    // you make a list with type[] name and a array with type name[]
+    int[] plswork = [1];
+    //you can push values to an list like this
+    plswork.push(123);
+    // pushing a array to a list
+    plswork.push([1, 2, 4]);
+    // defining a second list
+    char[] works = ['c', 'd'];
+    int[] migthtwotk = [2];
+    // pushing an list on a list
+    // plswork.push(works); - Runtime Error: cannot push a list<char> to a list of type int
+    plswork.push(migthtwotk);
+    // plswork.push("hello"); - Runtime Error: cannot push a string to a list of type int
+    // popping from lists
+    plswork.push(1);
+    plswork.push(2121212121);
+    std::qout << plswork << '\n';
+    plswork.pop();
+    std::qout << plswork << '\n';
+    plswork.pop();
+    std::qout << plswork << '\n';
+    // pushing inner list = pushing list its linked to
+    migthtwotk.push(123);
+    std::qout << plswork << '\n';
+    std::qout << plswork[2][0] << '\n' << plswork[3][0] << '\n';
+    // =======================================
+    // returning colleciton types from functions (im not sure if this works yet)
+    // =======================================
+    int[] make_list() {
+        int[] x = [1,2,3];
+        return x;
+    }
+
+    int[] y = make_list();
+    println(f"\n{y}");
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.5!
+    // All features shown above are working in Quantum C v2.56!
     //==============================================================================
     return 0;
 }

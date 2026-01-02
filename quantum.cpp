@@ -21,7 +21,7 @@ std::string read_file(std::string filename) {
 int main(int argc, char* argv[]) {
     bool use_context = true;
     std::string filename = "";
-    
+    bool looser = false;
     // Parse arguments
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -35,15 +35,16 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v2.5
+        Quantum C (C⁴) v2.56
 
         The 4th Evolution of C
         More Powerful Than Explosives
         Now turing complete.
         Functions comming: NOW
         Beter syntax guide comming: NOW
-        Beter function errors comming: AFTER QBOOL LONG AND SHORT
+        
         Now on a higher version than Geometry Dash
+        Now officaly one version 1(byte)
         Features:
         ✓ C++ Performance -- without the 20 #includes
         ✓ C# Ergonomics  
@@ -54,7 +55,8 @@ int main(int argc, char* argv[]) {
 
         github.com/Youg-Otricked/QuantumC
         )" << std::endl;
-            return 0;
+        } else if (arg == "--loose-types" || arg == "-lt") {
+            looser = true;
         } else {
             filename = arg;
         }
@@ -62,7 +64,7 @@ int main(int argc, char* argv[]) {
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v2.50" << std::endl;
+        std::cout << "Quantum C REPL v2.56" << std::endl;
         if (!use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }
@@ -85,7 +87,7 @@ int main(int argc, char* argv[]) {
     } else {
         // File mode
         std::string code = read_file(filename);
-        auto result = tkz::run(filename, code, use_context);
+        auto result = tkz::run(filename, code, use_context, looser);
         
         if (result.ast.error) {
             std::cout << result.ast.error->as_string() << std::endl;

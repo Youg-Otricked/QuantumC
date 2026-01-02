@@ -46,7 +46,7 @@ cd QuantumC
 ./qc -v
 # If version is < current version (see development status):
 # Compile
-    g++ *.cpp -o qc -std=c++20 -fconstexpr-ops-limit=100000000
+    g++ *.cpp -o qc -std=c++23 -fconstexpr-ops-limit=100000000
 # Else
 # Read while running the syntax guide
     ./qc syntax.qc
@@ -60,7 +60,7 @@ git clone https://github.com/Youg-Otricked/QuantumC
 # Move into it
 cd QuantumC
 # Compile
-g++ *.cpp -o qc.exe -std=c++20 -fconstexpr-ops-limit=100000000
+g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
 # Run the syntax guide
 qc.exe syntax.qc
 ```
@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.21 - "Arrays"
+Current Version: v2.56 - "Arrays and Lists"
 
 ## Working:
 
@@ -91,7 +91,7 @@ Arrays
 
 Static typing on lambda ret-types
 Mulit return Lambdas
-Lists
+Returning Arrays and Lists
 Spread syntax for arrays (@)
 Length memeber for arrays (maybe probably not usefull)
 Union Types (TypeScript-style)
