@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.6 - "Arrays and Lists"
+Current Version: v2.7 - "Collection types with static and multi return lambdas!"
 
 ## Working:
 

@@ -17,16 +17,15 @@ std::string read_file(std::string filename) {
     buffer << file.rdbuf();
     return buffer.str();
 }
-
 int main(int argc, char* argv[]) {
-    bool use_context = true;
+    tkz::RunConfig config;
     std::string filename = "";
-    bool looser = false;
+    
     // Parse arguments
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--no-context" || arg == "-nc") {
-            use_context = false;
+            config.use_context = false;
         } else if (arg == "--version" || arg == "-v") {
             std::cout << R"(
           _____ ___  _  _   
@@ -35,7 +34,7 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v2.6
+        Quantum C (C⁴) v2.7
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -55,19 +54,59 @@ int main(int argc, char* argv[]) {
 
         github.com/Youg-Otricked/QuantumC
         )" << std::endl;
+            return 0;
         } else if (arg == "--loose-types" || arg == "-lt") {
-            looser = true;
+            config.looser_types = true;
         } else if (arg == "--demo" || arg == "-d") {
             filename = "./syntax.qc";
-        } else {
+        } else if (arg == "--ast" || arg == "-a") {
+            config.print_ast = true;
+        } else if (arg == "--quiet" || arg == "-q") {
+            config.quiet_mode = true;
+        } else if (arg == "--tokens" || arg == "-tkn") {
+            config.print_tokens = true;
+        } else if (arg == "--time" || arg == "-t") {
+            config.show_time = true;
+        } else if (arg == "--help" || arg == "-h") {
+        std::cout << R"(
+Quantum C Interpreter v2.7
+
+Usage: qc [options] <file>
+
+Options:
+  -v, --version       Show version information
+  -h, --help          Show this help message
+  -d, --demo          Run the demo file (syntax.qc)
+  -lt, --loose-types  Enable loose type checking
+  -nc, --no-context   Disable context tracking
+  -a, --ast           Print the AST (Abstract Syntax Tree)
+  -tkn, --tokens      Print the token stream
+  -t, --time          Show compilation time
+In Code:
+  When writing code, you can use these same options as inline keywords at the top of your file:
+  // @no-context == -nc
+  // @looser-types == -lt
+  // @print-ast == -a
+  // @print-tokens == -tkn
+  // @show-time == -t
+  // @quiet == -q
+  quiet silences non debug output
+Examples:
+  qc main.qc          Run main.qc
+  qc -d               Run the demo
+  qc -v               Show version
+  qc --ast test.qc    Show AST for test.qc
+        )" << std::endl;
+        return 0;
+    } else {
             filename = arg;
         }
     }
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v2.6" << std::endl;
-        if (!use_context) {
+        std::cout << "Quantum C REPL v2.7" << std::endl;
+        if (!config.use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }
         
@@ -78,25 +117,29 @@ int main(int argc, char* argv[]) {
             
             if (line == "exit") break;
             
-            auto result = tkz::run("<stdin>", line, use_context);
+            auto result = tkz::run("<stdin>", line, config); 
             
             if (result.ast.error) {
                 std::cout << result.ast.error->as_string() << std::endl;
             } else {
-                std::cout << result.res;
+                if (!config.quiet_mode) { 
+                    std::cout << result.res << std::endl;
+                }
             }
         }
     } else {
         // File mode
         std::string code = read_file(filename);
-        auto result = tkz::run(filename, code, use_context, looser);
+        auto result = tkz::run(filename, code, config);
         
         if (result.ast.error) {
             std::cout << result.ast.error->as_string() << std::endl;
             return 1;
         }
         
-        std::cout << result.res;
+        if (!config.quiet_mode) {  
+            std::cout << result.res << std::endl;
+        }
     }
     
     return 0;

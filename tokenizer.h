@@ -65,6 +65,7 @@ namespace tkz {
     class ArrayAccessNode;
     class ListDeclNode;
     class MethodCallNode;
+    class PropertyAccessNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -94,7 +95,8 @@ namespace tkz {
         std::unique_ptr<ListDeclNode>, 
         std::unique_ptr<ArrayLiteralNode>,     
         std::unique_ptr<ArrayAccessNode>,
-        std::unique_ptr<MethodCallNode>
+        std::unique_ptr<MethodCallNode>,
+        std::unique_ptr<PropertyAccessNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -565,7 +567,6 @@ namespace tkz {
         AnyNode base;                    
         std::vector<AnyNode> indices;    
 
-        // Correct constructor: use the member names!
         ArrayAccessNode(AnyNode&& base_node, std::vector<AnyNode>&& idxs)
             : base(std::move(base_node)), indices(std::move(idxs)) {}
 
@@ -581,15 +582,15 @@ namespace tkz {
     };
     class MethodCallNode {
     public:
-        Token object_name;
+        AnyNode base;
         Token method_name;
         std::vector<AnyNode> args;
         
-        MethodCallNode(Token obj, Token method, std::vector<AnyNode>&& arguments)
-            : object_name(obj), method_name(method), args(std::move(arguments)) {}
+        MethodCallNode(AnyNode&& base_node, Token method, std::vector<AnyNode>&& arguments)
+            : base(std::move(base_node)), method_name(method), args(std::move(arguments)) {}
         
         std::string print() {
-            return object_name.value + "." + method_name.value + "(...)";
+            return printAny(base) + "." + method_name.value + "(...)";
         }
     };
     class ReturnNode {
@@ -604,7 +605,18 @@ namespace tkz {
             return "return " + printAny(value);
         }
     };
-
+    class PropertyAccessNode {
+    public:
+        AnyNode base; 
+        Token property_name;
+        
+        PropertyAccessNode(AnyNode&& base_node, Token prop)
+            : base(std::move(base_node)), property_name(prop) {}
+        
+        std::string print() {
+            return printAny(base) + "." + property_name.value;
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -617,7 +629,8 @@ namespace tkz {
         std::unique_ptr<ArrayLiteralNode>,     
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<ListDeclNode>,  
-        std::unique_ptr<MethodCallNode>   
+        std::unique_ptr<MethodCallNode>,
+        std::unique_ptr<PropertyAccessNode>  
     >;
         
     class ParseResult {
@@ -1048,7 +1061,7 @@ namespace tkz {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
-                    return sym_it->second.value;  // REMOVED std::move!
+                    return sym_it->second.value;
                 }
             }
             throw RTError("Undefined variable: '" + name + "'", pos);
@@ -1123,17 +1136,25 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ArrayAccessNode>& node);
         NumberVariant operator()(std::unique_ptr<tkz::ListDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<MethodCallNode>& node);
+        NumberVariant operator()(std::unique_ptr<PropertyAccessNode>& node);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);
         ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
     };
-
+    struct RunConfig {
+        bool use_context = true;
+        bool looser_types = false;
+        bool print_ast = false;
+        bool print_tokens = false;
+        bool show_time = false;
+        bool quiet_mode = false;
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    Mer run(std::string file, std::string text, bool use_context = true, bool looser_types = false);
+    Mer run(std::string file, std::string text, RunConfig config);
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // LEXER ////////////////////////////////////////////////////////////////////////////////////

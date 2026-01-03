@@ -426,14 +426,14 @@ int main() {
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 3: Assigning a lambda to a variable (use auto)
         ////////////////////////////////////////////////////////////////////////////////
-        auto make_adder = fn(int x, int y) {
+        auto make_adder = fn(int x, int y) -> int {
             return x + y;
         };
 
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 4: Immediate invocation of a lambda (call right away)
         ////////////////////////////////////////////////////////////////////////////////
-        auto immediate_result = fn(int a, int b) { return a * b; }(3, 4); // 12
+        auto immediate_result = fn(int a, int b) -> int { return a * b; }(3, 4); // 12
 
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 5: Higher-order function (accepts a function)
@@ -446,14 +446,14 @@ int main() {
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 6: Lambda calling a void function
         ////////////////////////////////////////////////////////////////////////////////
-        auto hello_lambda = fn() {
+        auto hello_lambda = fn() -> void {
             greet("Lambda");
         };
 
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 7: Recursion using a variable-held lambda
         ////////////////////////////////////////////////////////////////////////////////
-        auto factorial = fn(int n) {
+        auto factorial = fn(int n) -> int {
             if (n <= 1) return 1;
             return n * factorial(--n); // recursion through the variable name
         };
@@ -807,7 +807,7 @@ int main() {
     listexample.pop();
     // when returnign a array or list use the type[] syntax amd when passing one as argument arrays are type[] and lists are list<type>
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.6!
+    // All features shown above are working in Quantum C v2.7!
     //==============================================================================
     return 0;
 }

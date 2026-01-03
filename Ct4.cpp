@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <vector>
 #include <map>
+#include <chrono>
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
@@ -214,6 +215,8 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -383,6 +386,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -460,6 +465,8 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ListDeclNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
                 return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
@@ -1120,11 +1127,11 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected method name after '.'", this->current_tok.pos));
+                        "Expected property or method name after '.'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 
-                Token method_name = this->current_tok;
+                Token property_name = this->current_tok;
                 this->advance();
                 
                 if (this->current_tok.type == TokenType::LPAREN) {
@@ -1150,7 +1157,10 @@ namespace tkz {
                     this->advance();
                     
                     return res.success(std::make_unique<MethodCallNode>(
-                        tok, method_name, std::move(args)));
+                        std::make_unique<VarAccessNode>(tok), property_name, std::move(args)));
+                } else {
+                    return res.success(std::make_unique<PropertyAccessNode>(
+                        std::make_unique<VarAccessNode>(tok), property_name));
                 }
             }
             if (this->current_tok.type == TokenType::LPAREN)
@@ -1174,6 +1184,28 @@ namespace tkz {
                     indices.push_back(std::move(index)); 
                 }
                 base = std::make_unique<ArrayAccessNode>(std::move(base), std::move(indices));
+                if (this->current_tok.type == TokenType::DOT) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected property name after '.'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    
+                    Token property_name = this->current_tok;
+                    this->advance();
+                    
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        this->advance();
+                        std::vector<AnyNode> args;
+                        return res.success(std::make_unique<MethodCallNode>(
+                            std::move(base), property_name, std::move(args)));
+                    } else {
+                        return res.success(std::make_unique<PropertyAccessNode>(
+                            std::move(base), property_name));
+                    }
+                }
                 return res.success(std::move(base));
             }
 
@@ -1258,7 +1290,58 @@ namespace tkz {
 
         if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
             this->advance();
-            auto fn_pr = this->func_def(Token(TokenType::KEYWORD, "auto", tok.pos), std::nullopt);
+            
+            if (this->current_tok.type != TokenType::LPAREN) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '(' after 'fn'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            
+            auto saved_it = this->it;
+            
+            int paren_depth = 1;
+            this->advance();
+            
+            while (paren_depth > 0 && this->current_tok.type != TokenType::EOFT) {
+                if (this->current_tok.type == TokenType::LPAREN) paren_depth++;
+                if (this->current_tok.type == TokenType::RPAREN) paren_depth--;
+                this->advance();
+            }
+            
+            std::vector<Token> return_types;
+            
+            if (this->current_tok.type == TokenType::ARROW) {
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected return type after '->'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                return_types.push_back(this->current_tok);
+                this->advance();
+                
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected return type after ','", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    
+                    return_types.push_back(this->current_tok);
+                    this->advance();
+                }
+            } else {
+                return_types.push_back(Token(TokenType::KEYWORD, "auto", tok.pos));
+            }
+            
+            this->it = saved_it;
+            this->current_tok = *this->it;
+            
+            auto fn_pr = this->func_def_multi(return_types, std::nullopt);
 
             if (std::holds_alternative<std::unique_ptr<tkz::Error>>(fn_pr))
                 return fn_pr;
@@ -1580,7 +1663,7 @@ namespace tkz {
     }
 
 
-   Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
+    Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
         ParseResult res;
         this->advance();
         
@@ -1614,15 +1697,15 @@ namespace tkz {
                     param_type.pos
                 );
             }
-            if (this->current_tok.type == TokenType::LBRACKET) {
-                    this->advance();
-                    if (this->current_tok.type != TokenType::RBRACKET) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ']' after [ in paramater", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    param_type.value += "[]";
+            while (this->current_tok.type == TokenType::LBRACKET) {
+                this->advance();
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']' after '[' in parameter", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                param_type.value += "[]"; 
             }
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
@@ -1671,15 +1754,15 @@ namespace tkz {
                         param_type.pos
                     );
                 }
-                if (this->current_tok.type == TokenType::LBRACKET) {
+                while (this->current_tok.type == TokenType::LBRACKET) {
                     this->advance();
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ']' after [ in paramater", this->current_tok.pos));
+                            "Expected ']' after '[' in parameter", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
-                    param_type.value += "[]";
+                    param_type.value += "[]"; 
                 }
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -1706,7 +1789,20 @@ namespace tkz {
             return res.to_prs();
         }
         this->advance(); 
-        
+        if (this->current_tok.type == TokenType::ARROW) {
+            this->advance();
+            
+            if (this->current_tok.type == TokenType::KEYWORD) {
+                this->advance();
+                
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    if (this->current_tok.type == TokenType::KEYWORD) {
+                        this->advance();
+                    }
+                }
+            }
+        }
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
                 "Expected '{' to start function body", this->current_tok.pos));
@@ -1832,16 +1928,62 @@ namespace tkz {
             Token name_tok;
             Token type_tok = tok;
             this->advance();
-            bool is_list = false;
-            if (this->current_tok.type == TokenType::LBRACKET) {
+            if (type_tok.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
-                if (this->current_tok.type != TokenType::RBRACKET) {
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ']' for list declaration", this->current_tok.pos));
+                        "Expected element type in list<T>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                Token elem_type = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::MORE) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '>' in list<T>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
-                is_list = true; 
+                
+                type_tok = Token(
+                    TokenType::KEYWORD,
+                    "list<" + elem_type.value + ">",
+                    type_tok.pos
+                );
+            }
+            bool is_list = false;
+            while (this->current_tok.type == TokenType::LBRACKET) {
+                this->advance();
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ']'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                type_tok.value += "[]";
+                is_list = true;
+            }
+
+            if (type_tok.value.find("[][]") != std::string::npos) {
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Multi-dimensional types can only be used in function returns", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                Token func_name = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    std::vector<Token> return_types = {type_tok};
+                    return this->func_def_multi(return_types, func_name);
+                }
+                
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '(' after function name", this->current_tok.pos));
+                return res.to_prs();
             }
             
             std::vector<Token> return_types = {type_tok};
@@ -3183,7 +3325,7 @@ namespace tkz {
     NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode>& node) {
         if (!node) return Number<int>(0);
         
-        NumberVariant obj = context->get(node->object_name.value, node->object_name.pos);
+        NumberVariant obj = this->process(node->base);
         
         if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
             auto list = *list_ptr;
@@ -3213,19 +3355,60 @@ namespace tkz {
             throw RTError("Unknown method: " + node->method_name.value, node->method_name.pos);
         }
         
-        throw RTError("Object does not support methods", node->object_name.pos);
+        throw RTError("Object does not support methods", node->method_name.pos);
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<PropertyAccessNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant obj = this->process(node->base);
+        
+        if (node->property_name.value == "length") {
+            if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&obj)) {
+                return Number<int>((*arr)->size());
+            }
+            if (auto list = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
+                return Number<int>((*list)->length());
+            }
+        }
+        
+        throw RTError("Unknown property: " + node->property_name.value, node->property_name.pos);
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    Mer run(std::string file, std::string text, bool use_context, bool looser_types) { 
+
+
+    Mer run(std::string file, std::string text, RunConfig config = {}) {
+        // Check for inline directives
         if (text.find("// @no-context") != std::string::npos) {
-            use_context = false;
+            config.use_context = false;
         }
+        
         if (text.find("// @looser-types") != std::string::npos) {
-            looser_types = true;
+            config.looser_types = true;
         }
-        loose = looser_types;
+        
+        if (text.find("// @print-ast") != std::string::npos) {
+            config.print_ast = true;
+        }
+        
+        if (text.find("// @print-tokens") != std::string::npos) {
+            config.print_tokens = true;
+        }
+        
+        if (text.find("// @show-time") != std::string::npos) {
+            config.show_time = true;
+        }
+        
+        if (text.find("// @quiet") != std::string::npos) {
+            config.quiet_mode = true;
+        }
+        
+        loose = config.looser_types;
+        
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        // Lexer
         Lexer lexer(text, file);
         Ler resp;
         try {
@@ -3234,16 +3417,39 @@ namespace tkz {
             std::cout << '\n' << e.as_string() << '\n';
             return Mer{Aer{nullptr, nullptr}, std::move(resp), ""};
         }
+        
         if (resp.error != nullptr) {
             return Mer{Aer{nullptr, std::move(resp.error)}, std::move(resp), ""};
         }
         
+        // Print tokens if requested
+        if (config.print_tokens) {
+            std::cout << "=== TOKENS ===" << std::endl;
+            for (const auto& tok : resp.Tkns) {
+                std::cout << "Type: " << static_cast<int>(tok.type) 
+                        << " | Value: '" << tok.value << "'" << std::endl;
+            }
+            std::cout << "==============" << std::endl << std::endl;
+        }
+        
+        // Parser
         Parser parser(resp.Tkns);
         Aer ast = parser.parse();
+        
         if (ast.error) {
             return Mer{std::move(ast), std::move(resp), ""};
         }
         
+        // Print AST if requested
+        if (config.print_ast) {
+            std::cout << "=== AST ===" << std::endl;
+            for (const auto& stmt : ast.statements->statements) {
+                std::cout << printAny(stmt) << std::endl;
+            }
+            std::cout << "===========" << std::endl << std::endl;
+        }
+        
+        // Interpreter
         Context* ctx = new Context();
         Interpreter interpreter(ctx);
         
@@ -3251,15 +3457,19 @@ namespace tkz {
         int exit_code = 0;
         
         try {
+            // Register functions
             for (auto& stmt : ast.statements->statements) {
                 if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
                     interpreter.process(stmt);
                 }
             }
+            
+            // Call main
             std::shared_ptr<FuncDefNode> main_func = ctx->get_function("main");
             if (!main_func) {
                 throw RTError("No main() function found", Position());
             }
+            
             auto main_call_node = std::make_unique<CallNode>(
                 std::make_unique<VarAccessNode>(Token(TokenType::IDENTIFIER, "main", Position())),
                 std::list<AnyNode>{}
@@ -3275,7 +3485,17 @@ namespace tkz {
                 return 0;
             }, result);
             
-            output = "Program exited with code: " + std::to_string(exit_code);
+            auto end = std::chrono::high_resolution_clock::now();
+            
+            if (!config.quiet_mode) {
+                output = "Program exited with code: " + std::to_string(exit_code);
+            }
+            
+            if (config.show_time) {
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+                if (!config.quiet_mode) output += "\n";
+                output += "Execution time: " + std::to_string(duration.count()) + "ms";
+            }
             
         } catch (RTError& e) {
             std::cout << e.as_string() << std::endl;
@@ -3351,7 +3571,7 @@ namespace tkz {
             id == "if" || id == "else" || id == "while" || id == "for" || id == "switch" ||
             id == "return" || id == "qif" || id == "qswitch" || id == "const" || id == "default" ||
             id == "class" || id == "struct" || id == "enum" || id == "long" || id == "short" ||
-            id == "fn" || id == "continue" || id == "auto") {
+            id == "fn" || id == "continue" || id == "auto" || id == "list") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
