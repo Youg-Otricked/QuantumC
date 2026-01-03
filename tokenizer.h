@@ -66,6 +66,8 @@ namespace tkz {
     class ListDeclNode;
     class MethodCallNode;
     class PropertyAccessNode;
+    class SpreadNode;
+    class ForeachNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -96,7 +98,9 @@ namespace tkz {
         std::unique_ptr<ArrayLiteralNode>,     
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<MethodCallNode>,
-        std::unique_ptr<PropertyAccessNode>
+        std::unique_ptr<PropertyAccessNode>,
+        std::unique_ptr<SpreadNode>,
+        std::unique_ptr<ForeachNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +122,7 @@ namespace tkz {
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
-        FUNC, COMMA, DOT, EOFT
+        FUNC, COMMA, DOT, AT, EOFT
     };
     
     TokenType stringToTokenType(const std::string& str);
@@ -617,6 +621,32 @@ namespace tkz {
             return printAny(base) + "." + property_name.value;
         }
     };
+    class SpreadNode {
+    public:
+        AnyNode expr;
+        
+        SpreadNode(AnyNode&& expression)
+            : expr(std::move(expression)) {}
+        
+        std::string print() {
+            return "@" + printAny(expr);
+        }
+    };
+    class ForeachNode {
+    public:
+        Token elem_type;
+        Token elem_name;
+        AnyNode collection;
+        AnyNode body;
+        
+        ForeachNode(Token type, Token name, AnyNode&& coll, AnyNode&& body_stmt)
+            : elem_type(type), elem_name(name), 
+            collection(std::move(coll)), body(std::move(body_stmt)) {}
+        
+        std::string print() {
+            return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)";
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -630,7 +660,9 @@ namespace tkz {
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<ListDeclNode>,  
         std::unique_ptr<MethodCallNode>,
-        std::unique_ptr<PropertyAccessNode>  
+        std::unique_ptr<PropertyAccessNode>,
+        std::unique_ptr<SpreadNode>,
+        std::unique_ptr<ForeachNode>
     >;
         
     class ParseResult {
@@ -1137,6 +1169,8 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<tkz::ListDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<MethodCallNode>& node);
         NumberVariant operator()(std::unique_ptr<PropertyAccessNode>& node);
+        NumberVariant operator()(std::unique_ptr<SpreadNode>& node);
+        NumberVariant operator()(std::unique_ptr<ForeachNode>& node);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);

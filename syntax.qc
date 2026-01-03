@@ -806,8 +806,50 @@ int main() {
     listexample.push("This");
     listexample.pop();
     // when returnign a array or list use the type[] syntax amd when passing one as argument arrays are type[] and lists are list<type>
+    // ==============================================
+    // foreach loop
+    // ==============================================
+    foreach (int x in [1, 2, 3, 4, 5]) {
+        println(x);
+    }
+    // ==============================================
+    // spread (@) operator
+    // ==============================================
+    int grid[][] = [[1, 2], [3, 4]];
+    int flat[] = [@grid[0], @grid[1]];
+    println(flat);
+    int arr1[] = [1, 2, 3];
+    int arr2[] = [4, 5, 6];
+    int combined[] = [@arr1, @arr2];
+    println(combined);
+    int[] list1 = [10, 20];
+    int[] list2 = [30, 40];
+    int[] merged = [@list1, @list2, 50];
+    println(merged);
+    int[] a = [1, 2];
+    int[] b = [3, 4];
+    int[] c = [5, 6];
+    int[] all = [0, @a, @b, @c, 7];
+    println(all);
+    void print_three(int x, int y, int z) {
+        println(x);
+        println(y);
+        println(z);
+    }
+    
+    int args[] = [100, 200, 300];
+    print_three(@args);
+    auto sum_lambda = fn(int a, int b, int c) -> int {
+        return a + b + c;
+    };
+
+    int result = sum_lambda(1, 2, 3);
+    println(result);
+    int args_list[] = [4, 5, 6];
+    int result2 = sum_lambda(@args_list);
+    println(result2);
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.7!
+    // All features shown above are working in Quantum C v2.9!
     //==============================================================================
     return 0;
 }

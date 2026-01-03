@@ -217,6 +217,10 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SpreadNode>>) {
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -388,6 +392,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SpreadNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -467,6 +475,10 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MethodCallNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<PropertyAccessNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SpreadNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
                 return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
@@ -1000,34 +1012,43 @@ namespace tkz {
     }
     Prs Parser::call(AnyNode node_to_call) {
         ParseResult res;
-        
-        this->advance(); 
-        
+        this->advance();
+
         std::list<AnyNode> args;
-        
-        
+
         if (this->current_tok.type != TokenType::RPAREN) {
-            
-            AnyNode arg = res.reg(this->logical_or());
+
+            auto parse_arg = [&]() -> AnyNode {
+                if (this->current_tok.type == TokenType::AT) {
+                    this->advance();
+                    AnyNode expr = res.reg(this->logical_or());
+                    if (res.error) return AnyNode{};
+                    return std::make_unique<SpreadNode>(std::move(expr));
+                } else {
+                    return res.reg(this->logical_or());
+                }
+            };
+
+            AnyNode arg = parse_arg();
             if (res.error) return res.to_prs();
             args.push_back(std::move(arg));
-            
+
             while (this->current_tok.type == TokenType::COMMA) {
-                this->advance();  
-                
-                arg = res.reg(this->logical_or());
+                this->advance();
+                arg = parse_arg();
                 if (res.error) return res.to_prs();
                 args.push_back(std::move(arg));
             }
         }
-        
+
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
                 "Expected ')' after function arguments", this->current_tok.pos));
             return res.to_prs();
         }
-        this->advance();  
-        
+
+        this->advance();
+
         return res.success(std::make_unique<CallNode>(
             std::move(node_to_call), std::move(args)));
     }
@@ -1053,36 +1074,47 @@ namespace tkz {
         ParseResult res;
         Position start_pos = this->current_tok.pos;
         
-        this->advance();  
+        this->advance();
         
         std::vector<AnyNode> elements;
         
-        if (this->current_tok.type == TokenType::RBRACKET) {
-            this->advance();
-            return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
+        if (this->current_tok.type != TokenType::RBRACKET) {
+            if (this->current_tok.type == TokenType::AT) {
+                this->advance();
+                AnyNode spread_expr = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                
+                elements.push_back(std::make_unique<SpreadNode>(std::move(spread_expr)));
+            } else {
+                AnyNode elem = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                elements.push_back(std::move(elem));
+            }
+            
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                
+                if (this->current_tok.type == TokenType::AT) {
+                    this->advance();
+                    AnyNode spread_expr = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    
+                    elements.push_back(std::make_unique<SpreadNode>(std::move(spread_expr)));
+                } else {
+                    AnyNode elem = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    elements.push_back(std::move(elem));
+                }
+            }
         }
         
-        while (true) {
-            AnyNode elem = res.reg(this->expr());
-            if (res.error) return res.to_prs();
-            
-            elements.push_back(std::move(elem));
-            
-            if (this->current_tok.type == TokenType::COMMA) {
-                this->advance();
-                continue;
-            }
-            
-            if (this->current_tok.type == TokenType::RBRACKET) {
-                break;
-            }
-            
+        if (this->current_tok.type != TokenType::RBRACKET) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ',' or ']' in array literal", this->current_tok.pos));
+                "Expected ']' in array literal", this->current_tok.pos));
             return res.to_prs();
         }
         
-        this->advance();  
+        this->advance(); 
         
         return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
     }
@@ -1120,6 +1152,7 @@ namespace tkz {
             this->advance();
             return res.success(BoolNode(tok));
         }
+
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
             if (this->current_tok.type == TokenType::DOT) {
@@ -1135,29 +1168,36 @@ namespace tkz {
                 this->advance();
                 
                 if (this->current_tok.type == TokenType::LPAREN) {
-                    this->advance();
-                    
                     std::vector<AnyNode> args;
+
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        args.push_back(res.reg(this->logical_or()));
-                        if (res.error) return res.to_prs();
-                        
+
+                        if (this->current_tok.type == TokenType::AT) {
+                            this->advance();
+                            AnyNode expr = res.reg(this->logical_or());
+                            if (res.error) return res.to_prs();
+                            args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
+                        } else {
+                            AnyNode arg = res.reg(this->logical_or());
+                            if (res.error) return res.to_prs();
+                            args.push_back(std::move(arg));
+                        }
+
                         while (this->current_tok.type == TokenType::COMMA) {
                             this->advance();
-                            args.push_back(res.reg(this->logical_or()));
-                            if (res.error) return res.to_prs();
+
+                            if (this->current_tok.type == TokenType::AT) {
+                                this->advance();
+                                AnyNode expr = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
+                            } else {
+                                AnyNode arg = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                args.push_back(std::move(arg));
+                            }
                         }
                     }
-                    
-                    if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ')'", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    
-                    return res.success(std::make_unique<MethodCallNode>(
-                        std::make_unique<VarAccessNode>(tok), property_name, std::move(args)));
                 } else {
                     return res.success(std::make_unique<PropertyAccessNode>(
                         std::make_unique<VarAccessNode>(tok), property_name));
@@ -1886,6 +1926,65 @@ namespace tkz {
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "for") {
             return this->for_stmt();
+        }
+        if (tok.type == TokenType::KEYWORD && tok.value == "foreach") {
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::LPAREN) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '(' after 'foreach'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::KEYWORD) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected type in foreach", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token elem_type = this->current_tok;
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected variable name in foreach", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token elem_name = this->current_tok;
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::KEYWORD || this->current_tok.value != "in") {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected 'in' in foreach", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            
+            AnyNode collection = res.reg(this->logical_or());
+            if (res.error) return res.to_prs();
+            
+            if (this->current_tok.type != TokenType::RPAREN) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected ')' after foreach", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' to start foreach body", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            AnyNode body = res.reg(this->statement());
+            if (res.error) return res.to_prs();
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}' to end foreach body", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            return res.success(std::make_unique<ForeachNode>(
+                elem_type, elem_name, std::move(collection), std::move(body)));
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "continue") {
             this->advance();
@@ -2737,18 +2836,42 @@ namespace tkz {
 
         auto func = fval.func;
         context->push_scope();
-        
+        std::vector<NumberVariant> final_args;
+
+        for (auto& arg : node->arg_nodes) {
+
+            if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
+                NumberVariant spread_val = this->process((*spread)->expr);
+
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
+                    for (auto& elem : (*arr)->elements)
+                        final_args.push_back(elem);
+                }
+                else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
+                    for (auto& elem : (*list)->elements)
+                        final_args.push_back(elem);
+                }
+                else {
+                    context->pop_scope();
+                    throw RTError("Spread target must be array or list", Position());
+                }
+            }
+            else {
+                final_args.push_back(this->process(arg));
+            }
+        }
         try {
-            
+            if (final_args.size() > func->params.size()) {
+                context->pop_scope();
+                throw RTError("Too many arguments", Position());
+            }
             for (size_t i = 0; i < func->params.size(); i++) {
                 NumberVariant value;
                 auto it_param = func->params.begin();
                 std::advance(it_param, i);
 
-                if (i < node->arg_nodes.size()) {
-                    auto it_arg = node->arg_nodes.begin();
-                    std::advance(it_arg, i);
-                    value = this->process(*it_arg);
+                if (i < final_args.size()) {
+                    value = final_args[i];
                 }
                 else if (it_param->default_value.has_value()) {
                     value = this->process(it_param->default_value.value());
@@ -3168,7 +3291,7 @@ namespace tkz {
     }
  
     
-    NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ArrayDeclNode>& node) {
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode>& node) {
         if (!node) return Number<int>(0);
 
         NumberVariant init_value = this->process(node->value); 
@@ -3200,7 +3323,7 @@ namespace tkz {
         return VoidValue();
     }
 
-    NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ListDeclNode>& node) {
+    NumberVariant Interpreter::operator()(std::unique_ptr<ListDeclNode>& node) {
         if (!node) return Number<int>(0);
 
         NumberVariant init_value = this->process(node->value);
@@ -3227,25 +3350,37 @@ namespace tkz {
 
         throw RTError("List must be initialized with array literal or another list", node->var_name_tok.pos);
     }
-    NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ArrayLiteralNode>& node) {
+    NumberVariant Interpreter::operator()(std::unique_ptr<SpreadNode>& node) {
+        if (!node) return Number<int>(0);
+        throw RTError(
+            "SpreadNode evaluated outside of a valid context",
+            Position()
+        );
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode>& node) {
         if (!node) return Number<int>(0);
 
         std::vector<NumberVariant> elements;
         std::string element_type;
 
         for (auto& elem : node->elements) {
-            NumberVariant val = this->process(elem);
-
-            if (element_type.empty())
-                element_type = context->get_type_name(val);
-            else if (context->get_type_name(val) != element_type)
-                throw RTError(
-                    "Array elements must be same type. Expected " + element_type +
-                    " but got " + context->get_type_name(val),
-                    node->pos
-                );
-
-            elements.push_back(std::move(val));
+            if (auto spread_ptr = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
+                NumberVariant spread_val = this->process((*spread_ptr)->expr);
+                
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
+                    for (auto& arr_elem : (*arr)->elements) {
+                        elements.push_back(arr_elem);
+                    }
+                } else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
+                    for (auto& list_elem : (*list)->elements) {
+                        elements.push_back(list_elem);
+                    }
+                } else {
+                    throw RTError("Cannot spread non-array type", Position());
+                }
+            } else {
+                elements.push_back(this->process(elem));
+            }
         }
 
         if (element_type.empty()) element_type = "int";
@@ -3254,7 +3389,7 @@ namespace tkz {
     }
 
 
-    NumberVariant Interpreter::operator()(std::unique_ptr<tkz::ArrayAccessNode>& node) {
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode>& node) {
         if (!node) return Number<int>(0);
 
         NumberVariant base_value = this->process(node->base);
@@ -3326,7 +3461,29 @@ namespace tkz {
         if (!node) return Number<int>(0);
         
         NumberVariant obj = this->process(node->base);
-        
+        std::vector<NumberVariant> final_args;
+
+        for (auto& arg : node->args) {
+
+            if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
+                NumberVariant spread_val = this->process((*spread)->expr);
+
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
+                    for (auto& elem : (*arr)->elements)
+                        final_args.push_back(elem);
+                }
+                else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
+                    for (auto& elem : (*list)->elements)
+                        final_args.push_back(elem);
+                }
+                else {
+                    throw RTError("Spread target must be array or list", Position());
+                }
+            }
+            else {
+                final_args.push_back(this->process(arg));
+            }
+        }
         if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
             auto list = *list_ptr;
             
@@ -3334,7 +3491,7 @@ namespace tkz {
                 if (node->args.size() != 1) {
                     throw RTError("push() requires exactly 1 argument", node->method_name.pos);
                 }
-                NumberVariant val = this->process(node->args[0]);
+                NumberVariant val = final_args[0];
                 std::string name = context->get_type_name(val);
                 if (name.find(list->element_type) == std::string::npos && !loose) {
                     throw RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
@@ -3372,6 +3529,39 @@ namespace tkz {
         }
         
         throw RTError("Unknown property: " + node->property_name.value, node->property_name.pos);
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant coll_val = this->process(node->collection);
+        
+        std::vector<NumberVariant>* elements = nullptr;
+        
+        if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&coll_val)) {
+            elements = &((*arr)->elements);
+        } else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&coll_val)) {
+            elements = &((*list)->elements);
+        } else {
+            throw RTError("foreach requires an array or list", node->elem_name.pos);
+        }
+        
+        NumberVariant last = Number<int>(0);
+        for (auto& elem : *elements) {
+            context->define(node->elem_name.value, node->elem_type.value, elem, false);
+            ExecResult r = this->exec_stmt_in_loop_or_switch(node->body);
+            last = std::move(r.value);
+
+            if (r.did_break) {
+                return std::move(last);      
+            }
+            if (r.did_continue) {
+                goto foreach_update;   
+            }
+        foreach_update:
+            continue;
+        }
+        
+        return VoidValue();
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
@@ -3571,7 +3761,8 @@ namespace tkz {
             id == "if" || id == "else" || id == "while" || id == "for" || id == "switch" ||
             id == "return" || id == "qif" || id == "qswitch" || id == "const" || id == "default" ||
             id == "class" || id == "struct" || id == "enum" || id == "long" || id == "short" ||
-            id == "fn" || id == "continue" || id == "auto" || id == "list") {
+            id == "fn" || id == "continue" || id == "auto" || id == "list" || id == "foreach" || 
+            id == "do" || id == "in") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -3916,6 +4107,10 @@ namespace tkz {
                             tokens.push_back(Token(TokenType::DEF, "|", start_pos));
                             break;
                         }
+                        break;
+                    case '@':
+                        this->advance();
+                        tokens.push_back(Token(TokenType::AT, "@", start_pos));
                         break;
                     case ',':
                         this->advance();

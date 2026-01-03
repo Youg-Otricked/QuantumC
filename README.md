@@ -73,24 +73,26 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.7 - "Collection types with static and multi return lambdas!"
+Current Version: v2.9 - "Spread and foreach"
 
 ## Working:
 
 Variables & Types (int, float, double, string, char, bool)
 Operators & Expressions (including ** power operator!)
-Control Flow (if/else, switch, while, for)
+Control Flow (if/else, switch, while, for, foreach)
 Functions with default parameters
 Lambdas & higher-order functions
 Multi-return values
 F-strings
 Constants (const)
 Arrays
+Lists
+Spread syntax for arrays (@)
+Length memeber for arrays + lists
 
 ## Coming Soon:
 
-Spread syntax for arrays (@)
-Length memeber for arrays (maybe probably not usefull)
+
 Union Types (TypeScript-style)
 Structs
 Quantum Booleans (superposition!)
