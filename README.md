@@ -89,9 +89,6 @@ Arrays
 
 ## Coming Soon:
 
-Static typing on lambda ret-types
-Mulit return Lambdas
-Returning Arrays and Lists
 Spread syntax for arrays (@)
 Length memeber for arrays (maybe probably not usefull)
 Union Types (TypeScript-style)
