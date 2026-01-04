@@ -15,13 +15,13 @@ C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Ru
 -  **Functions & Lambdas** - First-class functions with `fn` syntax
 -  **Multi-Return Values** - Return multiple values without structs(on normal funcitons. static and multi ret lambdas comming soon)
 -  **Type Safety** - Strong typing with `auto` inference
--  **Quantum Booleans** - Coming soon: superposition of true/false
+-  **Quantum Booleans** - Superposition of true/false
 -  **F-Strings** - Python-style string interpolation
 
 ---
 
 ##  Quick Start
-Just install the binarys from the github OR
+Just install the binaries from the github OR
 ### Installation
 
 **macOS:**
@@ -89,13 +89,14 @@ Arrays
 Lists
 Spread syntax for arrays (@)
 Length memeber for arrays + lists
+Quantum Booleans (superposition!)
 
 ## Coming Soon:
 
 
 Union Types (TypeScript-style)
 Structs
-Quantum Booleans (superposition!)
+Quantum Logical Operators
 
 ---
 

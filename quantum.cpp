@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v2.9
+        Quantum C (C⁴) v3.0
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
             config.show_time = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << R"(
-Quantum C Interpreter v2.9
+Quantum C Interpreter v3.0
 
 Usage: qc [options] <file>
 
@@ -105,7 +105,7 @@ Examples:
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v2.9" << std::endl;
+        std::cout << "Quantum C REPL v3.0" << std::endl;
         if (!config.use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }

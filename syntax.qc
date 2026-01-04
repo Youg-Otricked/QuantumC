@@ -848,8 +848,17 @@ int main() {
     int args_list[] = [4, 5, 6];
     int result2 = sum_lambda(@args_list);
     println(result2);
+    // ========================================
+    // QUANTUM BOOLEAN 
+    // ========================================
+    qbool qb = none;      // Neither true nor false
+    qb = qtrue;           // Definitely true
+    qb = qfalse;          // Definitely false
+    qb = both;            // Superposition! Both true AND false!
+    
+    std::qout << "QBool: " << qb << "\n";
     // END OF DEMO
-    // All features shown above are working in Quantum C v2.9!
+    // All features shown above are working in Quantum C v3.0!
     //==============================================================================
     return 0;
 }

@@ -68,6 +68,7 @@ namespace tkz {
     class PropertyAccessNode;
     class SpreadNode;
     class ForeachNode;
+    class QBoolNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -75,6 +76,7 @@ namespace tkz {
         CharNode,
         BoolNode,
         QOutNode,
+        QBoolNode,
         std::unique_ptr<BinOpNode>, 
         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
@@ -226,6 +228,12 @@ namespace tkz {
         public:
         Token tok;
         BoolNode (Token tok);
+        std::string print() const;
+    };
+    class QBoolNode {
+        public:
+        Token tok;
+        QBoolNode (Token tok);
         std::string print() const;
     };
 
@@ -662,7 +670,8 @@ namespace tkz {
         std::unique_ptr<MethodCallNode>,
         std::unique_ptr<PropertyAccessNode>,
         std::unique_ptr<SpreadNode>,
-        std::unique_ptr<ForeachNode>
+        std::unique_ptr<ForeachNode>,
+        QBoolNode
     >;
         
     class ParseResult {
@@ -834,7 +843,45 @@ namespace tkz {
             return this->value ? "true" : "false";
         }
     };  
-    
+    class QBoolValue {
+        public:
+        bool tval;
+        bool fval;
+        std::string valname;
+        Position pos;
+        QBoolValue(std::string val) : pos("", "", 0, 0, 0) {
+            if (!val.empty()) {
+                this->valname = val;
+                if (val == "qtrue") {
+                    
+                    this->tval = true;
+                    this->fval = false;
+                } else if (val == "qfalse") {
+                    this->fval = true;
+                    this->tval = false;
+                } else if (val == "both") {
+                    this->fval = true;
+                    this->tval = true;
+                } else if (val == "none") {
+                    this->fval = false;
+                    this->tval = false;
+                } else {
+                    throw RTError("Expected Quantum Boolean value to be true false both or none", pos);
+                }
+            } else {
+                this->tval = false;
+                this->fval = false;
+                this->valname = "none";
+            }
+        }
+        QBoolValue& set_pos(Position p) { 
+            this->pos = p; 
+            return *this; 
+        }
+        std::string print() const { 
+            return this->valname;
+        }
+    };  
     class StringValue {
         public:
             std::string value;
@@ -857,7 +904,7 @@ namespace tkz {
     
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
-        StringValue, CharValue, BoolValue,
+        StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>
     >;
@@ -1116,6 +1163,7 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, StringValue>)    return "string";
                 if constexpr (std::is_same_v<T, CharValue>)      return "char";
                 if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
+                if constexpr (std::is_same_v<T, QBoolValue>)      return "qbool";
                 if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
                 if constexpr (std::is_same_v<T, VoidValue>)      return "void";
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) return "multi";
@@ -1152,6 +1200,7 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ReturnNode>& node);
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
+        NumberVariant operator()(QBoolNode& node);
         NumberVariant operator()(QOutNode& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);

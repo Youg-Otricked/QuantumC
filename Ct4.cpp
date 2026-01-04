@@ -151,6 +151,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, BoolNode>) { 
                 return arg.print();
             }
+            else if constexpr (std::is_same_v<T, QBoolNode>) { 
+                return arg.print();
+            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
                 return arg->print();
             }
@@ -268,6 +271,12 @@ namespace tkz {
         this->tok = tok;
     }
     std::string BoolNode::print() const {
+        return "(" + this->tok.print() + ")";
+    }
+    QBoolNode::QBoolNode(Token tok) {
+        this->tok = tok;
+    }
+    std::string QBoolNode::print() const {
         return "(" + this->tok.print() + ")";
     }
     std::string IfNode::print() const {
@@ -396,6 +405,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, QBoolNode>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -480,6 +491,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, QBoolNode>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -536,6 +549,8 @@ namespace tkz {
             return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))}; // by value
         if (type_tok.value == "bool")
             return AnyNode{NumberNode(Token(TokenType::BOOL, "", pos))};      // by value
+        if (type_tok.value == "qbool")
+            return AnyNode{NumberNode(Token(TokenType::QBOOL, "", pos))};      // by value
         return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};          // by value
     }
     Parser::Parser(std::list<Token> tokens) {
@@ -1152,7 +1167,10 @@ namespace tkz {
             this->advance();
             return res.success(BoolNode(tok));
         }
-
+        else if (tok.type == TokenType::QBOOL) {
+            this->advance();
+            return res.success(QBoolNode(tok));
+        }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
             if (this->current_tok.type == TokenType::DOT) {
@@ -2413,6 +2431,8 @@ namespace tkz {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, BoolValue>) {
                 return v.value;
+            } else if constexpr (std::is_same_v<T, QBoolValue>) {
+                return v.tval;
             } else if constexpr (std::is_same_v<T, Number<int>> || 
                                 std::is_same_v<T, Number<float>> || 
                                 std::is_same_v<T, Number<double>>) {
@@ -2431,11 +2451,16 @@ namespace tkz {
 
             if constexpr (std::is_same_v<T, std::monostate>) {
                 return "";
-            } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
-                                std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
-                                std::is_same_v<T, std::shared_ptr<ListValue>>) {
+            } 
+            else if constexpr (std::is_same_v<T, QBoolValue>) {
+                return v.print();
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
+                            std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
+                            std::is_same_v<T, std::shared_ptr<ListValue>>) {
                 return v->print();
-            } else {
+            } 
+            else {
                 return v.print();
             }
         }, val);
@@ -2457,6 +2482,8 @@ namespace tkz {
                 return v.value == std::get<CharValue>(b).value;
             } else if constexpr (std::is_same_v<T, BoolValue>) {
                 return v.value == std::get<BoolValue>(b).value;
+            } else if constexpr (std::is_same_v<T, QBoolValue>) {
+                return v.valname == std::get<QBoolValue>(b).valname;
             } else if constexpr (
                 std::is_same_v<T, Number<int>> ||
                 std::is_same_v<T, Number<float>> ||
@@ -2547,10 +2574,14 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         if (!node) return std::move(Number<int>(0));
+        
+        
         NumberVariant value = this->process(node->value_node);
+        
 
         std::string declaredType = node->type_tok.value;
         std::string actualType = context->get_type_name(value);
+        
 
         if (declaredType != "auto") {
             bool type_matches = false;
@@ -2568,6 +2599,8 @@ namespace tkz {
             } else if (declaredType == "char" && actualType == "char") {
                 type_matches = true;
             } else if (declaredType == "function" && actualType == "function") {
+                type_matches = true;
+            } else if (declaredType == "qbool" && actualType == "qbool") {
                 type_matches = true;
             }
             
@@ -2796,6 +2829,7 @@ namespace tkz {
         else if (type_name == "string") return StringValue("");
         else if (type_name == "char") return CharValue("");
         else if (type_name == "bool") return BoolValue("");
+        else if (type_name == "qbool") return QBoolValue("");
         else return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
@@ -3040,6 +3074,8 @@ namespace tkz {
                         return std::string(1, v.value);
                     } else if constexpr (std::is_same_v<T, BoolValue>) {
                         return v.value ? "true" : "false";
+                    } else if constexpr (std::is_same_v<T, QBoolValue>) {
+                        return v.valname;
                     } else if constexpr (std::is_same_v<T, StringValue>) {
                         return v.value;
                     } else if constexpr (std::is_same_v<T, VoidValue>) {
@@ -3073,6 +3109,9 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T1, BoolValue> || std::is_same_v<T2, BoolValue>) { 
                 throw RTError("Cannot preform arithmetic operations on a Boolean", node->op_tok.pos);
+            }
+            else if constexpr (std::is_same_v<T1, QBoolValue> || std::is_same_v<T2, QBoolValue>) { 
+                throw RTError("Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos);
             }
             else if constexpr (std::is_same_v<T1, FunctionValue> || std::is_same_v<T2, FunctionValue>) { 
                 throw RTError("Cannot preform arithmetic operations on a Function", node->op_tok.pos);
@@ -3132,12 +3171,16 @@ namespace tkz {
 
         return VoidValue();
     }
-    NumberVariant Interpreter::operator()(tkz::CharNode& node) {
+    NumberVariant Interpreter::operator()(CharNode& node) {
         CharValue cv(node.tok.value);
         return std::move(cv.set_pos(node.tok.pos));
     }
-    NumberVariant Interpreter::operator()(tkz::BoolNode& node) {
+    NumberVariant Interpreter::operator()(BoolNode& node) {
         return std::move(BoolValue(node.tok.value).set_pos(node.tok.pos));
+    }
+    NumberVariant Interpreter::operator()(QBoolNode& node) {
+        auto qb = QBoolValue(node.tok.value);
+        return std::move(qb.set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
         if (!node) return Number<int>(0);
@@ -3181,6 +3224,7 @@ namespace tkz {
                     !std::is_same_v<T, StringValue> &&
                     !std::is_same_v<T, CharValue> &&
                     !std::is_same_v<T, BoolValue> &&
+                    !std::is_same_v<T, QBoolValue> &&
                     !std::is_same_v<T, FunctionValue> &&
                     !std::is_same_v<T, VoidValue> &&
                     !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
@@ -3208,6 +3252,7 @@ namespace tkz {
                 !std::is_same_v<T, StringValue> &&
                 !std::is_same_v<T, CharValue> &&
                 !std::is_same_v<T, BoolValue> &&
+                !std::is_same_v<T, QBoolValue> &&
                 !std::is_same_v<T, FunctionValue> &&
                 !std::is_same_v<T, VoidValue> &&
                 !std::is_same_v<T, std::monostate> &&
@@ -3762,11 +3807,14 @@ namespace tkz {
             id == "return" || id == "qif" || id == "qswitch" || id == "const" || id == "default" ||
             id == "class" || id == "struct" || id == "enum" || id == "long" || id == "short" ||
             id == "fn" || id == "continue" || id == "auto" || id == "list" || id == "foreach" || 
-            id == "do" || id == "in") {
+            id == "do" || id == "in" || id == "function") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
             return Token(TokenType::BOOL, id, start_pos);
+        }
+        if (id == "qtrue" || id == "qfalse" || id == "both" || id == "none") {
+            return Token(TokenType::QBOOL, id, start_pos);
         }
         return Token(TokenType::IDENTIFIER, id, start_pos);
     }
