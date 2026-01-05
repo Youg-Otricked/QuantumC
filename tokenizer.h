@@ -57,6 +57,7 @@ namespace tkz {
     class ContinueNode;
     class FuncDefNode;
     class QOutNode;
+    class QInNode;
     class ReturnNode;
     class MultiReturnNode;
     class MultiVarDeclNode;
@@ -69,6 +70,8 @@ namespace tkz {
     class SpreadNode;
     class ForeachNode;
     class QBoolNode;
+    class QIfNode;
+    class QSwitchNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -76,6 +79,7 @@ namespace tkz {
         CharNode,
         BoolNode,
         QOutNode,
+        QInNode,
         QBoolNode,
         std::unique_ptr<BinOpNode>, 
         std::unique_ptr<UnaryOpNode>,
@@ -83,8 +87,10 @@ namespace tkz {
         std::unique_ptr<VarAssignNode>,
         std::unique_ptr<AssignExprNode>,
         std::unique_ptr<IfNode>,
+        std::unique_ptr<QIfNode>,
         std::unique_ptr<StatementsNode>,
         std::unique_ptr<SwitchNode>,
+        std::unique_ptr<QSwitchNode>,
         std::unique_ptr<BreakNode>,
         std::unique_ptr<WhileNode>,    
         std::unique_ptr<ForNode>,       
@@ -122,9 +128,9 @@ namespace tkz {
         INT, STRING, FLOAT, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
         ARROW, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
-        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR,
+        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
-        FUNC, COMMA, DOT, AT, EOFT
+        FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, EOFT
     };
     
     TokenType stringToTokenType(const std::string& str);
@@ -202,7 +208,14 @@ namespace tkz {
     public:
         std::string print() { return "std::qout"; }
     };
-    
+    class QInNode {
+    public:
+        QInNode() {}
+        
+        std::string print() const {
+            return "std::qin";
+        }
+    };
     class CharNode {
         public:
         Token tok;
@@ -348,7 +361,29 @@ namespace tkz {
 
         std::string print() const;
     };
-    
+    class QIfNode {
+    public:
+        std::optional<AnyNode> init;
+        AnyNode condition;
+        std::unique_ptr<StatementsNode> then_branch;
+        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> qelif_branches;
+        std::unique_ptr<StatementsNode> qelse_branch;
+        
+        QIfNode(std::optional<AnyNode>&& init_stmt,
+                AnyNode&& cond,
+                std::unique_ptr<StatementsNode>&& then_b,
+                std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>>&& qelif_b,
+                std::unique_ptr<StatementsNode>&& qelse_b)
+            : init(std::move(init_stmt)),
+            condition(std::move(cond)),
+            then_branch(std::move(then_b)),
+            qelif_branches(std::move(qelif_b)),
+            qelse_branch(std::move(qelse_b)) {}
+        
+        std::string print() const {
+            return "qif (...)";
+        }
+    };
     struct CaseLabel {
         AnyNode expr;
     };
@@ -364,6 +399,29 @@ namespace tkz {
         std::vector<Section> sections;
 
         std::string print() {return printAny(value);}
+    };
+    class QSwitchNode {
+    public:
+        AnyNode value;
+        std::unique_ptr<StatementsNode> case_t; 
+        std::unique_ptr<StatementsNode> case_f; 
+        std::unique_ptr<StatementsNode> case_n; 
+        std::unique_ptr<StatementsNode> case_b; 
+        
+        QSwitchNode(AnyNode&& val,
+                    std::unique_ptr<StatementsNode>&& t,
+                    std::unique_ptr<StatementsNode>&& f,
+                    std::unique_ptr<StatementsNode>&& n,
+                    std::unique_ptr<StatementsNode>&& b)
+            : value(std::move(val)),
+            case_t(std::move(t)),
+            case_f(std::move(f)),
+            case_n(std::move(n)),
+            case_b(std::move(b)) {}
+        
+        std::string print() const {
+            return "qswitch (...)";
+        }
     };
 
     class BreakNode {
@@ -671,7 +729,10 @@ namespace tkz {
         std::unique_ptr<PropertyAccessNode>,
         std::unique_ptr<SpreadNode>,
         std::unique_ptr<ForeachNode>,
-        QBoolNode
+        QBoolNode,
+        QInNode,
+        std::unique_ptr<QIfNode>,
+        std::unique_ptr<QSwitchNode>
     >;
         
     class ParseResult {
@@ -718,9 +779,12 @@ namespace tkz {
         Prs bin_op(std::function<Prs()> func, 
                    std::initializer_list<TokenType> ops);
         Prs logical_and();
+        Prs qif_expr();
         Prs qout_expr();
+        Prs qin_expr();
         Prs logical_or();
         Prs switch_stmt();
+        Prs qswitch_stmt();
         Aer parse();
         Prs statement();
         Prs while_stmt();
@@ -1188,6 +1252,7 @@ namespace tkz {
         InterpEer error = InterpEer();
         NumberVariant process(AnyNode& node);
         NumberVariant operator()(NumberNode& node);
+        
         NumberVariant operator()(std::unique_ptr<BinOpNode>& node);
         NumberVariant operator()(std::unique_ptr<UnaryOpNode>& node);
         NumberVariant operator()(std::monostate);
@@ -1202,11 +1267,14 @@ namespace tkz {
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(QBoolNode& node);
         NumberVariant operator()(QOutNode& node);
+        NumberVariant operator()(QInNode& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         NumberVariant operator()(std::unique_ptr<IfNode>& node);
-        NumberVariant operator()(std::unique_ptr<SwitchNode>& node); 
+        NumberVariant operator()(std::unique_ptr<QIfNode>& node);
+        NumberVariant operator()(std::unique_ptr<SwitchNode>& node);
+        NumberVariant operator()(std::unique_ptr<QSwitchNode>& node);
         NumberVariant operator()(std::unique_ptr<BreakNode>& node); 
         NumberVariant operator()(std::unique_ptr<ContinueNode>& node);
         NumberVariant operator()(std::unique_ptr<WhileNode>& node);
@@ -1220,6 +1288,8 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<PropertyAccessNode>& node);
         NumberVariant operator()(std::unique_ptr<SpreadNode>& node);
         NumberVariant operator()(std::unique_ptr<ForeachNode>& node);
+        ExecResult exec_stmt_in_loop_or_switch(QIfNode& ifn);
+        ExecResult exec_stmt_in_loop_or_switch(QSwitchNode& qsw);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);

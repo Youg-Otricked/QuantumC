@@ -18,6 +18,19 @@
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
+std::string strip_brace(const std::string& s) {
+    std::string r = s;
+    while(r.size()>=2 && r.substr(r.size()-2)=="[]") r=r.substr(0,r.size()-2);
+    return r;
+}
+
+std::string strip(const std::string& s) {
+    std::string r = s;
+    while(r.size()>=2 && r.substr(r.size()-2)=="[]") r=r.substr(0,r.size()-2);
+    size_t pos;
+    while((pos=r.find("list<"))!=std::string::npos && r.back()=='>') r=r.substr(pos+5,r.size()-(pos+6));
+    return r;
+}
 bool loose;
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +120,7 @@ namespace tkz {
     }
     std::string MissingSemicolonError::as_string() {
         std::string result;
-        result += "Missing Semicolon on";
+        result += "Missing Semicolon on ";
         result += "File " + this->pos.Filename +
                 ", line " + std::to_string(this->pos.line + 1) +
                 ", col " + std::to_string(this->pos.column + 1) + "\n\n";
@@ -224,6 +237,12 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForeachNode>>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) { 
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QSwitchNode>>) {
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+                return arg.print();
             } else {
                 return "<unknown>"; 
             }
@@ -407,6 +426,12 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, QBoolNode>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QSwitchNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+                return Prs{arg};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -493,6 +518,12 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, QBoolNode>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+                return Prs{arg};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -502,6 +533,9 @@ namespace tkz {
         this->error = std::move(error);
     }
     TokenType stringToTokenType(const std::string& str) {
+        std::string upperStr = str;
+        std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
+
         static const std::unordered_map<std::string, TokenType> stringToEnum = {
             {"INT", TokenType::INT}, {"STRING", TokenType::STRING}, {"FLOAT", TokenType::FLOAT},
             {"DOUBLE", TokenType::DOUBLE}, {"CHAR", TokenType::CHAR}, {"MAP", TokenType::MAP},
@@ -515,10 +549,8 @@ namespace tkz {
             {"KEYWORD", TokenType::KEYWORD}, {"EQ", TokenType::EQ}, {"EOFT", TokenType::EOFT}, {"ARROW", TokenType::ARROW}
         };
 
-        auto it = stringToEnum.find(str);
-        if (it != stringToEnum.end()) {
-            return it->second;
-        }
+        auto it = stringToEnum.find(upperStr);
+        if (it != stringToEnum.end()) return it->second;
         throw std::invalid_argument("Unknown TokenType string: " + str);
     }
     struct ScopeGuard {
@@ -571,6 +603,148 @@ namespace tkz {
         return this->current_tok;
     }
     // EDIT FOR NEW STUFF VVVVVVVVVVVVVVVVVVVV
+    Prs Parser::qif_expr() {
+        ParseResult res;
+        this->advance();
+        
+        
+        if (this->current_tok.type != TokenType::LPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '(' after 'qif'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        AnyNode condition = res.reg(this->logical_or());
+        if (res.error) {
+            return res.to_prs();
+        }
+        
+
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ')' after qif condition", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+
+        if (this->current_tok.type != TokenType::LBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '{' after qif condition", this->current_tok.pos));
+            return res.to_prs();
+        }
+
+        this->advance();
+
+        std::vector<AnyNode> then_stmts;
+        while (this->current_tok.type != TokenType::RBRACE && 
+            this->current_tok.type != TokenType::EOFT) {
+            auto stmt = res.reg(this->statement());
+            if (res.error) {
+                return res.to_prs();
+            }
+            then_stmts.push_back(std::move(stmt));
+        }
+
+
+        if (this->current_tok.type != TokenType::RBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '}'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+
+        auto then_branch = std::make_unique<StatementsNode>(std::move(then_stmts));
+        if (res.error) {
+            return res.to_prs();
+        }
+        
+        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> qelif_branches;
+        
+        while (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "qelif") {
+            this->advance();
+            if (this->current_tok.type != TokenType::LPAREN) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '(' after 'qelif'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            
+            AnyNode qelif_cond = res.reg(this->logical_or());
+            if (res.error) return res.to_prs();
+            
+            if (this->current_tok.type != TokenType::RPAREN) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected ')' after qelif condition", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' after qelif condition", this->current_tok.pos));
+                return res.to_prs();
+            }
+            
+            this->advance(); 
+
+            std::vector<AnyNode> qelif_stmts;
+            while (this->current_tok.type != TokenType::RBRACE && 
+                this->current_tok.type != TokenType::EOFT) {
+                auto stmt = res.reg(this->statement());
+                if (res.error) return res.to_prs();
+                qelif_stmts.push_back(std::move(stmt));
+            }
+
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            auto qelif_body = std::make_unique<StatementsNode>(std::move(qelif_stmts));
+            if (res.error) return res.to_prs();
+            
+            qelif_branches.emplace_back(std::move(qelif_cond), std::move(qelif_body));
+        }
+        
+        std::unique_ptr<StatementsNode> qelse_branch = nullptr;
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "qelse") {
+            this->advance();
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' after 'qelse'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            
+            this->advance(); 
+
+            std::vector<AnyNode> qelse_stmts;
+            while (this->current_tok.type != TokenType::RBRACE && 
+                this->current_tok.type != TokenType::EOFT) {
+                auto stmt = res.reg(this->statement());
+                if (res.error) return res.to_prs();
+                qelse_stmts.push_back(std::move(stmt));
+            }
+
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            qelse_branch = std::make_unique<StatementsNode>(std::move(qelse_stmts));
+            if (res.error) return res.to_prs();
+        }
+        return res.success(std::make_unique<QIfNode>(
+            std::nullopt,
+            std::move(condition),
+            std::move(then_branch),
+            std::move(qelif_branches),
+            std::move(qelse_branch)));
+    }
     Prs Parser::if_expr() {
         auto has_semicolon_before_closing_paren = [this]() -> bool {
             size_t idx = static_cast<size_t>(std::distance(this->tokens.begin(), this->it));
@@ -819,6 +993,110 @@ namespace tkz {
         sw->value = std::move(value);
         sw->sections = std::move(sections);
         return res.success(std::move(sw));
+    }
+    Prs Parser::qswitch_stmt() {
+        ParseResult res;
+        this->advance();
+        
+        if (this->current_tok.type != TokenType::LPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '(' after 'qswitch'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        AnyNode value = res.reg(this->logical_or());
+        if (res.error) return res.to_prs();
+        
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ')' after qswitch value", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        if (this->current_tok.type != TokenType::LBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '{' after qswitch", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        std::unique_ptr<StatementsNode> case_t = nullptr;
+        std::unique_ptr<StatementsNode> case_f = nullptr;
+        std::unique_ptr<StatementsNode> case_n = nullptr;
+        std::unique_ptr<StatementsNode> case_b = nullptr;
+        
+        while (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "case") {
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected case label (t, f, n, or b)", this->current_tok.pos));
+                return res.to_prs();
+            }
+            
+            std::string case_label = this->current_tok.value;
+            this->advance();
+            
+            if (this->current_tok.type != TokenType::COLON) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected ':' after case label", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+            
+            std::vector<AnyNode> case_stmts;
+            while (this->current_tok.type != TokenType::KEYWORD ||
+                (this->current_tok.value != "case" && 
+                    this->current_tok.value != "break")) {
+                
+                if (this->current_tok.type == TokenType::RBRACE) break;
+                if (this->current_tok.type == TokenType::EOFT) break;
+                
+                auto stmt = res.reg(this->statement());
+                if (res.error) return res.to_prs();
+                case_stmts.push_back(std::move(stmt));
+            }
+            
+            if (this->current_tok.type == TokenType::KEYWORD && 
+                this->current_tok.value == "break") {
+                this->advance();
+                if (this->current_tok.type == TokenType::SEMICOLON) {
+                    this->advance();
+                }
+            }
+            
+            auto case_body = std::make_unique<StatementsNode>(std::move(case_stmts));
+            
+            if (case_label == "t") {
+                case_t = std::move(case_body);
+            } else if (case_label == "f") {
+                case_f = std::move(case_body);
+            } else if (case_label == "n") {
+                case_n = std::move(case_body);
+            } else if (case_label == "b") {
+                case_b = std::move(case_body);
+            } else {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Invalid case label (must be t, f, n, or b)", this->current_tok.pos));
+                return res.to_prs();
+            }
+        }
+        
+        if (this->current_tok.type != TokenType::RBRACE) {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected '}' after qswitch", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        
+        return res.success(std::make_unique<QSwitchNode>(
+            std::move(value),
+            std::move(case_t),
+            std::move(case_f),
+            std::move(case_n),
+            std::move(case_b)));
     }
     Prs Parser::while_stmt() {
         ParseResult res;
@@ -1148,6 +1426,28 @@ namespace tkz {
                     this->advance();
                     return res.success(QOutNode());
                 }
+                if (current_tok.value == "qin") {
+                    advance();
+                    AnyNode left = QInNode{};
+                    if (current_tok.type == TokenType::RSHIFT) {
+                        Token op_tok = current_tok;
+                        advance();
+
+                        AnyNode right = res.reg(this->term());
+                        if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Right-hand side of >> must be a variable",
+                                op_tok.pos
+                            ));
+                            return res.to_prs();
+                        }
+
+                        left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+                    }
+
+                    return res.success(std::move(left));
+                }
+
             }
         }
         
@@ -1171,8 +1471,18 @@ namespace tkz {
             this->advance();
             return res.success(QBoolNode(tok));
         }
+        else if (tok.type == TokenType::AT) {
+            Token op = tok;
+            this->advance();
+
+            AnyNode value = res.reg(this->atom()); 
+            if (res.error) return res.to_prs();
+
+            return res.success(std::make_unique<SpreadNode>(std::move(value)));
+        }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
+            
             if (this->current_tok.type == TokenType::DOT) {
                 this->advance();
                 
@@ -1187,7 +1497,8 @@ namespace tkz {
                 
                 if (this->current_tok.type == TokenType::LPAREN) {
                     std::vector<AnyNode> args;
-
+                    this->advance();
+                    AnyNode base = std::make_unique<VarAccessNode>(tok);
                     if (this->current_tok.type != TokenType::RPAREN) {
 
                         if (this->current_tok.type == TokenType::AT) {
@@ -1216,6 +1527,9 @@ namespace tkz {
                             }
                         }
                     }
+                    this->advance();
+                    return res.success(std::make_unique<MethodCallNode>(
+                            std::move(base), property_name, std::move(args)));
                 } else {
                     return res.success(std::make_unique<PropertyAccessNode>(
                         std::make_unique<VarAccessNode>(tok), property_name));
@@ -1225,8 +1539,8 @@ namespace tkz {
                 return this->call(std::make_unique<VarAccessNode>(tok));
 
             if (this->current_tok.type == TokenType::LBRACKET) {
-                AnyNode base = std::make_unique<VarAccessNode>(tok);
-                std::vector<AnyNode> indices;  
+                AnyNode base = std::make_unique<VarAccessNode>(tok); 
+                std::vector<AnyNode> indices;
 
                 while (this->current_tok.type == TokenType::LBRACKET) {
                     this->advance();
@@ -1239,31 +1553,56 @@ namespace tkz {
                     }
                     this->advance();
 
-                    indices.push_back(std::move(index)); 
+                    indices.push_back(std::move(index));
                 }
+
                 base = std::make_unique<ArrayAccessNode>(std::move(base), std::move(indices));
-                if (this->current_tok.type == TokenType::DOT) {
+
+                while (this->current_tok.type == TokenType::DOT) {
                     this->advance();
-                    
+
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected property name after '.'", this->current_tok.pos));
+                        res.failure(std::make_unique<InvalidSyntaxError>("Expected property or method name after '.'", this->current_tok.pos));
                         return res.to_prs();
                     }
-                    
+
                     Token property_name = this->current_tok;
                     this->advance();
-                    
+
                     if (this->current_tok.type == TokenType::LPAREN) {
                         this->advance();
                         std::vector<AnyNode> args;
-                        return res.success(std::make_unique<MethodCallNode>(
-                            std::move(base), property_name, std::move(args)));
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+
+                                if (this->current_tok.type != TokenType::COMMA) break;
+                                this->advance();
+                            }
+                        }
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        base = std::make_unique<MethodCallNode>(std::move(base), property_name, std::move(args));
                     } else {
-                        return res.success(std::make_unique<PropertyAccessNode>(
-                            std::move(base), property_name));
+                        base = std::make_unique<PropertyAccessNode>(std::move(base), property_name);
                     }
                 }
+
                 return res.success(std::move(base));
             }
 
@@ -1278,6 +1617,7 @@ namespace tkz {
 
             return res.success(std::make_unique<VarAccessNode>(tok));
         }
+
         else if (tok.type == TokenType::LPAREN) {
             this->advance();
             AnyNode any_expr = res.reg(this->logical_or());
@@ -1442,7 +1782,7 @@ namespace tkz {
         Token tok = this->current_tok;
 
         if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS ||
-            tok.type == TokenType::NOT) {
+            tok.type == TokenType::NOT || tok.type == TokenType::QNOT) {
             
             this->advance();
             AnyNode factor_node = res.reg(this->factor());
@@ -1505,6 +1845,37 @@ namespace tkz {
 
         return res.success(std::move(left));
     }
+    Prs Parser::qin_expr() {
+        ParseResult res;
+        AnyNode left = res.reg(this->term());
+        if (res.error) return res.to_prs();
+
+        while (current_tok.type == TokenType::RSHIFT) {
+            Token op_tok = current_tok;
+            advance();
+
+            AnyNode right = res.reg(this->term());
+            if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Right-hand side of >> must be a variable",
+                    op_tok.pos
+                ));
+                return res.to_prs();
+            }
+
+            if (std::holds_alternative<std::monostate>(left)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Left-hand side of >> must be std::qin",
+                    op_tok.pos
+                ));
+                return res.to_prs();
+            }
+
+            left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+        }
+
+        return res.success(std::move(left));
+    }
     Prs Parser::comparison() {
         ParseResult res;
         AnyNode left = res.reg(this->expr());
@@ -1515,7 +1886,14 @@ namespace tkz {
             this->current_tok.type == TokenType::LESS ||
             this->current_tok.type == TokenType::LESS_EQ ||
             this->current_tok.type == TokenType::MORE ||
-            this->current_tok.type == TokenType::MORE_EQ) {
+            this->current_tok.type == TokenType::MORE_EQ ||
+            this->current_tok.type == TokenType::QEQEQ ||
+            this->current_tok.type == TokenType::QNEQ ||
+            this->current_tok.type == TokenType::QAND ||
+            this->current_tok.type == TokenType::QOR ||
+            this->current_tok.type == TokenType::QXOR ||
+            this->current_tok.type == TokenType::COLLAPSE_AND ||
+            this->current_tok.type == TokenType::COLLAPSE_OR) {
             
             Token op_tok = this->current_tok;
             this->advance();
@@ -1532,14 +1910,22 @@ namespace tkz {
         AnyNode left = res.reg(this->term());
         if (res.error) return res.to_prs();
 
-        while (this->current_tok.type != TokenType::SEMICOLON &&
-            (this->current_tok.type == TokenType::PLUS || this->current_tok.type == TokenType::MINUS)) {
-            Token op_tok = this->current_tok;
-            this->advance();
+        while (
+            current_tok.type != TokenType::SEMICOLON &&
+            (current_tok.type == TokenType::PLUS ||
+            current_tok.type == TokenType::MINUS)
+        ) {
+            Token op_tok = current_tok;
+            advance();
 
             AnyNode right = res.reg(this->term());
             if (res.error) return res.to_prs();
-            left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
+
+            left = std::make_unique<BinOpNode>(
+                std::move(left),
+                op_tok,
+                std::move(right)
+            );
         }
 
         return res.success(std::move(left));
@@ -1690,7 +2076,6 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, tkz::ParseResult>) {
                 return std::move(arg.node);
             } else if constexpr (
-                std::is_same_v<T, tkz::QOutNode> ||
                 std::is_same_v<T, std::unique_ptr<tkz::BinOpNode>> ||
                 std::is_same_v<T, std::unique_ptr<tkz::UnaryOpNode>> ||
                 std::is_same_v<T, std::unique_ptr<tkz::VarAccessNode>> ||
@@ -1711,7 +2096,9 @@ namespace tkz {
                 std::is_same_v<T, std::unique_ptr<tkz::MultiVarDeclNode>> ||
                 std::is_same_v<T, std::unique_ptr<tkz::ArrayDeclNode>> ||        
                 std::is_same_v<T, std::unique_ptr<tkz::ArrayLiteralNode>> ||     
-                std::is_same_v<T, std::unique_ptr<tkz::ArrayAccessNode>>        
+                std::is_same_v<T, std::unique_ptr<tkz::ArrayAccessNode>>  ||
+                std::is_same_v<T, std::unique_ptr<tkz::QIfNode>> ||
+                std::is_same_v<T, std::unique_ptr<tkz::QSwitchNode>>
             ) {
                 return std::move(arg);
             } else {
@@ -1936,8 +2323,14 @@ namespace tkz {
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
             return this->if_expr();
         }
+        if (tok.type == TokenType::KEYWORD && tok.value == "qif") {
+            return this->qif_expr();
+        }
         if (tok.type == TokenType::KEYWORD && tok.value == "switch") {
             return this->switch_stmt();
+        }
+        if (tok.type == TokenType::KEYWORD && tok.value == "qswitch") {
+            return this->qswitch_stmt();
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "while") {
             return this->while_stmt();
@@ -2542,6 +2935,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::unique_ptr<SwitchNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
+                return exec_stmt_in_loop_or_switch(*n);
+            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 NumberVariant v;
                 if (!n) v = Number<int>(0);
@@ -2640,6 +3036,74 @@ namespace tkz {
 
         return {};
     }
+    ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode& ifn) {
+        NumberVariant cond_val = this->process(ifn.condition); 
+        
+        bool should_run_true = false;
+        bool should_run_false = false;
+        
+        if (auto qb = std::get_if<QBoolValue>(&cond_val)) {
+            should_run_true = qb->tval;
+            should_run_false = qb->fval;
+        } else {
+            bool truthy = is_truthy(cond_val);
+            should_run_true = truthy;
+            should_run_false = !truthy;
+        }
+        
+        NumberVariant last = Number<int>(0);
+        
+        if (should_run_true) {
+            for (auto& stmt : ifn.then_branch->statements) {  
+                ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
+                last = std::move(r.value);
+                
+                if (r.did_break) return r;     
+                if (r.did_continue) return r;  
+            }
+        }
+        
+        bool qelif_ran = false;
+        for (auto& [qelif_cond, qelif_body] : ifn.qelif_branches) { 
+            NumberVariant qelif_val = this->process(qelif_cond);
+            
+            bool qelif_true = false;
+            bool qelif_false = false;
+            
+            if (auto qb = std::get_if<QBoolValue>(&qelif_val)) {
+                qelif_true = qb->tval;
+                qelif_false = qb->fval;
+            } else {
+                bool truthy = is_truthy(qelif_val);
+                qelif_true = truthy;
+                qelif_false = !truthy;
+            }
+            
+            if (should_run_false && qelif_true) {
+                for (auto& stmt : qelif_body->statements) {
+                    ExecResult r = this->exec_stmt_in_loop_or_switch(stmt); 
+                    last = std::move(r.value);
+                    
+                    if (r.did_break) return r;     
+                    if (r.did_continue) return r;  
+                }
+                qelif_ran = true;
+                break;
+            }
+        }
+        
+        if (should_run_false && !qelif_ran && ifn.qelse_branch) {
+            for (auto& stmt : ifn.qelse_branch->statements) {
+                ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);  
+                last = std::move(r.value);
+                
+                if (r.did_break) return r;     
+                if (r.did_continue) return r;  
+            }
+        }
+        
+        return ExecResult{std::move(last), false, false}; 
+    }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(SwitchNode& sw) {
         NumberVariant v = process(sw.value);
 
@@ -2676,10 +3140,103 @@ namespace tkz {
         }
         return {};
     }
-
-
-
-
+    ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode& qsw) {
+        NumberVariant val = this->process(qsw.value);
+        
+        if (auto qb = std::get_if<QBoolValue>(&val)) {
+            NumberVariant last = Number<int>(0);
+            
+            if (qb->tval && qsw.case_t) {
+                for (auto& stmt : qsw.case_t->statements) {
+                    ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
+                    last = std::move(r.value);
+                    if (r.did_break) return ExecResult{std::move(last), true, false};
+                    if (r.did_continue) return ExecResult{std::move(last), false, true};
+                }
+            }
+            
+            if (qb->fval && qsw.case_f) {
+                for (auto& stmt : qsw.case_f->statements) {
+                    ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
+                    last = std::move(r.value);
+                    if (r.did_break) return ExecResult{std::move(last), true, false};
+                    if (r.did_continue) return ExecResult{std::move(last), false, true};
+                }
+            }
+            
+            if (!qb->tval && !qb->fval && qsw.case_n) {
+                for (auto& stmt : qsw.case_n->statements) {
+                    ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
+                    last = std::move(r.value);
+                    if (r.did_break) return ExecResult{std::move(last), true, false};
+                    if (r.did_continue) return ExecResult{std::move(last), false, true};
+                }
+            }
+            
+            if (qb->tval && qb->fval && qsw.case_b) {
+                for (auto& stmt : qsw.case_b->statements) {
+                    ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
+                    last = std::move(r.value);
+                    if (r.did_break) return ExecResult{std::move(last), true, false};
+                    if (r.did_continue) return ExecResult{std::move(last), false, true};
+                }
+            }
+            
+            return ExecResult{std::move(last), false, false};
+        }
+        
+        throw RTError("qswitch requires a qbool", Position());
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant val = this->process(node->value);
+        
+        if (auto qb = std::get_if<QBoolValue>(&val)) {
+            NumberVariant last = Number<int>(0);
+            
+            if (qb->tval && !qb->fval && node->case_t) {
+                for (auto& stmt : node->case_t->statements) {
+                    last = this->process(stmt);
+                }
+            }
+            
+            if (qb->fval && !qb->tval && node->case_f) {
+                for (auto& stmt : node->case_f->statements) {
+                    last = this->process(stmt);
+                }
+            }
+            
+            if (!qb->tval && !qb->fval && node->case_n) {
+                for (auto& stmt : node->case_n->statements) {
+                    last = this->process(stmt);
+                }
+            }
+            
+            if (qb->tval && qb->fval && node->case_b) {
+                for (auto& stmt : node->case_b->statements) {
+                    last = this->process(stmt);
+                }
+            }
+            return last;
+        } else {
+            bool truthy = is_truthy(val);
+            
+            NumberVariant last = Number<int>(0);
+            
+            if (truthy && node->case_t) {
+                for (auto& stmt : node->case_t->statements) {
+                    last = this->process(stmt);
+                }
+            } else if (!truthy && node->case_f) {
+                for (auto& stmt : node->case_f->statements) {
+                    last = this->process(stmt);
+                }
+            }
+            
+            return last;
+        }
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<ContinueNode>& node) {
         throw RTError("Unexpected 'continue' outside loop",
                     node ? node->tok.pos : Position());
@@ -2732,6 +3289,9 @@ namespace tkz {
         return Number<int>(0);
     }
     NumberVariant Interpreter::operator()(QOutNode& node) {
+        return std::move(Number<int>(0));
+    }
+    NumberVariant Interpreter::operator()(QInNode& node) {
         return std::move(Number<int>(0));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ForNode>& node) {
@@ -2912,16 +3472,71 @@ namespace tkz {
                 }
                 else throw RTError("Missing argument", Position());
 
+                
                 std::string expected_type = it_param->type.value;
                 std::string actual_type = context->get_type_name(value);
+
 
                 if (expected_type == "auto") {
                     context->define(it_param->name.value, actual_type, value);
                 } else {
-                    if (expected_type != actual_type) {
-                        context->pop_scope();
-                        throw RTError("Argument type mismatch", Position());
+                    
+                    bool types_compatible = false;
+                    
+                    if (expected_type == actual_type) {
+                        types_compatible = true;
                     }
+
+                    else if (expected_type.find("list<") != std::string::npos && actual_type.find("list<") != std::string::npos) {
+                        std::string expected_base = expected_type;
+                        std::string actual_base = actual_type;
+
+                        auto clean_type = [](std::string& s) {
+                            std::erase_if(s, [](char c) { 
+                                return c == '[' || c == ']' || c == ' '; 
+                            });
+
+                            size_t pos;
+                            while ((pos = s.find("list<")) != std::string::npos) {
+                                s.erase(pos, 5);
+                            }
+
+                            while ((pos = s.find(">")) != std::string::npos) {
+                                s.erase(pos, 1);
+                            }
+                        };
+
+                        clean_type(expected_base);
+                        clean_type(actual_base);
+
+
+                        if (actual_base == expected_base) {
+                            types_compatible = true;
+                        }
+                    }
+                    else if (expected_type.find("[]") != std::string::npos) {
+                        size_t bracket_pos = expected_type.find('[');
+                        std::string expected_base = expected_type.substr(0, bracket_pos);
+                        
+                        if (actual_type.find("list<") == std::string::npos &&  
+                            actual_type.find(expected_base) == 0) {            
+                            types_compatible = true;
+                        }
+                    }
+                    else {
+                        types_compatible = (expected_type == actual_type);
+                    }
+                    
+                    
+                    if (!types_compatible) {
+                        context->pop_scope();
+                        throw RTError(
+                            "Argument type mismatch: expected " + expected_type + 
+                            ", got " + actual_type, 
+                            Position()
+                        );
+                    }
+                    
                     context->define(it_param->name.value, expected_type, value);
                 }
             }
@@ -3042,6 +3657,65 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
         if (!node) return std::move(Number<int>(0));
+        if (node->op_tok.type == TokenType::RSHIFT) {
+            if (std::holds_alternative<std::monostate>(node->left_node)) {
+                throw RTError("Left-hand side of >> must be std::qin", node->op_tok.pos);
+            }
+            if (std::holds_alternative<QInNode>(node->left_node)) {
+                if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->right_node)) {
+                    std::string var_name = (*var)->var_name_tok.value;
+                    
+                    std::string input;
+                    std::cin >> input;
+                    
+                    auto v = this->context->get(var_name, node->op_tok.pos);
+                    auto type = this->context->get_type_name(v);
+                    NumberVariant val;
+                    switch (stringToTokenType(type)) {
+                        case TokenType::INT:
+                            try {
+                                val = Number<int>(std::stoi(input));
+                            } catch (...) {
+                                throw RTError("Cannot assign value to an int", node->op_tok.pos);
+                            }
+                            break;
+                        case TokenType::FLOAT:
+                            try {
+                                val = Number<float>(std::stof(input));
+                            } catch (...) {
+                                throw RTError("Cannot assign value to an float", node->op_tok.pos);
+                            }
+                            break;
+                        case TokenType::DOUBLE:
+                            try {
+                                val = Number<double>(std::stod(input));
+                            } catch (...) {
+                                throw RTError("Cannot assign value to an double", node->op_tok.pos);
+                            }
+                            break;
+                        case TokenType::STRING:
+                            val = StringValue(input);
+                            break;
+                        case TokenType::CHAR:
+                            val = CharValue(input);
+                            break;
+                        case TokenType::BOOL:
+                            val = BoolValue(input);
+                            break;
+                        case TokenType::QBOOL:
+                            val = QBoolValue(input);
+                            break;
+                        default:
+                            throw RTError("Cannot assign value from input to type " + type, node->op_tok.pos);
+                    }
+                    context->set(var_name, val, node->op_tok.pos);
+                    return VoidValue();
+                }
+                return VoidValue();
+            }
+            return VoidValue();
+        }
+        
         if (node->op_tok.type == TokenType::AND) {
             NumberVariant left = std::move(this->process(node->left_node));
             if (!is_truthy(left)) return std::move(BoolValue("false"));
@@ -3054,6 +3728,121 @@ namespace tkz {
             if (is_truthy(left)) return std::move(BoolValue("true"));
                 NumberVariant right = std::move(this->process(node->right_node));
                 return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
+        }
+        if (node->op_tok.type == TokenType::QAND) { 
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            
+            auto l_qb = std::get_if<QBoolValue>(&left);
+            auto r_qb = std::get_if<QBoolValue>(&right);
+            
+            if (l_qb && r_qb) {
+                // Quantum AND: if both sides can be true and one is both: both
+                bool t = l_qb->tval && r_qb->tval;
+                bool f = l_qb->fval || r_qb->fval;
+                
+                if (t && f) return QBoolValue("both");
+                if (t) return QBoolValue("qtrue");
+                if (f) return QBoolValue("qfalse");
+                return QBoolValue("none");
+            }
+        }
+
+        if (node->op_tok.type == TokenType::QOR) {
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            
+            auto l_qb = std::get_if<QBoolValue>(&left);
+            auto r_qb = std::get_if<QBoolValue>(&right);
+            
+            if (l_qb && r_qb) {
+                // Quantum OR: if at least one side is both: both
+                bool t = l_qb->tval || r_qb->tval;
+                bool f = l_qb->fval || r_qb->fval;
+                
+                if (t && f) return QBoolValue("both");
+                if (t) return QBoolValue("qtrue");
+                if (f) return QBoolValue("qfalse");
+                return QBoolValue("none");
+            }
+        }
+
+        if (node->op_tok.type == TokenType::QXOR) {
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            
+            auto l_qb = std::get_if<QBoolValue>(&left);
+            auto r_qb = std::get_if<QBoolValue>(&right);
+            
+            if (l_qb && r_qb) {
+                // Quantum XOR: if one side is true or both: both
+                bool t = !(l_qb->tval && r_qb->tval);
+                bool f = l_qb->tval || r_qb->tval;
+                
+                if (t && f) return QBoolValue("both");
+                if (!t) return QBoolValue("qfalse");
+                return QBoolValue("none");
+            }
+        }
+
+        if (node->op_tok.type == TokenType::QEQEQ) {
+            NumberVariant l_qb = this->process(node->left_node);
+            NumberVariant r_qb = this->process(node->right_node);
+
+            try {
+                if (values_equal(l_qb, r_qb, node->op_tok.pos)) {
+                    return QBoolValue(std::string("both"));
+                } else {
+                    return QBoolValue(std::string("none"));
+                }
+            } catch (const RTError& e) {
+                return QBoolValue(std::string("none"));
+            }
+        }
+        if (node->op_tok.type == TokenType::QNEQ) {
+            NumberVariant l_qb = this->process(node->left_node);
+            NumberVariant r_qb = this->process(node->right_node);
+
+            try {
+                if (!values_equal(l_qb, r_qb, node->op_tok.pos)) {
+                    return QBoolValue(std::string("both"));
+                } else {
+                    return QBoolValue(std::string("none"));
+                }
+            } catch (const RTError& e) {
+                return QBoolValue(std::string("both"));
+            }
+        }
+        if (node->op_tok.type == TokenType::COLLAPSE_AND) { 
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            
+            auto l_qb = std::get_if<QBoolValue>(&left);
+            auto r_qb = std::get_if<QBoolValue>(&right);
+            
+            if (l_qb && r_qb) {
+                // Quantum AND: if both sides can be true and one is both: both
+                bool t = l_qb->tval && r_qb->tval;
+                
+                if (t) return BoolValue("true");
+                return BoolValue("false");
+            }
+        }
+
+        if (node->op_tok.type == TokenType::COLLAPSE_OR) {
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            
+            auto l_qb = std::get_if<QBoolValue>(&left);
+            auto r_qb = std::get_if<QBoolValue>(&right);
+            
+            if (l_qb && r_qb) {
+                // Quantum OR: if at least one side is both: both
+                bool t = l_qb->tval || r_qb->tval;
+                
+                if (t) return BoolValue("true");
+                return BoolValue("false");
+            }
         }
         NumberVariant left  = std::move(this->process(node->left_node));
         NumberVariant right = std::move(this->process(node->right_node));
@@ -3093,14 +3882,28 @@ namespace tkz {
                 std::string r_str = to_string_variant(R);
                 return std::move(StringValue(l_str + r_str).set_pos(node->op_tok.pos));
             }
-
-            else if constexpr (std::is_same_v<T1, StringValue> && std::is_same_v<T2, StringValue>) {
+            
+            if (node->op_tok.type == TokenType::EQ_TO) {
+                try {
+                    return BoolValue(values_equal(L, R, node->op_tok.pos) ? "true" : "false");
+                } catch (RTError& e) {
+                    return BoolValue("false");
+                } 
+            }
+            if (node->op_tok.type == TokenType::NOT_EQ) {
+                try {
+                    return BoolValue(!values_equal(L, R, node->op_tok.pos) ? "true" : "false");
+                } catch (RTError& e) {
+                    return BoolValue("false");
+                }
+            }
+            if constexpr (std::is_same_v<T1, StringValue> && std::is_same_v<T2, StringValue>) {
                 if (node->op_tok.type == TokenType::PLUS) {
                     return std::move(StringValue(L.value + R.value).set_pos(node->op_tok.pos));
                 }
-                throw RTError("Only '+' is supported for strings", node->op_tok.pos);
+                throw RTError("Only '+' and logical expresions are supported for strings", node->op_tok.pos);
             } else if constexpr (std::is_same_v<T1, StringValue> ^ std::is_same_v<T2, StringValue>) {
-                throw RTError("Cannot add string to number", node->op_tok.pos);
+                throw RTError("Cannot preform operations on string and number", node->op_tok.pos);
             } else if constexpr (std::is_same_v<T1, CharValue> || std::is_same_v<T2, CharValue>) {
                 throw RTError("Cannot preform arithmetic on a Char", node->op_tok.pos);
             }
@@ -3191,7 +3994,32 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
         if (!node) return Number<int>(0);
-        
+        if (node->op_tok.type == TokenType::QNOT) {
+            
+            NumberVariant val = std::move(this->process(node->node));
+            return std::visit([&](auto&& n) -> NumberVariant {
+                using T = std::decay_t<decltype(n)>;
+                if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
+                    throw RTError("Cannot use !! operator on multi-return values", node->op_tok.pos);
+                } else {
+                    if constexpr (std::is_same_v<T, QBoolValue>) {
+                        if (n.valname == "both") {
+                            return QBoolValue("none");
+                        }
+                        if (n.valname == "none") {
+                            return QBoolValue("both");
+                        }
+                        if (n.valname == "qtrue") {
+                            return QBoolValue("qfalse");
+                        }
+                        if (n.valname == "qfalse") {
+                            return QBoolValue("qtrue");
+                        }
+                    }
+                    return std::move(QBoolValue(is_truthy(n) ? "qfalse" : "qtrue"));
+                }
+            }, val);
+        }
         if (node->op_tok.type == TokenType::NOT) {
             
             NumberVariant val = std::move(this->process(node->node));
@@ -3204,6 +4032,7 @@ namespace tkz {
                 }
             }, val);
         }
+        
         if (node->op_tok.type == TokenType::INCREMENT ||
             node->op_tok.type == TokenType::DECREMENT) {
             
@@ -3277,7 +4106,6 @@ namespace tkz {
         return std::move(StringValue(node.tok.value).set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(std::monostate) {
-        std::cerr << "Empty AST node encountered\n";
         return std::move(Number<int>(0));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<IfNode>& node) {
@@ -3334,7 +4162,64 @@ namespace tkz {
 
         return std::move(Number<int>(0));
     }
- 
+    NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant cond_val = this->process(node->condition);
+        
+        bool should_run_true = false;
+        bool should_run_false = false;
+        
+        if (auto qb = std::get_if<QBoolValue>(&cond_val)) {
+            should_run_true = qb->tval;
+            should_run_false = qb->fval;
+        } else {
+            bool truthy = is_truthy(cond_val);
+            should_run_true = truthy;
+            should_run_false = !truthy;
+        }
+        
+        NumberVariant last = Number<int>(0);
+        
+        if (should_run_true) {
+            for (auto& stmt : node->then_branch->statements) {
+                last = this->process(stmt);
+            }
+        }
+        
+        bool qelif_ran = false;
+        for (auto& [qelif_cond, qelif_body] : node->qelif_branches) {
+            NumberVariant qelif_val = this->process(qelif_cond);
+            
+            bool qelif_true = false;
+            bool qelif_false = false;
+            
+            if (auto qb = std::get_if<QBoolValue>(&qelif_val)) {
+                qelif_true = qb->tval;
+                qelif_false = qb->fval;
+            } else {
+                bool truthy = is_truthy(qelif_val);
+                qelif_true = truthy;
+                qelif_false = !truthy;
+            }
+            
+            if (should_run_false && qelif_true) {
+                for (auto& stmt : qelif_body->statements) {
+                    last = this->process(stmt);
+                }
+                qelif_ran = true;
+                break; 
+            }
+        }
+        
+        if (should_run_false && !qelif_ran && node->qelse_branch) {
+            for (auto& stmt : node->qelse_branch->statements) {
+                last = this->process(stmt);
+            }
+        }
+        
+        return last;
+    }
     
     NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode>& node) {
         if (!node) return Number<int>(0);
@@ -3377,18 +4262,19 @@ namespace tkz {
             auto array_val = std::get<std::shared_ptr<ArrayValue>>(init_value);
 
             auto list_val = std::make_shared<ListValue>(
-                array_val->element_type,
+                node->type_tok.value,
                 std::move(array_val->elements)
             );
 
-            std::string list_type = "list<" + node->type_tok.value + ">";
+            std::string list_type = "list<" + strip(node->type_tok.value) + ">";
             context->define(node->var_name_tok.value, list_type, list_val, node->is_const);
             return VoidValue();
         }
 
         if (std::holds_alternative<std::shared_ptr<ListValue>>(init_value)) {
             auto list_val = std::get<std::shared_ptr<ListValue>>(init_value);
-            std::string list_type = "list<" + node->type_tok.value + ">";
+            std::string list_type = "list<" + strip(node->type_tok.value) + ">";
+            list_val->element_type = strip(node->type_tok.value);
             context->define(node->var_name_tok.value, list_type, list_val, node->is_const);
             return VoidValue();
         }
@@ -3502,6 +4388,7 @@ namespace tkz {
 
         return Number<int>(0);  
     }
+    
     NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode>& node) {
         if (!node) return Number<int>(0);
         
@@ -3538,9 +4425,9 @@ namespace tkz {
                 }
                 NumberVariant val = final_args[0];
                 std::string name = context->get_type_name(val);
-                if (name.find(list->element_type) == std::string::npos && !loose) {
+                if (name.find(strip(list->element_type)) == std::string::npos && !loose) {
                     throw RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
-                } else if (name != list->element_type && name.find("list<") == std::string::npos && name.find("[]") == std::string::npos) {
+                } else if (name != strip(list->element_type) && name.find("list<") == std::string::npos && name.find("[]") == std::string::npos) {
                     throw RTError("(loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
                 }
                 list->push(std::move(val));
@@ -3804,10 +4691,10 @@ namespace tkz {
         if (id == "int" || id == "float" || id == "double" || id == "bool" || id == "case" ||
             id == "string" || id == "qbool" || id == "void" || id == "char" || id == "break" ||
             id == "if" || id == "else" || id == "while" || id == "for" || id == "switch" ||
-            id == "return" || id == "qif" || id == "qswitch" || id == "const" || id == "default" ||
-            id == "class" || id == "struct" || id == "enum" || id == "long" || id == "short" ||
-            id == "fn" || id == "continue" || id == "auto" || id == "list" || id == "foreach" || 
-            id == "do" || id == "in" || id == "function") {
+            id == "return" || id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || 
+            id == "const" || id == "default" || id == "class" || id == "struct" || id == "enum" || 
+            id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || 
+            id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -4063,7 +4950,12 @@ namespace tkz {
                         this->advance();
                         if (current_char == '=') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::EQ_TO, "==", start_pos));
+                            if (current_char == '=') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::QEQEQ, "===", start_pos));
+                            } else {
+                                tokens.push_back(Token(TokenType::EQ_TO, "==", start_pos));
+                            }
                         } else {
                             tokens.push_back(Token(TokenType::EQ, "", start_pos));
                             break;
@@ -4073,7 +4965,15 @@ namespace tkz {
                         this->advance();
                         if (current_char == '=') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::NOT_EQ, "!=", start_pos));
+                            if (current_char == '=') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::QNEQ, "!==", start_pos));
+                            } else { 
+                                tokens.push_back(Token(TokenType::NOT_EQ, "!=", start_pos));
+                            }
+                        } else if (current_char == '!') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::QNOT, "!!", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::NOT, "!", start_pos));
                             break;
@@ -4084,6 +4984,9 @@ namespace tkz {
                         if (current_char == '=') {
                             this->advance();
                             tokens.push_back(Token(TokenType::MORE_EQ, ">=", start_pos));
+                        } else if (this->current_char == '>') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::RSHIFT, ">>", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::MORE, "", start_pos));
                             break;
@@ -4140,7 +5043,18 @@ namespace tkz {
                         this->advance();
                         if (current_char == '&') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::AND, "&&", start_pos));
+                            if (current_char == '&') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::QAND, "&&&", start_pos));
+                            } else {
+                                tokens.push_back(Token(TokenType::AND, "&&", start_pos));
+                            }
+                        } else if (this->current_char == '|') {
+                            this->advance();
+                            if (this->current_char == '&') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::COLLAPSE_AND, "&|&", start_pos));
+                            }
                         } else {
                             tokens.push_back(Token(TokenType::DEF, "&", start_pos));
                             break;
@@ -4150,7 +5064,18 @@ namespace tkz {
                         this->advance();
                         if (current_char == '|') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::OR, "||", start_pos));
+                            if (current_char == '|') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::QOR, "|||", start_pos));
+                            } else {
+                                tokens.push_back(Token(TokenType::OR, "||", start_pos));
+                            }
+                        } else if (this->current_char == '&') {
+                                this->advance();
+                                if (this->current_char == '|') {
+                                    this->advance();
+                                    tokens.push_back(Token(TokenType::COLLAPSE_OR, "|&|", start_pos));
+                                }
                         } else {
                             tokens.push_back(Token(TokenType::DEF, "|", start_pos));
                             break;
@@ -4159,6 +5084,15 @@ namespace tkz {
                     case '@':
                         this->advance();
                         tokens.push_back(Token(TokenType::AT, "@", start_pos));
+                        break;
+                    case '^':
+                        this->advance();
+                        if (current_char == '^') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::QXOR, "^^", start_pos));
+                        } else {
+                            tokens.push_back(Token(TokenType::XOR, "^", start_pos));
+                        }
                         break;
                     case ',':
                         this->advance();

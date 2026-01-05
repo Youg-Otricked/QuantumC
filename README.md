@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v2.9 - "Spread and foreach"
+Current Version: v3.2 = "Quantum logic"
 
 ## Working:
 
@@ -90,13 +90,15 @@ Lists
 Spread syntax for arrays (@)
 Length memeber for arrays + lists
 Quantum Booleans (superposition!)
+Quantum Logical Operators
 
 ## Coming Soon:
 
 
 Union Types (TypeScript-style)
 Structs
-Quantum Logical Operators
+Random
+Maps
 
 ---
 

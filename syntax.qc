@@ -857,8 +857,73 @@ int main() {
     qb = both;            // Superposition! Both true AND false!
     
     std::qout << "QBool: " << qb << "\n";
+    // =======================================
+    // Quantum Logic & control flow
+    // =======================================
+    println("=== QTRUE ===");
+    qbool q1 = qtrue;
+    qif (q1) {
+        println("True");
+    } qelse {
+        println("False");
+    }
+    
+    println("\n=== QFALSE ===");
+    qbool q2 = qfalse;
+    qif (q2) {
+        println("True");
+    } qelse {
+        println("False");
+    }
+    
+    println("\n=== BOTH ===");
+    qbool q3 = both;
+    qif (q3) {
+        println("True");
+    } qelse {
+        println("False");
+    }
+    
+    println("\n=== NONE ===");
+    qbool q4 = none;
+    qif (q4) {
+        println("True");
+    } qelse {
+        println("False");
+    }
+    // use qelif for else if statments
+    qb = both;
+    
+    qswitch (qb) {
+        case t:
+            println("True case!");
+            break;
+        case f:
+            println("False case!");
+            break;
+        case n:
+            println("None case!");
+            break;
+        case b:
+            println("Both case!");
+            break;
+    }
+    qbool z = qtrue;
+    qbool n = both;
+    std::qin >> z;
+    std::qin >> n;
+    std::qout << z &&& n; // if both sides can be true and one is both both
+    std::qout << z ||| n; // if at least one side is both both
+    std::qout << z ^^ n; // ||| !!&&&
+    std::qout << "z" === 1; // if left is eqaul to ight true
+    std::qout << "z" !== 1;// === but !=
+    std::qout << n;
+    std::qout << !!n;// ! but for QBOOLs
+    std::qout << !n;
+    std::qout << z |&| !!n; // if either side is true or both true
+    std::qout << z &|& n; // if both sides are true or both true
     // END OF DEMO
-    // All features shown above are working in Quantum C v3.0!
+    // All features shown above are working in Quantum C v3.1!
     //==============================================================================
     return 0;
 }
