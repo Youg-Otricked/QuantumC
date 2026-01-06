@@ -15,6 +15,7 @@
 #include <vector>
 #include <map>
 #include <chrono>
+#include <cstdlib>
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
@@ -247,6 +248,10 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<RandomCallNode>>) { 
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -440,6 +445,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<RandomCallNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -533,6 +542,10 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<RandomCallNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
                 return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
@@ -3587,7 +3600,51 @@ namespace tkz {
                 if (func_name == "println") std::cout << std::endl;
                 return Number<int>(0);
             }
-
+            if (func_name == "random") {
+                std::vector<NumberVariant> args;
+                for (auto& arg : node->arg_nodes) {
+                    args.push_back(this->process(arg));
+                }
+                
+                if (args.size() == 0) {
+                    float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+                    return Number<float>(r);
+                }
+                else if (args.size() == 1) {
+                    if (auto max_num = std::get_if<Number<int>>(&args[0])) {
+                        int r = rand() % max_num->value;
+                        return Number<int>(r);
+                    }
+                    throw RTError("random(max) requires integer argument",  Position());
+                }
+                else if (args.size() == 2) {
+                    if (auto min_num = std::get_if<Number<int>>(&args[0])) {
+                        if (auto max_num = std::get_if<Number<int>>(&args[1])) {
+                            int range = max_num->value - min_num->value;
+                            int r = min_num->value + (rand() % range);
+                            return Number<int>(r);
+                        }
+                    }
+                    throw RTError("random(min, max) requires integer arguments", Position());
+                }
+                
+                throw RTError("random() takes 0, 1, or 2 arguments", Position());
+            }
+            
+            if (func_name == "seed") {
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("seed() requires exactly 1 argument", Position());
+                }
+                
+                NumberVariant seed_val = this->process(node->arg_nodes.front());
+                
+                if (auto seed_num = std::get_if<Number<int>>(&seed_val)) {
+                    srand(seed_num->value);
+                    return VoidValue();
+                }
+                
+                throw RTError("seed() requires integer argument",  Position());
+            }
             try { target_val = context->get(func_name, varacc->var_name_tok.pos); }
             catch (RTError&) {
                 auto func = context->get_function(func_name);
@@ -3597,7 +3654,7 @@ namespace tkz {
         } else {
             target_val = this->process(node->node_to_call);
         }
-
+        
         if (!std::holds_alternative<FunctionValue>(target_val))
             throw RTError("Can only call functions", Position());
 
@@ -4816,6 +4873,53 @@ namespace tkz {
         }
         
         throw RTError("Cannot assign to this type", Position());
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        if (node->args.size() == 0) {
+            float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+            return Number<float>(r);
+        }
+        else if (node->args.size() == 1) {
+            NumberVariant max_val = this->process(node->args[0]);
+            
+            if (auto max_num = std::get_if<Number<int>>(&max_val)) {
+                int r = rand() % max_num->value;
+                return Number<int>(r);
+            }
+            
+            throw RTError("random(max) requires integer argument", Position());
+        }
+        else if (node->args.size() == 2) {
+            NumberVariant min_val = this->process(node->args[0]);
+            NumberVariant max_val = this->process(node->args[1]);
+            
+            if (auto min_num = std::get_if<Number<int>>(&min_val)) {
+                if (auto max_num = std::get_if<Number<int>>(&max_val)) {
+                    int range = max_num->value - min_num->value;
+                    int r = min_num->value + (rand() % range);
+                    return Number<int>(r);
+                }
+            }
+            
+            throw RTError("random(min, max) requires integer arguments", Position());
+        }
+        
+        throw RTError("random() takes 0, 1, or 2 arguments", Position());
+    }
+
+    NumberVariant Interpreter::operator()(std::unique_ptr<SeedCallNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        NumberVariant seed_val = this->process(node->value);
+        
+        if (auto seed_num = std::get_if<Number<int>>(&seed_val)) {
+            srand(seed_num->value);
+            return VoidValue();
+        }
+        
+        throw RTError("seed() requires integer argument", Position());
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////

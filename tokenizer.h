@@ -74,6 +74,8 @@ namespace tkz {
     class QSwitchNode;
     class MapDeclNode;
     class ArrayAssignNode;
+    class SeedCallNode;
+    class RandomCallNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -112,7 +114,9 @@ namespace tkz {
         std::unique_ptr<SpreadNode>,
         std::unique_ptr<ForeachNode>,
         std::unique_ptr<MapDeclNode>,
-        std::unique_ptr<ArrayAssignNode>
+        std::unique_ptr<ArrayAssignNode>,
+        std::unique_ptr<SeedCallNode>,
+        std::unique_ptr<RandomCallNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -746,7 +750,27 @@ namespace tkz {
             return "array_assign";
         }
     };
+    class RandomCallNode {
+    public:
+        std::vector<AnyNode> args;
+        
+        RandomCallNode(std::vector<AnyNode>&& a) : args(std::move(a)) {}
+        
+        std::string print() const {
+            return "random()";
+        }
+    };
 
+    class SeedCallNode {
+    public:
+        AnyNode value;
+        
+        SeedCallNode(AnyNode&& val) : value(std::move(val)) {}
+        
+        std::string print() const {
+            return "seed()";
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -768,7 +792,9 @@ namespace tkz {
         std::unique_ptr<QIfNode>,
         std::unique_ptr<QSwitchNode>,
         std::unique_ptr<MapDeclNode>,
-        std::unique_ptr<ArrayAssignNode>
+        std::unique_ptr<ArrayAssignNode>,
+        std::unique_ptr<SeedCallNode>,
+        std::unique_ptr<RandomCallNode>
     >;
         
     class ParseResult {
@@ -1323,6 +1349,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, std::shared_ptr<ListValue>>) {
                     return "list<" + arg->element_type + ">";
                 }
+                if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
+                    return "map<" + arg->key_type + ", " + arg->value_type + ">";
+                }
                 return "unknown";
             }, val);
         }
@@ -1367,6 +1396,8 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ContinueNode>& node);
         NumberVariant operator()(std::unique_ptr<WhileNode>& node);
         NumberVariant operator()(std::unique_ptr<ForNode>& node);
+        NumberVariant operator()(std::unique_ptr<SeedCallNode>& node);
+        NumberVariant operator()(std::unique_ptr<RandomCallNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiReturnNode>& node);
         NumberVariant operator()(std::unique_ptr<ArrayDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<ArrayLiteralNode>& node);

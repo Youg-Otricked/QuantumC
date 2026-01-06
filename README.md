@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v3.3 = "Maps"
+Current Version: v3.4 = "Rand"
 
 ## Working:
 
@@ -92,13 +92,13 @@ Length memeber for arrays + lists
 Quantum Booleans (superposition!)
 Quantum Logical Operators
 Maps
+Random
 
 ## Coming Soon:
 
 
 Union Types (TypeScript-style)
 Structs
-Random
 
 ---
 
