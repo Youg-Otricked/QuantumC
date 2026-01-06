@@ -43,6 +43,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Build (Windows)
+        shell: bash
         run: |
           g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
       
