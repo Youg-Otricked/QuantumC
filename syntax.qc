@@ -922,8 +922,27 @@ int main() {
     std::qout << !n;
     std::qout << z |&| !!n; // if either side is true or both true
     std::qout << z &|& n; // if both sides are true or both true
+    map<string, int> ages = {
+        "Alice": 25,
+        "Bob": 30
+    };
+    
+    println(ages["Alice"]);  // 25
+    
+    ages["Charlie"] = 35;
+    ages.set("Dave", 40);
+    
+    println(ages.size);  // 4
+    println(ages.has("Bob"));  // true
+    
+    ages.remove("Bob");
+    println(ages.has("Bob"));  // false
+    
+    foreach (string key in ages.keys()) {
+        println(key + ": " + f"{ages[key]}");
+    }
     // END OF DEMO
-    // All features shown above are working in Quantum C v3.1!
+    // All features shown above are working in Quantum C v3.3!
     //==============================================================================
     return 0;
 }

@@ -72,6 +72,8 @@ namespace tkz {
     class QBoolNode;
     class QIfNode;
     class QSwitchNode;
+    class MapDeclNode;
+    class ArrayAssignNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -108,7 +110,9 @@ namespace tkz {
         std::unique_ptr<MethodCallNode>,
         std::unique_ptr<PropertyAccessNode>,
         std::unique_ptr<SpreadNode>,
-        std::unique_ptr<ForeachNode>
+        std::unique_ptr<ForeachNode>,
+        std::unique_ptr<MapDeclNode>,
+        std::unique_ptr<ArrayAssignNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -713,6 +717,36 @@ namespace tkz {
             return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)";
         }
     };
+    class MapDeclNode {
+    public:
+        bool is_const;
+        Token key_type;
+        Token value_type;
+        Token var_name;
+        std::vector<std::pair<AnyNode, AnyNode>> init_pairs;  
+        
+        MapDeclNode(bool is_const, Token k_type, Token v_type, Token name,
+                    std::vector<std::pair<AnyNode, AnyNode>>&& pairs)
+            : is_const(is_const), key_type(k_type), value_type(v_type),
+            var_name(name), init_pairs(std::move(pairs)) {}
+        
+        std::string print() const {
+            return "map<" + key_type.value + ", " + value_type.value + "> " + var_name.value;
+        }
+    };
+    class ArrayAssignNode {
+    public:
+        AnyNode array_access;
+        AnyNode value;
+        
+        ArrayAssignNode(AnyNode&& access, AnyNode&& val)
+            : array_access(std::move(access)), value(std::move(val)) {}
+        
+        std::string print() const {
+            return "array_assign";
+        }
+    };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -732,7 +766,9 @@ namespace tkz {
         QBoolNode,
         QInNode,
         std::unique_ptr<QIfNode>,
-        std::unique_ptr<QSwitchNode>
+        std::unique_ptr<QSwitchNode>,
+        std::unique_ptr<MapDeclNode>,
+        std::unique_ptr<ArrayAssignNode>
     >;
         
     class ParseResult {
@@ -964,13 +1000,15 @@ namespace tkz {
     class MultiValue;
     class ArrayValue;
     class ListValue;
+    class MapValue;
     template <typename T> class Number;
     
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
-        std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>
+        std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
+        std::shared_ptr<MapValue>
     >;
     
     template <typename T>
@@ -1089,6 +1127,54 @@ namespace tkz {
         
         size_t length() const {
             return elements.size();
+        }
+        
+        std::string print() const;
+    };
+    class MapValue {
+    public:
+        std::string key_type;
+        std::string value_type;
+        std::unordered_map<std::string, NumberVariant> data;  // Store as strings for now
+        Position pos;
+        
+        MapValue(std::string k_type, std::string v_type)
+            : key_type(k_type), value_type(v_type), pos("", "", 0, 0, 0) {}
+        
+        MapValue& set_pos(Position p) {
+            pos = p;
+            return *this;
+        }
+        
+        void set(std::string key, NumberVariant value) {
+            data[key] = std::move(value);
+        }
+        
+        NumberVariant get(std::string key) {
+            if (data.find(key) == data.end()) {
+                throw RTError("Key not found: " + key, pos);
+            }
+            return data[key];
+        }
+        
+        bool has(std::string key) {
+            return data.find(key) != data.end();
+        }
+        
+        void remove(std::string key) {
+            data.erase(key);
+        }
+        
+        int size() {
+            return data.size();
+        }
+        
+        std::vector<std::string> keys() {
+            std::vector<std::string> result;
+            for (auto& [key, val] : data) {
+                result.push_back(key);
+            }
+            return result;
         }
         
         std::string print() const;
@@ -1256,6 +1342,7 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<BinOpNode>& node);
         NumberVariant operator()(std::unique_ptr<UnaryOpNode>& node);
         NumberVariant operator()(std::monostate);
+        NumberVariant operator()(std::unique_ptr<MapDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<StatementsNode>& node);
         NumberVariant operator()(std::unique_ptr<VarAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<VarAccessNode>& node);
@@ -1268,6 +1355,7 @@ namespace tkz {
         NumberVariant operator()(QBoolNode& node);
         NumberVariant operator()(QOutNode& node);
         NumberVariant operator()(QInNode& node);
+        NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);

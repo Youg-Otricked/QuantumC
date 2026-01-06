@@ -1,6 +1,6 @@
 # Quantum C (C⁴)
 ### The 4th Evolution of C
-Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](learnhardcode.dpdns.org/QuantumC/qc.html).
+Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
 
 
 **More Powerful Than Explosives™**
@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v3.2 = "Quantum logic"
+Current Version: v3.3 = "Maps"
 
 ## Working:
 
@@ -91,6 +91,7 @@ Spread syntax for arrays (@)
 Length memeber for arrays + lists
 Quantum Booleans (superposition!)
 Quantum Logical Operators
+Maps
 
 ## Coming Soon:
 
@@ -98,7 +99,6 @@ Quantum Logical Operators
 Union Types (TypeScript-style)
 Structs
 Random
-Maps
 
 ---
 
@@ -129,6 +129,50 @@ C⁴ - All of the above, none of the pain
 Also, C4 is a powerful explosive. This language is more powerful than explosives.
 
 Now Turing complete!
+
+### Q: Why is your cat GPU-sized?
+**A:** Wrong FAQ. Also IDK
+---
+
+## Quantum Features
+
+Quantum C is the **world's second quantum programming language**, but the **first that doesn't require a $10M quantum computer!**
+
+### Quantum Booleans
+```cpp
+qbool qb = both;  // Superposition! Both true AND false!
+
+qif (qb) {
+    println("True path");   // Executes!
+} qelse {
+    println("False path");  // ALSO executes!
+}
+```
+---
+
+## Quantum Logic Operators
+```cpp
+&&& - Quantum AND
+||| - Quantum OR
+!! - Quantum NOT
+^^ - Quantum XOR
+=== - Quantum EQUAL
+!== - Quantum NOT EQUAL
+|&| - Collapse OR (convert to bool)
+&|& - Collapse AND (convert to bool)
+```
+---
+
+## Why Quantum C?
+
+| **Feature**                   | **C++**    | **C#** | **Rust**       | **Quantum C**       |
+|-------------------------------|------------|--------|----------------|---------------------|
+| **Total Runtime**             | Slow       | Fast   | Slow           | (Near)**Instant**   |
+| **Syntax**                    | Complex    | Clean  | Verbose        | **Minimal**         |
+| **Memory safety**             | Manual     | GC     | Borrow checker | **C style!**        |
+| **Quantum booleans**          | No         | No     | No             | **4 states!**       |
+| **Multi-return**              | Structs    | Tuples | Tuples         | **Native**          |
+| **Requires quantum computer** | No (What?) | Huh?   | WDYM           | NO!**(Unlike Q#!)** |
 
 ---
 Made by [Me](https://github.com/Youg-Otricked)

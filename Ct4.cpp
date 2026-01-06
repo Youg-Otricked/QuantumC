@@ -243,6 +243,10 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
                 return arg.print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -432,6 +436,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
                 return Prs{arg};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -520,10 +528,12 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) { 
                 return Prs{std::move(arg)};
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
-                return Prs{std::move(arg)};
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+            } else if constexpr (std::is_same_v<T, QInNode>) { 
                 return Prs{arg};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAssignNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -1990,27 +2000,32 @@ namespace tkz {
     }
     Prs Parser::assignment_expr() {
         ParseResult res;
-    
+
         AnyNode left = res.reg(this->qout_expr());
-    
+
         if (res.error) return res.to_prs();
+        
         if (this->current_tok.type == TokenType::EQ ||
             this->current_tok.type == TokenType::PLUS_EQ ||
             this->current_tok.type == TokenType::MINUS_EQ ||
             this->current_tok.type == TokenType::MUL_EQ ||
             this->current_tok.type == TokenType::DIV_EQ ||
             this->current_tok.type == TokenType::MOD_EQ) {
-            if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(left)) {
+            
+            bool is_var = std::holds_alternative<std::unique_ptr<VarAccessNode>>(left);
+            bool is_array_access = std::holds_alternative<std::unique_ptr<ArrayAccessNode>>(left);
+            
+            if (!is_var && !is_array_access) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Left side of assignment must be a variable",
+                    "Left side of assignment must be a variable or array/map access",
                     this->current_tok.pos
                 ));
                 return res.to_prs();
             }
-
-            Token var = std::get<std::unique_ptr<VarAccessNode>>(left)->var_name_tok;
+            
             Token op_tok = this->current_tok;
             this->advance();
+            
             AnyNode right;
             if (op_tok.type == TokenType::EQ) {
                 auto next_it = std::next(it);
@@ -2025,7 +2040,24 @@ namespace tkz {
             }
             
             if (res.error) return res.to_prs();
-
+            
+            if (is_array_access) {
+                if (op_tok.type != TokenType::EQ) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Compound assignment (+=, -=, etc.) not supported for array/map access",
+                        op_tok.pos
+                    ));
+                    return res.to_prs();
+                }
+                
+                return res.success(std::make_unique<ArrayAssignNode>(
+                    std::move(left),
+                    std::move(right)
+                ));
+            }
+            
+            Token var = std::get<std::unique_ptr<VarAccessNode>>(left)->var_name_tok;
+            
             if (op_tok.type != TokenType::EQ) {
                 TokenType binop_type;
                 if (op_tok.type == TokenType::PLUS_EQ) binop_type = TokenType::PLUS;
@@ -2438,6 +2470,114 @@ namespace tkz {
             Token name_tok;
             Token type_tok = tok;
             this->advance();
+
+            if (type_tok.value == "map" && this->current_tok.type == TokenType::LESS) {
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected key type in map<K, V>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token key_type = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::COMMA) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ',' in map<K, V>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected value type in map<K, V>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token value_type = this->current_tok;
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::MORE) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '>' in map<K, V>", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected variable name", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token var_name = this->current_tok;
+                this->advance();
+                
+                std::vector<std::pair<AnyNode, AnyNode>> init_pairs;
+                
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::LBRACE) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected '{' for map initialization", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::RBRACE) {
+                        AnyNode key = res.reg(this->logical_or());
+                        if (res.error) return res.to_prs();
+                        
+                        if (this->current_tok.type != TokenType::COLON) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ':' after key", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        AnyNode value = res.reg(this->logical_or());
+                        if (res.error) return res.to_prs();
+                        
+                        init_pairs.emplace_back(std::move(key), std::move(value));
+                        
+                        while (this->current_tok.type == TokenType::COMMA) {
+                            this->advance();
+                            
+                            if (this->current_tok.type == TokenType::RBRACE) break; 
+                            
+                            AnyNode key = res.reg(this->logical_or());
+                            if (res.error) return res.to_prs();
+                            
+                            if (this->current_tok.type != TokenType::COLON) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected ':' after key", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                            
+                            AnyNode value = res.reg(this->logical_or());
+                            if (res.error) return res.to_prs();
+                            
+                            init_pairs.emplace_back(std::move(key), std::move(value));
+                        }
+                    }
+                    if (this->current_tok.type != TokenType::RBRACE) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected '}' after map initialization", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                return res.success(std::make_unique<MapDeclNode>(
+                    is_const, key_type, value_type, var_name, std::move(init_pairs)));
+            }
             if (type_tok.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
                 
@@ -2850,13 +2990,25 @@ namespace tkz {
             }
             else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
                             std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
-                            std::is_same_v<T, std::shared_ptr<ListValue>>) {
+                            std::is_same_v<T, std::shared_ptr<ListValue>> ||
+                            std::is_same_v<T, std::shared_ptr<MapValue>>) {
                 return v->print();
             } 
             else {
                 return v.print();
             }
         }, val);
+    }
+    std::string MapValue::print() const {
+        std::string result = "{";
+        bool first = true;
+        for (auto& [key, val] : data) {
+            if (!first) result += ", ";
+            result += key + ": " + value_to_string(val);
+            first = false;
+        }
+        result += "}";
+        return result;
     }
     bool values_equal(const NumberVariant& a,
                   const NumberVariant& b,
@@ -3013,6 +3165,30 @@ namespace tkz {
                         std::move(value), 
                         node->is_const);
         return std::move(value);
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<MapDeclNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        auto map_val = std::make_shared<MapValue>(
+            node->key_type.value,
+            node->value_type.value
+        );
+        
+        // Initialize with pairs
+        for (auto& [key_node, val_node] : node->init_pairs) {
+            NumberVariant key = this->process(key_node);
+            NumberVariant val = this->process(val_node);
+            
+            // Convert key to string
+            std::string key_str = value_to_string(key);
+            
+            map_val->set(key_str, std::move(val));
+        }
+        
+        std::string map_type = "map<" + node->key_type.value + ", " + node->value_type.value + ">";
+        context->define(node->var_name.value, map_type, map_val, node->is_const);
+        
+        return VoidValue();
     }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode& ifn) {
         if (ifn.init.has_value())
@@ -3928,6 +4104,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ListValue>> || std::is_same_v<T2, std::shared_ptr<ListValue>>) { 
                 throw RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos);
             }
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<MapValue>> || std::is_same_v<T2, std::shared_ptr<MapValue>>) { 
+                throw RTError("Cannot preform arithmetic operations on a map/dictt", node->op_tok.pos);
+            }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
                             std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
                 throw RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos);
@@ -4058,7 +4237,8 @@ namespace tkz {
                     !std::is_same_v<T, VoidValue> &&
                     !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                     !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
-                    !std::is_same_v<T, std::shared_ptr<ListValue>>
+                    !std::is_same_v<T, std::shared_ptr<ListValue>>  &&
+                    !std::is_same_v<T, std::shared_ptr<MapValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
@@ -4087,7 +4267,8 @@ namespace tkz {
                 !std::is_same_v<T, std::monostate> &&
                 !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                 !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
-                !std::is_same_v<T, std::shared_ptr<ListValue>>
+                !std::is_same_v<T, std::shared_ptr<ListValue>> &&
+                !std::is_same_v<T, std::shared_ptr<MapValue>>
 
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
@@ -4324,7 +4505,18 @@ namespace tkz {
         if (!node) return Number<int>(0);
 
         NumberVariant base_value = this->process(node->base);
-
+        if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&base_value)) {
+            auto map = *map_ptr;
+            
+            if (node->indices.size() != 1) {
+                throw RTError("Map access requires exactly one key", Position());
+            }
+            
+            NumberVariant key = this->process(node->indices[0]);
+            std::string key_str = value_to_string(key);
+            
+            return map->get(key_str);
+        }
         bool is_array = std::holds_alternative<std::shared_ptr<ArrayValue>>(base_value);
         bool is_list  = std::holds_alternative<std::shared_ptr<ListValue>>(base_value);
 
@@ -4443,7 +4635,58 @@ namespace tkz {
             
             throw RTError("Unknown method: " + node->method_name.value, node->method_name.pos);
         }
-        
+        if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
+            auto map = *map_ptr;
+            
+            if (node->method_name.value == "set") {
+                if (node->args.size() != 2) {
+                    throw RTError("set() requires 2 arguments (key, value)", node->method_name.pos);
+                }
+                NumberVariant key = this->process(node->args[0]);
+                NumberVariant val = this->process(node->args[1]);
+                
+                std::string key_str = value_to_string(key);
+                map->set(key_str, std::move(val));
+                return VoidValue();
+            }
+            
+            if (node->method_name.value == "remove") {
+                if (node->args.size() != 1) {
+                    throw RTError("remove() requires 1 argument (key)", node->method_name.pos);
+                }
+                NumberVariant key = this->process(node->args[0]);
+                std::string key_str = value_to_string(key);
+                
+                map->remove(key_str);
+                return VoidValue();
+            }
+            
+            if (node->method_name.value == "has") {
+                if (node->args.size() != 1) {
+                    throw RTError("has() requires 1 argument (key)", node->method_name.pos);
+                }
+                NumberVariant key = this->process(node->args[0]);
+                std::string key_str = value_to_string(key);
+                
+                return BoolValue(map->has(key_str) ? "true" : "false");
+            }
+            
+            if (node->method_name.value == "keys") {
+                if (node->args.size() != 0) {
+                    throw RTError("keys() takes no arguments", node->method_name.pos);
+                }
+                
+                auto keys = map->keys();
+                std::vector<NumberVariant> key_variants;
+                for (auto& key : keys) {
+                    key_variants.push_back(StringValue(key));
+                }
+                
+                return std::make_shared<ArrayValue>("string", std::move(key_variants));
+            }
+            
+            throw RTError("Unknown map method: " + node->method_name.value, node->method_name.pos);
+        }
         throw RTError("Object does not support methods", node->method_name.pos);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<PropertyAccessNode>& node) {
@@ -4457,6 +4700,11 @@ namespace tkz {
             }
             if (auto list = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
                 return Number<int>((*list)->length());
+            }
+        }
+        if (node->property_name.value == "size") {
+            if (auto map = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
+                return Number<int>((*map)->size());
             }
         }
         
@@ -4494,6 +4742,80 @@ namespace tkz {
         }
         
         return VoidValue();
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode>& node) {
+        if (!node) return Number<int>(0);
+        
+        auto& arr_access = std::get<std::unique_ptr<ArrayAccessNode>>(node->array_access);
+        NumberVariant base = this->process(arr_access->base);
+        NumberVariant val = this->process(node->value);
+        
+        if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&base)) {
+            auto map = *map_ptr;
+            
+            if (arr_access->indices.size() != 1) {
+                throw RTError("Map access requires exactly one key", Position());
+            }
+            
+            NumberVariant key = this->process(arr_access->indices[0]);
+            std::string key_str = value_to_string(key);
+            map->set(key_str, std::move(val));
+            return val;
+        }
+        
+        if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&base)) {
+            auto arr = *arr_ptr;
+            
+            int flat_index = 0;
+            int multiplier = 1;
+            
+            for (int i = arr_access->indices.size() - 1; i >= 0; i--) {
+                NumberVariant idx_val = this->process(arr_access->indices[i]);
+                
+                if (auto idx_num = std::get_if<Number<int>>(&idx_val)) {
+                    int idx = idx_num->value;
+                    flat_index += idx * multiplier;
+                    
+                    if (i > 0) {
+                        multiplier *= 10;
+                    }
+                } else {
+                    throw RTError("Array index must be an integer", Position());
+                }
+            }
+            
+            if (flat_index < 0 || flat_index >= arr->elements.size()) {
+                throw RTError("Array index out of bounds", Position());
+            }
+            
+            arr->elements[flat_index] = std::move(val);
+            return val;
+        }
+        
+        if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&base)) {
+            auto list = *list_ptr;
+            
+            if (arr_access->indices.size() != 1) {
+                throw RTError("List access requires exactly one index", Position());
+            }
+            
+            NumberVariant idx_val = this->process(arr_access->indices[0]);
+            
+            if (auto idx_num = std::get_if<Number<int>>(&idx_val)) {
+                int idx = idx_num->value;
+                
+                if (idx < 0 || idx >= list->elements.size()) {
+                    throw RTError("List index out of bounds", Position());
+                }
+                
+                list->elements[idx] = std::move(val);
+                return val;
+            } else {
+                throw RTError("List index must be an integer", Position());
+            }
+        }
+        
+        throw RTError("Cannot assign to this type", Position());
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
@@ -4694,7 +5016,8 @@ namespace tkz {
             id == "return" || id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || 
             id == "const" || id == "default" || id == "class" || id == "struct" || id == "enum" || 
             id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || 
-            id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function") {
+            id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
+            id == "map") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
