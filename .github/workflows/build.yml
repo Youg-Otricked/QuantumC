@@ -44,7 +44,7 @@ jobs:
       
       - name: Build (Windows)
         run: |
-          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
       
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
