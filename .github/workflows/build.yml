@@ -29,7 +29,7 @@ jobs:
       
       - name: Build (macOS)
         run: |
-          clang++ *.cpp -o qc-macos -std=c++23
+          clang++ *.cpp -o qc-macos -std=c++20
       
       - name: Upload macOS Binary
         uses: actions/upload-artifact@v4
@@ -44,7 +44,7 @@ jobs:
       
       - name: Build (Windows)
         run: |
-          g++ -mbig-obj *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
+          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
       
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
