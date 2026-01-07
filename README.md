@@ -31,7 +31,7 @@ git clone https://github.com/Youg-Otricked/QuantumC
 cd QuantumC
 
 # Compile (one time)
-clang++ *.cpp -o qc -std=c++23
+clang++ *.cpp -o qc -std=c++20
 
 # Run the demo
 ./qc -d
@@ -60,7 +60,7 @@ git clone https://github.com/Youg-Otricked/QuantumC
 # Move into it
 cd QuantumC
 # Compile
-g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000
+g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
 # Run the syntax guide
 qc.exe -d
 ```
@@ -73,7 +73,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v3.4 = "Rand"
+Current Version: v3.6 = "Long & Short"
 
 ## Working:
 
@@ -93,6 +93,7 @@ Quantum Booleans (superposition!)
 Quantum Logical Operators
 Maps
 Random
+Long and Short
 
 ## Coming Soon:
 
