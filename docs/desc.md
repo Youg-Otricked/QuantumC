@@ -2,7 +2,7 @@
 
 
 # Features
-[Back to home](./index.md)
+[Back to home](index.md)
 
 
 ### Quantum C currently has the Following features:
