@@ -1031,6 +1031,8 @@ namespace tkz {
     
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
+        Number<long long>, Number<long double>,
+        Number<short>,
         StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
@@ -1333,15 +1335,18 @@ namespace tkz {
         std::string get_type_name(const NumberVariant& val) {
             return std::visit([](auto&& arg) -> std::string {
                 using T = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<T, Number<int>>)    return "int";
-                if constexpr (std::is_same_v<T, Number<float>>)  return "float";
-                if constexpr (std::is_same_v<T, Number<double>>) return "double";
-                if constexpr (std::is_same_v<T, StringValue>)    return "string";
-                if constexpr (std::is_same_v<T, CharValue>)      return "char";
-                if constexpr (std::is_same_v<T, BoolValue>)      return "bool";
-                if constexpr (std::is_same_v<T, QBoolValue>)      return "qbool";
-                if constexpr (std::is_same_v<T, FunctionValue>)  return "function";
-                if constexpr (std::is_same_v<T, VoidValue>)      return "void";
+                if constexpr (std::is_same_v<T, Number<short>>)               return "short int";
+                if constexpr (std::is_same_v<T, Number<int>>)                 return "int";
+                if constexpr (std::is_same_v<T, Number<long long>>)           return "long int";
+                if constexpr (std::is_same_v<T, Number<float>>)               return "float";
+                if constexpr (std::is_same_v<T, Number<double>>)              return "double";
+                if constexpr (std::is_same_v<T, Number<long double>>)         return "long double";
+                if constexpr (std::is_same_v<T, StringValue>)                 return "string";
+                if constexpr (std::is_same_v<T, CharValue>)                   return "char";
+                if constexpr (std::is_same_v<T, BoolValue>)                   return "bool";
+                if constexpr (std::is_same_v<T, QBoolValue>)                  return "qbool";
+                if constexpr (std::is_same_v<T, FunctionValue>)               return "function";
+                if constexpr (std::is_same_v<T, VoidValue>)                   return "void";
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) return "multi";
                 if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {
                     return arg->element_type + "[]";  

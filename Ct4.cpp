@@ -16,6 +16,9 @@
 #include <map>
 #include <chrono>
 #include <cstdlib>
+#include <ctime>
+#include <climits>  
+static bool random_seeded = false;
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
 }
@@ -242,7 +245,7 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QSwitchNode>>) {
                 return arg->print();
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+            } else if constexpr (std::is_same_v<T, QInNode>) { 
                 return arg.print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
                 return arg->print();
@@ -439,7 +442,7 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QSwitchNode>>) {
                 return Prs{std::move(arg)};
-            } else if constexpr (std::is_same_v<T, std::unique_ptr<QInNode>>) { 
+            } else if constexpr (std::is_same_v<T, QInNode>) { 
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapDeclNode>>) { 
                 return Prs{std::move(arg)};
@@ -594,19 +597,32 @@ namespace tkz {
 // PARSER ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     AnyNode default_value_for_type(const Token& type_tok, const Position& pos) {
-        if (type_tok.value == "string") 
-            return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};  // by value
-        if (type_tok.value == "char") 
-            return AnyNode{CharNode(Token(TokenType::CHAR, "\0", pos))};     // by value
-        if (type_tok.value == "float")
-            return AnyNode{NumberNode(Token(TokenType::FLOAT, "0.0f", pos))}; // by value
-        if (type_tok.value == "double")
-            return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))}; // by value
-        if (type_tok.value == "bool")
-            return AnyNode{NumberNode(Token(TokenType::BOOL, "", pos))};      // by value
-        if (type_tok.value == "qbool")
-            return AnyNode{NumberNode(Token(TokenType::QBOOL, "", pos))};      // by value
-        return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};          // by value
+        std::string type = type_tok.value;
+        
+        if (type == "short int")
+            return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+        if (type == "int")
+            return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+        if (type == "long int")
+            return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+        
+        if (type == "float")
+            return AnyNode{NumberNode(Token(TokenType::FLOAT, "0.0f", pos))};
+        if (type == "double")
+            return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
+        if (type == "long double")
+            return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
+        
+        if (type == "string")
+            return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};
+        if (type == "char")
+            return AnyNode{CharNode(Token(TokenType::CHAR, "\0", pos))};
+        if (type == "bool")
+            return AnyNode{BoolNode(Token(TokenType::BOOL, "false", pos))};
+        if (type == "qbool")
+            return AnyNode{QBoolNode(Token(TokenType::QBOOL, "none", pos))};
+        
+        return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
     }
     Parser::Parser(std::list<Token> tokens) {
         this->tokens = tokens;
@@ -1450,25 +1466,9 @@ namespace tkz {
                     return res.success(QOutNode());
                 }
                 if (current_tok.value == "qin") {
-                    advance();
-                    AnyNode left = QInNode{};
-                    if (current_tok.type == TokenType::RSHIFT) {
-                        Token op_tok = current_tok;
-                        advance();
-
-                        AnyNode right = res.reg(this->term());
-                        if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
-                            res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Right-hand side of >> must be a variable",
-                                op_tok.pos
-                            ));
-                            return res.to_prs();
-                        }
-
-                        left = std::make_unique<BinOpNode>(std::move(left), op_tok, std::move(right));
-                    }
-
-                    return res.success(std::move(left));
+                    this->advance();
+                    
+                    return this->qin_expr(); 
                 }
 
             }
@@ -1870,9 +1870,9 @@ namespace tkz {
     }
     Prs Parser::qin_expr() {
         ParseResult res;
-        AnyNode left = res.reg(this->term());
-        if (res.error) return res.to_prs();
-
+        
+        AnyNode left = QInNode{};
+        
         while (current_tok.type == TokenType::RSHIFT) {
             Token op_tok = current_tok;
             advance();
@@ -1881,14 +1881,6 @@ namespace tkz {
             if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Right-hand side of >> must be a variable",
-                    op_tok.pos
-                ));
-                return res.to_prs();
-            }
-
-            if (std::holds_alternative<std::monostate>(left)) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Left-hand side of >> must be std::qin",
                     op_tok.pos
                 ));
                 return res.to_prs();
@@ -2483,6 +2475,21 @@ namespace tkz {
             Token name_tok;
             Token type_tok = tok;
             this->advance();
+            if (type_tok.value == "short" || type_tok.value == "long") {
+                std::string modifier = type_tok.value;
+                
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected type after " + modifier, this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                Token base_type = this->current_tok;
+                this->advance();
+                
+                type_tok.value = modifier + " " + base_type.value;
+                type_tok.pos = base_type.pos;
+            }
 
             if (type_tok.value == "map" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
@@ -3147,6 +3154,39 @@ namespace tkz {
         if (declaredType != "auto") {
             bool type_matches = false;
             
+            if (declaredType == "short int" && actualType == "int") {
+                if (auto int_val = std::get_if<Number<int>>(&value)) {
+                    value = Number<short>(static_cast<short>(int_val->value));
+                    actualType = "short int";
+                }
+            }
+
+                        
+            if (declaredType == "long int" && actualType == "int") {
+                if (auto int_val = std::get_if<Number<int>>(&value)) {
+                    value = Number<long long>(static_cast<long long>(int_val->value));
+                    actualType = "long int";
+                }
+            }
+            
+            if (declaredType == "long double") {
+                if (actualType == "double") {
+                    if (auto dbl_val = std::get_if<Number<double>>(&value)) {
+                        value = Number<long double>(static_cast<long double>(dbl_val->value));
+                        actualType = "long double";
+                    }
+                }
+                else if (actualType == "float") {
+                    if (auto flt_val = std::get_if<Number<float>>(&value)) {
+                        value = Number<long double>(static_cast<long double>(flt_val->value));
+                        actualType = "long double";
+                    }
+                }
+            }
+            if (declaredType == actualType) {
+                type_matches = true;
+            }
+
             if (declaredType == "float" && actualType == "float") {
                 type_matches = true;
             } else if (declaredType == "double" && (actualType == "float" || actualType == "double")) {
@@ -3164,7 +3204,6 @@ namespace tkz {
             } else if (declaredType == "qbool" && actualType == "qbool") {
                 type_matches = true;
             }
-            
             if (!type_matches) {
                 throw RTError(
                     "Type mismatch: expected " + declaredType + ", got " + actualType,
@@ -3579,6 +3618,9 @@ namespace tkz {
         else if (type_name == "char") return CharValue("");
         else if (type_name == "bool") return BoolValue("");
         else if (type_name == "qbool") return QBoolValue("");
+        if (type_name == "short int")    return Number<short>(0);
+        if (type_name == "long int")     return Number<long long>(0);
+        if (type_name == "long double")  return Number<long double>(0.0L);
         else return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
@@ -3605,7 +3647,10 @@ namespace tkz {
                 for (auto& arg : node->arg_nodes) {
                     args.push_back(this->process(arg));
                 }
-                
+                if (!random_seeded) {
+                    srand(static_cast<unsigned int>(time(nullptr)));
+                    random_seeded = true;
+                }
                 if (args.size() == 0) {
                     float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
                     return Number<float>(r);
@@ -3630,8 +3675,15 @@ namespace tkz {
                 
                 throw RTError("random() takes 0, 1, or 2 arguments", Position());
             }
-            
+            if (func_name == "time") {
+                if (node->arg_nodes.size() != 0) {
+                    throw RTError("time() takes no arguments", Position());
+                }
+                
+                return Number<int>(static_cast<int>(time(nullptr)));
+            }
             if (func_name == "seed") {
+                
                 if (node->arg_nodes.size() != 1) {
                     throw RTError("seed() requires exactly 1 argument", Position());
                 }
@@ -3640,6 +3692,7 @@ namespace tkz {
                 
                 if (auto seed_num = std::get_if<Number<int>>(&seed_val)) {
                     srand(seed_num->value);
+                    random_seeded = true;
                     return VoidValue();
                 }
                 
@@ -3821,24 +3874,33 @@ namespace tkz {
     }
     
     NumberVariant Interpreter::operator()(NumberNode& node) {
-        const std::string& s = node.tok.value;
-
-        try {
-            if (node.tok.type == TokenType::FLOAT) {
-                float val = std::stof(s);
-                return std::move(Number<float>(val).set_pos(node.tok.pos));
+        if (node.tok.type == TokenType::INT) {
+            try {
+                long long val = std::stoll(node.tok.value);
+                
+                if (val > INT_MAX || val < INT_MIN) {
+                    return Number<long long>(val);
+                }
+                
+                if (val >= SHRT_MIN && val <= SHRT_MAX) {
+                    return Number<int>(static_cast<int>(val));
+                }
+                
+                return Number<int>(static_cast<int>(val));
+            } catch (...) {
+                throw RTError("Integer out of range", node.tok.pos);
             }
-            if (s.find('.') != std::string::npos) {
-                double val = std::stod(s);
-                return std::move(Number<double>(val).set_pos(node.tok.pos));
-            }
-
-            int val = std::stoi(s);
-            return std::move(Number<int>(val).set_pos(node.tok.pos));
-
-        } catch (const std::out_of_range&) {
-            throw RTError("Number is too large or too small (Overflow/Underflow)", node.tok.pos);
         }
+        
+        if (node.tok.type == TokenType::FLOAT) {
+            return Number<float>(std::stof(node.tok.value));
+        }
+        
+        if (node.tok.type == TokenType::DOUBLE) {
+            return Number<double>(std::stod(node.tok.value));
+        }
+        
+        return Number<int>(0);
     }
 
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAccessNode>& node) {
@@ -3891,56 +3953,81 @@ namespace tkz {
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
         if (!node) return std::move(Number<int>(0));
         if (node->op_tok.type == TokenType::RSHIFT) {
-            if (std::holds_alternative<std::monostate>(node->left_node)) {
-                throw RTError("Left-hand side of >> must be std::qin", node->op_tok.pos);
+            bool is_qin_start = std::holds_alternative<QInNode>(node->left_node);
+            
+            bool is_qin_chain = false;
+            if (auto left_binop = std::get_if<std::unique_ptr<BinOpNode>>(&node->left_node)) {
+                if ((*left_binop)->op_tok.type == TokenType::RSHIFT) {
+                    is_qin_chain = true; 
+                }
             }
-            if (std::holds_alternative<QInNode>(node->left_node)) {
+            
+            if (is_qin_start || is_qin_chain) {
+                this->process(node->left_node);
+                
+                        
                 if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->right_node)) {
                     std::string var_name = (*var)->var_name_tok.value;
+                    
                     
                     std::string input;
                     std::cin >> input;
                     
+                    
                     auto v = this->context->get(var_name, node->op_tok.pos);
                     auto type = this->context->get_type_name(v);
                     NumberVariant val;
-                    switch (stringToTokenType(type)) {
-                        case TokenType::INT:
-                            try {
+                    
+                    if (type == "int" || type == "short int" || type == "long int") {
+                        try {
+                            if (type == "short int") {
+                                val = Number<short>(static_cast<short>(std::stoi(input)));
+                            }
+                            else if (type == "long int") {
+                                val = Number<long long>(std::stoll(input));
+                            }
+                            else {
                                 val = Number<int>(std::stoi(input));
-                            } catch (...) {
-                                throw RTError("Cannot assign value to an int", node->op_tok.pos);
                             }
-                            break;
-                        case TokenType::FLOAT:
-                            try {
-                                val = Number<float>(std::stof(input));
-                            } catch (...) {
-                                throw RTError("Cannot assign value to an float", node->op_tok.pos);
-                            }
-                            break;
-                        case TokenType::DOUBLE:
-                            try {
-                                val = Number<double>(std::stod(input));
-                            } catch (...) {
-                                throw RTError("Cannot assign value to an double", node->op_tok.pos);
-                            }
-                            break;
-                        case TokenType::STRING:
-                            val = StringValue(input);
-                            break;
-                        case TokenType::CHAR:
-                            val = CharValue(input);
-                            break;
-                        case TokenType::BOOL:
-                            val = BoolValue(input);
-                            break;
-                        case TokenType::QBOOL:
-                            val = QBoolValue(input);
-                            break;
-                        default:
-                            throw RTError("Cannot assign value from input to type " + type, node->op_tok.pos);
+                        } catch (...) {
+                            throw RTError("Cannot parse integer", node->op_tok.pos);
+                        }
                     }
+                    else if (type == "float") {
+                        try {
+                            val = Number<float>(std::stof(input));
+                        } catch (...) {
+                            throw RTError("Cannot parse float", node->op_tok.pos);
+                        }
+                    }
+                    else if (type == "double" || type == "long double") {
+                        try {
+                            if (type == "long double") {
+                                val = Number<long double>(std::stold(input));
+                            }
+                            else {
+                                val = Number<double>(std::stod(input));
+                            }
+                        } catch (...) {
+                            throw RTError("Cannot parse double", node->op_tok.pos);
+                        }
+                    }
+                    else if (type == "string") {
+                        val = StringValue(input);
+                    }
+                    else if (type == "char") {
+                        val = CharValue(std::string(1, input[0]));
+                    }
+                    else if (type == "bool") {
+                        val = BoolValue(input);
+                    }
+                    else if (type == "qbool") {
+                        val = QBoolValue(input);
+                    }
+                    else {
+                        throw RTError("Cannot read input into type " + type, node->op_tok.pos);
+                    }
+                    
                     context->set(var_name, val, node->op_tok.pos);
                     return VoidValue();
                 }

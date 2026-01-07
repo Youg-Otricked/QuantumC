@@ -908,9 +908,11 @@ int main() {
             println("Both case!");
             break;
     }
+    std::qout << "Type qtrue qfalse none or both" << '\n';
     qbool z = qtrue;
     qbool n = both;
     std::qin >> z;
+    std::qout << "\nType qtrue qfalse none or both" << '\n';
     std::qin >> n;
     std::qout << z &&& n; // if both sides can be true and one is both both
     std::qout << z ||| n; // if at least one side is both both
@@ -941,12 +943,52 @@ int main() {
     foreach (string key in ages.keys()) {
         println(key + ": " + f"{ages[key]}");
     }
-    seed(12345);
+    seed(time());
     
     println(random());        // 0.0 to 1.0
     println(random(10));      // 0 to 9
     println(random(5, 15));   // 5 to 14
+    // INPUT AND short or long
+
+    // USACO fence problem
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    int d = 0;
+    std::qout << "Type two numbers seperated by a space";
+    std::qin >> a >> b;
+    std::qout << "Type two numbers seperated by a space";
+    std::qin >> c >> d;
+    if (a < c && b < c || c < a &&  d < a) {
+        std::qout << b - a + d - c;
+    }
+    else if (a < c) {
+        if (b < d) {
+            std::qout << d - a;
+        }  else {
+            std::qout << b - a;
+        }
+    } else {
+        if (b < d) {
+            std::qout << d - c;
+        }  else {
+            std::qout << b - c;
+        }
+    }
+    // end of fence
+    short int x = 100;
+    int y = 50000;
+    long int z = 9999999999;
+    float f = 3.14f;
+    double d = 3.14159;
+    long double ld = 3.14159265358979323846;
     
+    println(x);
+    println(y);
+    println(z);
+    println(f);
+    println(d);
+    println(ld);
     // END OF DEMO
     // All features shown above are working in Quantum C v3.4!
     //==============================================================================
