@@ -1,5 +1,6 @@
+<link rel="stylesheet" href="style.css">
 # Getting started
-[Back to home](./docs.md)
+[Back to home](./index.md)
 
 ## Step 1: install the binarys or compile.
 1. [ ] Either install the code from or download the code AND binarys from [Here](https://github.com/Youg-Otricked/QuantumC)

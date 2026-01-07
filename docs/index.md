@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="style.css">
+
 # Welcome To The Quantum-C Documentation!
 
 ### Pages:

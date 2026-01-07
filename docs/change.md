@@ -1,5 +1,6 @@
+<link rel="stylesheet" href="style.css">
 # Changelog
-[Back to home](./docs.md)
+[Back to home](./index.md)
 
 1/7/2026: Current version: 3.3: Adding docs.
 

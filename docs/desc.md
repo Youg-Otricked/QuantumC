@@ -1,10 +1,10 @@
+<link rel="stylesheet" href="style.css">
+
 # Features
-[Back to home](./docs.md)
+[Back to home](./index.md)
 
 
 ### Quantum C currently has the Following features:
-<details>
-<summary>Collapse Datatypes table</summary>
 
 Datatype|Contains|Advantage|Bonus Features|
 --------|-----|---------|--------------|
@@ -17,9 +17,6 @@ Char|Single Character|Stores text or a unicode value|Unicode|
 String|String of chars|Allows you to store a full string of text|Concentation with +|
 Function|Stores a function|Allows for lambda functions|Function|
 
-</details>
-<details>
-<summary>Collapse Control Flow table</summary>
 
 Control Flow type|Used on|Pro|Con|
 -----------------|-------|---|---|
@@ -54,10 +51,6 @@ QNOT EQUALS|QBool|!==|Left !== Right|If left is not right both|
 Collapse AND|QBool|&\|&|Left &\|& Right|See truth table|
 Collapse OR|QBool|\|&\||Left \|&\| Right|See table|
 
-</details>
-
-<details>
-<summary>Collapse Truth tables</summary>
 
 ## Truth Tables:
 
@@ -198,26 +191,17 @@ Left/Right|Both|QTrue|QFalse|None|
 **QFalse**|True|True |False |False|
 **None**  |True|True |False |False|
 
-</details>
-
 ### Others
-<details>
-<summary>Notation in Syntax section</summary>
 
 * A \* after somthing in parenphases means it can be repeated any number of times, and a charecter before a star means that charecter must seperate them
 * A ? before parens means it is optional.
 * A number after a \* means somthing must be repeted at least number times
-</details>
-<details>
 
 Other|Syntax|What for?|
 -----|------|---------|
 Function|RetType FuncName(?(ArgType ArgName), *) {Code}|Insetad of copy and pasting code, call a function to run a block|
 Const|const (rest of var decl)|Making a constant(imutable)Variable, EG const double pi = 3.1415
-</details>
-
-<details>
-<summary>Collection Types</summary>
+#### Collection Types
 
 DataType |Pro|Con|Syntax|Usage|Methods|Properties|
 ---------|---|---|------|-----|-------|----------|
@@ -226,6 +210,5 @@ DataType |Pro|Con|Syntax|Usage|Methods|Properties|
 **Dict/Map**|Non fixed size|Non fixed size|map\<KeyType, ValueType> name|Store key -> value pairs|set(name, value): can also use [name] = value, sets the value stored at name to value, if dosent exist, creates it. remove(key): removes a key if key exists. has(key): returns true if a map has the key, otherwise returns false. keys(): returns an array of all keys in a map.|size|
 **List** |Non fixed size|Non fixed size|type[] name|Non fixed size collection of type or array of type or list of type|push(value): pushes value to the top of the list(back). pop(): removes the top(back) item of a list.|size|
 
-</details>
 
 # Some are missing from this page
