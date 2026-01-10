@@ -89,6 +89,95 @@ namespace tkz {
             this->column = 0;
         }
     }
+    std::string get_token_name(TokenType tok) {
+        switch (tok) {
+            case TokenType::INT:        return "int";
+            case TokenType::STRING:     return "string";
+            case TokenType::FLOAT:      return "float";
+            case TokenType::DOUBLE:     return "double";
+            case TokenType::CHAR:       return "char";
+            case TokenType::BOOL:       return "bool";
+            case TokenType::QBOOL:      return "qbool";
+            case TokenType::VOID:       return "void";
+            case TokenType::ENUM:       return "enum";
+            case TokenType::CLASS:      return "class";
+            case TokenType::STRUCT:     return "struct";
+            case TokenType::MAP:        return "map";
+            case TokenType::LIST:       return "list";
+            case TokenType::ARRAY:      return "array";
+            case TokenType::FUNC:       return "func";
+            case TokenType::DEF:        return "def";
+
+            case TokenType::IF:         return "if";
+            case TokenType::ELSE:       return "else";
+            case TokenType::SWITCH:     return "switch";
+            case TokenType::CASE:       return "case";
+            case TokenType::DEFAULT:    return "default";
+            case TokenType::BREAK:      return "break";
+
+            case TokenType::IDENTIFIER: return "identifier";
+            case TokenType::KEYWORD:    return "keyword";
+            case TokenType::FSTRING:    return "fstring";
+
+            case TokenType::PLUS:       return "+";
+            case TokenType::MINUS:      return "-";
+            case TokenType::MUL:        return "*";
+            case TokenType::DIV:        return "/";
+            case TokenType::MOD:        return "%";
+            case TokenType::POWER:      return "**";
+
+            case TokenType::PLUS_EQ:    return "+=";
+            case TokenType::MINUS_EQ:   return "-=";
+            case TokenType::MUL_EQ:     return "*=";
+            case TokenType::DIV_EQ:     return "/=";
+            case TokenType::MOD_EQ:     return "%=";
+
+            case TokenType::INCREMENT:  return "++";
+            case TokenType::DECREMENT:  return "--";
+
+            case TokenType::EQ:         return "=";
+            case TokenType::EQ_TO:      return "==";
+            case TokenType::NOT_EQ:     return "!=";
+            case TokenType::MORE:       return ">";
+            case TokenType::LESS:       return "<";
+            case TokenType::MORE_EQ:    return ">=";
+            case TokenType::LESS_EQ:    return "<=";
+
+            case TokenType::AND:        return "and";
+            case TokenType::OR:         return "or";
+            case TokenType::XOR:        return "xor";
+            case TokenType::NOT:        return "not";
+
+            case TokenType::QAND:        return "qand";
+            case TokenType::QOR:         return "qor";
+            case TokenType::QXOR:        return "qxor";
+            case TokenType::QNOT:        return "qnot";
+            case TokenType::QEQEQ:       return "q===";
+            case TokenType::QNEQ:        return "q!=";
+            case TokenType::COLLAPSE_AND:return "&&?";
+            case TokenType::COLLAPSE_OR: return "||?";
+
+            case TokenType::LPAREN:     return "(";
+            case TokenType::RPAREN:     return ")";
+            case TokenType::LBRACE:     return "{";
+            case TokenType::RBRACE:     return "}";
+            case TokenType::LBRACKET:   return "[";
+            case TokenType::RBRACKET:   return "]";
+            case TokenType::COMMA:      return ",";
+            case TokenType::DOT:        return ".";
+            case TokenType::COLON:      return ":";
+            case TokenType::SEMICOLON:  return ";";
+            case TokenType::ARROW:      return "->";
+            case TokenType::SCOPE:      return "::";
+            case TokenType::LSHIFT:     return "<<";
+            case TokenType::RSHIFT:     return ">>";
+            case TokenType::AT:         return "@";
+
+            case TokenType::EOFT:       return "<eof>";
+        }
+
+        return "<unknown token>";
+    }
     Position Position::copy() {
         return Position(this->Filename, this->Filetxt, this->index, this->line, this->column);
     }
@@ -100,9 +189,9 @@ namespace tkz {
     }
     std::string Token::print() const {
         if (this->value.empty()) {
-            return std::format("{}", static_cast<int>(this->type));
+            return std::format("{}", get_token_name(this->type));
         } else {
-            return std::format("{}:{}", static_cast<int>(this->type), this->value);
+            return std::format("{}:{}", get_token_name(this->type), this->value);
         }
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -5609,6 +5698,52 @@ namespace tkz {
         out += '\n';
         return out;
     }
+    std::string asciiTreeAST(const std::string& s) {
+        std::string out;
+        std::vector<bool> lastChildStack;
+        int indent = 0;
+        bool new_line = true;
+
+        for (size_t i = 0; i < s.size(); ++i) {
+            char c = s[i];
+
+            if (new_line) {
+                if (std::isspace(c)) continue; 
+
+                for (int j = 0; j < indent; ++j) {
+                    out += lastChildStack[j] ? "    " : "│   ";
+                }
+                out += (lastChildStack.empty() || !lastChildStack.back()) ? "├─ " : "└─ ";
+                new_line = false;
+            }
+
+            if (c == '{' || c == '[') {
+                out += '\n';
+                indent++;
+                lastChildStack.push_back(false); 
+                new_line = true;
+            } else if (c == '}' || c == ']') {
+                out += '\n';
+                indent = std::max(0, indent - 1);
+                if (!lastChildStack.empty()) {
+                    lastChildStack.back() = true;
+                    lastChildStack.pop_back();
+                }
+                new_line = true;
+                for (int j = 0; j < indent; ++j) {
+                    out += lastChildStack[j] ? "    " : "│   ";
+                }
+            } else if (c == ',') {
+                out += '\n';
+                new_line = true;
+            } else {
+                out += c;
+            }
+        }
+
+        out += '\n';
+        return out;
+    }
 
     Mer run(std::string file, std::string text, RunConfig config = {}) {
         // Check for inline directives
@@ -5635,7 +5770,10 @@ namespace tkz {
         if (text.find("// @quiet") != std::string::npos) {
             config.quiet_mode = true;
         }
-        
+        if (text.find("// @raw-ast") != std::string::npos) {
+            config.raw = true;
+            config.print_ast = true;
+        }
         loose = config.looser_types;
         
         auto start = std::chrono::high_resolution_clock::now();
@@ -5673,10 +5811,17 @@ namespace tkz {
         }
         
         // Print AST if requested
-        if (config.print_ast) {
+        if (config.print_ast && config.raw) {
             std::cout << "=== AST ===" << std::endl;
             for (const auto& stmt : ast.statements->statements) {
                 std::cout << indent_ast(printAny(stmt));
+            }
+            std::cout << "===========" << std::endl << std::endl;
+        }
+        else if (config.print_ast) {
+            std::cout << "=== AST ===" << std::endl;
+            for (const auto& stmt : ast.statements->statements) {
+                std::cout << asciiTreeAST(printAny(stmt));
             }
             std::cout << "===========" << std::endl << std::endl;
         }

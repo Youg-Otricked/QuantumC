@@ -146,6 +146,7 @@ namespace tkz {
         FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, EOFT
     };
     
+    
     TokenType stringToTokenType(const std::string& str);
     
     class Token {
@@ -1486,6 +1487,7 @@ namespace tkz {
         bool print_tokens = false;
         bool show_time = false;
         bool quiet_mode = false;
+        bool raw = false;
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////

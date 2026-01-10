@@ -67,6 +67,9 @@ int main(int argc, char* argv[]) {
             config.print_tokens = true;
         } else if (arg == "--time" || arg == "-t") {
             config.show_time = true;
+        } 
+        else if (arg == "--raw" || arg == "-r") {
+            config.raw = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << R"(
 Quantum C Interpreter v3.4
@@ -82,6 +85,7 @@ Options:
   -a, --ast           Print the AST (Abstract Syntax Tree)
   -tkn, --tokens      Print the token stream
   -t, --time          Show compilation time
+  -r, --raw           Don't pretty print the AST. (must be used in congunction with -a/--ast)
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @no-context == -nc
