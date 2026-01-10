@@ -1036,7 +1036,7 @@ int main() {
     p.inv.bag.push(4);
     println(p.inv.bag.length);
     // END OF DEMO
-    // All features shown above are working in Quantum C v3.4!
+    // All features shown above are working in Quantum C v4.0!
     //==============================================================================
     return 0;
 }

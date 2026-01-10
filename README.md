@@ -73,7 +73,8 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 ---
 
 # Development Status
-Current Version: v3.6 = "Long & Short"
+strikthrough = done
+Current Version: v4.0 = "User types (~~Struct~~, enum, class, union, using aliases, type/typedef, #include)"
 
 ## Working:
 
@@ -94,12 +95,12 @@ Quantum Logical Operators
 Maps
 Random
 Long and Short
-
+Structs
 ## Coming Soon:
 
 
 Union Types (TypeScript-style)
-Structs
+Enums
 
 ---
 
@@ -137,7 +138,7 @@ Now Turing complete!
 
 ## Quantum Features
 
-Quantum C is the **world's second quantum programming language**, but the **first that doesn't require a $10M quantum computer!**
+Quantum C is the **world's second quantum programming language _(at least, that more than like 2 people would ever say the name of)_**, but the **first that doesn't require a $10M quantum computer!**
 
 ### Quantum Booleans
 ```cpp
@@ -173,7 +174,7 @@ qif (qb) {
 | **Memory safety**             | Manual     | GC     | Borrow checker | **C style!**        |
 | **Quantum booleans**          | No         | No     | No             | **4 states!**       |
 | **Multi-return**              | Structs    | Tuples | Tuples         | **Native**          |
-| **Requires quantum computer** | No (What?) | Huh?   | WDYM           | NO!**(Unlike Q#!)** |
+| **Requires quantum computer** | No (What?) | Huh?   | WDYM           | NO!**(Unlike Q#!)** _(we get it microsoft, you wanted to be able to program your chip that sounds like a drug)_ |
 
 ---
 Made by [Me](https://github.com/Youg-Otricked)
