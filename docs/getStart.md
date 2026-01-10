@@ -1,4 +1,5 @@
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+
 # Getting started
 [Back to home](./index.md)
 

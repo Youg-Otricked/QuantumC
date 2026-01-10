@@ -13,6 +13,7 @@
 #include <iostream>
 #include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 bool isCharInSet(char, const std::string &);
 
 namespace tkz {
@@ -76,6 +77,8 @@ namespace tkz {
     class ArrayAssignNode;
     class SeedCallNode;
     class RandomCallNode;
+    class StructFieldAssignNode;
+    class MapLiteralNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -116,7 +119,9 @@ namespace tkz {
         std::unique_ptr<MapDeclNode>,
         std::unique_ptr<ArrayAssignNode>,
         std::unique_ptr<SeedCallNode>,
-        std::unique_ptr<RandomCallNode>
+        std::unique_ptr<RandomCallNode>,
+        std::unique_ptr<StructFieldAssignNode>,
+        std::unique_ptr<MapLiteralNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -195,10 +200,15 @@ namespace tkz {
         std::list<Token> Tkns;
         std::unique_ptr<Error> error;
     };
+    struct StructField {
+        std::string name;
+        std::string type;
+    };
     
     struct Aer {
         std::unique_ptr<StatementsNode> statements;
         std::unique_ptr<Error> error;
+        std::unordered_map<std::string, std::vector<StructField>> user_types;
     };
     
     struct Mer {
@@ -206,7 +216,7 @@ namespace tkz {
         Ler tokens;
         std::string res;
     };
-
+    
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUE NODES //////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -639,7 +649,16 @@ namespace tkz {
             return result + "]";
         }
     };
+    class MapLiteralNode {
+    public:
+        std::vector<std::pair<AnyNode, AnyNode>> pairs;
+        Position pos;
 
+        MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos)
+            : pairs(std::move(p)), pos(pos) {}
+
+        std::string print() const { return "map<>"; }
+    };
     class ArrayAccessNode {
     public:
         AnyNode base;                    
@@ -738,6 +757,18 @@ namespace tkz {
             return "map<" + key_type.value + ", " + value_type.value + "> " + var_name.value;
         }
     };
+    class StructFieldAssignNode {
+    public:
+        AnyNode base;       
+        Token field_name;    
+        AnyNode value;
+
+        StructFieldAssignNode(AnyNode&& b, Token f, AnyNode&& v)
+            : base(std::move(b)), field_name(f), value(std::move(v)) {}
+        std::string print() const {
+            return printAny(base) + "." + field_name.value + " = " + printAny(value);
+        }
+    };
     class ArrayAssignNode {
     public:
         AnyNode array_access;
@@ -794,7 +825,9 @@ namespace tkz {
         std::unique_ptr<MapDeclNode>,
         std::unique_ptr<ArrayAssignNode>,
         std::unique_ptr<SeedCallNode>,
-        std::unique_ptr<RandomCallNode>
+        std::unique_ptr<RandomCallNode>,
+        std::unique_ptr<StructFieldAssignNode>,
+        std::unique_ptr<MapLiteralNode>
     >;
         
     class ParseResult {
@@ -825,6 +858,7 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
+        std::unordered_map<std::string, std::vector<StructField>> user_types;
         std::list<Token>::iterator it;
         Token current_tok;
         std::list<Token> tokens;
@@ -1027,6 +1061,7 @@ namespace tkz {
     class ArrayValue;
     class ListValue;
     class MapValue;
+    class StructValue;
     template <typename T> class Number;
     
     using NumberVariant = std::variant<
@@ -1036,7 +1071,7 @@ namespace tkz {
         StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
-        std::shared_ptr<MapValue>
+        std::shared_ptr<MapValue>, std::shared_ptr<StructValue>
     >;
     
     template <typename T>
@@ -1163,7 +1198,7 @@ namespace tkz {
     public:
         std::string key_type;
         std::string value_type;
-        std::unordered_map<std::string, NumberVariant> data;  // Store as strings for now
+        std::unordered_map<std::string, NumberVariant> data;
         Position pos;
         
         MapValue(std::string k_type, std::string v_type)
@@ -1205,6 +1240,18 @@ namespace tkz {
             return result;
         }
         
+        std::string print() const;
+    };
+    class StructValue {
+        public:
+        std::string type_name;
+        std::unordered_map<std::string, NumberVariant> fields;
+        Position pos;
+
+        StructValue(std::string t) : type_name(std::move(t)), pos("", "", 0, 0, 0) {}
+
+        StructValue& set_pos(Position p) { pos = p; return *this; }
+
         std::string print() const;
     };
     struct ExecResult {
@@ -1280,9 +1327,11 @@ namespace tkz {
     };
 
     class Context {
+        
         std::vector<std::unordered_map<std::string, Symbol>> frames;
         std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
     public:
+        std::unordered_map<std::string, std::vector<StructField>> user_types;
         Context() {
             frames.emplace_back(); 
         }
@@ -1357,6 +1406,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
                     return "map<" + arg->key_type + ", " + arg->value_type + ">";
                 }
+                if constexpr (std::is_same_v<T, std::shared_ptr<StructValue>>) {
+                    return "struct " + arg->type_name;
+                }
                 return "unknown";
             }, val);
         }
@@ -1407,11 +1459,18 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ArrayDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<ArrayLiteralNode>& node);
         NumberVariant operator()(std::unique_ptr<ArrayAccessNode>& node);
-        NumberVariant operator()(std::unique_ptr<tkz::ListDeclNode>& node);
+        NumberVariant operator()(std::unique_ptr<ListDeclNode>& node);
+        NumberVariant operator()(std::unique_ptr<MapLiteralNode>& node);
         NumberVariant operator()(std::unique_ptr<MethodCallNode>& node);
         NumberVariant operator()(std::unique_ptr<PropertyAccessNode>& node);
         NumberVariant operator()(std::unique_ptr<SpreadNode>& node);
         NumberVariant operator()(std::unique_ptr<ForeachNode>& node);
+        NumberVariant operator()(std::unique_ptr<StructFieldAssignNode>& node);
+        NumberVariant convert_array_to_struct(
+            const std::shared_ptr<ArrayValue>& arr, 
+            const std::string& struct_type, 
+            Context* context
+        );
         ExecResult exec_stmt_in_loop_or_switch(QIfNode& ifn);
         ExecResult exec_stmt_in_loop_or_switch(QSwitchNode& qsw);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);

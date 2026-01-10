@@ -18,6 +18,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <climits>  
+#include <mutex>
+#include <unordered_map>
+#include <unordered_set>
 static bool random_seeded = false;
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
@@ -255,6 +258,10 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<StructFieldAssignNode>>) { 
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -326,8 +333,8 @@ namespace tkz {
         return res;
     }
     struct ReturnException {
-        tkz::NumberVariant value;
-        ReturnException(tkz::NumberVariant v) : value(std::move(v)) {}
+        NumberVariant value;
+        ReturnException(NumberVariant v) : value(std::move(v)) {}
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
@@ -336,14 +343,14 @@ namespace tkz {
         return res;
     }
     AnyNode ParseResult::reg(Prs res_variant) {
-        if (std::holds_alternative<std::unique_ptr<tkz::Error>>(res_variant)) {
-            this->error = std::move(std::get<std::unique_ptr<tkz::Error>>(res_variant));
+        if (std::holds_alternative<std::unique_ptr<Error>>(res_variant)) {
+            this->error = std::move(std::get<std::unique_ptr<Error>>(res_variant));
             return std::monostate{};
         }
         return std::visit([this](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, std::monostate> ||
-                        std::is_same_v<T, std::unique_ptr<tkz::Error>> ||
+                        std::is_same_v<T, std::unique_ptr<Error>> ||
                         std::is_same_v<T, ParseResult>) {
                 return AnyNode{std::monostate{}};
             }
@@ -452,6 +459,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<StructFieldAssignNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -459,7 +470,7 @@ namespace tkz {
     }
     Prs ParseResult::to_prs() {
         if (this->error) {
-            return tkz::Prs{std::move(this->error)};
+            return Prs{std::move(this->error)};
         }
         return std::visit([](auto&& arg) -> Prs {
             using T = std::decay_t<decltype(arg)>;
@@ -549,6 +560,10 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<RandomCallNode>>) { 
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<SeedCallNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<StructFieldAssignNode>>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
                 return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
@@ -1451,9 +1466,84 @@ namespace tkz {
         return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
     }
     Prs Parser::atom() {
+        
         ParseResult res;
         Token tok = this->current_tok;
+        if (tok.type == TokenType::LBRACE) {
+            ParseResult res2;
+            Position start_pos = this->current_tok.pos;
+            this->advance();
 
+            if (this->current_tok.type == TokenType::RBRACE) {
+                this->advance();
+                std::vector<std::pair<AnyNode, AnyNode>> pairs;
+                return res2.success(
+                    std::make_unique<MapLiteralNode>(std::move(pairs), start_pos)
+                );
+            }
+
+            auto first_key_expr = res2.reg(this->logical_or());
+            if (res2.error) return res2.to_prs();
+
+            if (this->current_tok.type == TokenType::COLON) {
+                this->advance();
+
+                AnyNode first_val_expr = res2.reg(this->logical_or());
+                if (res2.error) return res2.to_prs();
+
+                std::vector<std::pair<AnyNode, AnyNode>> pairs;
+                pairs.emplace_back(std::move(first_key_expr), std::move(first_val_expr));
+
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+
+                    AnyNode key_expr = res2.reg(this->logical_or());
+                    if (res2.error) return res2.to_prs();
+
+                    if (this->current_tok.type != TokenType::COLON) {
+                        res2.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ':' in map literal", this->current_tok.pos));
+                        return res2.to_prs();
+                    }
+                    this->advance();
+
+                    AnyNode val_expr = res2.reg(this->logical_or());
+                    if (res2.error) return res2.to_prs();
+
+                    pairs.emplace_back(std::move(key_expr), std::move(val_expr));
+                }
+
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res2.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '}' at end of map literal", this->current_tok.pos));
+                    return res2.to_prs();
+                }
+                this->advance();
+
+                return res2.success(
+                    std::make_unique<MapLiteralNode>(std::move(pairs), start_pos));
+            } else {
+                std::vector<AnyNode> elements;
+                elements.push_back(std::move(first_key_expr));
+
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    AnyNode e2 = res2.reg(this->logical_or());
+                    if (res2.error) return res2.to_prs();
+                    elements.push_back(std::move(e2));
+                }
+
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res2.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '}' in initializer list", this->current_tok.pos));
+                    return res2.to_prs();
+                }
+                this->advance();
+
+                return res2.success(
+                    std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
+            }
+        }
         if (tok.type == TokenType::LBRACKET)
             return this->array_literal();
 
@@ -1505,64 +1595,14 @@ namespace tkz {
         }
         else if (tok.type == TokenType::IDENTIFIER) {
             this->advance();
-            
-            if (this->current_tok.type == TokenType::DOT) {
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected property or method name after '.'", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                
-                Token property_name = this->current_tok;
-                this->advance();
-                
-                if (this->current_tok.type == TokenType::LPAREN) {
-                    std::vector<AnyNode> args;
-                    this->advance();
-                    AnyNode base = std::make_unique<VarAccessNode>(tok);
-                    if (this->current_tok.type != TokenType::RPAREN) {
 
-                        if (this->current_tok.type == TokenType::AT) {
-                            this->advance();
-                            AnyNode expr = res.reg(this->logical_or());
-                            if (res.error) return res.to_prs();
-                            args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
-                        } else {
-                            AnyNode arg = res.reg(this->logical_or());
-                            if (res.error) return res.to_prs();
-                            args.push_back(std::move(arg));
-                        }
+            AnyNode base = std::make_unique<VarAccessNode>(tok);
 
-                        while (this->current_tok.type == TokenType::COMMA) {
-                            this->advance();
-
-                            if (this->current_tok.type == TokenType::AT) {
-                                this->advance();
-                                AnyNode expr = res.reg(this->logical_or());
-                                if (res.error) return res.to_prs();
-                                args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
-                            } else {
-                                AnyNode arg = res.reg(this->logical_or());
-                                if (res.error) return res.to_prs();
-                                args.push_back(std::move(arg));
-                            }
-                        }
-                    }
-                    this->advance();
-                    return res.success(std::make_unique<MethodCallNode>(
-                            std::move(base), property_name, std::move(args)));
-                } else {
-                    return res.success(std::make_unique<PropertyAccessNode>(
-                        std::make_unique<VarAccessNode>(tok), property_name));
-                }
+            if (this->current_tok.type == TokenType::LPAREN) {
+                return this->call(std::move(base));
             }
-            if (this->current_tok.type == TokenType::LPAREN)
-                return this->call(std::make_unique<VarAccessNode>(tok));
 
             if (this->current_tok.type == TokenType::LBRACKET) {
-                AnyNode base = std::make_unique<VarAccessNode>(tok); 
                 std::vector<AnyNode> indices;
 
                 while (this->current_tok.type == TokenType::LBRACKET) {
@@ -1571,7 +1611,8 @@ namespace tkz {
                     if (res.error) return res.to_prs();
 
                     if (this->current_tok.type != TokenType::RBRACKET) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("Expected ']'", this->current_tok.pos));
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ']'", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -1579,68 +1620,91 @@ namespace tkz {
                     indices.push_back(std::move(index));
                 }
 
-                base = std::make_unique<ArrayAccessNode>(std::move(base), std::move(indices));
+                base = std::make_unique<ArrayAccessNode>(std::move(base),
+                                                        std::move(indices));
+            }
 
-                while (this->current_tok.type == TokenType::DOT) {
-                    this->advance();
+            while (this->current_tok.type == TokenType::DOT) {
+                this->advance();
 
-                    if (this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("Expected property or method name after '.'", this->current_tok.pos));
-                        return res.to_prs();
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected property or method name after '.'",
+                        this->current_tok.pos));
+                    return res.to_prs();
+                }
+
+                Token property_name = this->current_tok;
+                this->advance();
+
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    this->advance(); 
+                    std::vector<AnyNode> args;
+
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        while (true) {
+                            if (this->current_tok.type == TokenType::AT) {
+                                this->advance();
+                                AnyNode expr = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                args.push_back(
+                                    std::make_unique<SpreadNode>(std::move(expr)));
+                            } else {
+                                AnyNode arg = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                args.push_back(std::move(arg));
+                            }
+                            if (this->current_tok.type != TokenType::COMMA) break;
+                            this->advance();
+                        }
                     }
 
-                    Token property_name = this->current_tok;
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ')' after function arguments",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
                     this->advance();
 
-                    if (this->current_tok.type == TokenType::LPAREN) {
+                    base = std::make_unique<MethodCallNode>(
+                        std::move(base), property_name, std::move(args));
+                } else {
+                    base = std::make_unique<PropertyAccessNode>(
+                        std::move(base), property_name);
+                }
+
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    std::vector<AnyNode> indices;
+                    while (this->current_tok.type == TokenType::LBRACKET) {
                         this->advance();
-                        std::vector<AnyNode> args;
-
-                        if (this->current_tok.type != TokenType::RPAREN) {
-                            while (true) {
-                                if (this->current_tok.type == TokenType::AT) {
-                                    this->advance();
-                                    AnyNode expr = res.reg(this->logical_or());
-                                    if (res.error) return res.to_prs();
-                                    args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
-                                } else {
-                                    AnyNode arg = res.reg(this->logical_or());
-                                    if (res.error) return res.to_prs();
-                                    args.push_back(std::move(arg));
-                                }
-
-                                if (this->current_tok.type != TokenType::COMMA) break;
-                                this->advance();
-                            }
-                        }
-
-                        if (this->current_tok.type != TokenType::RPAREN) {
-                            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos));
+                        AnyNode index = res.reg(this->logical_or());
+                        if (res.error) return res.to_prs();
+                        if (this->current_tok.type != TokenType::RBRACKET) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ']'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
-
-                        base = std::make_unique<MethodCallNode>(std::move(base), property_name, std::move(args));
-                    } else {
-                        base = std::make_unique<PropertyAccessNode>(std::move(base), property_name);
+                        indices.push_back(std::move(index));
                     }
+                    base = std::make_unique<ArrayAccessNode>(std::move(base),
+                                                            std::move(indices));
                 }
-
-                return res.success(std::move(base));
             }
 
-            if (current_tok.type == TokenType::INCREMENT || current_tok.type == TokenType::DECREMENT) {
-                Token op = current_tok;
+            if (this->current_tok.type == TokenType::INCREMENT ||
+                this->current_tok.type == TokenType::DECREMENT) {
+                Token op = this->current_tok;
                 this->advance();
                 return res.success(std::make_unique<AssignExprNode>(
                     tok,
-                    std::make_unique<UnaryOpNode>(op, std::make_unique<VarAccessNode>(tok))
-                ));
+                    std::make_unique<UnaryOpNode>(op,
+                        std::make_unique<VarAccessNode>(tok))));
             }
 
-            return res.success(std::make_unique<VarAccessNode>(tok));
+            return res.success(std::move(base));
         }
-
         else if (tok.type == TokenType::LPAREN) {
             this->advance();
             AnyNode any_expr = res.reg(this->logical_or());
@@ -1764,7 +1828,7 @@ namespace tkz {
             
             auto fn_pr = this->func_def_multi(return_types, std::nullopt);
 
-            if (std::holds_alternative<std::unique_ptr<tkz::Error>>(fn_pr))
+            if (std::holds_alternative<std::unique_ptr<Error>>(fn_pr))
                 return fn_pr;
 
             AnyNode fn_node;
@@ -2019,15 +2083,15 @@ namespace tkz {
             
             bool is_var = std::holds_alternative<std::unique_ptr<VarAccessNode>>(left);
             bool is_array_access = std::holds_alternative<std::unique_ptr<ArrayAccessNode>>(left);
-            
-            if (!is_var && !is_array_access) {
+            bool is_prop = std::holds_alternative<std::unique_ptr<PropertyAccessNode>>(left);
+
+            if (!is_var && !is_array_access && !is_prop) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Left side of assignment must be a variable or array/map access",
+                    "Left side of assignment must be a variable, struct field, or array/map access",
                     this->current_tok.pos
                 ));
                 return res.to_prs();
             }
-            
             Token op_tok = this->current_tok;
             this->advance();
             
@@ -2045,7 +2109,22 @@ namespace tkz {
             }
             
             if (res.error) return res.to_prs();
-            
+            if (is_prop) {
+                if (op_tok.type != TokenType::EQ) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Compound assignment not supported for struct fields", op_tok.pos));
+                    return res.to_prs();
+                }
+
+                auto& prop = std::get<std::unique_ptr<PropertyAccessNode>>(left);
+                AnyNode base = std::move(prop->base);
+                Token field = prop->property_name;
+
+                return res.success(std::make_unique<StructFieldAssignNode>(
+                    std::move(base),
+                    field,
+                    std::move(right)
+                ));
+            }
             if (is_array_access) {
                 if (op_tok.type != TokenType::EQ) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -2108,34 +2187,35 @@ namespace tkz {
             using T = std::decay_t<decltype(arg)>;
             
 
-            if constexpr (std::is_same_v<T, std::unique_ptr<tkz::Error>>) {
+            if constexpr (std::is_same_v<T, std::unique_ptr<Error>>) {
                 return std::monostate{};
-            } else if constexpr (std::is_same_v<T, tkz::ParseResult>) {
+            } else if constexpr (std::is_same_v<T, ParseResult>) {
                 return std::move(arg.node);
             } else if constexpr (
-                std::is_same_v<T, std::unique_ptr<tkz::BinOpNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::UnaryOpNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::VarAccessNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::VarAssignNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::AssignExprNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::IfNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::StatementsNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::SwitchNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::BreakNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::WhileNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::ForNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::ContinueNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::CallNode>> ||
-                std::is_same_v<T, std::shared_ptr<tkz::FuncDefNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::QOutExprNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::ReturnNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::MultiReturnNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::MultiVarDeclNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::ArrayDeclNode>> ||        
-                std::is_same_v<T, std::unique_ptr<tkz::ArrayLiteralNode>> ||     
-                std::is_same_v<T, std::unique_ptr<tkz::ArrayAccessNode>>  ||
-                std::is_same_v<T, std::unique_ptr<tkz::QIfNode>> ||
-                std::is_same_v<T, std::unique_ptr<tkz::QSwitchNode>>
+                std::is_same_v<T, std::unique_ptr<BinOpNode>> ||
+                std::is_same_v<T, std::unique_ptr<UnaryOpNode>> ||
+                std::is_same_v<T, std::unique_ptr<VarAccessNode>> ||
+                std::is_same_v<T, std::unique_ptr<VarAssignNode>> ||
+                std::is_same_v<T, std::unique_ptr<AssignExprNode>> ||
+                std::is_same_v<T, std::unique_ptr<IfNode>> ||
+                std::is_same_v<T, std::unique_ptr<StatementsNode>> ||
+                std::is_same_v<T, std::unique_ptr<SwitchNode>> ||
+                std::is_same_v<T, std::unique_ptr<BreakNode>> ||
+                std::is_same_v<T, std::unique_ptr<WhileNode>> ||
+                std::is_same_v<T, std::unique_ptr<ForNode>> ||
+                std::is_same_v<T, std::unique_ptr<ContinueNode>> ||
+                std::is_same_v<T, std::unique_ptr<CallNode>> ||
+                std::is_same_v<T, std::shared_ptr<FuncDefNode>> ||
+                std::is_same_v<T, std::unique_ptr<QOutExprNode>> ||
+                std::is_same_v<T, std::unique_ptr<ReturnNode>> ||
+                std::is_same_v<T, std::unique_ptr<MultiReturnNode>> ||
+                std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>> ||
+                std::is_same_v<T, std::unique_ptr<ArrayDeclNode>> ||        
+                std::is_same_v<T, std::unique_ptr<ArrayLiteralNode>> ||     
+                std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>  ||
+                std::is_same_v<T, std::unique_ptr<QIfNode>> ||
+                std::is_same_v<T, std::unique_ptr<QSwitchNode>> ||
+                std::is_same_v<T, std::unique_ptr<StructFieldAssignNode>>
             ) {
                 return std::move(arg);
             } else {
@@ -2154,6 +2234,20 @@ namespace tkz {
         if (this->current_tok.type != TokenType::RPAREN) {
             Token param_type = this->current_tok;
             this->advance();
+
+            if (param_type.value == "short" || param_type.value == "long") {
+                std::string modifier = param_type.value;
+
+                if (this->current_tok.type != TokenType::KEYWORD) {
+                    res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'short'/'long'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token base_type = this->current_tok;
+                this->advance();
+
+                param_type.value = modifier + " " + base_type.value;
+                param_type.pos = base_type.pos;
+            }
 
             if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
@@ -2454,6 +2548,155 @@ namespace tkz {
             }
             this->advance();
             return res.success(std::make_unique<BreakNode>(tok));
+        }
+        if (tok.type == TokenType::KEYWORD && tok.value == "struct") {
+            this->advance(); 
+
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected struct name", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token struct_name = this->current_tok;
+            this->advance();
+
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' after struct name", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            std::vector<StructField> fields;
+
+            while (this->current_tok.type != TokenType::RBRACE &&
+                this->current_tok.type != TokenType::EOFT) {
+
+                if (this->current_tok.type != TokenType::KEYWORD &&
+                    this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected field type in struct", this->current_tok.pos));
+                    return res.to_prs();
+                }
+
+                Token base_type = this->current_tok;
+                this->advance();
+
+                std::string field_type;
+                bool list_suffix = false;
+
+                if (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ']' after '[' in list type", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    list_suffix = true;
+                }
+
+                if (base_type.value == "map") {
+                    if (this->current_tok.type != TokenType::LESS) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected '<' after map for key type", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    if (this->current_tok.type != TokenType::KEYWORD && 
+                        this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected key type in map", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    std::string key_type = this->current_tok.value;
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::COMMA) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ',' between key and value type in map", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::KEYWORD && 
+                        this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected value type in map", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    std::string value_type = this->current_tok.value;
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::MORE) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected '>' after map value type", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+
+                    field_type = "map<" + key_type + "," + value_type + ">";
+                } else if (list_suffix) {
+                    field_type = "list<" + base_type.value + ">";
+                } else {
+                    field_type = base_type.value;
+                }
+
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected field name in struct", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token field_name = this->current_tok;
+                this->advance();
+
+                int array_dims = 0;
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type == TokenType::INT) {
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected ']' after '[' in array", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    array_dims++;
+                }
+
+                for (int i = 0; i < array_dims; ++i) field_type += "[]";
+
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+
+                fields.push_back({ field_name.value, field_type });
+            }
+
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}' at end of struct", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance(); 
+
+            if (this->current_tok.type == TokenType::SEMICOLON) {
+                this->advance();
+            }
+
+            if (user_types.contains(struct_name.value)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Redefinition of struct '" + struct_name.value + "'",
+                    struct_name.pos
+                ));
+                return res.to_prs();
+            }
+
+            user_types[struct_name.value] = std::move(fields);
+            return res.success(std::monostate{});
         }
         // Variable declaration: int x = 5; or const int x = 5;
         if (tok.type == TokenType::KEYWORD) {
@@ -2860,6 +3103,39 @@ namespace tkz {
                     is_const, return_types[0], var_names[0], std::move(value)));
             }
         }
+        if (tok.type == TokenType::IDENTIFIER &&
+            user_types.count(tok.value) > 0) {
+
+            Token type_tok = tok;
+            this->advance();
+
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected variable name after type '" + type_tok.value + "'",
+                    this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token name_tok = this->current_tok;
+            this->advance();
+
+            AnyNode value;
+            if (this->current_tok.type == TokenType::EQ) {
+                this->advance();
+                value = res.reg(this->qout_expr());
+                if (res.error) return res.to_prs();
+            } else {
+                value = default_value_for_type(type_tok, name_tok.pos);
+            }
+
+            if (this->current_tok.type != TokenType::SEMICOLON) {
+                res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            return res.success(std::make_unique<VarAssignNode>(
+                false, type_tok, name_tok, std::move(value)));
+        }
         // Assignment or compound assignment: x = 5; or x += 5;
         if (tok.type == TokenType::IDENTIFIER) {
             auto next_it = std::next(it);
@@ -2896,7 +3172,7 @@ namespace tkz {
         res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
         return res.to_prs();
         if (res.error) return res.to_prs();
-
+        
         if (this->current_tok.type == TokenType::SEMICOLON) {
             this->advance(); 
             return res.success(std::move(node));
@@ -2952,7 +3228,7 @@ namespace tkz {
                 Position())};
         }
         
-        return Aer{std::make_unique<StatementsNode>(std::move(stmts)), nullptr};
+        return Aer{std::make_unique<StatementsNode>(std::move(stmts)), nullptr, this->user_types};
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
@@ -3011,7 +3287,8 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
                             std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
                             std::is_same_v<T, std::shared_ptr<ListValue>> ||
-                            std::is_same_v<T, std::shared_ptr<MapValue>>) {
+                            std::is_same_v<T, std::shared_ptr<MapValue>> ||
+                            std::is_same_v<T, std::shared_ptr<StructValue>>) {
                 return v->print();
             } 
             else {
@@ -3029,6 +3306,17 @@ namespace tkz {
         }
         result += "}";
         return result;
+    }
+    std::string StructValue::print() const {
+        std::string out = type_name + "{";
+        bool first = true;
+        for (auto& [name, val] : fields) {
+            if (!first) out += ", ";
+            out += name + ": " + value_to_string(val);
+            first = false;
+        }
+        out += "}";
+        return out;
     }
     bool values_equal(const NumberVariant& a,
                   const NumberVariant& b,
@@ -3140,6 +3428,98 @@ namespace tkz {
         }
         return { std::move(last), false, false, false };
     }
+    static std::pair<std::string, std::string> parse_map_type(const std::string& s) {
+        auto inside = s.substr(4, s.size() - 5);
+        auto comma = inside.find(',');
+        if (comma == std::string::npos) return {"", ""};
+        std::string key   = inside.substr(0, comma);
+        std::string value = inside.substr(comma + 1);
+        return {key, value};
+    }
+    NumberVariant Interpreter::convert_array_to_struct(
+        const std::shared_ptr<ArrayValue>& arr,
+        const std::string& struct_type,
+        Context* context
+    ) {
+        const auto& fields = context->user_types[struct_type];
+
+        if (arr->elements.size() != fields.size()) {
+            throw RTError("Nested struct initializer size mismatch for '" + struct_type + "'", {});
+        }
+
+        auto sv = std::make_shared<StructValue>(struct_type);
+
+        for (size_t i = 0; i < fields.size(); ++i) {
+            NumberVariant elemVal = arr->elements[i];
+            const auto& field = fields[i];
+
+            if (context->user_types.contains(field.type)) {
+                auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                if (!nestedArr) {
+                    throw RTError(
+                        "Expected struct initializer for nested struct '" + field.type + "'",
+                        {}
+                    );
+                }
+                elemVal = convert_array_to_struct(*nestedArr, field.type, context);
+            }
+            else if ((field.type.size() >= 2 &&
+                    field.type.substr(field.type.size() - 2) == "[]") ||
+                    (field.type.size() > 5 &&
+                    field.type.substr(0, 5) == "list<")) {
+
+                auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                if (!arrVal) {
+                    throw RTError(
+                        "Expected array initializer for list/array field '" + field.name + "'",
+                        {}
+                    );
+                }
+
+                std::string elemType;
+                if (field.type.rfind("list<", 0) == 0) {
+                    elemType = field.type.substr(5, field.type.size() - 6);
+                    elemVal = std::make_shared<ListValue>(elemType, (*arrVal)->elements);
+                } else {
+                    elemType = field.type.substr(0, field.type.size() - 2);
+                }
+            }
+            else if (field.type.size() > 4 &&
+                    field.type.substr(0, 4) == "map<") {
+
+                auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
+                if (!mapVal) {
+                    throw RTError(
+                        "Expected map initializer for field '" + field.name +
+                        "' of type '" + field.type + "'",
+                        {}
+                    );
+                }
+
+                auto inside = field.type.substr(4, field.type.size() - 5);
+                auto comma = inside.find(',');
+                std::string expectedKey   = inside.substr(0, comma);
+                std::string expectedValue = inside.substr(comma + 1);
+
+                const std::string& actualKey   = (*mapVal)->key_type;
+                const std::string& actualValue = (*mapVal)->value_type;
+
+                if (expectedKey != actualKey || expectedValue != actualValue) {
+                    throw RTError(
+                        "Type mismatch for map field '" + field.name +
+                        "': expected " + field.type +
+                        ", got map<" + actualKey + "," + actualValue + ">",
+                        {}
+                    );
+                }
+            }
+
+            sv->fields[field.name] = elemVal;
+        }
+
+        return sv;
+    }
+    
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         if (!node) return std::move(Number<int>(0));
         
@@ -3149,7 +3529,103 @@ namespace tkz {
 
         std::string declaredType = node->type_tok.value;
         std::string actualType = context->get_type_name(value);
-        
+        bool is_user_type = context->user_types.contains(declaredType);
+        if (is_user_type) {
+            
+            if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
+                if ((*svPtr)->type_name != declaredType) {
+                    throw RTError(
+                        "Cannot assign struct of type '" + (*svPtr)->type_name +
+                        "' to variable of type '" + declaredType + "'",
+                        node->var_name_tok.pos
+                    );
+                }
+                auto newStruct = std::make_shared<StructValue>(**svPtr);
+                newStruct->set_pos(node->var_name_tok.pos);
+                value = newStruct;
+            }
+            else if (auto arrPtr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
+                const auto& fields = context->user_types[declaredType];
+
+                if (arrPtr->get()->elements.size() != fields.size()) {
+                    throw RTError(
+                        "Initializer list has " + std::to_string(arrPtr->get()->elements.size()) +
+                        " elements, but struct '" + declaredType + "' has " +
+                        std::to_string(fields.size()) + " fields",
+                        node->var_name_tok.pos
+                    );
+                }
+
+                auto sv = std::make_shared<StructValue>(declaredType);
+                sv->set_pos(node->var_name_tok.pos);
+
+                for (size_t i = 0; i < fields.size(); ++i) {
+                    const auto& field = fields[i];
+                    NumberVariant elemVal = arrPtr->get()->elements[i];
+
+                    if (context->user_types.contains(field.type)) {
+                        auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                        if (!nestedArr) {
+                            throw RTError(
+                                "Expected struct initializer for nested struct '" + field.type + "'",
+                                node->var_name_tok.pos
+                            );
+                        }
+                        elemVal = Interpreter::convert_array_to_struct(*nestedArr, field.type, context);
+                    }
+                    else if (field.type.size() >= 2 && field.type.substr(field.type.size() - 2) == "[]") {
+                        auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                        if (!arrVal) {
+                            throw RTError(
+                                "Expected array initializer for list field '" + field.name + "'",
+                                node->var_name_tok.pos
+                            );
+                        }
+                        std::string elemType = field.type.substr(0, field.type.size() - 2); 
+                        auto listVal = std::make_shared<ListValue>(elemType, (*arrVal)->elements);
+                        elemVal = listVal;
+                    }
+                    else if (field.type.size() > 4 && field.type.substr(0, 4) == "map<") {
+                        auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
+                        if (!mapVal) {
+                            throw RTError(
+                                "Expected map initializer for field '" + field.name +
+                                "' of type '" + field.type + "'",
+                                node->var_name_tok.pos
+                            );
+                        }
+
+                        auto [expectedKeyType, expectedValType] = parse_map_type(field.type);
+                        const std::string& actualKeyType = (*mapVal)->key_type;
+                        const std::string& actualValType = (*mapVal)->value_type;
+
+                        if (expectedKeyType != actualKeyType || expectedValType != actualValType) {
+                            throw RTError(
+                                "Type mismatch for map field '" + field.name +
+                                "': expected " + field.type +
+                                ", got map<" + actualKeyType + "," + actualValType + ">",
+                                node->var_name_tok.pos
+                            );
+                        }
+
+                    }
+                    sv->fields[field.name] = elemVal;
+                    
+
+                }
+
+                value = sv;
+                
+            }
+            else {
+                throw RTError(
+                    "Expected struct initializer '{ ... }' or struct value for type '" + declaredType + "'",
+                    node->var_name_tok.pos
+                );
+            }
+
+            actualType = declaredType;
+        }
 
         if (declaredType != "auto") {
             bool type_matches = false;
@@ -4249,7 +4725,10 @@ namespace tkz {
                 throw RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos);
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MapValue>> || std::is_same_v<T2, std::shared_ptr<MapValue>>) { 
-                throw RTError("Cannot preform arithmetic operations on a map/dictt", node->op_tok.pos);
+                throw RTError("Cannot preform arithmetic operations on a map/dict", node->op_tok.pos);
+            }
+            else if constexpr (std::is_same_v<T1, std::shared_ptr<StructValue>> || std::is_same_v<T2, std::shared_ptr<StructValue>>) { 
+                throw RTError("Cannot preform arithmetic operations on a Struct", node->op_tok.pos);
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
                             std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
@@ -4382,7 +4861,8 @@ namespace tkz {
                     !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                     !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
                     !std::is_same_v<T, std::shared_ptr<ListValue>>  &&
-                    !std::is_same_v<T, std::shared_ptr<MapValue>>
+                    !std::is_same_v<T, std::shared_ptr<MapValue>> &&
+                    !std::is_same_v<T, std::shared_ptr<StructValue>>
                 ) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
@@ -4412,7 +4892,8 @@ namespace tkz {
                 !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                 !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
                 !std::is_same_v<T, std::shared_ptr<ListValue>> &&
-                !std::is_same_v<T, std::shared_ptr<MapValue>>
+                !std::is_same_v<T, std::shared_ptr<MapValue>> &&
+                !std::is_same_v<T, std::shared_ptr<StructValue>>
 
             ) {
                 if (node->op_tok.type == TokenType::MINUS) {
@@ -4432,6 +4913,39 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::monostate) {
         return std::move(Number<int>(0));
+    }
+    NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode>& node) {
+        if (!node) return Number<int>(0);
+
+        if (node->pairs.empty()) {
+            auto mv = std::make_shared<MapValue>("string", "any");
+            return mv;
+        }
+
+        NumberVariant firstKey = this->process(node->pairs[0].first);
+        NumberVariant firstVal = this->process(node->pairs[0].second);
+
+        std::string keyType = context->get_type_name(firstKey);
+        std::string valType = context->get_type_name(firstVal);
+
+        auto map_val = std::make_shared<MapValue>(keyType, valType);
+        map_val->set(value_to_string(firstKey), std::move(firstVal));
+
+        for (size_t i = 1; i < node->pairs.size(); ++i) {
+            NumberVariant key = this->process(node->pairs[i].first);
+            NumberVariant val = this->process(node->pairs[i].second);
+
+            if (context->get_type_name(key) != keyType) {
+                throw RTError("Inconsistent key type in map literal", node->pos);
+            }
+            if (context->get_type_name(val) != valType) {
+                throw RTError("Inconsistent value type in map literal", node->pos);
+            }
+
+            map_val->set(value_to_string(key), std::move(val));
+        }
+
+        return map_val;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<IfNode>& node) {
         if (!node) return std::move(Number<int>(0));
@@ -4835,24 +5349,55 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<PropertyAccessNode>& node) {
         if (!node) return Number<int>(0);
-        
+
         NumberVariant obj = this->process(node->base);
-        
-        if (node->property_name.value == "length") {
+        const std::string& name = node->property_name.value;
+
+        while (true) {
+            if (auto s = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
+                auto it = (*s)->fields.find(name);
+                if (it == (*s)->fields.end()) {
+                    throw RTError("Unknown field '" + name + "' on struct '" + (*s)->type_name + "'",
+                                node->property_name.pos);
+                }
+                obj = it->second;
+                break; 
+            }
+
             if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&obj)) {
-                return Number<int>((*arr)->size());
+                std::string struct_type = context->get_type_name(obj);
+                if (context->user_types.contains(struct_type)) {
+                    const auto& fields = context->user_types[struct_type];
+                    size_t idx = SIZE_MAX;
+                    for (size_t i = 0; i < fields.size(); ++i) {
+                        if (fields[i].name == name) {
+                            idx = i;
+                            break;
+                        }
+                    }
+                    if (idx == SIZE_MAX) {
+                        throw RTError("Unknown field '" + name + "' on struct '" + struct_type + "'",
+                                    node->property_name.pos);
+                    }
+                    obj = (*arr)->elements[idx];
+                    break;
+                }
+
+                if (name == "length") return Number<int>((*arr)->elements.size());
             }
+
             if (auto list = std::get_if<std::shared_ptr<ListValue>>(&obj)) {
-                return Number<int>((*list)->length());
+                if (name == "length") return Number<int>((*list)->length());
             }
-        }
-        if (node->property_name.value == "size") {
+
             if (auto map = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
-                return Number<int>((*map)->size());
+                if (name == "size") return Number<int>((*map)->size());
             }
+
+            throw RTError("Unknown property: " + name, node->property_name.pos);
         }
-        
-        throw RTError("Unknown property: " + node->property_name.value, node->property_name.pos);
+
+        return obj;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode>& node) {
         if (!node) return Number<int>(0);
@@ -5008,10 +5553,62 @@ namespace tkz {
         
         throw RTError("seed() requires integer argument", Position());
     }
+    NumberVariant Interpreter::operator()(std::unique_ptr<StructFieldAssignNode>& node) {
+        if (!node) return Number<int>(0);
+
+        NumberVariant base_val = this->process(node->base);
+        auto s = std::get_if<std::shared_ptr<StructValue>>(&base_val);
+        if (!s) {
+            throw RTError("Expected struct on left side of '.'", node->field_name.pos);
+        }
+
+        NumberVariant val = this->process(node->value);
+        (*s)->fields[node->field_name.value] = val;
+        return val;
+    }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    std::string indent_ast(const std::string& s) {
+        std::string out;
+        int indent = 0;
+        bool new_line = true;
 
+        auto add_indent = [&]() {
+            for (int i = 0; i < indent; ++i) out += "    ";
+        };
+
+        for (size_t i = 0; i < s.size(); ++i) {
+            char c = s[i];
+
+            if (new_line) {
+                add_indent();
+                new_line = false;
+            }
+
+            if (c == '{' || c == '[') {
+                out += c;
+                out += '\n';
+                indent++;
+                new_line = true;
+            } else if (c == '}' || c == ']') {
+                out += '\n';
+                indent = std::max(0, indent - 1);
+                new_line = true;
+                add_indent();
+                out += c;
+            } else if (c == ',') {
+                out += c;
+                out += '\n';
+                new_line = true;
+            } else {
+                out += c;
+            }
+        }
+
+        out += '\n';
+        return out;
+    }
 
     Mer run(std::string file, std::string text, RunConfig config = {}) {
         // Check for inline directives
@@ -5079,15 +5676,15 @@ namespace tkz {
         if (config.print_ast) {
             std::cout << "=== AST ===" << std::endl;
             for (const auto& stmt : ast.statements->statements) {
-                std::cout << printAny(stmt) << std::endl;
+                std::cout << indent_ast(printAny(stmt));
             }
             std::cout << "===========" << std::endl << std::endl;
         }
         
         // Interpreter
         Context* ctx = new Context();
+        ctx->user_types = ast.user_types;
         Interpreter interpreter(ctx);
-        
         std::string output = "";
         int exit_code = 0;
         
