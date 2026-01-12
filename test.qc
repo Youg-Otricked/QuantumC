@@ -1,54 +1,27 @@
-// @print-ast
-// @print-tokens
+type ApiTier = "Pro" | "Free" | "Basic" | "Enterprise";
 
 int main() {
-    // struct definitions
-    struct Vec2 {
-        float x;
-        float y;
-    };
+    ApiTier tier = "Pro";
+    std::qout << getRateLimitForTier(tier);
+    type Weird = 1 | 2 | "ok" | 'x' | true | qtrue | int;
 
-    struct Inventory {
-        int[] bag;     
-        string slots[];
-    };
+    Weird a = 1;        // int:1 -> literal match
+    Weird b = "ok";     // string:"ok" -> literal match
+    Weird c = 'x';      // char:'x' -> literal match
+    Weird d = true;     // bool:true -> literal match
+    Weird e = qtrue;    // qbool:qtrue -> literal match
+    Weird f = 42;       // type union member `int` -> matches actual_type "int"
+}
 
-    struct Player {
-        string name;
-        int hp;
-        Vec2 pos;
-        Inventory inv;
-    };
-
-    Player p = {
-        "Alice",
-        100,   
-        {1.0f, 2.0f},
-        { [1, 2, 3], ["head"] }
-    };
-
-    println(p.name);
-    println(p.hp);
-    println(p.pos.x);
-    println(p.pos.y);
-    println(p.inv.bag.length);
-    println(p.inv.slots[0]);
-
-    Player q = p;
-    q.name = "Bob";
-    q.hp = 50;
-    q.pos.x = 9.0f;
-
-    println(p.name);
-    println(p.hp);
-    println(p.pos.x);
-
-    println(q.name);
-    println(q.hp);
-    println(q.pos.x); 
-
-    p.inv.bag.push(4);
-    println(p.inv.bag.length);
-
-    return 0;
+int getRateLimitForTier(ApiTier tier) {
+  switch (tier) {
+    case "Free":
+      return 10;
+    case "Basic":
+      return 100;
+    case "Pro":
+      return 1000;
+    case "Enterprise":
+      return 10000;
+  }
 }

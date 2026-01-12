@@ -4,14 +4,14 @@
 [Back to home](./index.md)
 
 1/7/2026: Current version: 3.3: Adding docs.
-
+1/12/2026: Current version: 4.0: Structs.
 
 # Features checklist (suitable for change(by adding more))
 
 - [ ] User Types (
-    - [ ] Structs
+    - [x] Structs
     - [ ] Enums
-    - [ ] Unions
+    - [x] Unions
     - [ ] Classes
     - [ ] Template
     - [ ] Typedef

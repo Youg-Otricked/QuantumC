@@ -1035,8 +1035,37 @@ int main() {
 
     p.inv.bag.push(4);
     println(p.inv.bag.length);
+    map<string,int> ages = { "Alice":25, "Bob":30 };
+    ages["Charlie"] = 35;
+    ages.remove("Bob");
+    println(ages.has("Alice"));
+    foreach (string k in ages.keys()) { println(k + ": " + f"{ages[k]}"); }
+    type ApiTier = "Pro" | "Free" | "Basic" | "Enterprise";
+    int getRateLimitForTier(ApiTier tier) {
+        switch (tier) {
+            case "Free":
+            return 10;
+            case "Basic":
+            return 100;
+            case "Pro":
+            return 1000;
+            case "Enterprise":
+            return 10000;
+        }
+    }
+    ApiTier tier = "Pro";
+    std::qout << getRateLimitForTier(tier);
+    type Weird = 1 | 2 | "ok" | 'x' | true | qtrue | int;
+
+    Weird a = 1;        
+    Weird b = "ok";     
+    Weird c = 'x';    
+    Weird d = true; 
+    Weird e = qtrue;    
+    Weird f = 42;  
+
     // END OF DEMO
-    // All features shown above are working in Quantum C v4.0!
+    // All features shown above are working in Quantum C v4.5!
     //==============================================================================
     return 0;
 }

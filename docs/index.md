@@ -7,3 +7,5 @@
 [Features](./desc.md)
 [Getting started](./getStart.md)
 [Changelog/Features-checklist](./change.md)
+[Basics](./BasicSyntax.md)
+[Collection types](./CollectionTypes.md)

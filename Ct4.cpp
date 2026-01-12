@@ -143,19 +143,19 @@ namespace tkz {
             case TokenType::MORE_EQ:    return ">=";
             case TokenType::LESS_EQ:    return "<=";
 
-            case TokenType::AND:        return "and";
-            case TokenType::OR:         return "or";
-            case TokenType::XOR:        return "xor";
-            case TokenType::NOT:        return "not";
+            case TokenType::AND:        return "&&&";
+            case TokenType::OR:         return "||";
+            case TokenType::XOR:        return "^";
+            case TokenType::NOT:        return "!";
 
-            case TokenType::QAND:        return "qand";
-            case TokenType::QOR:         return "qor";
-            case TokenType::QXOR:        return "qxor";
-            case TokenType::QNOT:        return "qnot";
-            case TokenType::QEQEQ:       return "q===";
-            case TokenType::QNEQ:        return "q!=";
-            case TokenType::COLLAPSE_AND:return "&&?";
-            case TokenType::COLLAPSE_OR: return "||?";
+            case TokenType::QAND:        return "&&&";
+            case TokenType::QOR:         return "|||";
+            case TokenType::QXOR:        return "^^";
+            case TokenType::QNOT:        return "!!";
+            case TokenType::QEQEQ:       return "===";
+            case TokenType::QNEQ:        return "!==";
+            case TokenType::COLLAPSE_AND:return "&|&";
+            case TokenType::COLLAPSE_OR: return "|&|";
 
             case TokenType::LPAREN:     return "(";
             case TokenType::RPAREN:     return ")";
@@ -172,6 +172,7 @@ namespace tkz {
             case TokenType::LSHIFT:     return "<<";
             case TokenType::RSHIFT:     return ">>";
             case TokenType::AT:         return "@";
+            case TokenType::PIPE:       return "|";
 
             case TokenType::EOFT:       return "<eof>";
         }
@@ -2784,14 +2785,139 @@ namespace tkz {
                 return res.to_prs();
             }
 
-            user_types[struct_name.value] = std::move(fields);
+            UserTypeInfo info;
+            info.kind   = UserTypeKind::Struct;
+            info.fields = std::move(fields);
+
+            user_types[struct_name.value] = std::move(info);
+
             return res.success(std::monostate{});
         }
-        // Variable declaration: int x = 5; or const int x = 5;
+        if (tok.type == TokenType::KEYWORD && tok.value == "type") {
+            this->advance();
+
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected type name after 'type'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token type_name = this->current_tok;
+            this->advance();
+
+            if (this->current_tok.type != TokenType::EQ) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '=' after type name '" + type_name.value + "'",
+                    this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            auto parse_type_atom = [&](Token tok) -> std::string {
+                switch (tok.type) {
+                    case TokenType::STRING:
+                        return "string:\"" + tok.value + "\"";
+                    case TokenType::INT:
+                        return "int:" + tok.value;
+                    case TokenType::FLOAT:
+                        return "float:" + tok.value;
+                    case TokenType::DOUBLE:
+                        return "double:" + tok.value;
+                    case TokenType::CHAR:
+                        return "char:" + tok.value;
+                    case TokenType::BOOL:
+                        return "bool:" + tok.value;
+                    case TokenType::QBOOL:
+                        return "qbool:" + tok.value;
+                    default:
+                        return tok.value;
+                }
+            };
+
+            auto is_type_or_literal_token = [&](TokenType tt) {
+                return tt == TokenType::STRING    ||
+                    tt == TokenType::KEYWORD   ||
+                    tt == TokenType::IDENTIFIER||
+                    tt == TokenType::INT       ||
+                    tt == TokenType::FLOAT     ||
+                    tt == TokenType::DOUBLE    ||
+                    tt == TokenType::BOOL      ||
+                    tt == TokenType::QBOOL     ||
+                    tt == TokenType::CHAR;
+            };
+
+            if (!is_type_or_literal_token(this->current_tok.type)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected type or literal in type alias",
+                    this->current_tok.pos));
+                return res.to_prs();
+            }
+
+            std::vector<UnionMember> members;
+            Token first_tok = this->current_tok;
+            this->advance();
+            members.push_back(UnionMember{ parse_type_atom(first_tok) });
+
+            while (this->current_tok.type == TokenType::PIPE) {
+                this->advance();
+
+                if (!is_type_or_literal_token(this->current_tok.type)) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected type or literal after '|' in type alias",
+                        this->current_tok.pos));
+                    return res.to_prs();
+                }
+
+                Token t = this->current_tok;
+                this->advance();
+                members.push_back(UnionMember{ parse_type_atom(t) });
+            }
+
+            while (this->current_tok.type == TokenType::PIPE) {
+                this->advance();
+
+                if (this->current_tok.type != TokenType::STRING &&
+                    this->current_tok.type != TokenType::KEYWORD &&
+                    this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected type or literal after '|'",
+                        this->current_tok.pos));
+                    return res.to_prs();
+                }
+
+                Token t = this->current_tok;
+                this->advance();
+                members.push_back(UnionMember{ parse_type_atom(t) });
+            }
+
+            if (this->current_tok.type != TokenType::SEMICOLON) {
+                res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            if (user_types.contains(type_name.value)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Redefinition of type '" + type_name.value + "'",
+                    type_name.pos
+                ));
+                return res.to_prs();
+            }
+
+            UserTypeInfo info;
+            if (members.size() == 1) {
+                info.kind = UserTypeKind::Alias;
+                info.aliasTarget = members[0].type;
+            } else {
+                info.kind = UserTypeKind::Union;
+                info.members = std::move(members);
+            }
+
+            user_types[type_name.value] = std::move(info);
+            return res.success(std::monostate{});
+        }
         if (tok.type == TokenType::KEYWORD) {
             bool is_const = false;
             
-            // Check for const
             if (tok.value == "const") {
                 is_const = true;
                 this->advance();
@@ -3363,6 +3489,81 @@ namespace tkz {
             return false;
         }, val);
     }
+    bool value_matches_union_member(const std::string& member_type, const std::string& actual_type, const NumberVariant& val)
+    {
+        auto colon_pos = member_type.find(':');
+        if (colon_pos != std::string::npos) {
+            std::string lit_kind = member_type.substr(0, colon_pos);
+            std::string lit_val  = member_type.substr(colon_pos + 1);
+
+            if (lit_kind == "string" && actual_type == "string") {
+                if (auto sv = std::get_if<StringValue>(&val)) {
+                    if (lit_val.size() >= 2 && lit_val.front() == '"' && lit_val.back() == '"') {
+                        std::string inner = lit_val.substr(1, lit_val.size() - 2);
+                        return sv->value == inner;
+                    }
+                }
+                return false;
+            }
+
+            if (lit_kind == "int" && actual_type == "int") {
+                if (auto iv = std::get_if<Number<int>>(&val)) {
+                    int lit_int = std::stoi(lit_val);
+                    return iv->value == lit_int;
+                }
+                return false;
+            }
+
+            if (lit_kind == "float" && actual_type == "float") {
+                if (auto fv = std::get_if<Number<float>>(&val)) {
+                    float lit_f = std::stof(lit_val);
+                    return fv->value == lit_f;
+                }
+                return false;
+            }
+
+            if (lit_kind == "double" && actual_type == "double") {
+                if (auto dv = std::get_if<Number<double>>(&val)) {
+                    double lit_d = std::stod(lit_val);
+                    return dv->value == lit_d;
+                }
+                return false;
+            }
+
+            if (lit_kind == "char" && actual_type == "char") {
+                if (auto cv = std::get_if<CharValue>(&val)) {
+                    if (lit_val.size() == 1) {
+                        return cv->value == lit_val[0];
+                    }
+                    if (lit_val.size() >= 3 && lit_val.front() == '\'' && lit_val.back() == '\'') {
+                        char c = lit_val[1];
+                        return cv->value == c;
+                    }
+                }
+                return false;
+            }
+
+            if (lit_kind == "bool" && actual_type == "bool") {
+                if (auto bv = std::get_if<BoolValue>(&val)) {
+                    bool lit_b = (lit_val == "true");
+                    bool val_b = (bv->value);
+                    return lit_b == val_b;
+                }
+                return false;
+            }
+
+            if (lit_kind == "qbool" && actual_type == "qbool") {
+                if (auto qv = std::get_if<QBoolValue>(&val)) {
+                    return qv->valname == lit_val;
+                }
+                return false;
+            }
+
+            return false;
+        }
+
+        return actual_type == member_type;
+    }
     std::string value_to_string(const NumberVariant& val) {
         return std::visit([](auto const& v) -> std::string {
             using T = std::decay_t<decltype(v)>;
@@ -3530,7 +3731,8 @@ namespace tkz {
         const std::string& struct_type,
         Context* context
     ) {
-        const auto& fields = context->user_types[struct_type];
+        const auto& info   = context->user_types[struct_type];
+        const auto& fields = info.fields;
 
         if (arr->elements.size() != fields.size()) {
             throw RTError("Nested struct initializer size mismatch for '" + struct_type + "'", {});
@@ -3617,103 +3819,139 @@ namespace tkz {
         
 
         std::string declaredType = node->type_tok.value;
-        std::string actualType = context->get_type_name(value);
-        bool is_user_type = context->user_types.contains(declaredType);
-        if (is_user_type) {
-            
-            if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
-                if ((*svPtr)->type_name != declaredType) {
+        std::string actualType   = context->get_type_name(value);
+
+        auto ut_it = context->user_types.find(declaredType);
+        if (ut_it != context->user_types.end()) {
+            UserTypeInfo& ut = ut_it->second;
+
+            if (ut.kind == UserTypeKind::Struct) {
+
+                const auto& fields = ut.fields;
+
+                if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
+                    if ((*svPtr)->type_name != declaredType) {
+                        throw RTError(
+                            "Cannot assign struct of type '" + (*svPtr)->type_name +
+                            "' to variable of type '" + declaredType + "'",
+                            node->var_name_tok.pos
+                        );
+                    }
+                    auto newStruct = std::make_shared<StructValue>(**svPtr);
+                    newStruct->set_pos(node->var_name_tok.pos);
+                    value = newStruct;
+                }
+                else if (auto arrPtr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
+
+                    if (arrPtr->get()->elements.size() != fields.size()) {
+                        throw RTError(
+                            "Initializer list has " + std::to_string(arrPtr->get()->elements.size()) +
+                            " elements, but struct '" + declaredType + "' has " +
+                            std::to_string(fields.size()) + " fields",
+                            node->var_name_tok.pos
+                        );
+                    }
+
+                    auto sv = std::make_shared<StructValue>(declaredType);
+                    sv->set_pos(node->var_name_tok.pos);
+
+                    for (size_t i = 0; i < fields.size(); ++i) {
+                        const auto& field = fields[i];
+                        NumberVariant elemVal = arrPtr->get()->elements[i];
+
+                        auto nested_it = context->user_types.find(field.type);
+                        if (nested_it != context->user_types.end() &&
+                            nested_it->second.kind == UserTypeKind::Struct) {
+
+                            auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                            if (!nestedArr) {
+                                throw RTError(
+                                    "Expected struct initializer for nested struct '" + field.type + "'",
+                                    node->var_name_tok.pos
+                                );
+                            }
+                            elemVal = Interpreter::convert_array_to_struct(*nestedArr, field.type, context);
+                        }
+                        else if (field.type.size() >= 2 &&
+                                field.type.substr(field.type.size() - 2) == "[]") {
+
+                            auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
+                            if (!arrVal) {
+                                throw RTError(
+                                    "Expected array initializer for list field '" + field.name + "'",
+                                    node->var_name_tok.pos
+                                );
+                            }
+                            std::string elemType = field.type.substr(0, field.type.size() - 2);
+                            auto listVal = std::make_shared<ListValue>(elemType, (*arrVal)->elements);
+                            elemVal = listVal;
+                        }
+                        else if (field.type.size() > 4 &&
+                                field.type.substr(0, 4) == "map<") {
+
+                            auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
+                            if (!mapVal) {
+                                throw RTError(
+                                    "Expected map initializer for field '" + field.name +
+                                    "' of type '" + field.type + "'",
+                                    node->var_name_tok.pos
+                                );
+                            }
+
+                            auto [expectedKeyType, expectedValType] = parse_map_type(field.type);
+                            const std::string& actualKeyType = (*mapVal)->key_type;
+                            const std::string& actualValType = (*mapVal)->value_type;
+
+                            if (expectedKeyType != actualKeyType || expectedValType != actualValType) {
+                                throw RTError(
+                                    "Type mismatch for map field '" + field.name +
+                                    "': expected " + field.type +
+                                    ", got map<" + actualKeyType + "," + actualValType + ">",
+                                    node->var_name_tok.pos
+                                );
+                            }
+                        }
+
+                        sv->fields[field.name] = elemVal;
+                    }
+
+                    value = sv;
+                }
+                else {
                     throw RTError(
-                        "Cannot assign struct of type '" + (*svPtr)->type_name +
-                        "' to variable of type '" + declaredType + "'",
+                        "Expected struct initializer '{ ... }' or struct value for type '" + declaredType + "'",
                         node->var_name_tok.pos
                     );
                 }
-                auto newStruct = std::make_shared<StructValue>(**svPtr);
-                newStruct->set_pos(node->var_name_tok.pos);
-                value = newStruct;
-            }
-            else if (auto arrPtr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
-                const auto& fields = context->user_types[declaredType];
 
-                if (arrPtr->get()->elements.size() != fields.size()) {
+                actualType = declaredType;
+            }
+
+            else if (ut.kind == UserTypeKind::Alias) {
+                declaredType = ut.aliasTarget;
+            }
+            else if (ut.kind == UserTypeKind::Union) {
+                auto& members = ut_it->second.members;
+                std::string valType = context->get_type_name(value);
+                bool ok = false;
+
+                for (auto& m : members) {
+                    if (value_matches_union_member(m.type, valType, value)) {
+                        ok = true;
+                        break;
+                    }
+                }
+
+                if (!ok) {
                     throw RTError(
-                        "Initializer list has " + std::to_string(arrPtr->get()->elements.size()) +
-                        " elements, but struct '" + declaredType + "' has " +
-                        std::to_string(fields.size()) + " fields",
-                        node->var_name_tok.pos
+                        "Type mismatch: value of type " + valType +
+                        " is not assignable to union type '" + node->type_tok.value + "'",
+                        Position()
                     );
                 }
 
-                auto sv = std::make_shared<StructValue>(declaredType);
-                sv->set_pos(node->var_name_tok.pos);
-
-                for (size_t i = 0; i < fields.size(); ++i) {
-                    const auto& field = fields[i];
-                    NumberVariant elemVal = arrPtr->get()->elements[i];
-
-                    if (context->user_types.contains(field.type)) {
-                        auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
-                        if (!nestedArr) {
-                            throw RTError(
-                                "Expected struct initializer for nested struct '" + field.type + "'",
-                                node->var_name_tok.pos
-                            );
-                        }
-                        elemVal = Interpreter::convert_array_to_struct(*nestedArr, field.type, context);
-                    }
-                    else if (field.type.size() >= 2 && field.type.substr(field.type.size() - 2) == "[]") {
-                        auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
-                        if (!arrVal) {
-                            throw RTError(
-                                "Expected array initializer for list field '" + field.name + "'",
-                                node->var_name_tok.pos
-                            );
-                        }
-                        std::string elemType = field.type.substr(0, field.type.size() - 2); 
-                        auto listVal = std::make_shared<ListValue>(elemType, (*arrVal)->elements);
-                        elemVal = listVal;
-                    }
-                    else if (field.type.size() > 4 && field.type.substr(0, 4) == "map<") {
-                        auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
-                        if (!mapVal) {
-                            throw RTError(
-                                "Expected map initializer for field '" + field.name +
-                                "' of type '" + field.type + "'",
-                                node->var_name_tok.pos
-                            );
-                        }
-
-                        auto [expectedKeyType, expectedValType] = parse_map_type(field.type);
-                        const std::string& actualKeyType = (*mapVal)->key_type;
-                        const std::string& actualValType = (*mapVal)->value_type;
-
-                        if (expectedKeyType != actualKeyType || expectedValType != actualValType) {
-                            throw RTError(
-                                "Type mismatch for map field '" + field.name +
-                                "': expected " + field.type +
-                                ", got map<" + actualKeyType + "," + actualValType + ">",
-                                node->var_name_tok.pos
-                            );
-                        }
-
-                    }
-                    sv->fields[field.name] = elemVal;
-                    
-
-                }
-
-                value = sv;
-                
+                actualType = node->type_tok.value;
             }
-            else {
-                throw RTError(
-                    "Expected struct initializer '{ ... }' or struct value for type '" + declaredType + "'",
-                    node->var_name_tok.pos
-                );
-            }
-
-            actualType = declaredType;
         }
 
         if (declaredType != "auto") {
@@ -4336,48 +4574,75 @@ namespace tkz {
                     
                     if (expected_type == actual_type) {
                         types_compatible = true;
-                    }
+                    } else {
+                        auto ut_it = context->user_types.find(expected_type);
+                        if (ut_it != context->user_types.end() &&
+                            ut_it->second.kind == UserTypeKind::Union) {
 
-                    else if (expected_type.find("list<") != std::string::npos && actual_type.find("list<") != std::string::npos) {
-                        std::string expected_base = expected_type;
-                        std::string actual_base = actual_type;
+                            auto& members = ut_it->second.members;
+                            std::string valType = context->get_type_name(value);
+                            bool ok = false;
 
-                        auto clean_type = [](std::string& s) {
-                            std::erase_if(s, [](char c) { 
-                                return c == '[' || c == ']' || c == ' '; 
-                            });
-
-                            size_t pos;
-                            while ((pos = s.find("list<")) != std::string::npos) {
-                                s.erase(pos, 5);
+                            for (auto& m : members) {
+                                if (value_matches_union_member(m.type, valType, value)) {
+                                    ok = true;
+                                    break;
+                                }
                             }
 
-                            while ((pos = s.find(">")) != std::string::npos) {
-                                s.erase(pos, 1);
+                            if (!ok) {
+                                throw RTError(
+                                    "Type mismatch: value of type " + valType +
+                                    " is not assignable to union type '" + expected_type + "'",
+                                    Position()
+                                );
                             }
-                        };
 
-                        clean_type(expected_base);
-                        clean_type(actual_base);
-
-
-                        if (actual_base == expected_base) {
-                            types_compatible = true;
+                            actual_type = expected_type;
                         }
                     }
-                    else if (expected_type.find("[]") != std::string::npos) {
-                        size_t bracket_pos = expected_type.find('[');
-                        std::string expected_base = expected_type.substr(0, bracket_pos);
-                        
-                        if (actual_type.find("list<") == std::string::npos &&  
-                            actual_type.find(expected_base) == 0) {            
-                            types_compatible = true;
+
+                    if (!types_compatible) {
+                        if (expected_type.find("list<") != std::string::npos && actual_type.find("list<") != std::string::npos) {
+                            std::string expected_base = expected_type;
+                            std::string actual_base = actual_type;
+
+                            auto clean_type = [](std::string& s) {
+                                std::erase_if(s, [](char c) { 
+                                    return c == '[' || c == ']' || c == ' '; 
+                                });
+
+                                size_t pos;
+                                while ((pos = s.find("list<")) != std::string::npos) {
+                                    s.erase(pos, 5);
+                                }
+
+                                while ((pos = s.find(">")) != std::string::npos) {
+                                    s.erase(pos, 1);
+                                }
+                            };
+
+                            clean_type(expected_base);
+                            clean_type(actual_base);
+
+
+                            if (actual_base == expected_base) {
+                                types_compatible = true;
+                            }
+                        }
+                        else if (expected_type.find("[]") != std::string::npos) {
+                            size_t bracket_pos = expected_type.find('[');
+                            std::string expected_base = expected_type.substr(0, bracket_pos);
+                            
+                            if (actual_type.find("list<") == std::string::npos &&  
+                                actual_type.find(expected_base) == 0) {            
+                                types_compatible = true;
+                            }
+                        }
+                        else {
+                            types_compatible = (expected_type == actual_type);
                         }
                     }
-                    else {
-                        types_compatible = (expected_type == actual_type);
-                    }
-                    
                     
                     if (!types_compatible) {
                         context->pop_scope();
@@ -5455,14 +5720,14 @@ namespace tkz {
 
             if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&obj)) {
                 std::string struct_type = context->get_type_name(obj);
-                if (context->user_types.contains(struct_type)) {
-                    const auto& fields = context->user_types[struct_type];
+                auto it = context->user_types.find(struct_type);
+                if (it != context->user_types.end() &&
+                    it->second.kind == UserTypeKind::Struct) {
+
+                    const auto& fields = it->second.fields;
                     size_t idx = SIZE_MAX;
                     for (size_t i = 0; i < fields.size(); ++i) {
-                        if (fields[i].name == name) {
-                            idx = i;
-                            break;
-                        }
+                        if (fields[i].name == name) { idx = i; break; }
                     }
                     if (idx == SIZE_MAX) {
                         throw RTError("Unknown field '" + name + "' on struct '" + struct_type + "'",
@@ -5658,7 +5923,39 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    std::string indent_ast(const std::string& s) {
+    std::string collapse_inline_brackets(const std::string& s) {
+        std::string out;
+        for (size_t i = 0; i < s.size(); ++i) {
+            if (s[i] == '[') {
+                size_t k = out.size();
+                char prev = 0;
+                while (k > 0) {
+                    char c = out[k - 1];
+                    if (!std::isspace((unsigned char)c)) { prev = c; break; }
+                    --k;
+                }
+
+                size_t j = i + 1;
+                while (j < s.size() && std::isspace((unsigned char)s[j])) j++;
+
+                bool prev_is_value_starter =
+                    (prev == '=' || prev == '(' || prev == ',' ||
+                    prev == '{' || prev == '[');
+
+                if (j < s.size() && s[j] == ']' && prev_is_value_starter) {
+                    out += "[]";
+                    i = j;
+                    continue;
+                }
+            }
+
+            out += s[i];
+        }
+        return out;
+    }
+    std::string indent_ast(const std::string& input) {
+        std::string s = collapse_inline_brackets(input);
+
         std::string out;
         int indent = 0;
         bool new_line = true;
@@ -5674,23 +5971,30 @@ namespace tkz {
                 add_indent();
                 new_line = false;
             }
-
-            if (c == '{' || c == '[') {
+            if (s[i] == '[' && i + 1 < s.size() && s[i + 1] == ']') {
+                out += "[]";
+                i++;
+                continue;
+            }
+            else if (c == '{' || c == '[') {
                 out += c;
                 out += '\n';
                 indent++;
                 new_line = true;
-            } else if (c == '}' || c == ']') {
+            }
+            else if (c == '}' || c == ']') {
                 out += '\n';
                 indent = std::max(0, indent - 1);
                 new_line = true;
                 add_indent();
                 out += c;
-            } else if (c == ',') {
+            }
+            else if (c == ',') {
                 out += c;
                 out += '\n';
                 new_line = true;
-            } else {
+            }
+            else {
                 out += c;
             }
         }
@@ -5698,45 +6002,54 @@ namespace tkz {
         out += '\n';
         return out;
     }
-    std::string asciiTreeAST(const std::string& s) {
+    std::string asciiTreeAST(const std::string& input) {
+        std::string s = collapse_inline_brackets(input);
+
         std::string out;
         std::vector<bool> lastChildStack;
         int indent = 0;
         bool new_line = true;
 
         for (size_t i = 0; i < s.size(); ++i) {
-            char c = s[i];
-
             if (new_line) {
-                if (std::isspace(c)) continue; 
+                while (i < s.size() && std::isspace((unsigned char)s[i])) i++;
+                if (i >= s.size()) break;
 
-                for (int j = 0; j < indent; ++j) {
+                for (int j = 0; j < indent; ++j)
                     out += lastChildStack[j] ? "    " : "│   ";
-                }
-                out += (lastChildStack.empty() || !lastChildStack.back()) ? "├─ " : "└─ ";
+
+                out += (lastChildStack.empty() || !lastChildStack.back())
+                    ? "├─ "
+                    : "└─ ";
+
                 new_line = false;
             }
+
+            if (s[i] == '[' && i + 1 < s.size() && s[i + 1] == ']') {
+                out += "[]";
+                i++;       
+                continue;
+            }
+
+            char c = s[i];
 
             if (c == '{' || c == '[') {
                 out += '\n';
                 indent++;
-                lastChildStack.push_back(false); 
+                lastChildStack.push_back(false);
                 new_line = true;
-            } else if (c == '}' || c == ']') {
+            }
+            else if (c == '}' || c == ']') {
                 out += '\n';
                 indent = std::max(0, indent - 1);
-                if (!lastChildStack.empty()) {
-                    lastChildStack.back() = true;
-                    lastChildStack.pop_back();
-                }
+                if (!lastChildStack.empty()) lastChildStack.pop_back();
                 new_line = true;
-                for (int j = 0; j < indent; ++j) {
-                    out += lastChildStack[j] ? "    " : "│   ";
-                }
-            } else if (c == ',') {
+            }
+            else if (c == ',') {
                 out += '\n';
                 new_line = true;
-            } else {
+            }
+            else {
                 out += c;
             }
         }
@@ -5744,6 +6057,7 @@ namespace tkz {
         out += '\n';
         return out;
     }
+
 
     Mer run(std::string file, std::string text, RunConfig config = {}) {
         // Check for inline directives
@@ -5796,7 +6110,7 @@ namespace tkz {
         if (config.print_tokens) {
             std::cout << "=== TOKENS ===" << std::endl;
             for (const auto& tok : resp.Tkns) {
-                std::cout << "Type: " << static_cast<int>(tok.type) 
+                std::cout << "Type: " << get_token_name(tok.type) 
                         << " | Value: '" << tok.value << "'" << std::endl;
             }
             std::cout << "==============" << std::endl << std::endl;
@@ -5950,7 +6264,7 @@ namespace tkz {
             id == "const" || id == "default" || id == "class" || id == "struct" || id == "enum" || 
             id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || 
             id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
-            id == "map") {
+            id == "map" || id == "type") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -6141,7 +6455,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::PLUS_EQ, "+=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::PLUS, "", start_pos));
+                            tokens.push_back(Token(TokenType::PLUS, "+", start_pos));
                         }
                         break;
 
@@ -6157,7 +6471,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::ARROW, "->", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::MINUS, "", start_pos));
+                            tokens.push_back(Token(TokenType::MINUS, "-", start_pos));
                         }
                         break;
                     case '*':
@@ -6170,7 +6484,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::MUL_EQ, "*=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::MUL, "", start_pos));
+                            tokens.push_back(Token(TokenType::MUL, "*", start_pos));
                             break;
                         }
                         break;
@@ -6199,7 +6513,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::DIV_EQ, "/=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::DIV, "", start_pos));
+                            tokens.push_back(Token(TokenType::DIV, "/", start_pos));
                         }
                         break;
                     case '=':
@@ -6244,7 +6558,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::RSHIFT, ">>", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::MORE, "", start_pos));
+                            tokens.push_back(Token(TokenType::MORE, ">", start_pos));
                             break;
                         }
                         break;
@@ -6257,16 +6571,16 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::LESS_EQ, "<=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::LESS, "", start_pos));
+                            tokens.push_back(Token(TokenType::LESS, "<", start_pos));
                             break;
                         }
                         break;
                     case '(':
-                        tokens.push_back(Token(TokenType::LPAREN, "", start_pos));
+                        tokens.push_back(Token(TokenType::LPAREN, "(", start_pos));
                         this->advance();
                         break;
                     case ')':
-                        tokens.push_back(Token(TokenType::RPAREN, "", start_pos));
+                        tokens.push_back(Token(TokenType::RPAREN, ")", start_pos));
                         this->advance();
                         break;
                     case '{':
@@ -6291,7 +6605,7 @@ namespace tkz {
                             this->advance();
                             tokens.push_back(Token(TokenType::MOD_EQ, "%=", start_pos));
                         } else {
-                            tokens.push_back(Token(TokenType::MOD, "", start_pos));
+                            tokens.push_back(Token(TokenType::MOD, "%", start_pos));
                             break;
                         }
                         break;
@@ -6333,7 +6647,7 @@ namespace tkz {
                                     tokens.push_back(Token(TokenType::COLLAPSE_OR, "|&|", start_pos));
                                 }
                         } else {
-                            tokens.push_back(Token(TokenType::DEF, "|", start_pos));
+                            tokens.push_back(Token(TokenType::PIPE, "|", start_pos));
                             break;
                         }
                         break;
@@ -6365,7 +6679,7 @@ namespace tkz {
                         }
                         break;
                     case ';':
-                        tokens.push_back(Token(TokenType::SEMICOLON, "", start_pos));
+                        tokens.push_back(Token(TokenType::SEMICOLON, ";", start_pos));
                         this->advance();
                         break;
                     case '.':
@@ -6379,7 +6693,7 @@ namespace tkz {
                 }
             }
         }
-        tokens.push_back(Token(TokenType::EOFT, "", this->pos));
+        tokens.push_back(Token(TokenType::EOFT, "<eof>", this->pos));
         return Ler {tokens, NULL};
 
     }

@@ -143,7 +143,7 @@ namespace tkz {
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
-        FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, EOFT
+        FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, PIPE, EOFT
     };
     
     
@@ -205,11 +205,25 @@ namespace tkz {
         std::string name;
         std::string type;
     };
-    
+
+    enum class UserTypeKind { Struct, Alias, Union };
+
+    struct UnionMember {
+        std::string type;
+    };
+
+    struct UserTypeInfo {
+        UserTypeKind kind;
+        std::vector<StructField> fields; 
+        std::string aliasTarget;       
+        std::vector<UnionMember> members;
+    };
+
+        
     struct Aer {
         std::unique_ptr<StatementsNode> statements;
         std::unique_ptr<Error> error;
-        std::unordered_map<std::string, std::vector<StructField>> user_types;
+        std::unordered_map<std::string, UserTypeInfo> user_types;
     };
     
     struct Mer {
@@ -603,13 +617,16 @@ namespace tkz {
             sizes(std::move(sizes))
         {}
         std::string print() {
-            std::string result = type_tok.value + " " + var_name_tok.value;
-            for (int i = 0; i < dimensions; i++) {
-                result += "[";
+            std::string type_str = type_tok.value;
+            std::string name_str = var_name_tok.value;
+            for (int i = 0; i < dimensions; ++i) {
+                name_str += "[";
                 if (sizes[i].has_value())
-                    result += std::to_string(*sizes[i]);
-                result += "]";
+                    name_str += std::to_string(*sizes[i]);
+                name_str += "]";
             }
+
+            std::string result = type_str + " " + name_str;
             result += " = " + printAny(value);
             return result;
         }
@@ -630,7 +647,7 @@ namespace tkz {
         {}
         
         std::string print() {
-            return type_tok.value + "[] " + var_name_tok.value + " = " + printAny(value);
+            return type_tok.value + " " + var_name_tok.value + " = " + printAny(value);
         }
     };
     class ArrayLiteralNode {
@@ -859,7 +876,7 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
-        std::unordered_map<std::string, std::vector<StructField>> user_types;
+        std::unordered_map<std::string, UserTypeInfo> user_types;
         std::list<Token>::iterator it;
         Token current_tok;
         std::list<Token> tokens;
@@ -1006,6 +1023,7 @@ namespace tkz {
     };  
     class QBoolValue {
         public:
+        std::string value;
         bool tval;
         bool fval;
         std::string valname;
@@ -1332,7 +1350,7 @@ namespace tkz {
         std::vector<std::unordered_map<std::string, Symbol>> frames;
         std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
     public:
-        std::unordered_map<std::string, std::vector<StructField>> user_types;
+        std::unordered_map<std::string, UserTypeInfo> user_types;
         Context() {
             frames.emplace_back(); 
         }

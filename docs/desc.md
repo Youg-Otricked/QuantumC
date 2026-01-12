@@ -7,50 +7,50 @@
 
 ### Quantum C currently has the Following features:
 
-Datatype|Contains|Advantage|Bonus Features|
---------|-----|---------|--------------|
-QBool   |Boolean of 4 states|More flexable than normal bool|8 Logical operators|
-Bool    |True or False value|Control flow, single binary bit|Standerd bool with logical operators|
-Int     |Whole Number |Any whole number fits in it|All mathmatical operations, including Power|
-Float   |32 bit floating point number|Int but has a floating point|Full power of division|
-Double|64 bit floating point number|Larger double|More powerfull than a Float|
-Char|Single Character|Stores text or a unicode value|Unicode|
-String|String of chars|Allows you to store a full string of text|Concentation with +|
-Function|Stores a function|Allows for lambda functions|Function|
+Datatype | Contains                    | Advantage                              | Bonus Features
+-------- | --------------------------- | -------------------------------------- | --------------
+QBool    | Boolean with 4 states       | More flexible than normal bool         | 8 quantum logical operators
+Bool     | True or false value         | Classic control-flow condition         | Standard logical operators
+Int      | Whole number                | Any whole integer that fits in range   | All arithmetic ops, including power
+Float    | 32-bit floating point       | Fractional numbers                     | Division with fraction support
+Double   | 64-bit floating point       | Larger, more precise float             | More precision than float
+Char     | Single character            | Stores text or Unicode scalar value    | Unicode support
+String   | Sequence of chars           | Full strings of text                   | Concatenation with `+`, f-strings
+Function | Callable value (function)   | First-class and lambda functions       | Can be stored in variables, passed around
 
 
-Control Flow type|Used on|Pro|Con|
------------------|-------|---|---|
-If               |Boolean|Any condition works|Only two outcomes, nothing past|
-Else             |Boolean|Strengthens If|Only Usefull to increase power of if|
-Else If          |Boolean|More conditions to If statment|I mean, the if else pro cons are lazy|
-Switch           |Non Collection|Very short equivelant of if else if...|Can easily break code if you forget to type a _break_ statment|
-QIf              |QBool  |Quantum Boolean control flow|Limiting to only have a condition on both|
-QElse            |QBool  |I mean, its just a else statment on a QIf, no different from else|Same|
-QElif            |QBool  |else if but on qbool|Yucky python syntax|
-QSwitch          |QBool  |Fixes QIf, runs on all cases|Large syntax|
+Control Flow type | Used on | Pro                                      | Con                                  |
+----------------- | ------- | ---------------------------------------- | -------------------------------------|
+If                | Boolean | Basic conditional                        | Only one condition branch            |
+Else              | Boolean | Strengthens `if`                         | Only useful attached to an `if`      |
+Else If           | Boolean | More conditions in a chain               | Can become hard to read when overused|
+Switch            | Non-collection value | Shorter than if/else-if chains  | Easy to forget `break`           |
+QIf               | QBool   | Quantum Boolean control flow             | Mapping gets confusing on 'both'     |
+QElse             | QBool   | Else branch for QIf                      | Same as `else`                       |
+QElif             | QBool   | Else-if for QIf                          | elif instead of else if              |
+QSwitch           | QBool   | Handles all qbool cases cleanly          | Heavier syntax                       |
 
-Operator|Used on|Symbol|Effect|Logic|
---------|-------|------|------|-----------|
-Plus    |Number or string|+|Left + right||
-Minus   |Number |-|Left - Right||
-Times   |Number |*|Left * Right||
-Divide  |Number |/|Left / Right||
-Modulo  |Number |%|Left % Right||
-Power   |Number |**|Left ^ Right||
-AND     |Boolean|&&|Left && Right|Left and right are true|
-OR      |Boolean|\|\||Left \|\| Right|Left or right are true|
-NOT     |Boolean|!|!Bool expresion|Oppsite of expression|
-Equal to|Any    |==|Left == Right|left is right|
-Not Equal|Any   |!=|Left != Right|left is not right|
-QAND    |QBool  |&&&|Left &&& Right|See truth table below|
-QOR     |QBool  |\|\|\||Left \|\|\| Right|See truth table below|
-QNOT    |QBool  |!!|!! expr|Not + if both none if none both|
-QXOR    |QBool  |^^|Left ^^ Right|left \|\|\| right &&& !!(Left &&& right)|
-QEQUALS |QBool  |===|Left === Right|If left is right both|
-QNOT EQUALS|QBool|!==|Left !== Right|If left is not right both|
-Collapse AND|QBool|&\|&|Left &\|& Right|See truth table|
-Collapse OR|QBool|\|&\||Left \|&\| Right|See table|
+Operator    | Used on        | Symbol | Effect                 | Logic
+----------- | -------------- | ------ | ---------------------- | ----------------------------
+Plus        | Number/string  | `+`    | Left + right           |
+Minus       | Number         | `-`    | Left - right           |
+Times       | Number         | `*`    | Left * right           |
+Divide      | Number         | `/`    | Left / right           |
+Modulo      | Number         | `%`    | Left % right           |
+Power       | Number         | `**`   | Left ^ right (power)   |
+AND         | Bool           | `&&`   | Left && right          | Both sides are true
+OR          | Bool           | `\|\|` | Left \|\| right        | At least one side true
+NOT         | Bool           | `!`    | !expr                  | Opposite of expr
+Equal       | Any            | `==`   | Left == right          | Structural equality
+Not equal   | Any            | `!=`   | Left != right          | Not equal
+QAND        | QBool          | `&&&`  | Left &&& right         | See truth table
+QOR         | QBool          | `\|\|\|`| Left \|\|\| right      | See truth table
+QNOT        | QBool          | `!!`   | !!expr                 | Quantum not (both/none swap)
+QXOR        | QBool          | `^^`   | Left ^^ right          | Left \|\|\| right &&& !!(left &&& right)
+QEQUALS     | QBool          | `===`  | Left === right         | If left “equals” right, result both
+QNOT EQUALS | QBool          | `!==`  | Left !== right         | If left != right, result both
+Collapse AND| QBool          | `&\|&` | Left &\|& right        | See truth table
+Collapse OR | QBool          | `\|&\|`| Left \|&\| right       | See truth table
 
 
 ## Truth Tables:
@@ -194,9 +194,13 @@ Left/Right|Both|QTrue|QFalse|None|
 
 ### Others
 
-* A \* after somthing in parenphases means it can be repeated any number of times, and a charecter before a star means that charecter must seperate them
-* A ? before parens means it is optional.
-* A number after a \* means somthing must be repeted at least number times
+Notation used in syntax:
+
+- `*` after something means “repeat zero or more times”.
+- A character before `*` means that character separates repeats.  
+  Example: `, *` means `a, b, c, ...`.
+- `?` before parentheses means the whole group is optional.
+- A number after `*` means “at least that many times”.
 
 Other|Syntax|What for?|
 -----|------|---------|
