@@ -14,6 +14,10 @@
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
+#include <print>
+#include <format>
+#include <ranges>
+
 bool isCharInSet(char, const std::string &);
 
 namespace tkz {

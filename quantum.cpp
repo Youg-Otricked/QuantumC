@@ -5,6 +5,9 @@
 #include <iterator>
 #include <fstream>
 #include <sstream>
+#include <print>
+#include <format>
+#include <ranges>
 
 std::string read_file(std::string filename) {
     std::ifstream file(filename);
