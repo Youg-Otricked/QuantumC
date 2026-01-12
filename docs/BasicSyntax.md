@@ -21,11 +21,11 @@ In QC there are various binary math operators. Examples are:
 |'?='    |L ?= R|Combinational |
 
 ##### Effects:
-- +: Addition. 5 + 2 = 7;
-- -: Subtraction. 5 - 2 = 3;
-- *: Multiplication. 5 * 2 = 10;
-- /: Division. 5 / 2 = 2.5;
-- **: Power: 5 ** 2 = 25;
+- +: Addition: 5 + 2 = 7;
+- -: Subtraction: 5 - 2 = 3;
+- *: Multiplication: 5 * 2 = 10;
+- /: Division: 5 / 2 = 2.5;
+- **: Power: 5 \*\* 2 = 25;
 - %: Modulo: 5 % 2 = 1;
 - ?=: Combinational expresion. a ?= x is equal to a = a ? x;
 
@@ -44,7 +44,7 @@ int main() {
 No includes, no nothing.
 
 ### Variables
-Variables in Quantum C are declared as folllows:
+Variables in Quantum C are declared as follows:
 ```cpp 
 type name = value;
 // OR
@@ -69,4 +69,4 @@ int main() {
 
 # Console Output
 
-The main way to output to console in Quantum C is std::qout ((<< text or variable or escapesequence)can repete);, eg std::qout << "Hello, World" << '\n';
+The main way to output to console in Quantum C is std::qout ((<< text or variable or escapesequence)can repeat);, eg std::qout << "Hello, World" << '\n';
