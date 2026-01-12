@@ -14,7 +14,7 @@
     - [x] Unions
     - [ ] Classes
     - [ ] Template
-    - [ ] Typedef
+    - [x] Typedef
     - [ ] Namespace
     - [ ] Better scope(\:\:)
     - [ ] Aliasing file paths with using "file-path" as aliasname
