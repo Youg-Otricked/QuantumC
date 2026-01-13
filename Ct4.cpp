@@ -2316,38 +2316,6 @@ namespace tkz {
         }, std::move(prs));
     }
 
-    auto is_valid_type_token = [&](auto it, auto end) -> bool {
-        if (it == end) return false;
-
-        std::string modifier;
-        if (it->type == TokenType::KEYWORD && (it->value == "long" || it->value == "short")) {
-            modifier = it->value;
-            ++it;
-            if (it == end) return false;
-        }
-        switch (it->type) {
-            case TokenType::STRING:
-            case TokenType::INT:
-            case TokenType::FLOAT:
-            case TokenType::DOUBLE:
-            case TokenType::CHAR:
-            case TokenType::BOOL:
-            case TokenType::QBOOL:
-                return true;
-        }
-        if (it->type == TokenType::KEYWORD) {
-            static const std::unordered_set<std::string> base_types = {
-                "int", "float", "double", "char", "bool", "qbool"
-            };
-            if (base_types.count(it->value) > 0) return true;
-        }
-
-        if (it->type == TokenType::IDENTIFIER && user_types.count(it->value) > 0) {
-            return true;
-        }
-
-        return false;
-    };
 
 
     Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
