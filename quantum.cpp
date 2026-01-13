@@ -7,13 +7,21 @@
 #include <sstream>
 #include <format>
 #include <ranges>
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define BLUE    "\033[34m"
+#define MAGENTA "\033[35m"
+#define CYAN    "\033[36m"
+#define BOLD    "\033[1m"
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
 std::string read_file(std::string filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open file '" << filename << "'" << std::endl;
+        std::cerr << YELLOW << "Error: Could not open file '" << filename << "'" << RESET <<  std::endl;
         exit(1);
     }
     
@@ -31,7 +39,7 @@ int main(int argc, char* argv[]) {
         if (arg == "--no-context" || arg == "-nc") {
             config.use_context = false;
         } else if (arg == "--version" || arg == "-v") {
-            std::cout << R"(
+            std::cout << CYAN << R"(
           _____ ___  _  _   
          / ____|__ \| || |  
         | |       ) | || |_ 
@@ -57,7 +65,7 @@ int main(int argc, char* argv[]) {
         ✓ Type Unions
 
         github.com/Youg-Otricked/QuantumC
-        )" << std::endl;
+        )" << RESET << std::endl;
             return 0;
         } else if (arg == "--loose-types" || arg == "-lt") {
             config.looser_types = true;
@@ -75,7 +83,7 @@ int main(int argc, char* argv[]) {
         else if (arg == "--raw" || arg == "-r") {
             config.raw = true;
         } else if (arg == "--help" || arg == "-h") {
-        std::cout << R"(
+        std::cout << GREEN << R"(
 Quantum C Interpreter v5.0
 
 Usage: ./qc [options] <file>
@@ -105,7 +113,7 @@ Examples:
   qc -d               Run the demo
   qc -v               Show version
   qc --ast test.qc    Show AST for test.qc
-        )" << std::endl;
+        )" << RESET << std::endl;
         return 0;
     } else {
             filename = arg;
@@ -114,41 +122,43 @@ Examples:
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v5.0.2" << std::endl;
+        std::cout << GREEN << "Quantum C REPL v5.0.2" << RESET << std::endl;
         if (!config.use_context) {
-            std::cout << "(Context disabled)" << std::endl;
+            std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
         }
         
         while (true) {
-            std::cout << "qc> ";
+            std::cout << BLUE << "qc> " RESET;
             std::string line;
             std::getline(std::cin, line);
             
             if (line == "exit") break;
             
             auto result = tkz::run("<stdin>", line, config); 
-            
+            std::cout << BOLD << "=== Output ===" << RESET << std::endl;
             if (result.ast.error) {
-                std::cout << result.ast.error->as_string() << std::endl;
+                std::cout << RED << result.ast.error->as_string() << RESET << std::endl;
             } else {
                 if (!config.quiet_mode) { 
-                    std::cout << result.res << std::endl;
+                    std::cout << GREEN << result.res << RESET << std::endl;
                 }
             }
+            std::cout << BOLD << "===============" << RESET << std::endl;
         }
     } else {
         // File mode
         std::string code = read_file(filename);
         auto result = tkz::run(filename, code, config);
-        
+        std::cout << BOLD << "=== Output ===" << RESET << std::endl;
         if (result.ast.error) {
-            std::cout << result.ast.error->as_string() << std::endl;
+            std::cout << RED << result.ast.error->as_string() << RESET << std::endl;
             return 1;
         }
         
         if (!config.quiet_mode) {  
-            std::cout << result.res << std::endl;
+            std::cout << GREEN << result.res << RESET << std::endl;
         }
+        std::cout << BOLD << "===============" << RESET << std::endl;
     }
     
     return 0;
