@@ -123,28 +123,39 @@ Examples:
     if (filename.empty()) {
         // REPL mode
         std::cout << GREEN << "Quantum C REPL v5.0.2" << RESET << std::endl;
+        std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
         }
         
+        std::string code_buffer;
+
         while (true) {
-            std::cout << BLUE << "qc> " RESET;
+            std::cout << (code_buffer.empty() ? "qc" : "-") << "[" << code_buffer.size() << " lines]>";
             std::string line;
             std::getline(std::cin, line);
-            
+
             if (line == "exit") break;
-            
-            auto result = tkz::run("<stdin>", line, config); 
-            std::cout << BOLD << "=== Output ===" << RESET << std::endl;
-            if (result.ast.error) {
-                std::cout << RED << result.ast.error->as_string() << RESET << std::endl;
-            } else {
-                if (!config.quiet_mode) { 
-                    std::cout << GREEN << result.res << RESET << std::endl;
+
+            if (line == "!@run") {
+                auto result = tkz::run("<stdin>", code_buffer, config);
+
+                std::cout << BOLD << "=== Output ===" << RESET << std::endl;
+                if (result.ast.error) {
+                    std::cout << RED << result.ast.error->as_string() << RESET << std::endl;
+                } else {
+                    if (!config.quiet_mode) std::cout << GREEN << result.res << RESET << std::endl;
                 }
+                std::cout << BOLD << "===============" << RESET << std::endl;
+                code_buffer.clear();
+            } else if (line == "!@clear") {
+                code_buffer.clear();
+                std::cout << YELLOW << "[Buffer cleared]" << RESET << std::endl;
+            } else {
+                code_buffer += line + "\n";
             }
-            std::cout << BOLD << "===============" << RESET << std::endl;
         }
+
     } else {
         // File mode
         std::string code = read_file(filename);
