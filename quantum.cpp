@@ -7,7 +7,7 @@
 #include <sstream>
 #include <format>
 #include <ranges>
-
+#include <print> 
 std::string read_file(std::string filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {

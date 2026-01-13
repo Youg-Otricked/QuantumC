@@ -22,7 +22,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <ranges>
-
+#include <print> 
 static bool random_seeded = false;
 bool isCharInSet(char c, const std::string &charSet) {
     return charSet.find(c) != std::string::npos;
