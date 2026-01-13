@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v5.0.1
+        Quantum C (C⁴) v5.0.2
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -114,7 +114,7 @@ Examples:
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v5.0.1" << std::endl;
+        std::cout << "Quantum C REPL v5.0.2" << std::endl;
         if (!config.use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }

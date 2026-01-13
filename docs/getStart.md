@@ -63,4 +63,4 @@ qc.exe -d
 # Check flags with 
 qc.exe -h
 ```
-# Your done and have installed Quantum C!
+# You`re done and have installed Quantum C!
