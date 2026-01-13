@@ -54,11 +54,19 @@ cd QuantumC
     ./qc
 ```
 **Windows:**
+
 ```bash
 # Clone the repo
 git clone https://github.com/Youg-Otricked/QuantumC
 # Move into it
 cd QuantumC
+```
+Open the files quantum.cpp, tokenizer.h, and Ct4.cpp, and at the first line of each, write
+```cpp
+#include <print>
+```
+Then, run 
+```bash
 # Compile
 g++ *.cpp -o qc.exe -std=c++23 -lstdc++exp -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
 # Run the syntax guide
