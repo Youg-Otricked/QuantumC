@@ -45,7 +45,7 @@ jobs:
       - name: Build (Windows)
         shell: bash
         run: |
-          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
+          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -static-libgcc -static-libstdc++ -Wa,-mbig-obj
       
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
