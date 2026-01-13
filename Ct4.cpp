@@ -1890,7 +1890,7 @@ namespace tkz {
             if (this->current_tok.type == TokenType::ARROW) {
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::KEYWORD && user_types.count(this->current_tok.value) <= 0) {
+                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected return type after '->'", this->current_tok.pos));
                     return res.to_prs();
