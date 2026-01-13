@@ -60,7 +60,7 @@ git clone https://github.com/Youg-Otricked/QuantumC
 # Move into it
 cd QuantumC
 # Compile
-g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
+g++ *.cpp -o qc.exe -std=c++23 -lstdc++exp -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
 # Run the syntax guide
 qc.exe -d
 ```
