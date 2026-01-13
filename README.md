@@ -64,6 +64,7 @@ cd QuantumC
 # Compile
 g++ *.cpp -o qc.exe -std=c++23 -lstdc++exp -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
 # Run the syntax guide
+# Note i have only tested on CMD. It might not work on pwrshell
 qc.exe -d
 ```
 
@@ -76,7 +77,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 
 # Development Status
 strikthrough = done
-Current Version: v5.0 = "User types (~~Struct~~, ~~enum~~, class, ~~union~~, using aliases, ~~type/typedef~~, #include)"
+Current Version: v5.0.1 = "User types (~~Struct~~, ~~enum~~, class, ~~union~~, using aliases, ~~type/typedef~~, #include)"
 
 ## Working:
 
@@ -99,9 +100,10 @@ Random
 Long and Short
 Structs
 Union Types (TypeScript-style)
+Enums
 ## Coming Soon:
 
-Enums
+Namespace
 Class
 
 ---
@@ -140,7 +142,7 @@ Now Turing complete!
 
 ## Quantum Features
 
-Quantum C is the **world's second quantum programming language _(at least, that more than like 2 people would ever say the name of)_**, but the **first that doesn't require a $10M quantum computer!**
+Quantum C is the **world's second quantum programming language _(at least, that more than like 2 people would ever say the name of(now that statement is true))_**, but the **first that doesn't require a $10M quantum computer!**
 
 ### Quantum Booleans
 ```cpp
@@ -156,6 +158,7 @@ qif (qb) {
 
 ## Quantum Logic Operators
 ```cpp
+// Note these are not for normal booleans
 &&& - Quantum AND
 ||| - Quantum OR
 !! - Quantum NOT

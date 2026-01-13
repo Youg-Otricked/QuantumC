@@ -1091,7 +1091,7 @@ int main() {
     println(t);            
     println(typeof(t));
     // END OF DEMO
-    // All features shown above are working in Quantum C v5.0!
+    // All features shown above are working in Quantum C v5.0.1!
     //==============================================================================
     return 0;
 }
