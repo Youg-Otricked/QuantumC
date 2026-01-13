@@ -16,7 +16,9 @@
 #include <unordered_set>
 #include <format>
 #include <ranges>
-#include <print> 
+#if defined(_WIN32) || defined(_WIN64)
+    #include <print>
+#endif
 bool isCharInSet(char, const std::string &);
 
 namespace tkz {
