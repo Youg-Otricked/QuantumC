@@ -1063,7 +1063,18 @@ int main() {
     Weird d = true; 
     Weird e = qtrue;    
     Weird f = 42;  
-
+    ApiTier GetTierFromRate(int rate) {
+        switch (rate) {
+            case 10:
+            return "Free";
+            case 100:
+            return "Basic";
+            case 1000:
+            return "Pro";
+            case 10000:
+            return "Enterprise";
+        }
+    }
     // END OF DEMO
     // All features shown above are working in Quantum C v4.5!
     //==============================================================================

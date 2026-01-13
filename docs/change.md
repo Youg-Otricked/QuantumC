@@ -4,7 +4,8 @@
 [Back to home](./index.md)
 
 1/7/2026: Current version: 3.3: Adding docs.
-1/12/2026: Current version: 4.0: Structs.
+1/7-13/2026: Current version: 4.5: Structs, Unions, Typedef.
+
 
 # Features checklist (suitable for change(by adding more))
 
@@ -13,7 +14,7 @@
     - [ ] Enums
     - [x] Unions
     - [ ] Classes
-    - [ ] Template
+    ~~- [ ] Template~~ Replaced by Unions
     - [x] Typedef
     - [ ] Namespace
     - [ ] Better scope(\:\:)

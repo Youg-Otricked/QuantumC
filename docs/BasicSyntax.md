@@ -69,4 +69,9 @@ int main() {
 
 # Console Output
 
-The main way to output to console in Quantum C is std::qout ((<< text or variable or escapesequence)can repeat);, eg std::qout << "Hello, World" << '\n';
+The main way to output to the console in Quantum C is `std::qout`.
+
+Example:
+```cpp
+std::qout << "Hello, World" << '\n';
+```

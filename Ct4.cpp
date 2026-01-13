@@ -21,8 +21,6 @@
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
-#include <print>
-#include <format>
 #include <ranges>
 
 static bool random_seeded = false;
@@ -1892,7 +1890,7 @@ namespace tkz {
             if (this->current_tok.type == TokenType::ARROW) {
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::KEYWORD) {
+                if (this->current_tok.type != TokenType::KEYWORD && user_types.count(this->current_tok.value) <= 0) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected return type after '->'", this->current_tok.pos));
                     return res.to_prs();
@@ -2318,6 +2316,39 @@ namespace tkz {
         }, std::move(prs));
     }
 
+    auto is_valid_type_token = [&](auto it, auto end) -> bool {
+        if (it == end) return false;
+
+        std::string modifier;
+        if (it->type == TokenType::KEYWORD && (it->value == "long" || it->value == "short")) {
+            modifier = it->value;
+            ++it;
+            if (it == end) return false;
+        }
+        switch (it->type) {
+            case TokenType::STRING:
+            case TokenType::INT:
+            case TokenType::FLOAT:
+            case TokenType::DOUBLE:
+            case TokenType::CHAR:
+            case TokenType::BOOL:
+            case TokenType::QBOOL:
+                return true;
+        }
+        if (it->type == TokenType::KEYWORD) {
+            static const std::unordered_set<std::string> base_types = {
+                "int", "float", "double", "char", "bool", "qbool"
+            };
+            if (base_types.count(it->value) > 0) return true;
+        }
+
+        if (it->type == TokenType::IDENTIFIER && user_types.count(it->value) > 0) {
+            return true;
+        }
+
+        return false;
+    };
+
 
     Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
         ParseResult res;
@@ -2541,9 +2572,65 @@ namespace tkz {
                 return res.to_prs();
             }
             
-            Token dummy_return_type(TokenType::KEYWORD, "auto", tok.pos);
-            std::vector<Token> return_types = {dummy_return_type};
-            return this->func_def_multi(return_types, std::nullopt);
+            auto saved_it = this->it;
+            
+            int paren_depth = 1;
+            this->advance();
+            
+            while (paren_depth > 0 && this->current_tok.type != TokenType::EOFT) {
+                if (this->current_tok.type == TokenType::LPAREN) paren_depth++;
+                if (this->current_tok.type == TokenType::RPAREN) paren_depth--;
+                this->advance();
+            }
+            
+            std::vector<Token> return_types;
+            
+            if (this->current_tok.type == TokenType::ARROW) {
+                this->advance();
+                
+                if (this->current_tok.type != TokenType::KEYWORD && user_types.count(this->current_tok.value) <= 0) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected return type after '->'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                
+                return_types.push_back(this->current_tok);
+                this->advance();
+                
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected return type after ','", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    
+                    return_types.push_back(this->current_tok);
+                    this->advance();
+                }
+            } else {
+                return_types.push_back(Token(TokenType::KEYWORD, "auto", tok.pos));
+            }
+            
+            this->it = saved_it;
+            this->current_tok = *this->it;
+            
+            auto fn_pr = this->func_def_multi(return_types, std::nullopt);
+
+            if (std::holds_alternative<std::unique_ptr<Error>>(fn_pr))
+                return fn_pr;
+
+            AnyNode fn_node;
+            if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(fn_pr))
+                fn_node = std::get<std::shared_ptr<FuncDefNode>>(std::move(fn_pr));
+            else
+                fn_node = std::get<std::shared_ptr<FuncDefNode>>(std::move(fn_pr));
+
+            if (this->current_tok.type == TokenType::LPAREN)
+                return this->call(std::move(fn_node));
+
+            return res.success(std::move(fn_node));
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
             return this->if_expr();
@@ -3383,15 +3470,6 @@ namespace tkz {
         AnyNode node = res.reg(this->assignment_expr()); 
         if (res.error) return res.to_prs();
 
-        if (this->current_tok.type == TokenType::SEMICOLON) {
-            this->advance(); 
-            return res.success(std::move(node));
-        }
-
-        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
-        return res.to_prs();
-        if (res.error) return res.to_prs();
-        
         if (this->current_tok.type == TokenType::SEMICOLON) {
             this->advance(); 
             return res.success(std::move(node));
