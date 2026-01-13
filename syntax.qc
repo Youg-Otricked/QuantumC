@@ -1073,10 +1073,25 @@ int main() {
             return "Pro";
             case 10000:
             return "Enterprise";
+            default:
+            return "Free";
         }
     }
+    ApiTier thingy = GetTierFromRate(f);
+    std::qout << typeof(thingy);
+    if (typeof(thingy) != "string") {
+        throw("Should have been string");
+    }
+    enum Api {
+        Free = "Free";
+        Pro  = "Pro";
+    }
+
+    Api t = Api.Pro;
+    println(t);            
+    println(typeof(t));
     // END OF DEMO
-    // All features shown above are working in Quantum C v4.7!
+    // All features shown above are working in Quantum C v5.0!
     //==============================================================================
     return 0;
 }

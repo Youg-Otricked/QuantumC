@@ -210,8 +210,12 @@ namespace tkz {
         std::string name;
         std::string type;
     };
+    struct EnumEntry {
+        std::string memberName;
+        std::string typeAtom;
+    };
 
-    enum class UserTypeKind { Struct, Alias, Union };
+    enum class UserTypeKind { Struct, Alias, Union, Enum };
 
     struct UnionMember {
         std::string type;
@@ -222,6 +226,7 @@ namespace tkz {
         std::vector<StructField> fields; 
         std::string aliasTarget;       
         std::vector<UnionMember> members;
+        std::vector<EnumEntry> enumEntries;
     };
 
         

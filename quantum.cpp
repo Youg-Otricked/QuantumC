@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
         | |      / /|__   _|
         | |____ / /_   | |  
          \_____|____|  |_|  
-        Quantum C (C⁴) v4.7
+        Quantum C (C⁴) v5.0
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
             config.raw = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << R"(
-Quantum C Interpreter v4.7
+Quantum C Interpreter v5.0
 
 Usage: ./qc [options] <file>
 
@@ -98,6 +98,7 @@ In Code:
   // @print-tokens == -tkn
   // @show-time == -t
   // @quiet == -q
+  // @raw-ast == -r
   quiet silences non debug output
 Examples:
   qc main.qc          Run main.qc
@@ -113,7 +114,7 @@ Examples:
     
     if (filename.empty()) {
         // REPL mode
-        std::cout << "Quantum C REPL v4.7" << std::endl;
+        std::cout << "Quantum C REPL v5.0" << std::endl;
         if (!config.use_context) {
             std::cout << "(Context disabled)" << std::endl;
         }

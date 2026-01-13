@@ -2347,7 +2347,7 @@ namespace tkz {
             if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
 
-                if (this->current_tok.type != TokenType::KEYWORD) {
+                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected element type in list<T>", this->current_tok.pos));
                     return res.to_prs();
@@ -2404,7 +2404,7 @@ namespace tkz {
                 if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                     this->advance(); 
 
-                    if (this->current_tok.type != TokenType::KEYWORD) {
+                    if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Expected element type in list<T>", this->current_tok.pos));
                         return res.to_prs();
@@ -2463,12 +2463,12 @@ namespace tkz {
         if (this->current_tok.type == TokenType::ARROW) {
             this->advance();
             
-            if (this->current_tok.type == TokenType::KEYWORD) {
+            if (this->current_tok.type == TokenType::KEYWORD || this->user_types.count(this->current_tok.value) > 0) {
                 this->advance();
                 
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
-                    if (this->current_tok.type == TokenType::KEYWORD) {
+                    if (this->current_tok.type == TokenType::KEYWORD || this->user_types.count(this->current_tok.value) > 0) {
                         this->advance();
                     }
                 }
@@ -2976,6 +2976,97 @@ namespace tkz {
             user_types[type_name.value] = std::move(info);
             return res.success(std::monostate{});
         }
+        if (tok.type == TokenType::KEYWORD && tok.value == "enum") {
+            this->advance();
+
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected enum name", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token enum_name = this->current_tok;
+            this->advance();
+
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' after enum name", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            std::vector<UnionMember> members;
+            std::vector<EnumEntry> entries;
+
+            auto parse_type_atom = [&](Token tok) -> std::string {
+                switch (tok.type) {
+                    case TokenType::STRING:  return "string:\"" + tok.value + "\"";
+                    case TokenType::INT:     return "int:" + tok.value;
+                    case TokenType::FLOAT:   return "float:" + tok.value;
+                    case TokenType::DOUBLE:  return "double:" + tok.value;
+                    case TokenType::CHAR:    return "char:" + tok.value;
+                    case TokenType::BOOL:    return "bool:" + tok.value;
+                    case TokenType::QBOOL:   return "qbool:" + tok.value;
+                    default:                 return tok.value;
+                }
+            };
+
+            while (this->current_tok.type != TokenType::RBRACE &&
+                this->current_tok.type != TokenType::EOFT) {
+
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected enum member name", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                Token member_name = this->current_tok;
+                this->advance();
+
+                if (this->current_tok.type != TokenType::EQ) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '=' after enum member name '" + member_name.value + "'",
+                        this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+
+                Token value_tok = this->current_tok;
+                this->advance();
+
+                std::string typeAtom = parse_type_atom(value_tok);
+                members.push_back(UnionMember{ typeAtom });
+                entries.push_back(EnumEntry{ member_name.value, typeAtom });
+
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected ';' after enum member", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+            }
+
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}' at end of enum", this->current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            if (user_types.contains(enum_name.value)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Redefinition of type '" + enum_name.value + "'",
+                    enum_name.pos));
+                return res.to_prs();
+            }
+
+            UserTypeInfo info;
+            info.kind = UserTypeKind::Union;
+            info.members = std::move(members);
+            info.enumEntries = std::move(entries);
+
+            user_types[enum_name.value] = std::move(info);
+
+            return res.success(std::monostate{});
+        }
         if (tok.type == TokenType::KEYWORD) {
             bool is_const = false;
             
@@ -3180,7 +3271,7 @@ namespace tkz {
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
                     
-                    if (this->current_tok.type != TokenType::KEYWORD) {
+                    if (this->current_tok.type != TokenType::KEYWORD && !this->user_types.count(this->current_tok.value) > 0) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Expected type", this->current_tok.pos));
                         return res.to_prs();
@@ -3382,17 +3473,58 @@ namespace tkz {
         if (tok.type == TokenType::IDENTIFIER &&
             user_types.count(tok.value) > 0) {
 
-            Token type_tok = tok;
+            Token first_type = tok;
             this->advance();
-
-            if (this->current_tok.type != TokenType::IDENTIFIER) {
+            if (this->current_tok.type != TokenType::IDENTIFIER &&
+                this->current_tok.type != TokenType::COMMA) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected variable name after type '" + type_tok.value + "'",
+                    "Expected function name or ',' after type '" + first_type.value + "'",
                     this->current_tok.pos));
                 return res.to_prs();
             }
+
+            std::vector<Token> return_types;
+            return_types.push_back(first_type);
+
+            if (this->current_tok.type == TokenType::COMMA) {
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+
+                    if (this->current_tok.type == TokenType::KEYWORD ||
+                        (this->current_tok.type == TokenType::IDENTIFIER &&
+                        user_types.count(this->current_tok.value) > 0)) {
+
+                        return_types.push_back(this->current_tok);
+                        this->advance();
+                    } else {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected return type after ','", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                }
+            }
+
+            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected name after types", this->current_tok.pos));
+                return res.to_prs();
+            }
+
             Token name_tok = this->current_tok;
             this->advance();
+
+            if (this->current_tok.type == TokenType::LPAREN) {
+                auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
+                if (res.error) return res.to_prs();
+                return res.success(std::move(func_def));
+            }
+
+            if (return_types.size() > 1) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Invalid syntax: multiple types before variable name; "
+                    "did you mean to define a function?", name_tok.pos));
+                return res.to_prs();
+            }
 
             AnyNode value;
             if (this->current_tok.type == TokenType::EQ) {
@@ -3400,7 +3532,7 @@ namespace tkz {
                 value = res.reg(this->qout_expr());
                 if (res.error) return res.to_prs();
             } else {
-                value = default_value_for_type(type_tok, name_tok.pos);
+                value = default_value_for_type(first_type, name_tok.pos);
             }
 
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -3410,7 +3542,7 @@ namespace tkz {
             this->advance();
 
             return res.success(std::make_unique<VarAssignNode>(
-                false, type_tok, name_tok, std::move(value)));
+                false, first_type, name_tok, std::move(value)));
         }
         // Assignment or compound assignment: x = 5; or x += 5;
         if (tok.type == TokenType::IDENTIFIER) {
@@ -4487,7 +4619,21 @@ namespace tkz {
         if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
             auto& varacc = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
             func_name = varacc->var_name_tok.value;
-
+            if (func_name == "throw") {
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("throw() requires exactly 1 argument", Position());
+                }
+                
+                NumberVariant value = this->process(node->arg_nodes.front());
+                std::string msg = std::visit([](auto&& v) -> std::string {
+                    if constexpr (requires { v->print(); }) {
+                        return v->print();
+                    } else {
+                        return v.print();
+                    }
+                }, value);
+                throw RTError(msg, Position());
+            }
             if (func_name == "print" || func_name == "println") {
                 for (auto& arg : node->arg_nodes)
                     std::cout << std::visit([](auto&& v) -> std::string { 
@@ -4552,6 +4698,16 @@ namespace tkz {
                 }
                 
                 throw RTError("seed() requires integer argument",  Position());
+            }
+            if (func_name == "typeof") {
+                
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("typeof() requires exactly 1 argument", Position());
+                }
+                
+                NumberVariant value = this->process(node->arg_nodes.front());
+                
+                return StringValue(this->context->get_type_name(value));
             }
             try { target_val = context->get(func_name, varacc->var_name_tok.pos); }
             catch (RTError&) {
@@ -5023,7 +5179,6 @@ namespace tkz {
             auto r_qb = std::get_if<QBoolValue>(&right);
             
             if (l_qb && r_qb) {
-                // Quantum AND: if both sides can be true and one is both: both
                 bool t = l_qb->tval && r_qb->tval;
                 
                 if (t) return BoolValue("true");
@@ -5039,7 +5194,6 @@ namespace tkz {
             auto r_qb = std::get_if<QBoolValue>(&right);
             
             if (l_qb && r_qb) {
-                // Quantum OR: if at least one side is both: both
                 bool t = l_qb->tval || r_qb->tval;
                 
                 if (t) return BoolValue("true");
@@ -5753,13 +5907,70 @@ namespace tkz {
         }
         throw RTError("Object does not support methods", node->method_name.pos);
     }
+    NumberVariant make_value_from_type_atom(const std::string& atom) {
+        if (atom.rfind("int:", 0) == 0) {
+            return Number<int>(std::stoi(atom.substr(4)));
+        }
+
+        if (atom.rfind("float:", 0) == 0) {
+            return Number<float>(std::stof(atom.substr(6)));
+        }
+
+        if (atom.rfind("double:", 0) == 0) {
+            return Number<double>(std::stod(atom.substr(7)));
+        }
+
+        if (atom.rfind("char:", 0) == 0) {
+            std::string s = atom.substr(5);
+            char c = s.empty() ? '\0' : s[0];
+            return CharValue(std::string(1, c));
+        }
+
+        if (atom.rfind("bool:", 0) == 0) {
+            std::string s = atom.substr(5);
+            bool b = (s == "true");
+            return BoolValue(s);
+        }
+
+        if (atom.rfind("qbool:", 0) == 0) {
+            std::string s = atom.substr(6);
+            return QBoolValue(s);
+        }
+
+        if (atom.rfind("string:\"", 0) == 0) {
+            std::string inner = atom.substr(8, atom.size() - 9);
+            return StringValue(inner);
+        }
+
+        return VoidValue{};
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<PropertyAccessNode>& node) {
         if (!node) return Number<int>(0);
+        if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&node->base)) {
+            const std::string& baseName = (*varAcc)->var_name_tok.value;
+            const std::string& memberName = node->property_name.value;
 
+            auto ut_it = context->user_types.find(baseName);
+            if (ut_it != context->user_types.end()) {
+                UserTypeInfo& ut = ut_it->second;
+                if (!ut.enumEntries.empty()) {
+                    for (auto& e : ut.enumEntries) {
+                        if (e.memberName == memberName) {
+                            return make_value_from_type_atom(e.typeAtom);
+                        }
+                    }
+                    throw RTError(
+                        "Enum '" + baseName + "' has no member '" + memberName + "'",
+                        node->property_name.pos
+                    );
+                }
+            }
+        }
         NumberVariant obj = this->process(node->base);
         const std::string& name = node->property_name.value;
 
         while (true) {
+            
             if (auto s = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
                 auto it = (*s)->fields.find(name);
                 if (it == (*s)->fields.end()) {
