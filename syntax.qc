@@ -1076,7 +1076,7 @@ int main() {
         }
     }
     // END OF DEMO
-    // All features shown above are working in Quantum C v4.5!
+    // All features shown above are working in Quantum C v4.7!
     //==============================================================================
     return 0;
 }
