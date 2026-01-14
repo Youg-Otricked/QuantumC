@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 `8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.             `8 8888       .8' 
  ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.               8888     ,88'  
     `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.               `8888888P'  
-        Quantum C (C⁴) v5.0.2
+        Quantum C (C⁴) v5.0.3
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -142,11 +142,13 @@ int main(int argc, char* argv[]) {
         } 
         else if (arg == "--raw" || arg == "-r") {
             config.raw = true;
+        } else if (arg == "--bst" || arg == "-b") {
+            config.bst = true;
         } else if (arg == "--suspense" || arg == "-s") {
             slow = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << GREEN << R"(
-Quantum C Interpreter v5.0
+Quantum C Interpreter v5.0.2
 
 Usage: ./qc [options] <file>
 
@@ -161,6 +163,7 @@ Options:
   -t, --time          Show compilation time
   -r, --raw           Don't pretty print the AST. (must be used in congunction with -a/--ast)
   -s, --suspense      Slowly print the Error codes.
+  -b, --bst           Bst style ast (warning, very top heavy) msut be used in congunction with -a/ast
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @no-context == -nc
@@ -170,6 +173,7 @@ In Code:
   // @show-time == -t
   // @quiet == -q
   // @raw-ast == -r
+  // @bst-ast == -b
   quiet silences non debug output
 Examples:
   qc main.qc          Run main.qc
@@ -188,7 +192,7 @@ Examples:
         
         // REPL mode
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL v5.0.2" << RESET << std::endl;
+        std::cout << GREEN << "Quantum C REPL v5.0.3" << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;

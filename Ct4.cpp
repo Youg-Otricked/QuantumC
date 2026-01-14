@@ -6245,6 +6245,109 @@ namespace tkz {
         }
         return out;
     }
+    std::string bst_diagram(const std::string& input) {
+        std::string s = collapse_inline_brackets(input);
+
+        struct Node {
+            std::string val;
+            std::vector<Node> children;
+        };
+
+        std::function<Node(const std::string&, size_t&)> parse_node;
+        parse_node = [&](const std::string& str, size_t& pos) -> Node {
+            Node n;
+            std::string token;
+            while (pos < str.size()) {
+                char c = str[pos++];
+                if (c == '(' || c == '[' || c == '{') {
+                    Node child = parse_node(str, pos);
+                    n.children.push_back(child);
+                } else if (c == ')' || c == ']' || c == '}') {
+                    break;
+                } else if (c == ',') {
+                    if (!token.empty()) {
+                        n.children.push_back(Node{token});
+                        token.clear();
+                    }
+                } else {
+                    token += c;
+                }
+            }
+            if (!token.empty()) n.val = token;
+            return n;
+        };
+
+        size_t idx = 0;
+        Node root = parse_node(s, idx);
+
+        struct ASCIINode {
+            std::vector<std::string> lines;
+            int width = 0;
+            int height = 0;
+            int middle = 0;
+        };
+
+        std::function<ASCIINode(const Node&)> build;
+        build = [&](const Node& n) -> ASCIINode {
+            ASCIINode res;
+            res.lines.push_back(n.val);
+            res.width = n.val.size();
+            res.height = 1;
+            res.middle = res.width / 2;
+
+            if (n.children.empty()) return res;
+
+            std::vector<ASCIINode> child_nodes;
+            int total_width = 0;
+            for (const auto& c : n.children) {
+                ASCIINode cn = build(c);
+                child_nodes.push_back(cn);
+                total_width += cn.width;
+            }
+            total_width += (int)(n.children.size() - 1) * 2; 
+
+            res.width = std::max(res.width, total_width);
+            res.height = 1; 
+            std::string connector(res.width, ' ');
+            int x = 0;
+            for (size_t i = 0; i < child_nodes.size(); i++) {
+                int cmid = x + child_nodes[i].middle;
+                if (cmid < res.middle)
+                    connector[cmid] = '/';
+                else if (cmid > res.middle)
+                    connector[cmid] = '\\';
+                x += child_nodes[i].width + 2;
+            }
+
+            res.lines.push_back(connector);
+            res.height++;
+
+            int max_child_height = 0;
+            for (auto& c : child_nodes) max_child_height = std::max(max_child_height, (int)c.lines.size());
+
+            for (int i = 0; i < max_child_height; i++) {
+                std::string line(res.width, ' ');
+                int pos = 0;
+                for (size_t j = 0; j < child_nodes.size(); j++) {
+                    ASCIINode& c = child_nodes[j];
+                    std::string part = (i < (int)c.lines.size()) ? c.lines[i] : std::string(c.width, ' ');
+                    for (int k = 0; k < (int)part.size(); k++)
+                        line[pos + k] = part[k];
+                    pos += c.width + 2;
+                }
+                res.lines.push_back(line);
+                res.height++;
+            }
+
+            return res;
+        };
+
+        ASCIINode diagram = build(root);
+        std::ostringstream out;
+        for (auto& l : diagram.lines) out << l << "\n";
+        return out.str();
+    }
+
     std::string indent_ast(const std::string& input) {
         std::string s = collapse_inline_brackets(input);
 
@@ -6380,6 +6483,10 @@ namespace tkz {
             config.raw = true;
             config.print_ast = true;
         }
+        if (text.find("// @bst-ast") != std::string::npos) {
+            config.bst = true;
+            config.print_ast = true;
+        }
         loose = config.looser_types;
         
         auto start = std::chrono::high_resolution_clock::now();
@@ -6421,6 +6528,13 @@ namespace tkz {
             std::cout << "=== AST ===" << std::endl;
             for (const auto& stmt : ast.statements->statements) {
                 std::cout << indent_ast(printAny(stmt));
+            }
+            std::cout << "===========" << std::endl << std::endl;
+        }
+        else if (config.print_ast && config.bst) {
+            std::cout << "=== AST ===" << std::endl;
+            for (const auto& stmt : ast.statements->statements) {
+                std::cout << bst_diagram(printAny(stmt));
             }
             std::cout << "===========" << std::endl << std::endl;
         }
