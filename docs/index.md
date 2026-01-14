@@ -12,6 +12,22 @@ int main() {
 }
 ```
 
+## Video
+
+<div style="position: relative; padding-bottom: calc(51.0933% + 41px); height: 0; width: 100%; max-width: 900px; margin: 0 auto;">
+  <iframe
+    src="https://demo.arcade.software/YKKoQ8dvslZT7VIXJVgH?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
+    title="Run and Test C Code in Quantum C Playground"
+    frameborder="0"
+    loading="lazy"
+    webkitallowfullscreen
+    mozallowfullscreen
+    allowfullscreen
+    allow="clipboard-write"
+    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; color-scheme: light;"
+  ></iframe>
+</div>
+
 ### Pages:
 [Features](./desc.md)
 [Getting started](./getStart.md)
