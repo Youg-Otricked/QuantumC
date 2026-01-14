@@ -13,4 +13,3 @@ int main() {
     std::qout << !n;
     std::qout << z |&| !!n;
     std::qout << z &|& n;
-}

@@ -2891,17 +2891,15 @@ namespace tkz {
                         return "bool:" + tok.value;
                     case TokenType::QBOOL:
                         return "qbool:" + tok.value;
-                    case TokenType::KEYWORD:
-                        return "function:" + tok.value;
                     default:
                         return tok.value;
                 }
             };
 
             auto is_type_or_literal_token = [&](TokenType tt) {
-                return tt == TokenType::STRING    ||
-                    tt == TokenType::KEYWORD   ||
+                return tt == TokenType::STRING ||
                     tt == TokenType::IDENTIFIER||
+                    tt == TokenType::KEYWORD   ||
                     tt == TokenType::INT       ||
                     tt == TokenType::FLOAT     ||
                     tt == TokenType::DOUBLE    ||
@@ -3010,7 +3008,6 @@ namespace tkz {
                     case TokenType::CHAR:    return "char:" + tok.value;
                     case TokenType::BOOL:    return "bool:" + tok.value;
                     case TokenType::QBOOL:   return "qbool:" + tok.value;
-                    case TokenType::KEYWORD: return "function:" + tok.value;
                     default:                 return tok.value;
                 }
             };
@@ -3748,10 +3745,7 @@ namespace tkz {
                 return false;
             }
             if (lit_kind == "function" && actual_type == "function") {
-                if (auto fv = std::get_if<FunctionValue>(&val)) {
-                    return fv->valname == lit_val;
-                }
-                return false;
+                return true;
             }
 
             return false;
@@ -3837,15 +3831,22 @@ namespace tkz {
         }, a);
     }
     NumberVariant Interpreter::process(AnyNode& node) {
-        
-        return std::visit([this](auto& n) -> NumberVariant {
-            using T = std::decay_t<decltype(n)>;
-            return (*this)(n);
-        }, node);
+        try {
+            if (this->errors.size() > 50) {
+                throw RTError("Too many errors! Execution stopped.", Position());
+            }
+            return std::visit([this](auto& n) -> NumberVariant {
+                using T = std::decay_t<decltype(n)>;
+                return (*this)(n);
+            }, node);
+        } catch (RTError& e) {
+            throw e;
+        }
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
-        throw RTError("Unexpected 'break' outside loop or switch",
-                    node ? node->tok.pos : Position());
+        this->errors.push_back({RTError("Unexpected 'break' outside loop or switch", node->tok.pos), "Warning"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode>& node) {
         if (!node) return std::move(Number<int>(0));
@@ -3900,6 +3901,7 @@ namespace tkz {
                 return ExecResult(std::move(v), false, false, false);
             }
         }, node);
+        return {};
     }
     ExecResult Interpreter::exec_stmt_in_loop_or_switch(StatementsNode& block) {
         NumberVariant last = Number<int>(0);
@@ -3930,7 +3932,7 @@ namespace tkz {
         const auto& fields = info.fields;
 
         if (arr->elements.size() != fields.size()) {
-            throw RTError("Nested struct initializer size mismatch for '" + struct_type + "'", {});
+            this->errors.push_back({RTError("Nested struct initializer size mismatch for '" + struct_type + "'", {}), "Error"});
         }
 
         auto sv = std::make_shared<StructValue>(struct_type);
@@ -3942,10 +3944,10 @@ namespace tkz {
             if (context->user_types.contains(field.type)) {
                 auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
                 if (!nestedArr) {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Expected struct initializer for nested struct '" + field.type + "'",
                         {}
-                    );
+                    ), "Error"});
                 }
                 elemVal = convert_array_to_struct(*nestedArr, field.type, context);
             }
@@ -3956,10 +3958,10 @@ namespace tkz {
 
                 auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
                 if (!arrVal) {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Expected array initializer for list/array field '" + field.name + "'",
                         {}
-                    );
+                    ), "Error"});
                 }
 
                 std::string elemType;
@@ -3975,11 +3977,11 @@ namespace tkz {
 
                 auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
                 if (!mapVal) {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Expected map initializer for field '" + field.name +
                         "' of type '" + field.type + "'",
                         {}
-                    );
+                    ), "Error"});
                 }
 
                 auto inside = field.type.substr(4, field.type.size() - 5);
@@ -3991,12 +3993,12 @@ namespace tkz {
                 const std::string& actualValue = (*mapVal)->value_type;
 
                 if (expectedKey != actualKey || expectedValue != actualValue) {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Type mismatch for map field '" + field.name +
                         "': expected " + field.type +
                         ", got map<" + actualKey + "," + actualValue + ">",
                         {}
-                    );
+                    ), "Error"});
                 }
             }
 
@@ -4026,11 +4028,11 @@ namespace tkz {
 
                 if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
                     if ((*svPtr)->type_name != declaredType) {
-                        throw RTError(
+                        this->errors.push_back({RTError(
                             "Cannot assign struct of type '" + (*svPtr)->type_name +
                             "' to variable of type '" + declaredType + "'",
                             node->var_name_tok.pos
-                        );
+                        ), "Error"});
                     }
                     auto newStruct = std::make_shared<StructValue>(**svPtr);
                     newStruct->set_pos(node->var_name_tok.pos);
@@ -4039,12 +4041,12 @@ namespace tkz {
                 else if (auto arrPtr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
 
                     if (arrPtr->get()->elements.size() != fields.size()) {
-                        throw RTError(
+                        this->errors.push_back({RTError(
                             "Initializer list has " + std::to_string(arrPtr->get()->elements.size()) +
                             " elements, but struct '" + declaredType + "' has " +
                             std::to_string(fields.size()) + " fields",
                             node->var_name_tok.pos
-                        );
+                        ), "Error"});
                     }
 
                     auto sv = std::make_shared<StructValue>(declaredType);
@@ -4060,10 +4062,10 @@ namespace tkz {
 
                             auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
                             if (!nestedArr) {
-                                throw RTError(
+                                this->errors.push_back({RTError(
                                     "Expected struct initializer for nested struct '" + field.type + "'",
                                     node->var_name_tok.pos
-                                );
+                                ), "Error"});
                             }
                             elemVal = Interpreter::convert_array_to_struct(*nestedArr, field.type, context);
                         }
@@ -4072,10 +4074,10 @@ namespace tkz {
 
                             auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
                             if (!arrVal) {
-                                throw RTError(
+                                this->errors.push_back({RTError(
                                     "Expected array initializer for list field '" + field.name + "'",
                                     node->var_name_tok.pos
-                                );
+                                ), "Error"});
                             }
                             std::string elemType = field.type.substr(0, field.type.size() - 2);
                             auto listVal = std::make_shared<ListValue>(elemType, (*arrVal)->elements);
@@ -4086,11 +4088,11 @@ namespace tkz {
 
                             auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
                             if (!mapVal) {
-                                throw RTError(
+                                this->errors.push_back({RTError(
                                     "Expected map initializer for field '" + field.name +
                                     "' of type '" + field.type + "'",
                                     node->var_name_tok.pos
-                                );
+                                ), "Error"});
                             }
 
                             auto [expectedKeyType, expectedValType] = parse_map_type(field.type);
@@ -4098,12 +4100,12 @@ namespace tkz {
                             const std::string& actualValType = (*mapVal)->value_type;
 
                             if (expectedKeyType != actualKeyType || expectedValType != actualValType) {
-                                throw RTError(
+                                this->errors.push_back({RTError(
                                     "Type mismatch for map field '" + field.name +
                                     "': expected " + field.type +
                                     ", got map<" + actualKeyType + "," + actualValType + ">",
                                     node->var_name_tok.pos
-                                );
+                                ), "Error"});
                             }
                         }
 
@@ -4113,10 +4115,10 @@ namespace tkz {
                     value = sv;
                 }
                 else {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Expected struct initializer '{ ... }' or struct value for type '" + declaredType + "'",
                         node->var_name_tok.pos
-                    );
+                    ), "Error"});
                 }
 
                 actualType = declaredType;
@@ -4138,11 +4140,11 @@ namespace tkz {
                 }
 
                 if (!ok) {
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Type mismatch: value of type " + valType +
                         " is not assignable to union type '" + node->type_tok.value + "'",
                         Position()
-                    );
+                    ), "Error"});
                 }
 
                 actualType = node->type_tok.value;
@@ -4203,10 +4205,10 @@ namespace tkz {
                 type_matches = true;
             }
             if (!type_matches) {
-                throw RTError(
+                this->errors.push_back({RTError(
                     "Type mismatch: expected " + declaredType + ", got " + actualType,
                     node->var_name_tok.pos
-                );
+                ), "Error"});
             }
         }
 
@@ -4411,7 +4413,8 @@ namespace tkz {
             return ExecResult{std::move(last), false, false};
         }
         
-        throw RTError("qswitch requires a qbool", Position());
+        this->errors.push_back({RTError("qswitch requires a qbool", Position()), "Severe"});
+        return {};
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode>& node) {
         if (!node) return Number<int>(0);
@@ -4462,10 +4465,11 @@ namespace tkz {
             
             return last;
         }
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ContinueNode>& node) {
-        throw RTError("Unexpected 'continue' outside loop",
-                    node ? node->tok.pos : Position());
+        this->errors.push_back({RTError("Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode>& node) {
         
@@ -4632,7 +4636,7 @@ namespace tkz {
             func_name = varacc->var_name_tok.value;
             if (func_name == "throw") {
                 if (node->arg_nodes.size() != 1) {
-                    throw RTError("throw() requires exactly 1 argument", Position());
+                    this->errors.push_back({RTError("throw() requires exactly 1 argument", Position()), "Error"});
                 }
                 
                 NumberVariant value = this->process(node->arg_nodes.front());
@@ -4672,7 +4676,7 @@ namespace tkz {
                         int r = rand() % max_num->value;
                         return Number<int>(r);
                     }
-                    throw RTError("random(max) requires integer argument",  Position());
+                    this->errors.push_back({RTError("random(max) requires integer argument",  Position()), "Error"});
                 }
                 else if (args.size() == 2) {
                     if (auto min_num = std::get_if<Number<int>>(&args[0])) {
@@ -4682,14 +4686,14 @@ namespace tkz {
                             return Number<int>(r);
                         }
                     }
-                    throw RTError("random(min, max) requires integer arguments", Position());
+                    this->errors.push_back({RTError("random(min, max) requires integer arguments", Position()), "Error"});
                 }
                 
-                throw RTError("random() takes 0, 1, or 2 arguments", Position());
+                this->errors.push_back({RTError("random() takes 0, 1, or 2 arguments", Position()), "Error"});
             }
             if (func_name == "time") {
                 if (node->arg_nodes.size() != 0) {
-                    throw RTError("time() takes no arguments", Position());
+                    this->errors.push_back({RTError("time() takes no arguments", Position()), "Error"});
                 }
                 
                 return Number<int>(static_cast<int>(time(nullptr)));
@@ -4697,7 +4701,7 @@ namespace tkz {
             if (func_name == "seed") {
                 
                 if (node->arg_nodes.size() != 1) {
-                    throw RTError("seed() requires exactly 1 argument", Position());
+                    this->errors.push_back({RTError("seed() requires exactly 1 argument", Position()), "Error"});
                 }
                 
                 NumberVariant seed_val = this->process(node->arg_nodes.front());
@@ -4708,12 +4712,12 @@ namespace tkz {
                     return VoidValue();
                 }
                 
-                throw RTError("seed() requires integer argument",  Position());
+                this->errors.push_back({RTError("seed() requires integer argument",  Position()), "Error"});
             }
             if (func_name == "typeof") {
                 
                 if (node->arg_nodes.size() != 1) {
-                    throw RTError("typeof() requires exactly 1 argument", Position());
+                    this->errors.push_back({RTError("typeof() requires exactly 1 argument", Position()), "Error"});
                 }
                 
                 NumberVariant value = this->process(node->arg_nodes.front());
@@ -4731,10 +4735,10 @@ namespace tkz {
         }
         
         if (!std::holds_alternative<FunctionValue>(target_val))
-            throw RTError("Can only call functions", Position());
+            this->errors.push_back({RTError("Can only call functions", Position()), "Error"});
 
         FunctionValue fval = std::get<FunctionValue>(target_val);
-        if (!fval.func) throw RTError("Invalid function value", Position());
+        if (!fval.func) this->errors.push_back({RTError("Invalid function value", Position()), "Error"});
 
         auto func = fval.func;
         context->push_scope();
@@ -4755,7 +4759,7 @@ namespace tkz {
                 }
                 else {
                     context->pop_scope();
-                    throw RTError("Spread target must be array or list", Position());
+                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
                 }
             }
             else {
@@ -4765,7 +4769,7 @@ namespace tkz {
         try {
             if (final_args.size() > func->params.size()) {
                 context->pop_scope();
-                throw RTError("Too many arguments", Position());
+                this->errors.push_back({RTError("Too many arguments", Position()), "Error"});
             }
             for (size_t i = 0; i < func->params.size(); i++) {
                 NumberVariant value;
@@ -4778,7 +4782,7 @@ namespace tkz {
                 else if (it_param->default_value.has_value()) {
                     value = this->process(it_param->default_value.value());
                 }
-                else throw RTError("Missing argument", Position());
+                else this->errors.push_back({RTError("Missing argument", Position()), "Error"});
 
                 
                 std::string expected_type = it_param->type.value;
@@ -4810,11 +4814,11 @@ namespace tkz {
                             }
 
                             if (!ok) {
-                                throw RTError(
+                                this->errors.push_back({RTError(
                                     "Type mismatch: value of type " + valType +
                                     " is not assignable to union type '" + expected_type + "'",
                                     Position()
-                                );
+                                ), "Error"});
                             }
 
                             actual_type = expected_type;
@@ -4865,11 +4869,11 @@ namespace tkz {
                     
                     if (!types_compatible) {
                         context->pop_scope();
-                        throw RTError(
+                        this->errors.push_back({RTError(
                             "Argument type mismatch: expected " + expected_type + 
                             ", got " + actual_type, 
                             Position()
-                        );
+                        ), "Error"});
                     }
                     
                     context->define(it_param->name.value, expected_type, value);
@@ -4906,6 +4910,7 @@ namespace tkz {
             context->pop_scope();
             throw;
         }
+        return VoidValue();
     }
 
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
@@ -4937,7 +4942,7 @@ namespace tkz {
                 
                 return Number<int>(static_cast<int>(val));
             } catch (...) {
-                throw RTError("Integer out of range", node.tok.pos);
+                this->errors.push_back({RTError("Integer out of range", node.tok.pos), "Severe"});
             }
         }
         
@@ -4954,7 +4959,7 @@ namespace tkz {
 
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAccessNode>& node) {
         if (!context) {
-            throw RTError("Context not initialized", node->var_name_tok.pos);
+            this->errors.push_back({RTError("Context not initialized", node->var_name_tok.pos), "Severe"});
         }
         auto result = context->get(node->var_name_tok.value, node->var_name_tok.pos);
         return result;
@@ -5039,14 +5044,14 @@ namespace tkz {
                                 val = Number<int>(std::stoi(input));
                             }
                         } catch (...) {
-                            throw RTError("Cannot parse integer", node->op_tok.pos);
+                            this->errors.push_back({RTError("Cannot parse integer", node->op_tok.pos), "Error"});
                         }
                     }
                     else if (type == "float") {
                         try {
                             val = Number<float>(std::stof(input));
                         } catch (...) {
-                            throw RTError("Cannot parse float", node->op_tok.pos);
+                            this->errors.push_back({RTError("Cannot parse float", node->op_tok.pos), "Error"});
                         }
                     }
                     else if (type == "double" || type == "long double") {
@@ -5058,7 +5063,7 @@ namespace tkz {
                                 val = Number<double>(std::stod(input));
                             }
                         } catch (...) {
-                            throw RTError("Cannot parse double", node->op_tok.pos);
+                            this->errors.push_back({RTError("Cannot parse double", node->op_tok.pos), "Error"});
                         }
                     }
                     else if (type == "string") {
@@ -5074,7 +5079,7 @@ namespace tkz {
                         val = QBoolValue(input);
                     }
                     else {
-                        throw RTError("Cannot read input into type " + type, node->op_tok.pos);
+                        this->errors.push_back({RTError("Cannot read input into type " + type, node->op_tok.pos), "Error"});
                     }
                     
                     context->set(var_name, val, node->op_tok.pos);
@@ -5268,47 +5273,49 @@ namespace tkz {
                 if (node->op_tok.type == TokenType::PLUS) {
                     return std::move(StringValue(L.value + R.value).set_pos(node->op_tok.pos));
                 }
-                throw RTError("Only '+' and logical expresions are supported for strings", node->op_tok.pos);
+                this->errors.push_back({RTError("Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error"});
             } else if constexpr (std::is_same_v<T1, StringValue> ^ std::is_same_v<T2, StringValue>) {
-                throw RTError("Cannot preform operations on string and number", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform operations on string and number", node->op_tok.pos), "Error"});
             } else if constexpr (std::is_same_v<T1, CharValue> || std::is_same_v<T2, CharValue>) {
-                throw RTError("Cannot preform arithmetic on a Char", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic on a Char", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::monostate> || std::is_same_v<T2, std::monostate>) {
-                throw RTError("Operation on uninitialized value", node->op_tok.pos);
+                this->errors.push_back({RTError("Operation on uninitialized value", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, BoolValue> || std::is_same_v<T2, BoolValue>) { 
-                throw RTError("Cannot preform arithmetic operations on a Boolean", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Boolean", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, QBoolValue> || std::is_same_v<T2, QBoolValue>) { 
-                throw RTError("Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, FunctionValue> || std::is_same_v<T2, FunctionValue>) { 
-                throw RTError("Cannot preform arithmetic operations on a Function", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Function", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, VoidValue> || std::is_same_v<T2, VoidValue>) { 
-                throw RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ArrayValue>> || std::is_same_v<T2, std::shared_ptr<ArrayValue>>) { 
-                throw RTError("Cannot preform arithmetic operations on arrays", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on arrays", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ListValue>> || std::is_same_v<T2, std::shared_ptr<ListValue>>) { 
-                throw RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MapValue>> || std::is_same_v<T2, std::shared_ptr<MapValue>>) { 
-                throw RTError("Cannot preform arithmetic operations on a map/dict", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on a map/dict", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<StructValue>> || std::is_same_v<T2, std::shared_ptr<StructValue>>) { 
-                throw RTError("Cannot preform arithmetic operations on a Struct", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Struct", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
                             std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
-                throw RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos);
+                this->errors.push_back({RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error"});
             }
             else{ 
                 return std::move(handle_binop(L, R, node->op_tok.type, this->error));
             }
+            return VoidValue();
         }, left, right);
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode>& node) {
 
@@ -5324,15 +5331,15 @@ namespace tkz {
         }
 
         if (!mv) {
-            throw RTError("Expected multi-return value", node->var_names[0].pos);
+            this->errors.push_back({RTError("Expected multi-return value", node->var_names[0].pos), "Error"});
         }
 
         if (mv->values.size() != node->var_names.size()) {
-            throw RTError(
+            this->errors.push_back({RTError(
                 "Expected " + std::to_string(node->var_names.size()) +
                 " values, got " + std::to_string(mv->values.size()),
                 node->var_names[0].pos
-            );
+            ), "Error"});
         }
 
         for (size_t i = 0; i < node->var_names.size(); i++) {
@@ -5373,7 +5380,7 @@ namespace tkz {
             return std::visit([&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
-                    throw RTError("Cannot use !! operator on multi-return values", node->op_tok.pos);
+                    this->errors.push_back({RTError("Cannot use !! operator on multi-return values", node->op_tok.pos), "Error"});
                 } else {
                     if constexpr (std::is_same_v<T, QBoolValue>) {
                         if (n.valname == "both") {
@@ -5391,6 +5398,7 @@ namespace tkz {
                     }
                     return std::move(QBoolValue(is_truthy(n) ? "qfalse" : "qtrue"));
                 }
+                return VoidValue();
             }, val);
         }
         if (node->op_tok.type == TokenType::NOT) {
@@ -5399,10 +5407,11 @@ namespace tkz {
             return std::visit([&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
-                    throw RTError("Cannot use ! operator on multi-return values", node->op_tok.pos);
+                    this->errors.push_back({RTError("Cannot use ! operator on multi-return values", node->op_tok.pos), "Error"});
                 } else {
                     return std::move(BoolValue(is_truthy(n) ? "false" : "true"));
                 }
+                return VoidValue();
             }, val);
         }
         
@@ -5411,8 +5420,8 @@ namespace tkz {
             
             auto* var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
             if (!var) {
-                throw RTError("Increment/decrement must target a variable",
-                            node->op_tok.pos);
+                this->errors.push_back({RTError("Increment/decrement must target a variable",
+                            node->op_tok.pos), "Error"});
             }
 
             const std::string name = (*var)->var_name_tok.value;
@@ -5440,7 +5449,8 @@ namespace tkz {
                     else
                         return std::move(n.subbed_by(Number<int>(1)));
                 }
-                throw RTError("Invalid operand for ++/--", pos);
+                this->errors.push_back({RTError("Invalid operand for ++/--", pos), "Error"});
+                return VoidValue();
             }, old_val));
 
             context->set(name, std::move(new_val), pos);
@@ -5449,7 +5459,7 @@ namespace tkz {
 
         NumberVariant number = std::move(this->process(node->node));
 
-        return std::move(std::visit([&node](const auto& n) -> NumberVariant {
+        return std::move(std::visit([&node, this](const auto& n) -> NumberVariant {
             using T = std::decay_t<decltype(n)>;
 
             if constexpr (
@@ -5472,9 +5482,10 @@ namespace tkz {
                 }
                 return std::move(n);
             } else {
-                throw RTError("Unary operator not supported for this type",
-                            node->op_tok.pos);
+                this->errors.push_back({RTError("Unary operator not supported for this type",
+                            node->op_tok.pos), "Error"});
             }
+            return VoidValue();
         }, number));
     }
 
@@ -5507,10 +5518,10 @@ namespace tkz {
             NumberVariant val = this->process(node->pairs[i].second);
 
             if (context->get_type_name(key) != keyType) {
-                throw RTError("Inconsistent key type in map literal", node->pos);
+                this->errors.push_back({RTError("Inconsistent key type in map literal", node->pos), "Error"});
             }
             if (context->get_type_name(val) != valType) {
-                throw RTError("Inconsistent value type in map literal", node->pos);
+                this->errors.push_back({RTError("Inconsistent value type in map literal", node->pos), "Error"});
             }
 
             map_val->set(value_to_string(key), std::move(val));
@@ -5637,21 +5648,21 @@ namespace tkz {
         NumberVariant init_value = this->process(node->value); 
 
         if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(init_value))
-            throw RTError("Array must be initialized with array literal", node->var_name_tok.pos);
+            this->errors.push_back({RTError("Array must be initialized with array literal", node->var_name_tok.pos), "Error"});
 
         auto array_val = std::get<std::shared_ptr<ArrayValue>>(init_value);
 
         for (size_t i = 0; i < node->sizes.size(); ++i) {
             if (node->sizes[i].has_value()) {
                 if (i >= array_val->sizes().size())
-                    throw RTError("Declared array has more dimensions than initialized", node->var_name_tok.pos);
+                    this->errors.push_back({RTError("Declared array has more dimensions than initialized", node->var_name_tok.pos), "Error"});
                 if (array_val->sizes()[i] != node->sizes[i].value())
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Array size mismatch on dimension " + std::to_string(i) +
                         ": declared " + std::to_string(node->sizes[i].value()) +
                         " but got " + std::to_string(array_val->sizes()[i]),
                         node->var_name_tok.pos
-                    );
+                    ), "Error"});
             }
         }
 
@@ -5689,14 +5700,16 @@ namespace tkz {
             return VoidValue();
         }
 
-        throw RTError("List must be initialized with array literal or another list", node->var_name_tok.pos);
+        this->errors.push_back({RTError("List must be initialized with array literal or another list", node->var_name_tok.pos), "Error"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<SpreadNode>& node) {
         if (!node) return Number<int>(0);
-        throw RTError(
+        this->errors.push_back({RTError(
             "SpreadNode evaluated outside of a valid context",
             Position()
-        );
+        ), "Error"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode>& node) {
         if (!node) return Number<int>(0);
@@ -5717,7 +5730,7 @@ namespace tkz {
                         elements.push_back(list_elem);
                     }
                 } else {
-                    throw RTError("Cannot spread non-array type", Position());
+                    this->errors.push_back({RTError("Cannot spread non-array type", Position()), "Error"});
                 }
             } else {
                 elements.push_back(this->process(elem));
@@ -5738,7 +5751,7 @@ namespace tkz {
             auto map = *map_ptr;
             
             if (node->indices.size() != 1) {
-                throw RTError("Map access requires exactly one key", Position());
+                this->errors.push_back({RTError("Map access requires exactly one key", Position()), "Error"});
             }
             
             NumberVariant key = this->process(node->indices[0]);
@@ -5750,7 +5763,7 @@ namespace tkz {
         bool is_list  = std::holds_alternative<std::shared_ptr<ListValue>>(base_value);
 
         if (!is_array && !is_list)
-            throw RTError("Cannot index non-array/list type", Position());
+            this->errors.push_back({RTError("Cannot index non-array/list type", Position()), "Error"});
 
         std::shared_ptr<ArrayValue> current_array;
         std::shared_ptr<ListValue>  current_list;
@@ -5765,7 +5778,8 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, Number<int>>)    return arg.value;
                 if constexpr (std::is_same_v<T, Number<float>>)  return (int)arg.value;
                 if constexpr (std::is_same_v<T, Number<double>>) return (int)arg.value;
-                throw RTError("Index must be a number", Position());
+                this->errors.push_back({RTError("Index must be a number", Position()), "Error"});
+                return 0;
             }, index_val);
 
             if (current_array) {
@@ -5783,7 +5797,7 @@ namespace tkz {
                     current_list = *next_list;
                     current_array.reset();
                 } else {
-                    throw RTError("Cannot index inside non-array/list", Position());
+                    this->errors.push_back({RTError("Cannot index inside non-array/list", Position()), "Error"});
                 }
             } else if (current_list) {
                 if (index < 0 || (size_t)index >= current_list->elements.size())
@@ -5800,10 +5814,10 @@ namespace tkz {
                     current_list = *next_list;
                     current_array.reset();
                 } else {
-                    throw RTError("Cannot index inside non-array/list", Position());
+                    this->errors.push_back({RTError("Cannot index inside non-array/list", Position()), "Error"});
                 }
             } else {
-                throw RTError("Internal error: lost array/list during indexing", Position());
+                this->errors.push_back({RTError("Internal error: lost array/list during indexing", Position()), "Error"});
             }
         }
 
@@ -5830,7 +5844,7 @@ namespace tkz {
                         final_args.push_back(elem);
                 }
                 else {
-                    throw RTError("Spread target must be array or list", Position());
+                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
                 }
             }
             else {
@@ -5842,14 +5856,14 @@ namespace tkz {
             
             if (node->method_name.value == "push") {
                 if (node->args.size() != 1) {
-                    throw RTError("push() requires exactly 1 argument", node->method_name.pos);
+                    this->errors.push_back({RTError("push() requires exactly 1 argument", node->method_name.pos), "Error"});
                 }
                 NumberVariant val = final_args[0];
                 std::string name = context->get_type_name(val);
                 if (name.find(strip(list->element_type)) == std::string::npos && !loose) {
-                    throw RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
+                    this->errors.push_back({RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
                 } else if (name != strip(list->element_type) && name.find("list<") == std::string::npos && name.find("[]") == std::string::npos) {
-                    throw RTError("(loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos);
+                    this->errors.push_back({RTError("(loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
                 }
                 list->push(std::move(val));
                 return VoidValue();
@@ -5857,19 +5871,19 @@ namespace tkz {
             
             if (node->method_name.value == "pop") {
                 if (node->args.size() != 0) {
-                    throw RTError("pop() takes no arguments", node->method_name.pos);
+                    this->errors.push_back({RTError("pop() takes no arguments", node->method_name.pos), "Error"});
                 }
                 return list->pop();
             }
             
-            throw RTError("Unknown method: " + node->method_name.value, node->method_name.pos);
+            this->errors.push_back({RTError("Unknown method: " + node->method_name.value, node->method_name.pos), "Error"});
         }
         if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
             auto map = *map_ptr;
             
             if (node->method_name.value == "set") {
                 if (node->args.size() != 2) {
-                    throw RTError("set() requires 2 arguments (key, value)", node->method_name.pos);
+                    this->errors.push_back({RTError("set() requires 2 arguments (key, value)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 NumberVariant val = this->process(node->args[1]);
@@ -5881,7 +5895,7 @@ namespace tkz {
             
             if (node->method_name.value == "remove") {
                 if (node->args.size() != 1) {
-                    throw RTError("remove() requires 1 argument (key)", node->method_name.pos);
+                    this->errors.push_back({RTError("remove() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 std::string key_str = value_to_string(key);
@@ -5892,7 +5906,7 @@ namespace tkz {
             
             if (node->method_name.value == "has") {
                 if (node->args.size() != 1) {
-                    throw RTError("has() requires 1 argument (key)", node->method_name.pos);
+                    this->errors.push_back({RTError("has() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 std::string key_str = value_to_string(key);
@@ -5902,7 +5916,7 @@ namespace tkz {
             
             if (node->method_name.value == "keys") {
                 if (node->args.size() != 0) {
-                    throw RTError("keys() takes no arguments", node->method_name.pos);
+                    this->errors.push_back({RTError("keys() takes no arguments", node->method_name.pos), "Error"});
                 }
                 
                 auto keys = map->keys();
@@ -5914,9 +5928,10 @@ namespace tkz {
                 return std::make_shared<ArrayValue>("string", std::move(key_variants));
             }
             
-            throw RTError("Unknown map method: " + node->method_name.value, node->method_name.pos);
+            this->errors.push_back({RTError("Unknown map method: " + node->method_name.value, node->method_name.pos), "Error"});
         }
-        throw RTError("Object does not support methods", node->method_name.pos);
+        this->errors.push_back({RTError("Object does not support methods", node->method_name.pos), "Error"});
+        return VoidValue();
     }
     NumberVariant make_value_from_type_atom(const std::string& atom) {
         if (atom.rfind("int:", 0) == 0) {
@@ -5953,7 +5968,7 @@ namespace tkz {
             return StringValue(inner);
         }
 
-        return VoidValue{};
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<PropertyAccessNode>& node) {
         if (!node) return Number<int>(0);
@@ -5970,10 +5985,10 @@ namespace tkz {
                             return make_value_from_type_atom(e.typeAtom);
                         }
                     }
-                    throw RTError(
+                    this->errors.push_back({RTError(
                         "Enum '" + baseName + "' has no member '" + memberName + "'",
                         node->property_name.pos
-                    );
+                    ), "Error"});
                 }
             }
         }
@@ -5985,8 +6000,8 @@ namespace tkz {
             if (auto s = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
                 auto it = (*s)->fields.find(name);
                 if (it == (*s)->fields.end()) {
-                    throw RTError("Unknown field '" + name + "' on struct '" + (*s)->type_name + "'",
-                                node->property_name.pos);
+                    this->errors.push_back({RTError("Unknown field '" + name + "' on struct '" + (*s)->type_name + "'",
+                                node->property_name.pos), "Error"});
                 }
                 obj = it->second;
                 break; 
@@ -6004,8 +6019,8 @@ namespace tkz {
                         if (fields[i].name == name) { idx = i; break; }
                     }
                     if (idx == SIZE_MAX) {
-                        throw RTError("Unknown field '" + name + "' on struct '" + struct_type + "'",
-                                    node->property_name.pos);
+                        this->errors.push_back({RTError("Unknown field '" + name + "' on struct '" + struct_type + "'",
+                                    node->property_name.pos), "Error"});
                     }
                     obj = (*arr)->elements[idx];
                     break;
@@ -6022,7 +6037,7 @@ namespace tkz {
                 if (name == "size") return Number<int>((*map)->size());
             }
 
-            throw RTError("Unknown property: " + name, node->property_name.pos);
+            this->errors.push_back({RTError("Unknown property: " + name, node->property_name.pos), "Error"});
         }
 
         return obj;
@@ -6039,7 +6054,7 @@ namespace tkz {
         } else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&coll_val)) {
             elements = &((*list)->elements);
         } else {
-            throw RTError("foreach requires an array or list", node->elem_name.pos);
+            this->errors.push_back({RTError("foreach requires an array or list", node->elem_name.pos), "Error"});
         }
         
         NumberVariant last = Number<int>(0);
@@ -6071,7 +6086,7 @@ namespace tkz {
             auto map = *map_ptr;
             
             if (arr_access->indices.size() != 1) {
-                throw RTError("Map access requires exactly one key", Position());
+                this->errors.push_back({RTError("Map access requires exactly one key", Position()), "Error"});
             }
             
             NumberVariant key = this->process(arr_access->indices[0]);
@@ -6097,12 +6112,12 @@ namespace tkz {
                         multiplier *= 10;
                     }
                 } else {
-                    throw RTError("Array index must be an integer", Position());
+                    this->errors.push_back({RTError("Array index must be an integer", Position()), "Error"});
                 }
             }
             
             if (flat_index < 0 || flat_index >= arr->elements.size()) {
-                throw RTError("Array index out of bounds", Position());
+                this->errors.push_back({RTError("Array index out of bounds", Position()), "Error"});
             }
             
             arr->elements[flat_index] = std::move(val);
@@ -6113,7 +6128,7 @@ namespace tkz {
             auto list = *list_ptr;
             
             if (arr_access->indices.size() != 1) {
-                throw RTError("List access requires exactly one index", Position());
+                this->errors.push_back({RTError("List access requires exactly one index", Position()), "Error"});
             }
             
             NumberVariant idx_val = this->process(arr_access->indices[0]);
@@ -6122,17 +6137,18 @@ namespace tkz {
                 int idx = idx_num->value;
                 
                 if (idx < 0 || idx >= list->elements.size()) {
-                    throw RTError("List index out of bounds", Position());
+                    this->errors.push_back({RTError("List index out of bounds", Position()), "Error"});
                 }
                 
                 list->elements[idx] = std::move(val);
                 return val;
             } else {
-                throw RTError("List index must be an integer", Position());
+                this->errors.push_back({RTError("List index must be an integer", Position()), "Error"});
             }
         }
         
-        throw RTError("Cannot assign to this type", Position());
+        this->errors.push_back({RTError("Cannot assign to this type", Position()), "Error"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode>& node) {
         if (!node) return Number<int>(0);
@@ -6149,7 +6165,7 @@ namespace tkz {
                 return Number<int>(r);
             }
             
-            throw RTError("random(max) requires integer argument", Position());
+            this->errors.push_back({RTError("random(max) requires integer argument", Position()), "Error"});
         }
         else if (node->args.size() == 2) {
             NumberVariant min_val = this->process(node->args[0]);
@@ -6163,10 +6179,11 @@ namespace tkz {
                 }
             }
             
-            throw RTError("random(min, max) requires integer arguments", Position());
+            this->errors.push_back({RTError("random(min, max) requires integer arguments", Position()), "Error"});
         }
         
-        throw RTError("random() takes 0, 1, or 2 arguments", Position());
+        this->errors.push_back({RTError("random() takes 0, 1, or 2 arguments", Position()), "Error"});
+        return VoidValue();
     }
 
     NumberVariant Interpreter::operator()(std::unique_ptr<SeedCallNode>& node) {
@@ -6179,7 +6196,8 @@ namespace tkz {
             return VoidValue();
         }
         
-        throw RTError("seed() requires integer argument", Position());
+        this->errors.push_back({RTError("seed() requires integer argument", Position()), "Error"});
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<StructFieldAssignNode>& node) {
         if (!node) return Number<int>(0);
@@ -6187,7 +6205,7 @@ namespace tkz {
         NumberVariant base_val = this->process(node->base);
         auto s = std::get_if<std::shared_ptr<StructValue>>(&base_val);
         if (!s) {
-            throw RTError("Expected struct on left side of '.'", node->field_name.pos);
+            this->errors.push_back({RTError("Expected struct on left side of '.'", node->field_name.pos), "Error"});
         }
 
         NumberVariant val = this->process(node->value);
@@ -6463,13 +6481,14 @@ namespace tkz {
             }
             
         } catch (RTError& e) {
-            std::cout << e.as_string() << std::endl;
             delete ctx;
-            return Mer{std::move(ast), std::move(resp), ""};
+            std::unique_ptr<Error> err = std::make_unique<RTError>(e);
+            ast = Aer(std::move(ast.statements), std::move(err), std::move(ast.user_types));
+            return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
         }
         
         delete ctx;
-        return Mer{std::move(ast), std::move(resp), output};
+        return Mer{std::move(ast), std::move(resp), output, interpreter.errors};
     }
 
 

@@ -235,11 +235,16 @@ namespace tkz {
         std::unique_ptr<Error> error;
         std::unordered_map<std::string, UserTypeInfo> user_types;
     };
-    
+    struct Diagnostic {
+        RTError error;
+        std::string level;
+        
+    };
     struct Mer {
         Aer ast;
         Ler tokens;
         std::string res;
+        std::vector<Diagnostic> errors;
     };
     
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -1055,7 +1060,7 @@ namespace tkz {
                     this->fval = false;
                     this->tval = false;
                 } else {
-                    throw RTError("Expected Quantum Boolean value to be true false both or none", pos);
+                    throw RTError("Expected Quantum Boolean value to be qtrue qfalse both or none", pos);
                 }
             } else {
                 this->tval = false;
@@ -1451,6 +1456,7 @@ namespace tkz {
     public:
         Interpreter(Context* ctx = nullptr) : context(ctx) {}
         InterpEer error = InterpEer();
+        std::vector<Diagnostic> errors;
         NumberVariant process(AnyNode& node);
         NumberVariant operator()(NumberNode& node);
         
