@@ -730,7 +730,9 @@ namespace tkz {
             return AnyNode{BoolNode(Token(TokenType::BOOL, "false", pos))};
         if (type == "qbool")
             return AnyNode{QBoolNode(Token(TokenType::QBOOL, "none", pos))};
-        
+        if (type == "function") {
+            return AnyNode{std::make_shared<FuncDefNode>(std::vector<Token>{}, std::nullopt, std::list<Parameter>{}, std::make_unique<StatementsNode>(std::vector<AnyNode>{}))};
+        }
         return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
     }
     Parser::Parser(std::list<Token> tokens) {

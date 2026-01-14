@@ -131,7 +131,7 @@ Examples:
         std::string code_buffer;
 
         while (true) {
-            std::cout << (code_buffer.empty() ? "qc" : "-") << "[" << code_buffer.size() << " lines]>";
+            std::cout << BOLD << BLUE << (code_buffer.empty() ? "qc" : "-") << "[" << code_buffer.size() << " chars]>" << RESET;
             std::string line;
             std::getline(std::cin, line);
 
