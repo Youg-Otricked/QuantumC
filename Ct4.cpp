@@ -3276,7 +3276,7 @@ namespace tkz {
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
                     
-                    if (this->current_tok.type != TokenType::KEYWORD && !this->user_types.count(this->current_tok.value) > 0) {
+                    if (this->current_tok.type != TokenType::KEYWORD && !(this->user_types.count(this->current_tok.value) > 0)) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Expected type", this->current_tok.pos));
                         return res.to_prs();
@@ -3744,6 +3744,12 @@ namespace tkz {
             if (lit_kind == "qbool" && actual_type == "qbool") {
                 if (auto qv = std::get_if<QBoolValue>(&val)) {
                     return qv->valname == lit_val;
+                }
+                return false;
+            }
+            if (lit_kind == "function" && actual_type == "function") {
+                if (auto fv = std::get_if<FunctionValue>(&val)) {
+                    return fv->valname == lit_val;
                 }
                 return false;
             }
