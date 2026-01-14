@@ -201,6 +201,7 @@ Examples:
 
             if (line == "!@run") {
                 std::thread spin_thread(spinner);
+                running = true;
                 history.push_back(code_buffer);
                 auto result = tkz::run("<stdin>", code_buffer, config);
                 running = false;
