@@ -2891,6 +2891,8 @@ namespace tkz {
                         return "bool:" + tok.value;
                     case TokenType::QBOOL:
                         return "qbool:" + tok.value;
+                    case TokenType::KEYWORD:
+                        return "function:" + tok.value;
                     default:
                         return tok.value;
                 }
@@ -3008,6 +3010,7 @@ namespace tkz {
                     case TokenType::CHAR:    return "char:" + tok.value;
                     case TokenType::BOOL:    return "bool:" + tok.value;
                     case TokenType::QBOOL:   return "qbool:" + tok.value;
+                    case TokenType::KEYWORD: return "function:" + tok.value;
                     default:                 return tok.value;
                 }
             };
