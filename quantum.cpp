@@ -21,15 +21,7 @@
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
-#ifdef _WIN32
-    // Enable ANSI escape code processing on Windows
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD dwMode = 0;
-    if (GetConsoleMode(hOut, &dwMode)) {
-        dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-        SetConsoleMode(hOut, dwMode);
-    }
-#endif
+
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
