@@ -202,10 +202,11 @@ Notation used in syntax:
 - `?` before parentheses means the whole group is optional.
 - A number after `*` means “at least that many times”.
 
-Other|Syntax|What for?|
------|------|---------|
-Function|RetType FuncName(?(ArgType ArgName), *) {Code}|Insetad of copy and pasting code, call a function to run a block|
-Const|const (rest of var decl)|Making a constant(imutable)Variable, EG const double pi = 3.1415
+|Other|Syntax|What for?|
+|-----|------|---------|
+|Function|RetType FuncName(?(ArgType ArgName), *) {Code}|Insetad of copy and pasting code, call a function to run a block|
+|Const|const (rest of var decl)|Making a constant(imutable)Variable, EG const double pi = 3.1415
+
 #### Collection Types
 
 DataType |Pro|Con|Syntax|Usage|Methods|Properties|

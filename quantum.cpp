@@ -88,17 +88,17 @@ int main(int argc, char* argv[]) {
                 file.close();
             }
             std::cout << CYAN << R"( 
-    ,o888888o.     8 8888      88        .8.          b.             8 8888888 8888888888 8 8888      88        ,8.       ,8.                        ,o888888o.    
- . 8888     `88.   8 8888      88       .888.         888o.          8       8 8888       8 8888      88       ,888.     ,888.                      8888     `88.  
-,8 8888       `8b  8 8888      88      :88888.        Y88888o.       8       8 8888       8 8888      88      .`8888.   .`8888.                  ,8 8888       `8. 
-88 8888        `8b 8 8888      88     . `88888.       .`Y888888o.    8       8 8888       8 8888      88     ,8.`8888. ,8.`8888.                 88 8888           
-88 8888         88 8 8888      88    .8. `88888.      8o. `Y888888o. 8       8 8888       8 8888      88    ,8'8.`8888,8^8.`8888.                88 8888           
-88 8888     `8. 88 8 8888      88   .8`8. `88888.     8`Y8o. `Y88888o8       8 8888       8 8888      88   ,8' `8.`8888' `8.`8888.               88 8888           
-88 8888      `8,8P 8 8888      88  .8' `8. `88888.    8   `Y8o. `Y8888       8 8888       8 8888      88  ,8'   `8.`88'   `8.`8888.              88 8888           
-`8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.             `8 8888       .8' 
- ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.               8888     ,88'  
-    `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.               `8888888P'  
-        Quantum C (C⁴) v5.0.3
+    ,o888888o.     8 8888      88        .8.          b.             8 8888888 8888888888 8 8888      88        ,8.       ,8.                    ,o88888o.    
+ . 8888     `88.   8 8888      88       .888.         888o.          8       8 8888       8 8888      88       ,888.     ,888.                  888     `88.  
+,8 8888       `8b  8 8888      88      :88888.        Y88888o.       8       8 8888       8 8888      88      .`8888.   .`8888.              ,8 888       `8. 
+88 8888        `8b 8 8888      88     . `88888.       .`Y888888o.    8       8 8888       8 8888      88     ,8.`8888. ,8.`8888.             88 888           
+88 8888         88 8 8888      88    .8. `88888.      8o. `Y888888o. 8       8 8888       8 8888      88    ,8'8.`8888,8^8.`8888.            88 888           
+88 8888     `8. 88 8 8888      88   .8`8. `88888.     8`Y8o. `Y88888o8       8 8888       8 8888      88   ,8' `8.`8888' `8.`8888.           88 888           
+88 8888      `8,8P 8 8888      88  .8' `8. `88888.    8   `Y8o. `Y8888       8 8888       8 8888      88  ,8'   `8.`88'   `8.`8888.          88 888           
+`8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.         `8 888       .8' 
+ ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.           888     ,88'  
+    `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.          `888888P'  
+        Quantum C (C⁴) v5.8.0
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]) {
             slow = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << GREEN << R"(
-Quantum C Interpreter v5.0.2
+Quantum C Interpreter v5.8.0
 
 Usage: ./qc [options] <file>
 
@@ -184,7 +184,7 @@ Examples:
         
         // REPL mode
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL v5.0.3" << RESET << std::endl;
+        std::cout << GREEN << "Quantum C REPL v5.8.0" << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
@@ -354,7 +354,7 @@ extern "C" {
         std::stringstream buffer;
         std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
         
-        auto result = tkz::run("<wasm>", code, tkz::RunConfig{});
+        auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, false});
         
         if (result.ast.error) {
             output = result.ast.error->as_string();

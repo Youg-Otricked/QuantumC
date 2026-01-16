@@ -82,7 +82,7 @@ namespace tkz {
     class ArrayAssignNode;
     class SeedCallNode;
     class RandomCallNode;
-    class StructFieldAssignNode;
+    class FieldAssignNode;
     class MapLiteralNode;
     using AnyNode = std::variant<
         std::monostate, 
@@ -118,14 +118,14 @@ namespace tkz {
         std::unique_ptr<ArrayLiteralNode>,     
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<MethodCallNode>,
-        std::unique_ptr<PropertyAccessNode>,
+        std::shared_ptr<PropertyAccessNode>,
         std::unique_ptr<SpreadNode>,
         std::unique_ptr<ForeachNode>,
         std::unique_ptr<MapDeclNode>,
         std::unique_ptr<ArrayAssignNode>,
         std::unique_ptr<SeedCallNode>,
         std::unique_ptr<RandomCallNode>,
-        std::unique_ptr<StructFieldAssignNode>,
+        std::unique_ptr<FieldAssignNode>,
         std::unique_ptr<MapLiteralNode>
     >;
 
@@ -203,7 +203,7 @@ namespace tkz {
     };
     
     struct Ler {
-        std::list<Token> Tkns;
+        std::vector<Token> Tkns;
         std::unique_ptr<Error> error;
     };
     struct StructField {
@@ -214,8 +214,31 @@ namespace tkz {
         std::string memberName;
         std::string typeAtom;
     };
+    struct ClassField {
+        std::string name;
+        std::string type;
+        std::string access;
+    };
+    struct Parameter;
+    struct ClassMethodInfo {
+        Token name_tok;
+        std::vector<Parameter> params;
+        std::vector<Token> return_types;
+        std::unique_ptr<StatementsNode> body;
+        bool is_constructor = false;
+        std::string access;
 
-    enum class UserTypeKind { Struct, Alias, Union, Enum };
+        ClassMethodInfo() = default;
+
+        ClassMethodInfo(ClassMethodInfo&&) = default;
+        ClassMethodInfo& operator=(ClassMethodInfo&&) = default;
+
+        ClassMethodInfo(const ClassMethodInfo&) = delete;
+        ClassMethodInfo& operator=(const ClassMethodInfo&) = delete;
+    };
+
+
+    enum class UserTypeKind { Struct, Alias, Union, Enum, Class };
 
     struct UnionMember {
         std::string type;
@@ -227,6 +250,16 @@ namespace tkz {
         std::string aliasTarget;       
         std::vector<UnionMember> members;
         std::vector<EnumEntry> enumEntries;
+        std::vector<ClassField> classFields;
+        std::vector<ClassMethodInfo> classMethods;
+        std::string baseClassName = "";
+        UserTypeInfo() = default;
+
+        UserTypeInfo(UserTypeInfo&&) = default;
+        UserTypeInfo& operator=(UserTypeInfo&&) = default;
+
+        UserTypeInfo(const UserTypeInfo&) = delete;
+        UserTypeInfo& operator=(const UserTypeInfo&) = delete;
     };
 
         
@@ -315,6 +348,17 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // OTHER NODES //////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    struct Parameter {
+        Token type;
+        Token name;
+        std::optional<AnyNode> default_value;
+
+        Parameter() = default;
+        Parameter(Parameter&&) = default;
+        Parameter& operator=(Parameter&&) = default;
+        Parameter(const Parameter&) = delete;
+        Parameter& operator=(const Parameter&) = delete;
+    };
     class BinOpNode {
     public:
         bool is_f;
@@ -528,12 +572,6 @@ namespace tkz {
         ContinueNode(Token t) : tok(std::move(t)) {}
         std::string print() { return "(continue)"; }
     };
-    
-    struct Parameter {
-        Token type;
-        Token name;
-        std::optional<AnyNode> default_value;  
-    };
 
     class FuncDefNode {
         public:
@@ -737,14 +775,16 @@ namespace tkz {
     };
     class PropertyAccessNode {
     public:
-        AnyNode base; 
+        std::shared_ptr<AnyNode> base; 
         Token property_name;
-        
-        PropertyAccessNode(AnyNode&& base_node, Token prop)
-            : base(std::move(base_node)), property_name(prop) {}
-        
+        Token base_name_tok;      
+        PropertyAccessNode(AnyNode base_node, Token base_name, Token prop)
+            : base(std::make_shared<AnyNode>(std::move(base_node))),
+            base_name_tok(base_name),
+            property_name(prop) {}
+
         std::string print() {
-            return printAny(base) + "." + property_name.value;
+            return printAny(*base) + "." + property_name.value;
         }
     };
     class SpreadNode {
@@ -790,13 +830,13 @@ namespace tkz {
             return "map<" + key_type.value + ", " + value_type.value + "> " + var_name.value;
         }
     };
-    class StructFieldAssignNode {
+    class FieldAssignNode {
     public:
         AnyNode base;       
         Token field_name;    
         AnyNode value;
 
-        StructFieldAssignNode(AnyNode&& b, Token f, AnyNode&& v)
+        FieldAssignNode(AnyNode&& b, Token f, AnyNode&& v)
             : base(std::move(b)), field_name(f), value(std::move(v)) {}
         std::string print() const {
             return printAny(base) + "." + field_name.value + " = " + printAny(value);
@@ -848,7 +888,7 @@ namespace tkz {
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<ListDeclNode>,  
         std::unique_ptr<MethodCallNode>,
-        std::unique_ptr<PropertyAccessNode>,
+        std::shared_ptr<PropertyAccessNode>,
         std::unique_ptr<SpreadNode>,
         std::unique_ptr<ForeachNode>,
         QBoolNode,
@@ -859,7 +899,7 @@ namespace tkz {
         std::unique_ptr<ArrayAssignNode>,
         std::unique_ptr<SeedCallNode>,
         std::unique_ptr<RandomCallNode>,
-        std::unique_ptr<StructFieldAssignNode>,
+        std::unique_ptr<FieldAssignNode>,
         std::unique_ptr<MapLiteralNode>
     >;
         
@@ -891,11 +931,12 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
+        size_t index = 0;
+        int tmp_counter = 0;
         std::unordered_map<std::string, UserTypeInfo> user_types;
-        std::list<Token>::iterator it;
         Token current_tok;
-        std::list<Token> tokens;
-        Parser(std::list<Token> tokens);
+        std::vector<Token> tokens;
+        Parser(std::vector<Token> tokens);
         Token advance();
         Prs factor();
         Prs term();
@@ -1096,6 +1137,7 @@ namespace tkz {
     class ListValue;
     class MapValue;
     class StructValue;
+    class InstanceValue;
     template <typename T> class Number;
     
     using NumberVariant = std::variant<
@@ -1105,7 +1147,8 @@ namespace tkz {
         StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
-        std::shared_ptr<MapValue>, std::shared_ptr<StructValue>
+        std::shared_ptr<MapValue>, std::shared_ptr<StructValue>,
+        std::shared_ptr<InstanceValue>
     >;
     
     template <typename T>
@@ -1167,7 +1210,18 @@ namespace tkz {
             }
         }
     };
-    
+    class InstanceValue {
+        public:
+        std::string class_name;
+        std::unordered_map<std::string, NumberVariant> fields;
+        InstanceValue(std::string class_name, std::unordered_map<std::string, NumberVariant> fields) {
+            this->class_name = class_name;
+            this->fields = fields;
+        }InstanceValue(std::string class_name) {
+            this->class_name = class_name;
+        }
+        std::string print() const;
+    };
     class MultiValue {
     public:
         std::vector<NumberVariant> values;
@@ -1443,6 +1497,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, std::shared_ptr<StructValue>>) {
                     return "struct " + arg->type_name;
                 }
+                if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
+                    return arg->class_name;
+                }
                 return "unknown";
             }, val);
         }
@@ -1479,6 +1536,10 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
+        std::unordered_map<std::string, NumberVariant> make_instance_fields(const std::string& className);
+        ClassMethodInfo* find_method_on_class(const std::string& className, const std::string& mname);
+        bool field_exists_on_class(const std::string& className, const std::string& fieldName);
+        bool in_class_or_derived_context(const std::string& baseName);
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         NumberVariant operator()(std::unique_ptr<IfNode>& node);
         NumberVariant operator()(std::unique_ptr<QIfNode>& node);
@@ -1497,10 +1558,12 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ListDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<MapLiteralNode>& node);
         NumberVariant operator()(std::unique_ptr<MethodCallNode>& node);
-        NumberVariant operator()(std::unique_ptr<PropertyAccessNode>& node);
+        NumberVariant operator()(std::shared_ptr<PropertyAccessNode>& node);
         NumberVariant operator()(std::unique_ptr<SpreadNode>& node);
         NumberVariant operator()(std::unique_ptr<ForeachNode>& node);
-        NumberVariant operator()(std::unique_ptr<StructFieldAssignNode>& node);
+        NumberVariant operator()(std::unique_ptr<FieldAssignNode>& node);
+        bool struct_has_field(const std::shared_ptr<StructValue>& sv, const std::string& field);
+        bool in_class_context(const std::string& class_name);
         NumberVariant convert_array_to_struct(
             const std::shared_ptr<ArrayValue>& arr, 
             const std::string& struct_type, 

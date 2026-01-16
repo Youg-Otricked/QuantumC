@@ -81,7 +81,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 
 # Development Status
 strikthrough = done
-Current Version: v5.0.2 = "User types (~~Struct~~, ~~enum~~, class, ~~union~~, using aliases, ~~type/typedef~~, #include)"
+Current Version: v5.0.2 = "User types (~~Struct~~, ~~enum~~, ~~class~~, ~~union~~, using aliases, ~~type/typedef~~, #include, interfaces, abstract classes)"
 
 ## Working:
 
@@ -105,10 +105,12 @@ Long and Short
 Structs
 Union Types (TypeScript-style)
 Enums
+Class
 ## Coming Soon:
 
 Namespace
-Class
+Interfaces and more advanced OOP stuff
+#include
 
 ---
 

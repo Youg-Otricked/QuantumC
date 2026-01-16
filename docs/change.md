@@ -6,14 +6,14 @@
 1/7/2026: Current version: 3.3: Adding docs.
 1/7-13/2026: Current version: 4.5-4.7: Structs, Unions, Typedef.
 1/13/2026: Current version: 5.0: Enums
-
+1/15/2026: Current version: 5.2->8: Classes, other stuff
 # Features checklist (suitable for change(by adding more))
 
 - [ ] User Types (
     - [x] Structs
     - [x] Enums
     - [x] Unions
-    - [ ] Classes
+    - [x] Classes
     - [x] ~~Template~~ (Replaced by Unions)
     - [x] Typedef
     - [ ] Namespace
