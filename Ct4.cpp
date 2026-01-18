@@ -356,6 +356,8 @@ namespace tkz {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<NamespaceNode>>) { 
+                return arg->print();
             } else {
                 return "<unknown>"; 
             }
@@ -557,6 +559,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<NamespaceNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -659,6 +663,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<NamespaceNode>>) { 
+                return Prs{std::move(arg)};
             } else {
                 return Prs{std::monostate{}};
             }
@@ -705,7 +711,7 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSER ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-    AnyNode default_value_for_type(const Token& type_tok, const Position& pos) {
+    AnyNode Parser::default_value_for_type(const Token& type_tok, const Position& pos) {
         std::string type = type_tok.value;
         
         if (type == "short int")
@@ -731,7 +737,7 @@ namespace tkz {
         if (type == "qbool")
             return AnyNode{QBoolNode(Token(TokenType::QBOOL, "none", pos))};
         if (type == "function") {
-            return AnyNode{std::make_shared<FuncDefNode>(std::vector<Token>{}, std::nullopt, std::list<Parameter>{}, std::make_unique<StatementsNode>(std::vector<AnyNode>{}))};
+            return AnyNode{std::make_shared<FuncDefNode>(std::vector<Token>{}, std::nullopt, std::list<Parameter>{}, std::make_unique<StatementsNode>(std::vector<AnyNode>{}, true), currentNamespace)};
         }
         return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
     }
@@ -750,6 +756,17 @@ namespace tkz {
             index = tokens.size();
         }
         return this->current_tok;
+    }
+    std::string Parser::qualify_name(const std::string& name) {
+        if (namespaceStack.empty()) return name;
+        std::string q;
+        for (auto& ns : namespaceStack) {
+            if (!q.empty()) q += "::";
+            q += ns;
+        }
+        q += "::";
+        q += name;
+        return q;
     }
     // EDIT FOR NEW STUFF VVVVVVVVVVVVVVVVVVVV
     Prs Parser::qif_expr() {
@@ -803,7 +820,7 @@ namespace tkz {
         }
         this->advance();
 
-        auto then_branch = std::make_unique<StatementsNode>(std::move(then_stmts));
+        auto then_branch = std::make_unique<StatementsNode>(std::move(then_stmts), true);
         if (res.error) {
             return res.to_prs();
         }
@@ -852,7 +869,7 @@ namespace tkz {
             }
             this->advance();
 
-            auto qelif_body = std::make_unique<StatementsNode>(std::move(qelif_stmts));
+            auto qelif_body = std::make_unique<StatementsNode>(std::move(qelif_stmts), true);
             if (res.error) return res.to_prs();
             
             qelif_branches.emplace_back(std::move(qelif_cond), std::move(qelif_body));
@@ -884,7 +901,7 @@ namespace tkz {
             }
             this->advance();
 
-            qelse_branch = std::make_unique<StatementsNode>(std::move(qelse_stmts));
+            qelse_branch = std::make_unique<StatementsNode>(std::move(qelse_stmts), true);
             if (res.error) return res.to_prs();
         }
         return res.success(std::make_unique<QIfNode>(
@@ -1214,7 +1231,7 @@ namespace tkz {
                 }
             }
             
-            auto case_body = std::make_unique<StatementsNode>(std::move(case_stmts));
+            auto case_body = std::make_unique<StatementsNode>(std::move(case_stmts), true);
             
             if (case_label == "t") {
                 case_t = std::move(case_body);
@@ -1430,7 +1447,7 @@ namespace tkz {
                 }, std::move(st));
                 std::vector<AnyNode> stmts;
                 stmts.push_back(std::move(any_stmt));
-                out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
+                out_block = std::make_unique<StatementsNode>(std::move(stmts), true);
                 return true;
             }
         };
@@ -1687,9 +1704,32 @@ namespace tkz {
             return res.success(std::make_unique<SpreadNode>(std::move(value)));
         }
         else if (tok.type == TokenType::IDENTIFIER) {
+            std::string name = tok.value;
+            Position pos = tok.pos;
+
             this->advance();
 
-            AnyNode base = std::make_unique<VarAccessNode>(tok);
+            while (this->current_tok.type == TokenType::SCOPE) {
+                this->advance();
+
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected identifier after '::'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+
+                name += "::" + this->current_tok.value;
+                pos = this->current_tok.pos;
+                this->advance();
+            }
+
+            Token ident(
+                TokenType::IDENTIFIER,
+                name,
+                pos
+            );
+
+            AnyNode base = std::make_unique<VarAccessNode>(ident);
 
             if (this->current_tok.type == TokenType::LPAREN) {
                 return this->call(std::move(base));
@@ -1764,7 +1804,7 @@ namespace tkz {
                         std::move(base), property_name, std::move(args));
                 } else {
                     base = std::make_shared<PropertyAccessNode>(
-                        std::move(base), tok, property_name);
+                        std::move(base), ident, property_name);
                 }
 
                 while (this->current_tok.type == TokenType::LBRACKET) {
@@ -1791,7 +1831,7 @@ namespace tkz {
                 Token op = this->current_tok;
                 this->advance();
                 return res.success(std::make_unique<AssignExprNode>(
-                    tok,
+                    ident,
                     std::make_unique<UnaryOpNode>(op,
                         std::make_unique<VarAccessNode>(tok))));
             }
@@ -2345,7 +2385,9 @@ namespace tkz {
                 std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>  ||
                 std::is_same_v<T, std::unique_ptr<QIfNode>> ||
                 std::is_same_v<T, std::unique_ptr<QSwitchNode>> ||
-                std::is_same_v<T, std::unique_ptr<FieldAssignNode>>
+                std::is_same_v<T, std::unique_ptr<FieldAssignNode>> ||
+                std::is_same_v<T, std::unique_ptr<MapLiteralNode>> ||
+                std::is_same_v<T, std::unique_ptr<NamespaceNode>>
             ) {
                 return std::move(arg);
             } else {
@@ -2564,14 +2606,9 @@ namespace tkz {
             return res.to_prs();
         }
         
-        auto body = std::make_unique<StatementsNode>(std::move(body_stmts));
-        this->advance();  
-        
-        return res.success(std::make_unique<FuncDefNode>(
-            return_types,  
-            func_name, 
-            std::move(params), 
-            std::move(body)));
+        auto body = std::make_unique<StatementsNode>(std::move(body_stmts), true);
+        this->advance();
+        return res.success(std::make_unique<FuncDefNode>(return_types, func_name, std::move(params), std::move(body), currentNamespace));
     }
     Prs Parser::statement() {
         ParseResult res;
@@ -2903,16 +2940,91 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-
             if (user_types.contains(class_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Redefinition of type '" + class_name.value + "'",
                     class_name.pos));
                 return res.to_prs();
             }
-
+            info.namespace_path = currentNamespace;
             user_types[class_name.value] = std::move(info);
             return res.success(std::monostate{});
+        }
+        
+        if (tok.type == TokenType::KEYWORD && tok.value == "namespace") {
+            ParseResult res;
+            this->advance();
+
+            if (current_tok.type != TokenType::IDENTIFIER) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected namespace name", current_tok.pos));
+                return res.to_prs();
+            }
+
+            Token nsName = current_tok;
+            this->advance();
+
+            if (current_tok.type != TokenType::LBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '{' after namespace name", current_tok.pos));
+                return res.to_prs();
+            }
+            this->advance();
+
+            namespaceStack.push_back(nsName.value);
+            
+            if (currentNamespace.empty()) {
+                currentNamespace = nsName.value;
+            } else {
+                currentNamespace += "::" + nsName.value;
+            }
+
+            std::vector<AnyNode> body;
+
+            while (current_tok.type != TokenType::RBRACE &&
+                current_tok.type != TokenType::EOFT) {
+
+                Prs st = statement();
+                if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                    namespaceStack.pop_back();
+                    if (namespaceStack.empty()) {
+                        currentNamespace = "";
+                    } else {
+                        currentNamespace = "";
+                        for (size_t i = 0; i < namespaceStack.size(); ++i) {
+                            if (i > 0) currentNamespace += "::";
+                            currentNamespace += namespaceStack[i];
+                        }
+                    }
+                    return res.to_prs();
+                }
+
+                body.push_back(prs_to_anynode(std::move(st)));
+            }
+
+            if (current_tok.type != TokenType::RBRACE) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected '}' at end of namespace", current_tok.pos));
+                return res.to_prs();
+            }
+
+            this->advance();
+
+            namespaceStack.pop_back();
+            
+            if (namespaceStack.empty()) {
+                currentNamespace = "";
+            } else {
+                currentNamespace = "";
+                for (size_t i = 0; i < namespaceStack.size(); ++i) {
+                    if (i > 0) currentNamespace += "::";
+                    currentNamespace += namespaceStack[i];
+                }
+            }
+
+            return res.success(
+                std::make_unique<NamespaceNode>(nsName.value, std::move(body))
+            );
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "struct") {
             this->advance(); 
@@ -2936,20 +3048,33 @@ namespace tkz {
 
             while (this->current_tok.type != TokenType::RBRACE &&
                 this->current_tok.type != TokenType::EOFT) {
-
-                if (this->current_tok.type != TokenType::KEYWORD &&
-                    this->current_tok.type != TokenType::IDENTIFIER) {
+                Token base_type;
+                std::string field_type;
+                bool list_suffix = false;
+                if (this->current_tok.type == TokenType::IDENTIFIER) {
+                    field_type = this->current_tok.value;
+                    this->advance();
+                    while (this->current_tok.type == TokenType::SCOPE) {
+                        this->advance();
+                        
+                        if (this->current_tok.type != TokenType::IDENTIFIER) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected identifier after '::'", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        
+                        field_type += "::" + this->current_tok.value;
+                        this->advance();
+                    }
+                } else if (this->current_tok.type == TokenType::KEYWORD) {
+                    base_type = this->current_tok;
+                    field_type = base_type.value;
+                    this->advance();
+                } else {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected field type in struct", this->current_tok.pos));
                     return res.to_prs();
                 }
-
-                Token base_type = this->current_tok;
-                this->advance();
-
-                std::string field_type;
-                bool list_suffix = false;
-
                 if (this->current_tok.type == TokenType::LBRACKET) {
                     this->advance();
                     if (this->current_tok.type != TokenType::RBRACKET) {
@@ -3051,21 +3176,15 @@ namespace tkz {
             if (this->current_tok.type == TokenType::SEMICOLON) {
                 this->advance();
             }
-
             if (user_types.contains(struct_name.value)) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Redefinition of struct '" + struct_name.value + "'",
-                    struct_name.pos
-                ));
+                res.failure(std::make_unique<InvalidSyntaxError>("Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
                 return res.to_prs();
             }
-
             UserTypeInfo info;
             info.kind   = UserTypeKind::Struct;
             info.fields = std::move(fields);
-
+            info.namespace_path = currentNamespace;
             user_types[struct_name.value] = std::move(info);
-
             return res.success(std::monostate{});
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "type") {
@@ -3169,7 +3288,6 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-
             if (user_types.contains(type_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Redefinition of type '" + type_name.value + "'",
@@ -3186,7 +3304,7 @@ namespace tkz {
                 info.kind = UserTypeKind::Union;
                 info.members = std::move(members);
             }
-
+            info.namespace_path = currentNamespace;
             user_types[type_name.value] = std::move(info);
             return res.success(std::monostate{});
         }
@@ -3264,7 +3382,6 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-
             if (user_types.contains(enum_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Redefinition of type '" + enum_name.value + "'",
@@ -3276,7 +3393,7 @@ namespace tkz {
             info.kind = UserTypeKind::Union;
             info.members = std::move(members);
             info.enumEntries = std::move(entries);
-
+            info.namespace_path = currentNamespace;
             user_types[enum_name.value] = std::move(info);
 
             return res.success(std::monostate{});
@@ -3684,82 +3801,103 @@ namespace tkz {
                     is_const, return_types[0], var_names[0], std::move(value)));
             }
         }
-        if (tok.type == TokenType::IDENTIFIER &&
-            user_types.count(tok.value) > 0) {
-
-            Token first_type = tok;
-            this->advance();
-            if (this->current_tok.type != TokenType::IDENTIFIER &&
-                this->current_tok.type != TokenType::COMMA) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected function name or ',' after type '" + first_type.value + "'",
-                    this->current_tok.pos));
-                return res.to_prs();
-            }
-
-            std::vector<Token> return_types;
-            return_types.push_back(first_type);
-
-            if (this->current_tok.type == TokenType::COMMA) {
-                while (this->current_tok.type == TokenType::COMMA) {
-                    this->advance();
-
-                    if (this->current_tok.type == TokenType::KEYWORD ||
-                        (this->current_tok.type == TokenType::IDENTIFIER &&
-                        user_types.count(this->current_tok.value) > 0)) {
-
-                        return_types.push_back(this->current_tok);
-                        this->advance();
-                    } else {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected return type after ','", this->current_tok.pos));
-                        return res.to_prs();
+        if (tok.type == TokenType::IDENTIFIER) {
+            auto maybe_qualified = this->try_parse_qualified_name();
+            if (maybe_qualified.has_value()) {
+                std::string qualified_name = *maybe_qualified;
+                std::string ns_part = "";
+                std::string type_name = qualified_name;
+                
+                size_t last_colon = qualified_name.rfind("::");
+                if (last_colon != std::string::npos) {
+                    ns_part = qualified_name.substr(0, last_colon);
+                    type_name = qualified_name.substr(last_colon + 2);
+                }
+                
+                bool is_type = false;
+                if (user_types.count(type_name) > 0) {
+                    auto& info = user_types[type_name];
+                    
+                    if (ns_part.empty()) {
+                        is_type = (info.namespace_path == currentNamespace);
+                    }
+                    else {
+                        is_type = (info.namespace_path == ns_part);
                     }
                 }
+                if (is_type) {
+                    Token first_type = this->consume_qualified_name();
+                    
+                    std::vector<Token> return_types;
+                    return_types.push_back(first_type);
+                    if (this->current_tok.type == TokenType::COMMA) {
+                        while (this->current_tok.type == TokenType::COMMA) {
+                            this->advance();
+
+                            if (this->current_tok.type == TokenType::KEYWORD) {
+                                return_types.push_back(this->current_tok);
+                                this->advance();
+                            } else if (this->current_tok.type == TokenType::IDENTIFIER) {
+                                auto next_qual = this->try_parse_qualified_name();
+                                if (next_qual.has_value() && 
+                                    (is_known_type(*next_qual) || 
+                                    is_known_qualified_type(*next_qual) ||
+                                    user_types.count(*next_qual) > 0)) {
+                                    return_types.push_back(this->consume_qualified_name());
+                                } else {
+                                    res.failure(std::make_unique<InvalidSyntaxError>(
+                                        "Expected return type after ','", this->current_tok.pos));
+                                    return res.to_prs();
+                                }
+                            } else {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected return type after ','", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                        }
+                    }
+
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected name after types", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+
+                    Token name_tok = this->current_tok;
+                    this->advance();
+
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
+                        if (res.error) return res.to_prs();
+                        return res.success(std::move(func_def));
+                    }
+
+                    if (return_types.size() > 1) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Invalid syntax: multiple types before variable name; "
+                            "did you mean to define a function?", name_tok.pos));
+                        return res.to_prs();
+                    }
+
+                    AnyNode value;
+                    if (this->current_tok.type == TokenType::EQ) {
+                        this->advance();
+                        value = res.reg(this->qout_expr());
+                        if (res.error) return res.to_prs();
+                    } else {
+                        value = default_value_for_type(first_type, name_tok.pos);
+                    }
+
+                    if (this->current_tok.type != TokenType::SEMICOLON) {
+                        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+
+                    return res.success(std::make_unique<VarAssignNode>(
+                        false, first_type, name_tok, std::move(value)));
+                }
             }
-
-            if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected name after types", this->current_tok.pos));
-                return res.to_prs();
-            }
-
-            Token name_tok = this->current_tok;
-            this->advance();
-
-            if (this->current_tok.type == TokenType::LPAREN) {
-                auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
-                if (res.error) return res.to_prs();
-                return res.success(std::move(func_def));
-            }
-
-            if (return_types.size() > 1) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Invalid syntax: multiple types before variable name; "
-                    "did you mean to define a function?", name_tok.pos));
-                return res.to_prs();
-            }
-
-            AnyNode value;
-            if (this->current_tok.type == TokenType::EQ) {
-                this->advance();
-                value = res.reg(this->qout_expr());
-                if (res.error) return res.to_prs();
-            } else {
-                value = default_value_for_type(first_type, name_tok.pos);
-            }
-
-            if (this->current_tok.type != TokenType::SEMICOLON) {
-                res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
-                return res.to_prs();
-            }
-            this->advance();
-
-            return res.success(std::make_unique<VarAssignNode>(
-                false, first_type, name_tok, std::move(value)));
-        }
-        // Assignment or compound assignment: x = 5; or x += 5;
-        if (tok.type == TokenType::IDENTIFIER) {
             size_t next_i = index + 1;
             if (next_i < tokens.size() && 
                 (tokens[next_i].type == TokenType::EQ ||
@@ -3848,7 +3986,7 @@ namespace tkz {
                 }
             }
         }
-        return Aer{std::make_unique<StatementsNode>(std::move(stmts)), nullptr, std::move(this->user_types)};
+        return Aer{std::make_unique<StatementsNode>(std::move(stmts), true), nullptr, std::move(this->user_types)};
     }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES ///////////////////////////////////////////////////////////////////////////////////
@@ -3972,6 +4110,174 @@ namespace tkz {
 
         return actual_type == member_type;
     }
+    void Context::set(const std::string& name, NumberVariant new_val, Position pos) {
+        for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+            auto sym_it = it->find(qualify(name));
+            if (sym_it != it->end()) {
+                if (sym_it->second.is_const) {
+                    throw RTError("Cannot assign to const variable '" + name + "'", pos);
+                }
+                
+                std::string expected = sym_it->second.declared_type;
+                std::string actual = get_type_name(new_val);
+                
+                std::string lookup_type = expected;
+                auto ut_it = user_types.find(lookup_type);
+                
+                if (ut_it == user_types.end()) {
+                    size_t last_colon = lookup_type.rfind("::");
+                    if (last_colon == std::string::npos && !namespaceStack.empty()) {
+                        std::string qualified = "";
+                        for (auto& ns : namespaceStack) {
+                            if (!qualified.empty()) qualified += "::";
+                            qualified += ns;
+                        }
+                        lookup_type = qualified + "::" + expected;
+                        ut_it = user_types.find(lookup_type);
+                    }
+                }
+                
+                if (ut_it == user_types.end()) {
+                    for (auto& [type_name, info] : user_types) {
+                        if (type_name == expected || 
+                            type_name.find("::" + expected) != std::string::npos) {
+                            ut_it = user_types.find(type_name);
+                            break;
+                        }
+                    }
+                }
+                
+                if (ut_it != user_types.end() && 
+                    ut_it->second.kind == UserTypeKind::Union) {
+                    
+                    auto& members = ut_it->second.members;
+                    bool ok = false;
+                    
+                    for (auto& m : members) {
+                        if (value_matches_union_member(m.type, actual, new_val)) {
+                            ok = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!ok) {
+                        throw RTError(
+                            "Type mismatch: value of type " + actual +
+                            " is not assignable to union type '" + expected + "'",
+                            pos
+                        );
+                    }
+                    
+                    sym_it->second.value = std::move(new_val);
+                    return;
+                }
+                
+                auto get_base = [](const std::string& t) {
+                    size_t pos = t.rfind("::");
+                    return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                };
+                
+                if (get_base(expected) != get_base(actual) && expected != actual) {
+                    throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
+                }
+                
+                sym_it->second.value = std::move(new_val);
+                return;
+            }
+        }
+        
+        if (name.find("::") != std::string::npos) {
+            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+                auto sym_it = it->find(name);
+                if (sym_it != it->end()) {
+                    if (sym_it->second.is_const) {
+                        throw RTError("Cannot assign to const variable '" + name + "'", pos);
+                    }
+                    
+                    std::string expected = sym_it->second.declared_type;
+                    std::string actual = get_type_name(new_val);
+                    
+                    std::string lookup_type = expected;
+                    auto ut_it = user_types.find(lookup_type);
+                    
+                    if (ut_it == user_types.end()) {
+                        size_t last_colon = lookup_type.rfind("::");
+                        if (last_colon == std::string::npos && !namespaceStack.empty()) {
+                            std::string qualified = "";
+                            for (auto& ns : namespaceStack) {
+                                if (!qualified.empty()) qualified += "::";
+                                qualified += ns;
+                            }
+                            lookup_type = qualified + "::" + expected;
+                            ut_it = user_types.find(lookup_type);
+                        }
+                    }
+                    
+                    if (ut_it == user_types.end()) {
+                        for (auto& [type_name, info] : user_types) {
+                            if (type_name == expected || 
+                                type_name.find("::" + expected) != std::string::npos) {
+                                ut_it = user_types.find(type_name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (ut_it != user_types.end() && 
+                        ut_it->second.kind == UserTypeKind::Union) {
+                        
+                        auto& members = ut_it->second.members;
+                        bool ok = false;
+                        
+                        for (auto& m : members) {
+                            if (value_matches_union_member(m.type, actual, new_val)) {
+                                ok = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!ok) {
+                            throw RTError(
+                                "Type mismatch: value of type " + actual +
+                                " is not assignable to union type '" + expected + "'",
+                                pos
+                            );
+                        }
+                        
+                        sym_it->second.value = std::move(new_val);
+                        return;
+                    }
+                    
+                    auto get_base = [](const std::string& t) {
+                        size_t pos = t.rfind("::");
+                        return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                    };
+                    
+                    if (get_base(expected) != get_base(actual) && expected != actual) {
+                        throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
+                    }
+                    
+                    sym_it->second.value = std::move(new_val);
+                    return;
+                }
+            }
+        }
+        
+        throw RTError("Undefined variable: '" + name + "'", pos);
+    }
+    NumberVariant def_value_for_type(const std::string& type_name) {
+        if (type_name == "int") return Number<int>(0);
+        else if (type_name == "float") return Number<float>(0.0f);
+        else if (type_name == "double") return Number<double>(0.0);
+        else if (type_name == "string") return StringValue("");
+        else if (type_name == "char") return CharValue("");
+        else if (type_name == "bool") return BoolValue("");
+        else if (type_name == "qbool") return QBoolValue("");
+        if (type_name == "short int")    return Number<short>(0);
+        if (type_name == "long int")     return Number<long long>(0);
+        if (type_name == "long double")  return Number<long double>(0.0L);
+        else return VoidValue();
+    }
     std::string value_to_string(const NumberVariant& val) {
         return std::visit([](auto const& v) -> std::string {
             using T = std::decay_t<decltype(v)>;
@@ -4061,6 +4367,17 @@ namespace tkz {
             }
         }, a);
     }
+    NumberVariant Interpreter::operator()(std::unique_ptr<NamespaceNode>& node) {
+        context->push_namespace(node->name);
+
+        for (auto& stmt : node->body) {
+            this->process(stmt);
+        }
+
+        context->pop_namespace();
+        return VoidValue();
+    }
+
     NumberVariant Interpreter::process(AnyNode& node) {
         try {
             if (this->errors.size() > 50) {
@@ -4241,19 +4558,43 @@ namespace tkz {
     
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         if (!node) return std::move(Number<int>(0));
-        
-        
         NumberVariant value = this->process(node->value_node);
         
 
         std::string declaredType = node->type_tok.value;
         std::string actualType   = context->get_type_name(value);
-        auto ut_it = context->user_types.find(declaredType);
+        std::string lookup_type = declaredType;
+        auto ut_it = context->user_types.find(lookup_type);
+        if (ut_it == context->user_types.end() && !context->namespaceStack.empty()) {
+            std::string qualified = "";
+            for (auto& ns : context->namespaceStack) {
+                if (!qualified.empty()) qualified += "::";
+                qualified += ns;
+            }
+            lookup_type = qualified + "::" + declaredType;
+            ut_it = context->user_types.find(lookup_type);
+        }
+        if (ut_it == context->user_types.end()) {
+            for (auto& [name, info] : context->user_types) {
+                if (name == declaredType || name.find("::" + declaredType) != std::string::npos) {
+                    ut_it = context->user_types.find(name);
+                    break;
+                }
+            }
+        }
         if (ut_it != context->user_types.end()) {
             UserTypeInfo& ut = ut_it->second;
 
             if (ut.kind == UserTypeKind::Struct) {
-
+                if (std::holds_alternative<VoidValue>(value)) {
+                    auto sv = std::make_shared<StructValue>(declaredType);
+                    sv->set_pos(node->var_name_tok.pos);
+                    for (auto& field : ut.fields) {
+                        sv->fields[field.name] = def_value_for_type(field.type);
+                    }
+                    
+                    value = sv;
+                }
                 const auto& fields = ut.fields;
 
                 if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
@@ -4843,28 +5184,21 @@ namespace tkz {
         return last;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode>& node) {
-        if (!node) return std::move(Number<int>(0));
+        
+        if (!node) {
+            return std::move(Number<int>(0));
+        }
 
+        
         if (std::holds_alternative<std::monostate>(node->value)) {
             throw ReturnException(VoidValue().set_pos(node->pos));
         }
 
         NumberVariant val = this->process(node->value);
+        
         throw ReturnException(std::move(val));
     }
-    NumberVariant def_value_for_type(const std::string& type_name) {
-        if (type_name == "int") return Number<int>(0);
-        else if (type_name == "float") return Number<float>(0.0f);
-        else if (type_name == "double") return Number<double>(0.0);
-        else if (type_name == "string") return StringValue("");
-        else if (type_name == "char") return CharValue("");
-        else if (type_name == "bool") return BoolValue("");
-        else if (type_name == "qbool") return QBoolValue("");
-        if (type_name == "short int")    return Number<short>(0);
-        if (type_name == "long int")     return Number<long long>(0);
-        if (type_name == "long double")  return Number<long double>(0.0L);
-        else return VoidValue();
-    }
+    
     std::unordered_map<std::string, NumberVariant> Interpreter::make_instance_fields(
         const std::string& className
     ) {
@@ -5056,11 +5390,22 @@ namespace tkz {
 
                 return inst;
             }
-            try { target_val = context->get(func_name, varacc->var_name_tok.pos); }
-            catch (RTError&) {
-                auto func = context->get_function(func_name);
-                if (!func) throw RTError("Undefined function: '" + func_name + "'", Position());
-                target_val = FunctionValue(func);
+            std::string lookup_name = func_name;
+            if (lookup_name.find("::") != std::string::npos) {
+                auto func = context->functions.find(lookup_name);
+                if (func != context->functions.end()) {
+                    target_val = FunctionValue(func->second);
+                } else {
+                    throw RTError("Undefined function: '" + func_name + "'", Position());
+                }
+            } else {
+                try { 
+                    target_val = context->get(func_name, varacc->var_name_tok.pos); 
+                } catch (RTError&) {
+                    auto func = context->get_function(func_name);
+                    if (!func) throw RTError("Undefined function: '" + func_name + "'", Position());
+                    target_val = FunctionValue(func);
+                }
             }
         } else {
             target_val = this->process(node->node_to_call);
@@ -5073,6 +5418,28 @@ namespace tkz {
         if (!fval.func) this->errors.push_back({RTError("Invalid function value", Position()), "Error"});
 
         auto func = fval.func;
+        std::vector<std::string> saved_namespace_stack = context->namespaceStack;
+        bool changed_namespace = false;
+        std::string current_ns = "";
+        for (size_t i = 0; i < context->namespaceStack.size(); i++) {
+            if (i > 0) current_ns += "::";
+            current_ns += context->namespaceStack[i];
+        }
+
+        if (!func->namespace_path.empty() && current_ns != func->namespace_path) {
+            changed_namespace = true;
+            context->namespaceStack.clear();
+            std::string path = func->namespace_path;
+            size_t pos = 0;
+            while ((pos = path.find("::")) != std::string::npos) {
+                context->namespaceStack.push_back(path.substr(0, pos));
+                path.erase(0, pos + 2);
+            }
+            if (!path.empty()) {
+                context->namespaceStack.push_back(path);
+            }
+        }
+
         context->push_scope();
         std::vector<NumberVariant> final_args;
 
@@ -5091,6 +5458,7 @@ namespace tkz {
                 }
                 else {
                     context->pop_scope();
+                    context->namespaceStack = saved_namespace_stack;
                     this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
                 }
             }
@@ -5101,6 +5469,9 @@ namespace tkz {
         try {
             if (final_args.size() > func->params.size()) {
                 context->pop_scope();
+                if (changed_namespace) {
+                    context->namespaceStack = saved_namespace_stack;
+                }
                 this->errors.push_back({RTError("Too many arguments", Position()), "Error"});
             }
             for (size_t i = 0; i < func->params.size(); i++) {
@@ -5201,6 +5572,9 @@ namespace tkz {
                     
                     if (!types_compatible) {
                         context->pop_scope();
+                        if (changed_namespace) {
+                            context->namespaceStack = saved_namespace_stack;
+                        }
                         this->errors.push_back({RTError(
                             "Argument type mismatch: expected " + expected_type + 
                             ", got " + actual_type, 
@@ -5221,26 +5595,64 @@ namespace tkz {
                 for (auto& rt : func->return_types)
                     defaults.push_back(def_value_for_type(rt.value));
                 context->pop_scope();
+                if (changed_namespace) {
+                    context->namespaceStack = saved_namespace_stack;
+                }
                 return std::make_shared<MultiValue>(std::move(defaults));
             } else if (func->return_types.size() == 1) {
                 context->pop_scope();
+                if (changed_namespace) {
+                    context->namespaceStack = saved_namespace_stack;
+                }
                 return def_value_for_type(func->return_types[0].value);
             } else {
                 context->pop_scope();
+                if (changed_namespace) {
+                    context->namespaceStack = saved_namespace_stack;
+                }
                 return VoidValue();
             }
             
         } catch (ReturnException& re) {
             context->pop_scope();
-            return std::move(re.value);
+            if (changed_namespace) {
+                context->namespaceStack = saved_namespace_stack;
+            }
             
+            if (!func->return_types.empty()) {
+                std::string expected_type = func->return_types[0].value;
+                
+                auto ut_it = context->user_types.find(expected_type);
+                if (ut_it != context->user_types.end() && 
+                    ut_it->second.kind == UserTypeKind::Struct) {
+                    if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&re.value)) {
+                        NumberVariant converted = convert_array_to_struct(
+                            *arr_ptr, 
+                            expected_type, 
+                            context
+                        );
+                        return std::move(converted);
+                    }
+                }
+            }
+            
+            return std::move(re.value);
         } catch (MultiReturnException& mre) {
             context->pop_scope();
+            if (changed_namespace) {
+                context->namespaceStack = saved_namespace_stack;
+            }
             return std::make_shared<MultiValue>(std::move(mre.values));
             
         } catch (...) {
             context->pop_scope();
+            if (changed_namespace) {
+                context->namespaceStack = saved_namespace_stack;
+            }
             throw;
+        }
+        if (changed_namespace) {
+            context->namespaceStack = saved_namespace_stack;
         }
         return VoidValue();
     }
@@ -5320,7 +5732,21 @@ namespace tkz {
         if (!context) {
             this->errors.push_back({RTError("Context not initialized", node->var_name_tok.pos), "Severe"});
         }
-        auto result = context->get(node->var_name_tok.value, node->var_name_tok.pos);
+        
+        std::string name = node->var_name_tok.value;
+        
+        
+        if (name.find("::") != std::string::npos) {
+            for (auto it = context->frames.rbegin(); it != context->frames.rend(); ++it) {
+                auto sym_it = it->find(name);
+                if (sym_it != it->end()) {
+                    return sym_it->second.value;
+                }
+            }
+            throw RTError("Undefined variable: '" + name + "'", node->var_name_tok.pos);
+        }
+        
+        auto result = context->get(name, node->var_name_tok.pos);
         return result;
     }
 
@@ -5731,9 +6157,94 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
         if (!node) return Number<int>(0);
+        
+        
         NumberVariant value = std::move(this->process(node->value));
-        context->set(node->var_name.value, std::move(value), node->var_name.pos);
-
+        std::string name = node->var_name.value;
+        
+        if (name.find("::") != std::string::npos) {
+            for (auto it = context->frames.rbegin(); it != context->frames.rend(); ++it) {
+                auto sym_it = it->find(name);
+                if (sym_it != it->end()) {
+                    if (sym_it->second.is_const) {
+                        throw RTError("Cannot assign to const variable '" + name + "'", node->var_name.pos);
+                    }
+                    
+                    std::string declared_type = sym_it->second.declared_type;
+                    std::string actual_type = context->get_type_name(value);
+                    
+                    std::string lookup_type = declared_type;
+                    auto ut_it = context->user_types.find(lookup_type);
+                    
+                    if (ut_it == context->user_types.end()) {
+                        size_t last_colon = lookup_type.rfind("::");
+                        if (last_colon == std::string::npos && !context->namespaceStack.empty()) {
+                            std::string qualified = "";
+                            for (auto& ns : context->namespaceStack) {
+                                if (!qualified.empty()) qualified += "::";
+                                qualified += ns;
+                            }
+                            lookup_type = qualified + "::" + declared_type;
+                            ut_it = context->user_types.find(lookup_type);
+                        }
+                    }
+                    
+                    if (ut_it == context->user_types.end()) {
+                        for (auto& [type_name, info] : context->user_types) {
+                            if (type_name == declared_type || 
+                                type_name.find("::" + declared_type) != std::string::npos) {
+                                ut_it = context->user_types.find(type_name);
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (ut_it != context->user_types.end() && 
+                        ut_it->second.kind == UserTypeKind::Union) {
+                        
+                        auto& members = ut_it->second.members;
+                        bool ok = false;
+                        
+                        for (auto& m : members) {
+                            if (value_matches_union_member(m.type, actual_type, value)) {
+                                ok = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!ok) {
+                            throw RTError(
+                                "Type mismatch: value of type " + actual_type +
+                                " is not assignable to union type '" + declared_type + "'",
+                                node->var_name.pos
+                            );
+                        }
+                        
+                        sym_it->second.value = std::move(value);
+                        return value;
+                    }
+                    
+                    auto get_base = [](const std::string& t) {
+                        size_t pos = t.rfind("::");
+                        return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                    };
+                    
+                    if (get_base(declared_type) != get_base(actual_type) && 
+                        declared_type != actual_type) {
+                        throw RTError(
+                            "Type mismatch: cannot assign " + actual_type + " to " + declared_type,
+                            node->var_name.pos
+                        );
+                    }
+                    
+                    sym_it->second.value = std::move(value);
+                    return value;
+                }
+            }
+            throw RTError("Undefined variable: '" + name + "'", node->var_name.pos);
+        }
+        
+        context->set(name, std::move(value), node->var_name.pos);
         return std::move(value);
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
@@ -7221,18 +7732,23 @@ namespace tkz {
         
         // Interpreter
         Context* ctx = new Context();
-        ctx->user_types = std::move(ast.user_types);
+        for (auto& [name, info] : ast.user_types) {
+            ctx->define_user_type(std::move(info), name);
+        }
         Interpreter interpreter(ctx);
         std::string output = "";
         int exit_code = 0;
         
         try {
-            // Register functions
             for (auto& stmt : ast.statements->statements) {
+                if (std::holds_alternative<std::unique_ptr<NamespaceNode>>(stmt)) {
+                    interpreter.process(stmt);
+                }
                 if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
                     interpreter.process(stmt);
                 }
             }
+
             
             // Call main
             std::shared_ptr<FuncDefNode> main_func = ctx->get_function("main");

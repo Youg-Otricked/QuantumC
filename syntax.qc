@@ -347,9 +347,8 @@ int main() {
     nested;
 
     // Expressiotn pre init
-
-    if (int this = 21; this < 22) {
-        this = 1;
+    if (int thngy = 21; thngy < 22) {
+        thngy = 1;
     }
     //=============================================================================
     // SECTION 18: switch statments

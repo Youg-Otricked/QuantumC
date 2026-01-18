@@ -74,6 +74,7 @@ namespace tkz {
     class MethodCallNode;
     class PropertyAccessNode;
     class SpreadNode;
+    class NamespaceNode;
     class ForeachNode;
     class QBoolNode;
     class QIfNode;
@@ -126,7 +127,8 @@ namespace tkz {
         std::unique_ptr<SeedCallNode>,
         std::unique_ptr<RandomCallNode>,
         std::unique_ptr<FieldAssignNode>,
-        std::unique_ptr<MapLiteralNode>
+        std::unique_ptr<MapLiteralNode>,
+        std::unique_ptr<NamespaceNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,6 +255,7 @@ namespace tkz {
         std::vector<ClassField> classFields;
         std::vector<ClassMethodInfo> classMethods;
         std::string baseClassName = "";
+        std::string namespace_path;
         UserTypeInfo() = default;
 
         UserTypeInfo(UserTypeInfo&&) = default;
@@ -579,15 +582,18 @@ namespace tkz {
             std::optional<Token> name_tok;
             std::list<Parameter> params;
             std::unique_ptr<StatementsNode> body;
+            std::string namespace_path;
             Position pos;
             
             FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, 
                         std::list<Parameter> parameters, 
-                        std::unique_ptr<StatementsNode> func_body) 
+                        std::unique_ptr<StatementsNode> func_body,
+                        std::string ns = "") 
                 : return_types(std::move(ret_types)),
                 name_tok(std::move(name)),
                 params(std::move(parameters)),
-                body(std::move(func_body)) {}
+                body(std::move(func_body)),
+                namespace_path(ns) {}
             
             std::string print() {
                 std::string result = "";
@@ -875,6 +881,18 @@ namespace tkz {
             return "seed()";
         }
     };
+    class NamespaceNode {
+        public:
+        std::string name;
+        std::vector<AnyNode> body;
+
+        NamespaceNode(std::string name, std::vector<AnyNode> body)
+            : name(std::move(name)), body(std::move(body)) {}
+        std::string print() {
+            return "namespace " + name;
+        }
+    };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -900,7 +918,8 @@ namespace tkz {
         std::unique_ptr<SeedCallNode>,
         std::unique_ptr<RandomCallNode>,
         std::unique_ptr<FieldAssignNode>,
-        std::unique_ptr<MapLiteralNode>
+        std::unique_ptr<MapLiteralNode>,
+        std::unique_ptr<NamespaceNode>
     >;
         
     class ParseResult {
@@ -931,12 +950,82 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
+        AnyNode default_value_for_type(const Token& type_tok, const Position& pos);
+        std::vector<std::string> namespaceStack;
         size_t index = 0;
         int tmp_counter = 0;
         std::unordered_map<std::string, UserTypeInfo> user_types;
         Token current_tok;
         std::vector<Token> tokens;
+        std::string currentNamespace;
         Parser(std::vector<Token> tokens);
+        std::string qualify_name(const std::string& name);
+        bool is_known_type(const std::string& name) const {
+            if (user_types.count(name)) return true;
+            std::string ns;
+            for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
+                ns = namespaceStack[i] + (ns.empty() ? "" : "::" + ns);
+                for (auto& [k, info] : user_types) {
+                    if (k == name && info.namespace_path == ns) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        std::optional<std::string> try_parse_qualified_name() {
+            if (current_tok.type != TokenType::IDENTIFIER) return std::nullopt;
+
+            std::string qualified = current_tok.value;
+            size_t i = index;
+
+            while (i + 1 < tokens.size() && tokens[i + 1].type == TokenType::SCOPE) {
+                if (i + 2 >= tokens.size()) return std::nullopt;
+                qualified += "::" + tokens[i + 2].value;
+                i += 2;
+            }
+
+            return qualified;
+        }
+        Token consume_qualified_name() {
+            if (current_tok.type != TokenType::IDENTIFIER) {
+                throw InvalidSyntaxError("Expected identifier", current_tok.pos);
+            }
+
+            Position start_pos = current_tok.pos;
+            std::string qualified = current_tok.value;
+            this->advance();
+            while (current_tok.type == TokenType::SCOPE) {
+                this->advance();
+                
+                if (current_tok.type != TokenType::IDENTIFIER) {
+                    throw InvalidSyntaxError("Expected identifier after '::'", current_tok.pos);
+                }
+                
+                qualified += "::" + current_tok.value;
+                this->advance();
+            }
+
+            return Token(TokenType::IDENTIFIER, qualified, start_pos);
+        }
+        
+        bool is_known_qualified_type(const std::string& full) const {
+            auto pos = full.rfind("::");
+            if (pos == std::string::npos) return false;
+
+            std::string ns = full.substr(0, pos);
+            std::string name = full.substr(pos + 2);
+
+            for (auto& [k, info] : user_types) {
+                if (k == name && info.namespace_path == ns) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         Token advance();
         Prs factor();
         Prs term();
@@ -1361,6 +1450,7 @@ namespace tkz {
     };
 
     template <typename T, typename U>
+
     NumberVariant handle_binop(const Number<T>& L, const Number<U>& R, TokenType op, InterpEer& error) {
         if (op == TokenType::PLUS) return L.added_to(R);
         if (op == TokenType::MINUS) return L.subbed_by(R);
@@ -1415,10 +1505,45 @@ namespace tkz {
     };
 
     class Context {
-        
+        public:
+        std::vector<std::string> namespaceStack;
         std::vector<std::unordered_map<std::string, Symbol>> frames;
         std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
-    public:
+        void push_namespace(const std::string& name) {
+            namespaceStack.push_back(name);
+        }
+
+        void pop_namespace() {
+            namespaceStack.pop_back();
+        }
+        void define_user_type(UserTypeInfo info, std::string name) {
+            std::string fq;
+
+            if (info.namespace_path.empty())
+                fq = name;
+            else
+                fq = info.namespace_path + "::" + name;
+
+            if (user_types.count(fq)) {
+                throw RTError(
+                    "Redefinition of type '" + fq + "'",
+                    Position{}
+                );
+            }
+
+            user_types[fq] = std::move(info);
+        }
+
+        std::string qualify(const std::string& name) const {
+            if (namespaceStack.empty()) return name;
+
+            std::string q;
+            for (size_t i = 0; i < namespaceStack.size(); ++i) {
+                if (i) q += "::";
+                q += namespaceStack[i];
+            }
+            return q + "::" + name;
+        }
         std::unordered_map<std::string, UserTypeInfo> user_types;
         Context() {
             frames.emplace_back(); 
@@ -1431,41 +1556,59 @@ namespace tkz {
         }
         void define(const std::string& name, const std::string& type,
                     NumberVariant val, bool is_const = false) {
-            frames.back()[name] = { type, std::move(val), is_const };
+            frames.back()[qualify(name)] = { type, std::move(val), is_const };
         }
-        void set(const std::string& name, NumberVariant new_val, Position pos) {
-            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                auto sym_it = it->find(name);
-                if (sym_it != it->end()) {
-                    if (sym_it->second.is_const) {
-                        throw RTError("Cannot assign to const variable '" + name + "'", pos);
-                    }
-                    std::string expected = sym_it->second.declared_type;
-                    std::string actual = get_type_name(new_val);
-                    if (expected != actual) {
-                        throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
-                    }
-                    sym_it->second.value = std::move(new_val);
-                    return;
-                }
-            }
-            throw RTError("Undefined variable: '" + name + "'", pos);
-        }
+        void set(const std::string& name, NumberVariant new_val, Position pos);
         NumberVariant get(const std::string& name, Position pos) {
             for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                auto sym_it = it->find(name);
+                auto sym_it = it->find(qualify(name));
                 if (sym_it != it->end()) {
                     return sym_it->second.value;
                 }
             }
+            
+            if (!namespaceStack.empty()) {
+                for (int i = namespaceStack.size() - 1; i >= 0; --i) {
+                    std::string partial_ns = "";
+                    for (int j = 0; j <= i; ++j) {
+                        if (j > 0) partial_ns += "::";
+                        partial_ns += namespaceStack[j];
+                    }
+                    
+                    std::string qualified_name = partial_ns + "::" + name;
+                    
+                    for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+                        auto sym_it = it->find(qualified_name);
+                        if (sym_it != it->end()) {
+                            return sym_it->second.value;
+                        }
+                    }
+                }
+            }
+            
+            if (name.find("::") != std::string::npos) {
+                for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
+                    auto sym_it = it->find(name);
+                    if (sym_it != it->end()) {
+                        return sym_it->second.value;
+                    }
+                }
+            }
+            
             throw RTError("Undefined variable: '" + name + "'", pos);
         }
         void define_function(const std::string& name, std::shared_ptr<FuncDefNode> func) {
-            functions[name] = std::move(func);
+            functions[qualify(name)] = std::move(func);
         }
         
         std::shared_ptr<FuncDefNode> get_function(const std::string& name) {
-            auto it = functions.find(name);
+            if (name.find("::") != std::string::npos) {
+                auto it = functions.find(name);
+                if (it != functions.end()) return it->second;
+                return nullptr;
+            }
+            
+            auto it = functions.find(qualify(name));
             if (it != functions.end()) return it->second;
             return nullptr;
         }
@@ -1495,7 +1638,7 @@ namespace tkz {
                     return "map<" + arg->key_type + ", " + arg->value_type + ">";
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<StructValue>>) {
-                    return "struct " + arg->type_name;
+                    return arg->type_name;
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
                     return arg->class_name;
@@ -1532,6 +1675,7 @@ namespace tkz {
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(QBoolNode& node);
         NumberVariant operator()(QOutNode& node);
+        NumberVariant operator()(std::unique_ptr<NamespaceNode>& node);
         NumberVariant operator()(QInNode& node);
         NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);

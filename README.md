@@ -13,7 +13,7 @@ C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Ru
 
 -  **Modern Syntax** - Clean, intuitive, no boilerplate (other than main(obviously))
 -  **Functions & Lambdas** - First-class functions with `fn` syntax
--  **Multi-Return Values** - Return multiple values without structs(on normal funcitons. static and multi ret lambdas comming soon)
+-  **Multi-Return Values** - Return multiple values without structs
 -  **Type Safety** - Strong typing with `auto` inference
 -  **Quantum Booleans** - Superposition of true/false
 -  **F-Strings** - Python-style string interpolation
@@ -106,9 +106,10 @@ Structs
 Union Types (TypeScript-style)
 Enums
 Class
+Namespace
 ## Coming Soon:
 
-Namespace
+
 Interfaces and more advanced OOP stuff
 #include
 

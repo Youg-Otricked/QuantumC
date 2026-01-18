@@ -7,6 +7,7 @@
 1/7-13/2026: Current version: 4.5-4.7: Structs, Unions, Typedef.
 1/13/2026: Current version: 5.0: Enums
 1/15/2026: Current version: 5.2->8: Classes, other stuff
+NAMESPCACES!!!!!!!!!!
 # Features checklist (suitable for change(by adding more))
 
 - [ ] User Types (
@@ -16,7 +17,7 @@
     - [x] Classes
     - [x] ~~Template~~ (Replaced by Unions)
     - [x] Typedef
-    - [ ] Namespace
+    - [x] Namespace
     - [ ] Better scope(\:\:)
     - [ ] Aliasing file paths with using "file-path" as aliasname
 )
