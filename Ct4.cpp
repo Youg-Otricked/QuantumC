@@ -3048,10 +3048,11 @@ namespace tkz {
 
             while (this->current_tok.type != TokenType::RBRACE &&
                 this->current_tok.type != TokenType::EOFT) {
-                Token base_type;
+                
                 std::string field_type;
-                bool list_suffix = false;
+                bool is_user_type = false;
                 if (this->current_tok.type == TokenType::IDENTIFIER) {
+                    is_user_type = true;
                     field_type = this->current_tok.value;
                     this->advance();
                     while (this->current_tok.type == TokenType::SCOPE) {
@@ -3066,70 +3067,68 @@ namespace tkz {
                         field_type += "::" + this->current_tok.value;
                         this->advance();
                     }
-                } else if (this->current_tok.type == TokenType::KEYWORD) {
-                    base_type = this->current_tok;
+                }
+                else if (this->current_tok.type == TokenType::KEYWORD) {
+                    Token base_type = this->current_tok;
                     field_type = base_type.value;
                     this->advance();
+                    
+                    if (this->current_tok.type == TokenType::LBRACKET) {
+                        this->advance();
+                        if (this->current_tok.type != TokenType::RBRACKET) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ']' after '[' in list type", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        field_type = "list<" + base_type.value + ">";
+                    }
+                    else if (base_type.value == "map") {
+                        if (this->current_tok.type != TokenType::LESS) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected '<' after map for key type", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        if (this->current_tok.type != TokenType::KEYWORD && 
+                            this->current_tok.type != TokenType::IDENTIFIER) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected key type in map", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        std::string key_type = this->current_tok.value;
+                        this->advance();
+
+                        if (this->current_tok.type != TokenType::COMMA) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ',' between key and value type in map", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        if (this->current_tok.type != TokenType::KEYWORD && 
+                            this->current_tok.type != TokenType::IDENTIFIER) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected value type in map", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        std::string value_type = this->current_tok.value;
+                        this->advance();
+
+                        if (this->current_tok.type != TokenType::MORE) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected '>' after map value type", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        field_type = "map<" + key_type + "," + value_type + ">";
+                    }
                 } else {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected field type in struct", this->current_tok.pos));
                     return res.to_prs();
-                }
-                if (this->current_tok.type == TokenType::LBRACKET) {
-                    this->advance();
-                    if (this->current_tok.type != TokenType::RBRACKET) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ']' after '[' in list type", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    list_suffix = true;
-                }
-
-                if (base_type.value == "map") {
-                    if (this->current_tok.type != TokenType::LESS) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '<' after map for key type", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    if (this->current_tok.type != TokenType::KEYWORD && 
-                        this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected key type in map", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    std::string key_type = this->current_tok.value;
-                    this->advance();
-
-                    if (this->current_tok.type != TokenType::COMMA) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ',' between key and value type in map", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-
-                    if (this->current_tok.type != TokenType::KEYWORD && 
-                        this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected value type in map", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    std::string value_type = this->current_tok.value;
-                    this->advance();
-
-                    if (this->current_tok.type != TokenType::MORE) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '>' after map value type", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-
-                    field_type = "map<" + key_type + "," + value_type + ">";
-                } else if (list_suffix) {
-                    field_type = "list<" + base_type.value + ">";
-                } else {
-                    field_type = base_type.value;
                 }
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
@@ -3165,7 +3164,6 @@ namespace tkz {
 
                 fields.push_back({ field_name.value, field_type });
             }
-
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Expected '}' at end of struct", this->current_tok.pos));
@@ -6756,6 +6754,58 @@ namespace tkz {
             auto inst = *inst_ptr;
             const std::string& className = inst->class_name;
             const std::string& mname = node->method_name.value;
+            if (mname == "has") {
+                if (node->args.size() != 1) {
+                    this->errors.push_back({RTError(
+                        "class.has() expects 1 argument (field name)", node->method_name.pos),
+                        "Error"});
+                    return BoolValue("false");
+                }
+
+                NumberVariant arg = this->process(node->args[0]);
+                if (!std::holds_alternative<StringValue>(arg)) {
+                    this->errors.push_back({RTError(
+                        "class.has() argument must be a string", node->method_name.pos),
+                        "Error"});
+                    return BoolValue("false");
+                }
+
+                std::string field = std::get<StringValue>(arg).value;
+                bool exists = inst->fields.count(field) > 0;
+                return BoolValue(exists ? "true" : "false");
+            }
+            
+            if (mname == "has_method") {
+                if (node->args.size() != 1) {
+                    this->errors.push_back({RTError(
+                        "class.has_method() expects 1 argument (method name)", node->method_name.pos),
+                        "Error"});
+                    return BoolValue("false");
+                }
+
+                NumberVariant arg = this->process(node->args[0]);
+                if (!std::holds_alternative<StringValue>(arg)) {
+                    this->errors.push_back({RTError(
+                        "class.has_method() argument must be a string", node->method_name.pos),
+                        "Error"});
+                    return BoolValue("false");
+                }
+
+                std::string method = std::get<StringValue>(arg).value;
+                
+                auto ut_it = context->user_types.find(inst->class_name);
+                if (ut_it == context->user_types.end()) {
+                    return BoolValue("false");
+                }
+                
+                for (auto& m : ut_it->second.classMethods) {
+                    if (m.name_tok.value == method) {
+                        return BoolValue("true");
+                    }
+                }
+                
+                return BoolValue("false");
+            }
             ClassMethodInfo* method = find_method_on_class(className, mname);
             if (!method) {
                 this->errors.push_back({RTError(
