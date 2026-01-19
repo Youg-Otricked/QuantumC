@@ -18,7 +18,7 @@ NAMESPCACES!!!!!!!!!!
     - [x] ~~Template~~ (Replaced by Unions)
     - [x] Typedef
     - [x] Namespace
-    - [ ] Better scope(\:\:)
+    - [x] Better scope(\:\:)
     - [ ] Aliasing file paths with using "file-path" as aliasname
 )
 - [ ] Manual Memory Managment (
