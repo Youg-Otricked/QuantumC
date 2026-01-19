@@ -22,6 +22,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <ranges>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+#include <set>
+#include <algorithm>
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
@@ -2579,7 +2584,6 @@ namespace tkz {
                 ));
                 return res.to_prs();
             }
-
             Prs st = this->statement();
 
             if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
@@ -2781,6 +2785,30 @@ namespace tkz {
             this->advance();
             return res.success(std::make_unique<BreakNode>(tok));
         }
+        bool is_abstract_class = false;
+        bool is_final_class = false;
+        if (tok.type == TokenType::KEYWORD && tok.value == "abstract") {
+            this->advance();
+            if (this->current_tok.type != TokenType::KEYWORD ||
+                this->current_tok.value != "class") {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected 'class' after 'abstract'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            is_abstract_class = true;
+            tok = this->current_tok;
+        }
+        if (tok.type == TokenType::KEYWORD && tok.value == "final") {
+            this->advance();
+            if (this->current_tok.type != TokenType::KEYWORD ||
+                this->current_tok.value != "class") {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Expected 'class' after 'final'", this->current_tok.pos));
+                return res.to_prs();
+            }
+            is_final_class = true;
+            tok = this->current_tok;
+        }
         if (tok.type == TokenType::KEYWORD && tok.value == "class") {
             this->advance();
 
@@ -2801,6 +2829,17 @@ namespace tkz {
                 }
                 baseName = current_tok.value;
                 advance();
+            }
+            if (!baseName.empty()) {
+                auto base_it = user_types.find(baseName);
+                if (base_it != user_types.end() &&
+                    base_it->second.kind == UserTypeKind::Class &&
+                    base_it->second.is_final_class) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Cannot inherit from final class '" + baseName + "'",
+                        class_name.pos));
+                    return res.to_prs();
+                }
             }    
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
@@ -2808,16 +2847,31 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-
+            UserTypeInfo dummy;
             UserTypeInfo info;
+            dummy.baseClassName = baseName;
+            dummy.is_final_class = is_final_class;
+            dummy.kind = UserTypeKind::Class;
             info.baseClassName = baseName;
+            info.is_final_class = is_final_class;
             info.kind = UserTypeKind::Class;
+            dummy.is_abstract_class = is_abstract_class;
+            info.is_abstract_class = is_abstract_class;
+            if (user_types.contains(class_name.value)) {
+                res.failure(std::make_unique<InvalidSyntaxError>(
+                    "Redefinition of type '" + class_name.value + "'",
+                    class_name.pos));
+                return res.to_prs();
+            }
+            dummy.namespace_path = currentNamespace;
+            info.namespace_path = currentNamespace;
+            user_types[class_name.value] = std::move(dummy);
 
             while (this->current_tok.type != TokenType::RBRACE &&
                 this->current_tok.type != TokenType::EOFT) {
 
                 std::string access = "public";
-
+                bool is_final_method = false;
                 if (this->current_tok.type == TokenType::KEYWORD &&
                 (this->current_tok.value == "public" ||
                     this->current_tok.value == "private" ||
@@ -2825,38 +2879,57 @@ namespace tkz {
                     access = this->current_tok.value;
                     this->advance();
                 }
-
+                if (this->current_tok.type == TokenType::KEYWORD &&
+                    this->current_tok.value == "final") {
+                    is_final_method = true;
+                    this->advance();
+                }
                 if (this->current_tok.type == TokenType::IDENTIFIER &&
                     this->current_tok.value == class_name.value) {
-
-                    Token ctor_name = this->current_tok;
-                    this->advance();
-
-                    if (this->current_tok.type != TokenType::LPAREN) {
+                    if (is_abstract_class) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '(' after constructor name", this->current_tok.pos));
+                            "Cannot make constructor on abstract class '" + class_name.value + "'",
+                            class_name.pos));
                         return res.to_prs();
                     }
-                    auto ctor_pr = this->func_def_multi({}, std::nullopt);
-                    if (std::holds_alternative<std::unique_ptr<Error>>(ctor_pr))
-                        return ctor_pr;
-
-                    auto fn = std::get<std::shared_ptr<FuncDefNode>>(std::move(ctor_pr));
-
-                    ClassMethodInfo mi;
-                    mi.name_tok = ctor_name;
-                    mi.params.clear();
-                    mi.params.reserve(fn->params.size());
-                    for (auto it = fn->params.begin(); it != fn->params.end(); ++it) {
-                        mi.params.push_back(std::move(*it));
+                    Token next_tok;
+                    if (index + 1 < tokens.size()) {
+                        next_tok = tokens[index + 1];
+                    } else {
+                        next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
                     }
-                    mi.return_types = {};
-                    mi.body = std::move(fn->body);
-                    mi.is_constructor = true;
-                    mi.access = access;
 
-                    info.classMethods.push_back(std::move(mi));
-                    continue;
+                    if (next_tok.type == TokenType::LPAREN) {
+                        Token ctor_name = this->current_tok;
+                        this->advance();
+
+                        if (this->current_tok.type != TokenType::LPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected '(' after constructor name", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+
+                        auto ctor_pr = this->func_def_multi({}, std::nullopt);
+                        if (std::holds_alternative<std::unique_ptr<Error>>(ctor_pr))
+                            return ctor_pr;
+
+                        auto fn = std::get<std::shared_ptr<FuncDefNode>>(std::move(ctor_pr));
+
+                        ClassMethodInfo mi;
+                        mi.name_tok = ctor_name;
+                        mi.params.clear();
+                        mi.params.reserve(fn->params.size());
+                        for (auto it = fn->params.begin(); it != fn->params.end(); ++it) {
+                            mi.params.push_back(std::move(*it));
+                        }
+                        mi.return_types = {};
+                        mi.body = std::move(fn->body);
+                        mi.is_constructor = true;
+                        mi.access = access;
+
+                        info.classMethods.push_back(std::move(mi));
+                        continue;
+                    }
                 }
 
                 if (this->current_tok.type != TokenType::KEYWORD &&
@@ -2865,7 +2938,6 @@ namespace tkz {
                         "Expected type or constructor in class body", this->current_tok.pos));
                     return res.to_prs();
                 }
-
                 std::vector<Token> type_list;
                 type_list.push_back(this->current_tok);
                 this->advance();
@@ -2882,23 +2954,91 @@ namespace tkz {
                     type_list.push_back(this->current_tok);
                     this->advance();
                 }
+                Token name_tok;
+                if (this->current_tok.type == TokenType::IDENTIFIER &&
+                    this->current_tok.value != "operator") {
+                    name_tok = this->current_tok;
+                    this->advance();
+                }
+                else if (this->current_tok.type == TokenType::KEYWORD &&
+                        this->current_tok.value == "operator") {
+                    this->advance();
+                    Token op_tok = this->current_tok;
 
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    switch (op_tok.type) {
+                        case TokenType::PLUS:
+                        case TokenType::MINUS:
+                        case TokenType::MUL:
+                        case TokenType::DIV:
+                        case TokenType::EQ_TO:
+                        case TokenType::NOT_EQ:
+                        case TokenType::EQ:
+                        case TokenType::AND:
+                        case TokenType::OR:
+                        case TokenType::NOT:
+                        case TokenType::MORE:
+                        case TokenType::LESS:
+                        case TokenType::MORE_EQ:
+                        case TokenType::LESS_EQ:
+                            break;
+                        default:
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Unsupported operator in operator method", op_tok.pos));
+                            return res.to_prs();
+                    }
+
+                    std::string op_name;
+                    switch (op_tok.type) {
+                        case TokenType::PLUS:     op_name = "operator+";  break;
+                        case TokenType::MINUS:    op_name = "operator-";  break;
+                        case TokenType::MUL:      op_name = "operator*";  break;
+                        case TokenType::DIV:      op_name = "operator/";  break;
+                        case TokenType::EQ_TO:    op_name = "operator=="; break;
+                        case TokenType::NOT_EQ:   op_name = "operator!="; break;
+                        case TokenType::EQ:       op_name = "operator=";  break;
+                        case TokenType::NOT:      op_name = "operator!";  break;
+                        case TokenType::AND:      op_name = "operator&&"; break;
+                        case TokenType::OR:       op_name = "operator||"; break;
+                        case TokenType::MORE:     op_name = "operator>";  break;
+                        case TokenType::LESS:     op_name = "operator<";  break;
+                        case TokenType::MORE_EQ:  op_name = "operator>="; break;
+                        case TokenType::LESS_EQ:  op_name = "operator<="; break;
+                    }
+
+                    name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                    this->advance();
+                }
+                else {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected method or field name after type(s)", this->current_tok.pos));
                     return res.to_prs();
                 }
-                Token name_tok = this->current_tok;
-                this->advance();
-
                 if (this->current_tok.type == TokenType::LPAREN) {
-                    auto m_pr = this->func_def_multi(type_list, std::nullopt);
+                    ClassMethodInfo mi;
+                    mi.name_tok = name_tok;
+                    if (!info.baseClassName.empty()) {
+                        auto base_it = user_types.find(info.baseClassName);
+                        if (base_it != user_types.end() &&
+                            base_it->second.kind == UserTypeKind::Class) {
+
+                            auto& baseInfo = base_it->second;
+                            for (auto& bm : baseInfo.classMethods) {
+                                if (bm.name_tok.value == mi.name_tok.value && bm.is_final) {
+                                    res.failure(std::make_unique<InvalidSyntaxError>(
+                                        "Cannot override final method '" + mi.name_tok.value +
+                                        "' from base class '" + info.baseClassName + "'",
+                                        mi.name_tok.pos));
+                                    return res.to_prs();
+                                }
+                            }
+                        }
+                    }
+                    auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok));
                     if (std::holds_alternative<std::unique_ptr<Error>>(m_pr))
                         return m_pr;
 
                     auto fn = std::get<std::shared_ptr<FuncDefNode>>(std::move(m_pr));
 
-                    ClassMethodInfo mi;
                     mi.name_tok = name_tok;
                     mi.params.clear();
                     mi.params.reserve(fn->params.size());
@@ -2908,12 +3048,12 @@ namespace tkz {
                     mi.return_types = fn->return_types;
                     mi.body = std::move(fn->body);
                     mi.is_constructor = false;
+                    mi.is_final = is_final_method;
                     mi.access = access;
 
                     info.classMethods.push_back(std::move(mi));
                     continue;
                 }
-
                 if (type_list.size() != 1) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Class fields cannot have multiple types", name_tok.pos));
@@ -2940,13 +3080,6 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-            if (user_types.contains(class_name.value)) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Redefinition of type '" + class_name.value + "'",
-                    class_name.pos));
-                return res.to_prs();
-            }
-            info.namespace_path = currentNamespace;
             user_types[class_name.value] = std::move(info);
             return res.success(std::monostate{});
         }
@@ -3800,22 +3933,23 @@ namespace tkz {
             }
         }
         if (tok.type == TokenType::IDENTIFIER) {
+
             auto maybe_qualified = this->try_parse_qualified_name();
             if (maybe_qualified.has_value()) {
                 std::string qualified_name = *maybe_qualified;
                 std::string ns_part = "";
                 std::string type_name = qualified_name;
-                
+
                 size_t last_colon = qualified_name.rfind("::");
                 if (last_colon != std::string::npos) {
                     ns_part = qualified_name.substr(0, last_colon);
                     type_name = qualified_name.substr(last_colon + 2);
                 }
-                
+
                 bool is_type = false;
                 if (user_types.count(type_name) > 0) {
                     auto& info = user_types[type_name];
-                    
+
                     if (ns_part.empty()) {
                         is_type = (info.namespace_path == currentNamespace);
                     }
@@ -3824,6 +3958,23 @@ namespace tkz {
                     }
                 }
                 if (is_type) {
+                    Token next_tok;
+                    if (this->index + 1 < tokens.size()) {
+                        next_tok = tokens[this->index + 1];
+                    } else {
+                        next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
+                    }
+                    if (next_tok.type == TokenType::LPAREN) {
+                        AnyNode expr = res.reg(this->qout_expr());
+                        if (res.error) return res.to_prs();
+
+                        if (this->current_tok.type != TokenType::SEMICOLON) {
+                            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        return res.success(std::move(expr));
+                    }
                     Token first_type = this->consume_qualified_name();
                     
                     std::vector<Token> return_types;
@@ -4011,8 +4162,33 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////
 // INTERPRETER //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
-    bool is_truthy(const NumberVariant& val) {
-        return std::visit([](auto&& v) -> bool {
+    ClassMethodInfo* Interpreter::find_method_on_class(
+        const std::string& className,
+        const std::string& mname
+    ) {
+        auto it = context->user_types.find(className);
+        if (it == context->user_types.end()) return nullptr;
+
+        UserTypeInfo* cur = &it->second;
+        while (cur) {
+            for (auto& m : cur->classMethods) {
+                if (!m.is_constructor && m.name_tok.value == mname) {
+                    return &m;
+                }
+            }
+
+            if (cur->baseClassName.empty()) break;
+            auto bit = context->user_types.find(cur->baseClassName);
+            if (bit == context->user_types.end() ||
+                bit->second.kind != UserTypeKind::Class) {
+                break;
+            }
+            cur = &bit->second;
+        }
+        return nullptr;
+    }
+    bool Interpreter::is_truthy(const NumberVariant& val) {
+        return std::visit([this](auto&& v) -> bool {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, BoolValue>) {
                 return v.value;
@@ -4026,6 +4202,33 @@ namespace tkz {
                 return !v.value.empty();
             } else if constexpr (std::is_same_v<T, MultiValue>) { 
                 return true; 
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) { 
+                auto inst = v;
+                const std::string& className = inst->class_name;
+
+                ClassMethodInfo* method = find_method_on_class(className, "eval");
+                if (!method) {
+                    this->errors.push_back({RTError(
+                        "Instance of '" + className +
+                        "' used as condition but is missing eval(): defaulting true", Position()),
+                        "Warning"});
+                    return true;
+                }
+                NumberVariant result = call_instance_method(
+                    inst,
+                    method,
+                    std::vector<NumberVariant>{},
+                    Position()
+                );
+                if (auto b = std::get_if<BoolValue>(&result)) {
+                    return b->value;
+                }
+
+                this->errors.push_back({RTError(
+                    "eval() on class '" + className + "' must return bool",
+                    Position()),
+                    "Error"});
+                return false;
             }
             return false;
         }, val);
@@ -4275,6 +4478,56 @@ namespace tkz {
         if (type_name == "long int")     return Number<long long>(0);
         if (type_name == "long double")  return Number<long double>(0.0L);
         else return VoidValue();
+    }
+    std::string Interpreter::value_to_string(const NumberVariant& val) {
+        return std::visit([this](auto const& v) -> std::string {
+            using T = std::decay_t<decltype(v)>;
+
+            if constexpr (std::is_same_v<T, std::monostate>) {
+                return "";
+            } 
+            else if constexpr (std::is_same_v<T, QBoolValue>) {
+                return v.print();
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
+                            std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
+                            std::is_same_v<T, std::shared_ptr<ListValue>> ||
+                            std::is_same_v<T, std::shared_ptr<MapValue>> ||
+                            std::is_same_v<T, std::shared_ptr<StructValue>>) {
+                return v->print();
+            } 
+            else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
+                auto inst = v;
+                const std::string& className = inst->class_name;
+
+                ClassMethodInfo* method = find_method_on_class(className, "repr");
+                if (!method) {
+                    this->errors.push_back({RTError(
+                        "Instance of '" + className +
+                        "' printed, but missing repr function: calling base print.", Position()),
+                        "Warning"});
+                    return v->print();
+                }
+                NumberVariant result = call_instance_method(
+                    inst,
+                    method,
+                    std::vector<NumberVariant>{},
+                    Position()
+                );
+                if (auto s = std::get_if<StringValue>(&result)) {
+                    return s->value;
+                }
+
+                this->errors.push_back({RTError(
+                    "repr() on class '" + className + "' must return string",
+                    Position()),
+                    "Error"});
+                return v->print();
+            }
+            else {
+                return v.print();
+            }
+        }, val);
     }
     std::string value_to_string(const NumberVariant& val) {
         return std::visit([](auto const& v) -> std::string {
@@ -4801,7 +5054,7 @@ namespace tkz {
             NumberVariant val = this->process(val_node);
             
             // Convert key to string
-            std::string key_str = value_to_string(key);
+            std::string key_str = this->value_to_string(key);
             
             map_val->set(key_str, std::move(val));
         }
@@ -5082,7 +5335,7 @@ namespace tkz {
 
         for (auto& val : node->values) {
             NumberVariant result = this->process(val);
-            std::cout << value_to_string(result);
+            std::cout << this->value_to_string(result);
         }
 
         return Number<int>(0);
@@ -5241,10 +5494,7 @@ namespace tkz {
             }
             if (func_name == "print" || func_name == "println") {
                 for (auto& arg : node->arg_nodes)
-                    std::cout << std::visit([](auto&& v) -> std::string { 
-                        if constexpr (requires { v->print(); }) return v->print();
-                        else return v.print(); 
-                    }, this->process(arg));
+                    std::cout << this->value_to_string(this->process(arg));
                 if (func_name == "println") std::cout << std::endl;
                 return Number<int>(0);
             }
@@ -5319,7 +5569,89 @@ namespace tkz {
                 ut_it->second.kind == UserTypeKind::Class) {
 
                 UserTypeInfo& info = ut_it->second;
+                bool inside_constructor = false;
+                std::shared_ptr<InstanceValue> existing_inst = nullptr;
+                if (info.is_abstract_class) {
+                    errors.push_back({RTError("Cannot construct abstract class", Position()), "Error"});
+                    return VoidValue();
+                }
+                try {
+                    NumberVariant this_val = context->get("this", Position());
+                    if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&this_val)) {
+                        inside_constructor = true;
+                        existing_inst = *inst_ptr;
+                    }
+                } catch (...) {
+                }
+                if (inside_constructor && existing_inst) {
+                    std::string child_class = existing_inst->class_name;
+                    auto child_ut = context->user_types.find(child_class);
+                    
+                    if (child_ut != context->user_types.end() && 
+                        child_ut->second.baseClassName == func_name) {
+                        ClassMethodInfo* ctor = nullptr;
+                        for (auto& m : info.classMethods) {
+                            if (m.is_constructor) {
+                                ctor = &m;
+                                break;
+                            }
+                        }
 
+                        if (!ctor) {
+                            return VoidValue();
+                        }
+                        std::vector<NumberVariant> final_args;
+                        for (auto& arg : node->arg_nodes) {
+                            if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
+                                NumberVariant sv = this->process((*spread)->expr);
+                                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
+                                    for (auto& e : (*arr)->elements) final_args.push_back(e);
+                                } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
+                                    for (auto& e : (*lst)->elements) final_args.push_back(e);
+                                } else {
+                                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                                }
+                            } else {
+                                final_args.push_back(this->process(arg));
+                            }
+                        }
+                        context->push_scope();
+
+                        if (final_args.size() > ctor->params.size()) {
+                            context->pop_scope();
+                            this->errors.push_back({RTError("Too many arguments to parent constructor '" + func_name + "'", Position()), "Error"});
+                            return VoidValue();
+                        }
+
+                        for (size_t i = 0; i < ctor->params.size(); ++i) {
+                            auto it_param = ctor->params.begin();
+                            std::advance(it_param, i);
+
+                            NumberVariant value;
+                            if (i < final_args.size()) {
+                                value = final_args[i];
+                            } else if (it_param->default_value.has_value()) {
+                                value = this->process(it_param->default_value.value());
+                            } else {
+                                context->pop_scope();
+                                this->errors.push_back({RTError("Missing argument to parent constructor '" + func_name + "'", Position()), "Error"});
+                                return VoidValue();
+                            }
+                            context->define(it_param->name.value, it_param->type.value, value);
+                        }
+
+                        try {
+                            for (auto& stmt : ctor->body->statements) {
+                                this->process(stmt);
+                            }
+                        } catch (ReturnException&) {
+                            
+                        }
+                        context->pop_scope();
+
+                        return VoidValue();
+                    }
+                }
                 auto fields = make_instance_fields(func_name);
                 auto inst = std::make_shared<InstanceValue>(func_name, std::move(fields));
 
@@ -5654,31 +5986,6 @@ namespace tkz {
         }
         return VoidValue();
     }
-    ClassMethodInfo* Interpreter::find_method_on_class(
-        const std::string& className,
-        const std::string& mname
-    ) {
-        auto it = context->user_types.find(className);
-        if (it == context->user_types.end()) return nullptr;
-
-        UserTypeInfo* cur = &it->second;
-        while (cur) {
-            for (auto& m : cur->classMethods) {
-                if (!m.is_constructor && m.name_tok.value == mname) {
-                    return &m;
-                }
-            }
-
-            if (cur->baseClassName.empty()) break;
-            auto bit = context->user_types.find(cur->baseClassName);
-            if (bit == context->user_types.end() ||
-                bit->second.kind != UserTypeKind::Class) {
-                break;
-            }
-            cur = &bit->second;
-        }
-        return nullptr;
-    }
     NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
         NumberVariant last_result = Number<int>(0);
         
@@ -5756,7 +6063,7 @@ namespace tkz {
             ExecResult r = exec_stmt_in_loop_or_switch(stmt);
             auto result = std::move(r.value);
 
-            output += value_to_string(result) + "\n";
+            output += this->value_to_string(result) + "\n";
         }
         
         return output;
@@ -5786,6 +6093,97 @@ namespace tkz {
             if (i < elements.size() - 1) result += ", ";
         }
         return result + "]";
+    }
+    NumberVariant Interpreter::call_instance_method(
+        const std::shared_ptr<InstanceValue>& inst,
+        ClassMethodInfo* method,
+        std::vector<NumberVariant> args,
+        const Position& pos
+    ) {
+        const std::string& className = inst->class_name;
+        const std::string& mname = method->name_tok.value;
+        if (method->access == "private" && !in_class_context(className)) {
+            this->errors.push_back({RTError(
+                "Method '" + mname + "' of class '" + className +
+                "' is private and cannot be called here",
+                pos),
+                "Error"});
+            return VoidValue{};
+        }
+        if (method->access == "protected" && !in_class_or_derived_context(className)) {
+            this->errors.push_back({RTError(
+                "Method '" + mname + "' of class '" + className +
+                "' is protected and cannot be called here",
+                pos),
+                "Error"});
+            return VoidValue{};
+        }
+
+        context->push_scope();
+        context->define("this", className, inst, true);
+
+        if (args.size() > method->params.size()) {
+            context->pop_scope();
+            this->errors.push_back({RTError(
+                "Too many arguments to method '" + mname + "'",
+                pos),
+                "Error"});
+            return VoidValue{};
+        }
+
+        for (size_t i = 0; i < method->params.size(); ++i) {
+            auto it_param = method->params.begin();
+            std::advance(it_param, i);
+
+            NumberVariant value;
+            if (i < args.size()) {
+                value = args[i];
+            } else if (it_param->default_value.has_value()) {
+                value = this->process(it_param->default_value.value());
+            } else {
+                context->pop_scope();
+                this->errors.push_back({RTError(
+                    "Missing argument " + it_param->name.value +
+                    " for method '" + mname + "'",
+                    pos),
+                    "Error"});
+                return VoidValue{};
+            }
+
+            context->define(it_param->name.value, it_param->type.value, value);
+        }
+
+        try {
+            NumberVariant last = Number<int>(0);
+            for (auto& stmt : method->body->statements) {
+                last = this->process(stmt);
+            }
+
+            if (!method->return_types.empty()) {
+                if (method->return_types.size() == 1) {
+                    context->pop_scope();
+                    return def_value_for_type(method->return_types[0].value);
+                } else {
+                    std::vector<NumberVariant> defaults;
+                    for (auto& rt : method->return_types)
+                        defaults.push_back(def_value_for_type(rt.value));
+                    context->pop_scope();
+                    return std::make_shared<MultiValue>(std::move(defaults));
+                }
+            }
+
+            context->pop_scope();
+            return last;
+        } catch (ReturnException& re) {
+            context->pop_scope();
+            return std::move(re.value);
+        } catch (MultiReturnException& mre) {
+            context->pop_scope();
+            return std::make_shared<MultiValue>(std::move(mre.values));
+        } catch (...) {
+            context->pop_scope();
+            throw;
+        }
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
         if (!node) return std::move(Number<int>(0));
@@ -6001,7 +6399,21 @@ namespace tkz {
         }
         NumberVariant left  = std::move(this->process(node->left_node));
         NumberVariant right = std::move(this->process(node->right_node));
-
+        if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+            std::string mname = op_method_name(node->op_tok.type);
+            if (!mname.empty()) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                if (method) {
+                    NumberVariant result = call_instance_method(
+                        *inst_ptr,
+                        method,
+                        std::vector<NumberVariant>{ right },
+                        node->op_tok.pos
+                    );
+                    return result;
+                }
+            }
+        }
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
@@ -6387,7 +6799,7 @@ namespace tkz {
         std::string valType = context->get_type_name(firstVal);
 
         auto map_val = std::make_shared<MapValue>(keyType, valType);
-        map_val->set(value_to_string(firstKey), std::move(firstVal));
+        map_val->set(this->value_to_string(firstKey), std::move(firstVal));
 
         for (size_t i = 1; i < node->pairs.size(); ++i) {
             NumberVariant key = this->process(node->pairs[i].first);
@@ -6400,7 +6812,7 @@ namespace tkz {
                 this->errors.push_back({RTError("Inconsistent value type in map literal", node->pos), "Error"});
             }
 
-            map_val->set(value_to_string(key), std::move(val));
+            map_val->set(this->value_to_string(key), std::move(val));
         }
 
         return map_val;
@@ -6631,7 +7043,7 @@ namespace tkz {
             }
             
             NumberVariant key = this->process(node->indices[0]);
-            std::string key_str = value_to_string(key);
+            std::string key_str = this->value_to_string(key);
             
             return map->get(key_str);
         }
@@ -6814,91 +7226,7 @@ namespace tkz {
                     "Error"});
                 return VoidValue{};
             }
-            if (method->access == "private") {
-                if (!in_class_context(className)) {
-                    this->errors.push_back({RTError(
-                        "Method '" + mname + "' of class '" + className +
-                        "' is " + method->access + " and cannot be called here",
-                        node->method_name.pos),
-                        "Error"});
-                    return VoidValue();
-                }
-            }
-            if (method->access == "protected") {
-                if (!in_class_or_derived_context(className)) {
-                    this->errors.push_back({RTError(
-                        "Method '" + mname + "' of class '" + className +
-                        "' is " + method->access + " and cannot be called here",
-                        node->method_name.pos),
-                        "Error"});
-                    return VoidValue();
-                }
-            }
-            context->push_scope();
-            context->define("this", className, inst, true);
-
-            if (final_args.size() > method->params.size()) {
-                context->pop_scope();
-                this->errors.push_back({RTError(
-                    "Too many arguments to method '" + mname + "'",
-                    node->method_name.pos),
-                    "Error"});
-                return VoidValue{};
-            }
-
-            for (size_t i = 0; i < method->params.size(); ++i) {
-                auto it_param = method->params.begin();
-                std::advance(it_param, i);
-
-                NumberVariant value;
-                if (i < final_args.size()) {
-                    value = final_args[i];
-                } else if (it_param->default_value.has_value()) {
-                    value = this->process(it_param->default_value.value());
-                } else {
-                    context->pop_scope();
-                    this->errors.push_back({RTError(
-                        "Missing argument " + it_param->name.value +
-                        " for method '" + mname + "'",
-                        node->method_name.pos),
-                        "Error"});
-                    return VoidValue{};
-                }
-
-                context->define(it_param->name.value, it_param->type.value, value);
-            }
-
-            try {
-                NumberVariant last = Number<int>(0);
-                for (auto& stmt : method->body->statements) {
-                    last = this->process(stmt);
-                }
-
-                if (!method->return_types.empty()) {
-                    if (method->return_types.size() == 1) {
-                        context->pop_scope();
-                        return def_value_for_type(method->return_types[0].value);
-                    } else {
-                        std::vector<NumberVariant> defaults;
-                        for (auto& rt : method->return_types)
-                            defaults.push_back(def_value_for_type(rt.value));
-                        context->pop_scope();
-                        return std::make_shared<MultiValue>(std::move(defaults));
-                    }
-                }
-
-                context->pop_scope();
-                return last;
-            } catch (ReturnException& re) {
-                context->pop_scope();
-                return std::move(re.value);
-            } catch (MultiReturnException& mre) {
-                context->pop_scope();
-                return std::make_shared<MultiValue>(std::move(mre.values));
-            } catch (...) {
-                context->pop_scope();
-                throw;
-            }
+            return call_instance_method(inst, method, std::move(final_args), node->method_name.pos);
         }
         if (auto sv = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
             if (node->method_name.value == "has") {
@@ -6959,7 +7287,7 @@ namespace tkz {
                 NumberVariant key = this->process(node->args[0]);
                 NumberVariant val = this->process(node->args[1]);
                 
-                std::string key_str = value_to_string(key);
+                std::string key_str = this->value_to_string(key);
                 map->set(key_str, std::move(val));
                 return VoidValue();
             }
@@ -6969,7 +7297,7 @@ namespace tkz {
                     this->errors.push_back({RTError("remove() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
-                std::string key_str = value_to_string(key);
+                std::string key_str = this->value_to_string(key);
                 
                 map->remove(key_str);
                 return VoidValue();
@@ -6980,7 +7308,7 @@ namespace tkz {
                     this->errors.push_back({RTError("has() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
-                std::string key_str = value_to_string(key);
+                std::string key_str = this->value_to_string(key);
                 
                 return BoolValue(map->has(key_str) ? "true" : "false");
             }
@@ -7250,7 +7578,7 @@ namespace tkz {
             }
             
             NumberVariant key = this->process(arr_access->indices[0]);
-            std::string key_str = value_to_string(key);
+            std::string key_str = this->value_to_string(key);
             map->set(key_str, std::move(val));
             return val;
         }
@@ -7911,7 +8239,8 @@ namespace tkz {
             id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || 
             id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
             id == "map" || id == "type" || id == "public" || id == "protected" || id == "private" ||
-            id == "namespace") {
+            id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" ||
+            id == "final") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {

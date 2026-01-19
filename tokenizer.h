@@ -16,6 +16,11 @@
 #include <unordered_set>
 #include <format>
 #include <ranges>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+#include <set>
+#include <algorithm>
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
@@ -229,7 +234,7 @@ namespace tkz {
         std::unique_ptr<StatementsNode> body;
         bool is_constructor = false;
         std::string access;
-
+        bool is_final = false;
         ClassMethodInfo() = default;
 
         ClassMethodInfo(ClassMethodInfo&&) = default;
@@ -256,6 +261,8 @@ namespace tkz {
         std::vector<ClassMethodInfo> classMethods;
         std::string baseClassName = "";
         std::string namespace_path;
+        bool is_abstract_class = false;
+        bool is_final_class = false;
         UserTypeInfo() = default;
 
         UserTypeInfo(UserTypeInfo&&) = default;
@@ -1654,12 +1661,32 @@ namespace tkz {
     class Interpreter {
         Context* context;
     public:
+        static std::string op_method_name(TokenType t) {
+            switch (t) {
+                case TokenType::PLUS:   return "operator+";
+                case TokenType::MINUS:  return "operator-";
+                case TokenType::MUL:    return "operator*";
+                case TokenType::DIV:    return "operator/";
+                case TokenType::EQ_TO:  return "operator==";
+                case TokenType::NOT_EQ: return "operator!=";
+                case TokenType::OR:  return "operator||";
+                case TokenType::AND: return "operator&&";
+                case TokenType::NOT:  return "operator!";
+                case TokenType::EQ: return "operator=";
+                case TokenType::MORE:  return "operator>=";
+                case TokenType::LESS: return "operator<=";
+                case TokenType::MORE_EQ:  return "operator>=";
+                case TokenType::LESS_EQ: return "operator<=";
+                default:                return "";
+            }
+        }
+        std::string value_to_string(const NumberVariant& val);
         Interpreter(Context* ctx = nullptr) : context(ctx) {}
         InterpEer error = InterpEer();
         std::vector<Diagnostic> errors;
         NumberVariant process(AnyNode& node);
         NumberVariant operator()(NumberNode& node);
-        
+        NumberVariant call_instance_method(const std::shared_ptr<InstanceValue>& inst, ClassMethodInfo* method, std::vector<NumberVariant> args, const Position& pos);
         NumberVariant operator()(std::unique_ptr<BinOpNode>& node);
         NumberVariant operator()(std::unique_ptr<UnaryOpNode>& node);
         NumberVariant operator()(std::monostate);
@@ -1680,6 +1707,7 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
         NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
+        bool is_truthy(const NumberVariant& val);
         std::unordered_map<std::string, NumberVariant> make_instance_fields(const std::string& className);
         ClassMethodInfo* find_method_on_class(const std::string& className, const std::string& mname);
         bool field_exists_on_class(const std::string& className, const std::string& fieldName);

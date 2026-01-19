@@ -1,55 +1,53 @@
-class Person {
-    string name;
-    int age;
-    
-    Person(string n, int a) {
-        this.name = n;
-        this.age = a;
+abstract class Base {
+  int x;
+  int y;
+}
+class Vec2 : Base {
+    Vec2(int x, int y) {
+        this.x = x;
+        this.y = y;
     }
-    
-    string getName() {
-        return this.name;
+
+    Vec2 operator+(Vec2 other) {
+        Vec2 r = Vec2(0, 0);
+        r.x = this.x + other.x;
+        r.y = this.y + other.y;
+        return r;
     }
-    
-    int getAge() {
-        return this.age;
+
+    bool operator==(Vec2 other) {
+        return this.x == other.x && this.y == other.y;
+    }
+    bool eval() {
+      return true;
+    }
+    string repr() {
+      return f"Dimentions: {this.x} x {this.y}";
     }
 }
 
 int main() {
-    Person p = Person("Alice", 30);
-    
-    // Test .has() for fields
-    if (p.has("name")) {
-        std::qout << "Person has 'name' field\n";
+    Vec2 a = Vec2(1, 2);
+    Vec2 b = Vec2(3, 4);
+    Vec2 c = a + b;
+
+    Vec2 d = Vec2(4, 6);
+    bool eq1 = (c == d);
+    bool eq2 = (a == b);
+
+    int result = 0;
+    if (eq1) {
+        result += 10;
     }
-    
-    if (p.has("age")) {
-        std::qout << "Person has 'age' field\n";
+    if (eq2) {
+        result += 1;
     }
-    
-    if (!p.has("email")) {
-        std::qout << "Person does NOT have 'email' field\n";
+    if (a) {
+      std::qout << "Eval works" << '\n';
     }
-    
-    // Test .has_method() for methods
-    if (p.has_method("getName")) {
-        std::qout << "Person has 'getName' method\n";
-    }
-    
-    if (p.has_method("getAge")) {
-        std::qout << "Person has 'getAge' method\n";
-    }
-    
-    if (!p.has_method("setEmail")) {
-        std::qout << "Person does NOT have 'setEmail' method\n";
-    }
-    
-    // Dynamic field access based on .has()
-    if (p.has("name")) {
-        string n = p.getName();
-        std::qout << "Name: " << n << "\n";
-    }
-    
-    return 0;
+    std::qout << a << '\n';
+    std::qout << "c.x=" << c.x << " c.y=" << c.y << "\n";
+    std::qout << "eq1=" << eq1 << " eq2=" << eq2 << "\n";
+
+    return result;
 }
