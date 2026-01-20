@@ -34,6 +34,7 @@ int main() {
 [Changelog/Features-checklist](./change.md)
 [Basics](./BasicSyntax.md)
 [Collection types](./CollectionTypes.md)
+[Control flow](./ControlFlow.md)
 
 
 ## 'Philosophy'

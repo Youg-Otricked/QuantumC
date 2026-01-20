@@ -19,7 +19,6 @@ NAMESPCACES!!!!!!!!!!
     - [x] Typedef
     - [x] Namespace
     - [x] Better scope(\:\:)
-    - [ ] Aliasing file paths with using "file-path" as aliasname
 )
 - [ ] Manual Memory Managment (
     - [ ] Pointers (\*)
@@ -28,11 +27,14 @@ NAMESPCACES!!!!!!!!!!
     - [ ] Delete
     - [ ] Malloc
     - [ ] Free
+    - [ ] Realloc
+    - [ ] Calloc
+    - [ ] ->
 )
-- [ ] Including other files (
-    - [ ] Include via namespace with syntax #include \<namespacename, path-to-file>
-    - [ ] Standard library (
-        - [ ] Advanced random quantum booleans
-        - [ ] Other stuff idk
-    )
+- [x] Including other files (
+    - [x] Include via namespace with syntax #include \<namespacename, path-to-file>
+)
+- [ ] Standard library (
+    - [x] Advanced random quantum booleans
+    - [ ] Other stuff idk
 )

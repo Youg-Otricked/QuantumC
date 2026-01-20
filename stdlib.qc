@@ -62,3 +62,22 @@ namespace AdvQBool {
         }
     }
 }
+namespace Utils {
+    int[] range(int start, int stop, int step = 1) {
+        int[] fin = [];
+        if (step > 0 && start <= stop) {
+            for (; start < stop; start += step) {
+                fin.push(start);
+            }
+        }
+        else if (step < 0 && start >= stop) {
+            for (; start > stop; start += step) {
+                fin.push(start);
+            }
+        }
+        else {
+            return [];
+        }
+        return [@fin];
+    }
+}

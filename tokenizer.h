@@ -1175,7 +1175,6 @@ namespace tkz {
     };  
     class QBoolValue {
         public:
-        std::string value;
         bool tval;
         bool fval;
         std::string valname;

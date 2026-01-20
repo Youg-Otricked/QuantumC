@@ -1,5 +1,6 @@
 namespace Exported {
     #include <AdvQBool, std>
+    #include <Utils, std>
 }
 int main() {
     AdvQBool::AQB test = AdvQBool::AQB(70);
@@ -27,6 +28,9 @@ int main() {
     }
     if (test) {
         println(test);
+    }
+    foreach (int i in Utils::range(1, 10, 1)) {
+        std::qout << i << '\n';
     }
     return 0;
 }

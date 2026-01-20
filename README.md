@@ -1,6 +1,7 @@
 # Quantum C (C⁴)
 ### The 4th Evolution of C
 Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
+Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
 
 **More Powerful Than Explosives™**
@@ -27,51 +28,19 @@ Go to the [docs](https://youg-otricked.github.io/QuantumC/)
 ##  Quick Start
 Just install the binaries from the github OR
 ### Installation
-
-**macOS:**
+After installing, or clone the repo directly then do
 ```bash
-# Clone the repo
-git clone https://github.com/Youg-Otricked/QuantumC
 cd QuantumC
-
-# Compile (one time)
-clang++ *.cpp -o qc -std=c++20
-
-# Run the demo
-./qc -d
+chmod +x install.sh
+./install.sh
+# type_your_sudo_password
+# Now, you can type 
+qc [flags] (filepath)
+# to run a file
+# or
+qc [flags]
+# to enter the REPL
 ```
-**Linux (ubuntu):**
-```bash
-# Clone the repo
-git clone https://github.com/Youg-Otricked/QuantumC
-# Move into it
-cd QuantumC
-# Check version
-./qc -v
-# If version is < current version (see development status):
-# Compile
-    g++ *.cpp -o qc -std=c++23 -fconstexpr-ops-limit=100000000
-# Else
-# Read while running the syntax guide
-    ./qc -d
-# Or enter the REPL
-    ./qc
-```
-**Windows:**
-
-```bash
-# Clone the repo
-git clone https://github.com/Youg-Otricked/QuantumC
-# Move into it
-cd QuantumC
-
-# Compile
-g++ *.cpp -o qc.exe -std=c++23 -lstdc++exp -fconstexpr-ops-limit=100000000 -Wa,-mbig-obj
-# Run the syntax guide
-# Note i have only tested on CMD. It might not work on pwrshell
-qc.exe -d
-```
-
 ---
 
 # Language Guide

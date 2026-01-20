@@ -5599,6 +5599,212 @@ namespace tkz {
                 
                 return StringValue(this->context->get_type_name(value));
             }
+            if (func_name == "to_qbool") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_qbool() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto bv = std::get_if<BoolValue>(&cur_val)) {
+                    return QBoolValue("q" + value_to_string(*bv)).set_pos(bv->pos);
+                } else if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
+                    return *qbv;
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    if (sv->value == "qtrue" || sv->value == "qfalse" ||
+                        sv->value == "none"  || sv->value == "both") {
+                        return QBoolValue(sv->value).set_pos(sv->pos);
+                    }
+                    this->errors.push_back({RTError(
+                        "to_qbool() requires string argument to be qtrue qfalse both or none.",
+                        sv->pos),
+                        "Error"});
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_qbool() requires string or boolean argument",
+                        Position()),
+                        "Error"});
+                }
+            }
+
+            if (func_name == "to_bool") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_bool() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
+                    return BoolValue(qbv->tval ? "true" : "false").set_pos(qbv->pos);
+                } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
+                    return *bv;
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    if (sv->value == "true" || sv->value == "false") {
+                        return BoolValue(sv->value).set_pos(sv->pos);
+                    }
+                    this->errors.push_back({RTError(
+                        "to_bool() requires string argument to be true or false.",
+                        sv->pos),
+                        "Error"});
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_bool() requires string or quantum boolean argument",
+                        Position()),
+                        "Error"});
+                }
+            }
+
+            if (func_name == "to_int") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_int() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto fv = std::get_if<Number<float>>(&cur_val)) {
+                    return Number<int>(static_cast<int>(fv->value)).set_pos(fv->pos);
+                } else if (auto dv = std::get_if<Number<double>>(&cur_val)) {
+                    return Number<int>(static_cast<int>(dv->value)).set_pos(dv->pos);
+                } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
+                    return *iv;
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    try {
+                        return Number<int>(std::stoi(sv->value)).set_pos(sv->pos);
+                    } catch (...) {
+                        this->errors.push_back({RTError(
+                            "could not convert value to int.",
+                            sv->pos),
+                            "Error"});
+                    }
+                } else if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
+                    int val = 0;
+                    if      (qbv->valname == "none")   val = 0;
+                    else if (qbv->valname == "qfalse") val = 1;
+                    else if (qbv->valname == "qtrue")  val = 2;
+                    else if (qbv->valname == "both")   val = 3;
+                    else throw RTError("What the heck is that", qbv->pos);
+
+                    return Number<int>(val).set_pos(qbv->pos);
+                } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
+                    return Number<int>(bv->value ? 1 : 0).set_pos(bv->pos);
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_int() cannot take that argument type.",
+                        Position()),
+                        "Error"});
+                }
+            }
+
+            if (func_name == "to_float") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_float() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto fv = std::get_if<Number<float>>(&cur_val)) {
+                    return *fv;
+                } else if (auto dv = std::get_if<Number<double>>(&cur_val)) {
+                    return Number<float>(static_cast<float>(dv->value)).set_pos(dv->pos);
+                } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
+                    return Number<float>(static_cast<float>(iv->value)).set_pos(iv->pos);
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    try {
+                        return Number<float>(std::stof(sv->value)).set_pos(sv->pos);
+                    } catch (...) {
+                        this->errors.push_back({RTError(
+                            "could not convert value to float.",
+                            sv->pos),
+                            "Error"});
+                    }
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_float() cannot take that argument type.",
+                        Position()),
+                        "Error"});
+                }
+            }
+
+            if (func_name == "to_double") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_double() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto fv = std::get_if<Number<float>>(&cur_val)) {
+                    return Number<double>(static_cast<double>(fv->value)).set_pos(fv->pos);
+                } else if (auto dv = std::get_if<Number<double>>(&cur_val)) {
+                    return *dv;
+                } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
+                    return Number<double>(static_cast<double>(iv->value)).set_pos(iv->pos);
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    try {
+                        return Number<double>(std::stod(sv->value)).set_pos(sv->pos);
+                    } catch (...) {
+                        this->errors.push_back({RTError(
+                            "could not convert value to double.",
+                            sv->pos),
+                            "Error"});
+                    }
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_double() cannot take that argument type.",
+                        Position()),
+                        "Error"});
+                }
+            }
+
+            if (func_name == "to_char") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_char() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    if (!sv->value.empty()) {
+                        return CharValue(std::string(1, sv->value[0])).set_pos(sv->pos);
+                    }
+                    this->errors.push_back({RTError(
+                        "to_char() cannot take empty string.",
+                        sv->pos),
+                        "Error"});
+                } else if (auto cv = std::get_if<CharValue>(&cur_val)) {
+                    return *cv;
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_char() cannot take that argument type.",
+                        Position()),
+                        "Error"});
+                }
+            }
+            if (func_name == "to_string") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("to_string() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                NumberVariant cur_val = this->process(node->arg_nodes.front());
+
+                if (auto fv = std::get_if<Number<float>>(&cur_val)) {
+                    return StringValue(std::to_string(fv->value)).set_pos(fv->pos);
+                } else if (auto dv = std::get_if<Number<double>>(&cur_val)) {
+                    return StringValue(std::to_string(dv->value)).set_pos(dv->pos);
+                } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
+                    return StringValue(std::to_string(iv->value)).set_pos(iv->pos);
+                } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
+                    return *sv;
+                } else if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
+                    return StringValue(qbv->valname).set_pos(qbv->pos);
+                } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
+                    return StringValue(bv->value ? "true" : "false").set_pos(bv->pos);
+                } else {
+                    this->errors.push_back({RTError(
+                        "to_string() cannot take that argument type.",
+                        Position()),
+                        "Error"});
+                }
+            }
             auto ut_it = context->user_types.find(func_name);
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
