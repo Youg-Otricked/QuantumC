@@ -2059,7 +2059,7 @@ namespace tkz {
         AnyNode left = res.reg(this->logical_and());
         if (res.error) return res.to_prs();
 
-        while (this->current_tok.type == TokenType::OR) {
+        while (this->current_tok.type == TokenType::OR || this->current_tok.type == TokenType::XOR) {
             Token op_tok = this->current_tok;
             this->advance();
             AnyNode right = res.reg(this->logical_and());
@@ -2873,6 +2873,11 @@ namespace tkz {
                 std::string access = "public";
                 bool is_final_method = false;
                 if (this->current_tok.type == TokenType::KEYWORD &&
+                    this->current_tok.value == "final") {
+                    is_final_method = true;
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::KEYWORD &&
                 (this->current_tok.value == "public" ||
                     this->current_tok.value == "private" ||
                     this->current_tok.value == "protected")) {
@@ -2973,13 +2978,22 @@ namespace tkz {
                         case TokenType::EQ_TO:
                         case TokenType::NOT_EQ:
                         case TokenType::EQ:
+                        case TokenType::NOT:
                         case TokenType::AND:
                         case TokenType::OR:
-                        case TokenType::NOT:
                         case TokenType::MORE:
                         case TokenType::LESS:
                         case TokenType::MORE_EQ:
                         case TokenType::LESS_EQ:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::XOR:
+                        case TokenType::QNOT:
+                        case TokenType::QAND:
+                        case TokenType::QOR:
+                        case TokenType::QXOR:
+                        case TokenType::COLLAPSE_OR:
+                        case TokenType::COLLAPSE_AND:
                             break;
                         default:
                             res.failure(std::make_unique<InvalidSyntaxError>(
@@ -3003,6 +3017,15 @@ namespace tkz {
                         case TokenType::LESS:     op_name = "operator<";  break;
                         case TokenType::MORE_EQ:  op_name = "operator>="; break;
                         case TokenType::LESS_EQ:  op_name = "operator<="; break;
+                        case TokenType::POWER:  op_name = "operator**"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::XOR: op_name = "operator^"; break;
+                        case TokenType::QNOT:  op_name = "operator!!"; break;
+                        case TokenType::QAND: op_name = "operator&&&"; break;
+                        case TokenType::QOR:  op_name = "operator|||"; break;
+                        case TokenType::QXOR: op_name = "operator^^"; break;
+                        case TokenType::COLLAPSE_OR:  op_name = "operator|&|"; break;
+                        case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
                     }
 
                     name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
@@ -3933,7 +3956,8 @@ namespace tkz {
             }
         }
         if (tok.type == TokenType::IDENTIFIER) {
-
+            size_t saved_index = this->index;
+            Token saved_tok = this->current_tok;
             auto maybe_qualified = this->try_parse_qualified_name();
             if (maybe_qualified.has_value()) {
                 std::string qualified_name = *maybe_qualified;
@@ -3975,6 +3999,7 @@ namespace tkz {
                         this->advance();
                         return res.success(std::move(expr));
                     }
+                    
                     Token first_type = this->consume_qualified_name();
                     
                     std::vector<Token> return_types;
@@ -4849,13 +4874,24 @@ namespace tkz {
                 const auto& fields = ut.fields;
 
                 if (auto svPtr = std::get_if<std::shared_ptr<StructValue>>(&value)) {
-                    if ((*svPtr)->type_name != declaredType) {
+                    std::string value_type = (*svPtr)->type_name;
+                    std::string declared_type = declaredType;
+                    
+                    std::string declared_simple = declared_type;
+                    size_t pos = declared_simple.rfind("::");
+                    if (pos != std::string::npos) {
+                        declared_simple = declared_simple.substr(pos + 2);
+                    }
+                    if (value_type == declared_simple) {
+                        actualType = declaredType;
+                    } else if ((*svPtr)->type_name != declaredType) {
                         this->errors.push_back({RTError(
                             "Cannot assign struct of type '" + (*svPtr)->type_name +
                             "' to variable of type '" + declaredType + "'",
                             node->var_name_tok.pos
                         ), "Error"});
                     }
+                    
                     auto newStruct = std::make_shared<StructValue>(**svPtr);
                     newStruct->set_pos(node->var_name_tok.pos);
                     value = newStruct;
@@ -4972,7 +5008,6 @@ namespace tkz {
                 actualType = node->type_tok.value;
             }
         }
-
         if (declaredType != "auto") {
             bool type_matches = false;
             
@@ -5748,6 +5783,29 @@ namespace tkz {
         if (!fval.func) this->errors.push_back({RTError("Invalid function value", Position()), "Error"});
 
         auto func = fval.func;
+        std::vector<NumberVariant> final_args;
+
+        for (auto& arg : node->arg_nodes) {
+
+            if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
+                NumberVariant spread_val = this->process((*spread)->expr);
+
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
+                    for (auto& elem : (*arr)->elements)
+                        final_args.push_back(elem);
+                }
+                else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
+                    for (auto& elem : (*list)->elements)
+                        final_args.push_back(elem);
+                }
+                else {
+                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                }
+            }
+            else {
+                final_args.push_back(this->process(arg));
+            }
+        }
         std::vector<std::string> saved_namespace_stack = context->namespaceStack;
         bool changed_namespace = false;
         std::string current_ns = "";
@@ -5771,31 +5829,6 @@ namespace tkz {
         }
 
         context->push_scope();
-        std::vector<NumberVariant> final_args;
-
-        for (auto& arg : node->arg_nodes) {
-
-            if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
-                NumberVariant spread_val = this->process((*spread)->expr);
-
-                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
-                    for (auto& elem : (*arr)->elements)
-                        final_args.push_back(elem);
-                }
-                else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
-                    for (auto& elem : (*list)->elements)
-                        final_args.push_back(elem);
-                }
-                else {
-                    context->pop_scope();
-                    context->namespaceStack = saved_namespace_stack;
-                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
-                }
-            }
-            else {
-                final_args.push_back(this->process(arg));
-            }
-        }
         try {
             if (final_args.size() > func->params.size()) {
                 context->pop_scope();
@@ -6273,26 +6306,113 @@ namespace tkz {
         
         if (node->op_tok.type == TokenType::AND) {
             NumberVariant left = std::move(this->process(node->left_node));
-            if (!is_truthy(left)) return std::move(BoolValue("false"));
-                NumberVariant right = std::move(this->process(node->right_node));
-                return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator&&");
+                if (method) {
+                    NumberVariant right = std::move(this->process(node->right_node));
+                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                }
+            }
+            
+            if (!is_truthy(left)) return BoolValue("false");
+            
+            NumberVariant right = std::move(this->process(node->right_node));
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator&&");
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                }
+            }
+            
+            return BoolValue(is_truthy(right) ? "true" : "false");
         }
-    
+
         if (node->op_tok.type == TokenType::OR) {
             NumberVariant left = std::move(this->process(node->left_node));
-            if (is_truthy(left)) return std::move(BoolValue("true"));
-                NumberVariant right = std::move(this->process(node->right_node));
-                return std::move(BoolValue(is_truthy(right) ? "true" : "false"));
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator||");
+                if (method) {
+                    NumberVariant right = std::move(this->process(node->right_node));
+                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                }
+            }
+            
+            if (is_truthy(left)) return BoolValue("true");
+            
+            NumberVariant right = std::move(this->process(node->right_node));
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator||");
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                }
+            }
+            
+            return BoolValue(is_truthy(right) ? "true" : "false");
+        }
+
+        if (node->op_tok.type == TokenType::XOR) {
+            NumberVariant left = std::move(this->process(node->left_node));
+            NumberVariant right = std::move(this->process(node->right_node));
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator^");
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                }
+            }
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator^");
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                }
+            }
+            
+            bool l = is_truthy(left);
+            bool r = is_truthy(right);
+            return BoolValue((l != r) ? "true" : "false");
         }
         if (node->op_tok.type == TokenType::QAND) { 
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
-            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                std::string mname = "operator&&&";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                std::string mname = "operator&&&";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ left },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
             if (l_qb && r_qb) {
-                // Quantum AND: if both sides can be true and one is both: both
                 bool t = l_qb->tval && r_qb->tval;
                 bool f = l_qb->fval || r_qb->fval;
                 
@@ -6306,7 +6426,36 @@ namespace tkz {
         if (node->op_tok.type == TokenType::QOR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
-            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                std::string mname = "operator|||";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                std::string mname = "operator|||";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ left },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
@@ -6325,7 +6474,36 @@ namespace tkz {
         if (node->op_tok.type == TokenType::QXOR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
-            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                std::string mname = "operator^^";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                std::string mname = "operator^^";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ left },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
@@ -6371,7 +6549,21 @@ namespace tkz {
         if (node->op_tok.type == TokenType::COLLAPSE_AND) { 
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
-            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                std::string mname = "operator&|&";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
@@ -6386,7 +6578,21 @@ namespace tkz {
         if (node->op_tok.type == TokenType::COLLAPSE_OR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
-            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                std::string mname = "operator|&|";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
@@ -6579,7 +6785,34 @@ namespace tkz {
                     if (sym_it->second.is_const) {
                         throw RTError("Cannot assign to const variable '" + name + "'", node->var_name.pos);
                     }
-                    
+                    if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&sym_it->second.value)) {
+                        std::cerr << "AssignExprNode found class wiht qualification" << '\n';
+                        std::string class_name = (*inst_ptr)->class_name;
+                        auto ut_it = context->user_types.find(class_name);
+                        
+                        if (ut_it != context->user_types.end() && 
+                            ut_it->second.kind == UserTypeKind::Class) {
+                            
+                            // Look for operator= method
+                            ClassMethodInfo* op_assign = nullptr;
+                            for (auto& m : ut_it->second.classMethods) {
+                                if (m.name_tok.value == "operator=") {
+                                    op_assign = &m;
+                                    break;
+                                }
+                            }
+                            
+                            if (op_assign) {
+                                NumberVariant result = call_instance_method(
+                                    *inst_ptr,
+                                    op_assign,
+                                    std::vector<NumberVariant>{ std::move(value) },
+                                    node->var_name.pos
+                                );
+                                return result;
+                            }
+                        }
+                    }
                     std::string declared_type = sym_it->second.declared_type;
                     std::string actual_type = context->get_type_name(value);
                     
@@ -6645,7 +6878,7 @@ namespace tkz {
                             "Type mismatch: cannot assign " + actual_type + " to " + declared_type,
                             node->var_name.pos
                         );
-                    }
+                    } // Need to make operrator = work
                     
                     sym_it->second.value = std::move(value);
                     return value;
@@ -6653,7 +6886,38 @@ namespace tkz {
             }
             throw RTError("Undefined variable: '" + name + "'", node->var_name.pos);
         }
-        
+        try {
+            NumberVariant existing = context->get(name, node->var_name.pos);
+            
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&existing)) {
+                std::string class_name = (*inst_ptr)->class_name;
+                auto ut_it = context->user_types.find(class_name);
+                
+                if (ut_it != context->user_types.end() && 
+                    ut_it->second.kind == UserTypeKind::Class) {
+                    ClassMethodInfo* op_assign = nullptr;
+                    for (auto& m : ut_it->second.classMethods) {
+                        if (m.name_tok.value == "operator=") {
+                            op_assign = &m;
+                            break;
+                        }
+                    }
+                    
+                    if (op_assign) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            op_assign,
+                            std::vector<NumberVariant>{ std::move(value) },
+                            node->var_name.pos
+                        );
+                        return result;
+                    }
+                }
+            }
+        } catch (...) {
+
+        }
+    
         context->set(name, std::move(value), node->var_name.pos);
         return std::move(value);
     }
@@ -6662,6 +6926,21 @@ namespace tkz {
         if (node->op_tok.type == TokenType::QNOT) {
             
             NumberVariant val = std::move(this->process(node->node));
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&val)) {
+                std::string mname = "operator!!";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{},
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             return std::visit([&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
@@ -6689,6 +6968,21 @@ namespace tkz {
         if (node->op_tok.type == TokenType::NOT) {
             
             NumberVariant val = std::move(this->process(node->node));
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&val)) {
+                std::string mname = "operator!";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{},
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             return std::visit([&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
@@ -8052,7 +8346,12 @@ namespace tkz {
         loose = config.looser_types;
         
         auto start = std::chrono::high_resolution_clock::now();
-        
+        try {
+            text = preprocess_includes(text, file);
+        } catch (std::runtime_error& e) {
+            std::cerr << "Include error: " << e.what() << std::endl;
+            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("Include Error", Position())}, ""};
+        }
         // Lexer
         Lexer lexer(text, file);
         Ler resp;
@@ -8675,5 +8974,340 @@ namespace tkz {
     }
 
 }
-
-
+///////////////////////////////////////////////////////////////////////////////////////////
+// INCLUDES //////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\n\r");
+    return str.substr(first, last - first + 1);
+}
+std::string read_file(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file: " + path);
+    }
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+std::string resolve_path(const std::string& current_file, const std::string& include_path) {
+    std::filesystem::path current(current_file);
+    std::filesystem::path include(include_path);
+    if (include.is_absolute()) {
+        return include.string();
+    }
+    
+    std::filesystem::path resolved = current.parent_path() / include;
+    return resolved.string();
+}
+std::string extract_namespace(const std::string& source, const std::string& ns_name) {
+    std::string search = "namespace " + ns_name;
+    size_t pos = source.find(search);
+    
+    if (pos == std::string::npos) {
+        throw std::runtime_error("Namespace '" + ns_name + "' not found in file");
+    }
+    size_t brace_start = source.find('{', pos);
+    if (brace_start == std::string::npos) {
+        throw std::runtime_error("Invalid namespace syntax for '" + ns_name + "'");
+    }
+    int depth = 1;
+    size_t i = brace_start + 1;
+    while (i < source.size() && depth > 0) {
+        if (source[i] == '{') depth++;
+        if (source[i] == '}') depth--;
+        i++;
+    }
+    
+    if (depth != 0) {
+        throw std::runtime_error("Unmatched braces in namespace '" + ns_name + "'");
+    }
+    
+    return source.substr(pos, i - pos);
+}
+std::string preprocess_includes(const std::string& source, const std::string& current_file) {
+    std::set<std::pair<std::string, std::string>> included_namespaces;
+    std::vector<std::string> exported_blocks;
+    std::vector<std::string> namespace_order;
+    
+    std::function<void(const std::string&, const std::string&)> process_file;
+    process_file = [&](const std::string& file_path, const std::string& ns_to_include) {
+        std::pair<std::string, std::string> key = {file_path, ns_to_include};
+        if (included_namespaces.count(key)) return;
+        included_namespaces.insert(key);
+        
+        std::string file_content = read_file(file_path);
+        std::pair<std::string, std::string> exported_key = {file_path, "Exported"};
+        if (!included_namespaces.count(exported_key)) {
+            included_namespaces.insert(exported_key);
+            
+            size_t exported_pos = 0;
+            bool in_string = false;
+            for (size_t scan = 0; scan < file_content.size(); scan++) {
+                if (file_content[scan] == '"' && (scan == 0 || file_content[scan-1] != '\\')) {
+                    in_string = !in_string;
+                }
+                if (!in_string && file_content.substr(scan, 18) == "namespace Exported") {
+                    exported_pos = scan;
+                    break;
+                }
+            }
+            
+            if (exported_pos != std::string::npos) {
+                size_t brace_start = file_content.find('{', exported_pos);
+                int depth = 1;
+                size_t i = brace_start + 1;
+                size_t content_start = i;
+                
+                in_string = false;
+                while (i < file_content.size() && depth > 0) {
+                    if (file_content[i] == '"' && (i == 0 || file_content[i-1] != '\\')) {
+                        in_string = !in_string;
+                    }
+                    if (!in_string) {
+                        if (file_content[i] == '{') depth++;
+                        if (file_content[i] == '}') depth--;
+                    }
+                    i++;
+                }
+                
+                std::string exported_content = file_content.substr(content_start, i - content_start - 1);
+                
+                size_t inc_pos = 0;
+                while ((inc_pos = exported_content.find("#include", inc_pos)) != std::string::npos) {
+                    bool in_str = false;
+                    for (size_t check = 0; check < inc_pos; check++) {
+                        if (exported_content[check] == '"' && (check == 0 || exported_content[check-1] != '\\')) {
+                            in_str = !in_str;
+                        }
+                    }
+                    if (in_str) {
+                        inc_pos++;
+                        continue;
+                    }
+                    
+                    size_t start = exported_content.find('<', inc_pos);
+                    size_t end = exported_content.find('>', start);
+                    
+                    std::string directive = exported_content.substr(start + 1, end - start - 1);
+                    size_t comma = directive.find(',');
+                    
+                    std::string dep_ns = trim(directive.substr(0, comma));
+                    std::string dep_path = trim(directive.substr(comma + 1));
+                    
+                    if (!dep_path.empty() && dep_path.front() == '"') {
+                        dep_path = dep_path.substr(1);
+                    }
+                    if (!dep_path.empty() && dep_path.back() == '"') {
+                        dep_path = dep_path.substr(0, dep_path.size() - 1);
+                    }
+                    
+                    std::string dep_full_path;
+                    if (dep_path == "std") {
+                        dep_full_path = "/usr/local/QC/stdlib.qc";
+                    } else {
+                        dep_full_path = resolve_path(file_path, dep_path);
+                    }
+                    process_file(dep_full_path, dep_ns);
+                    
+                    inc_pos = end + 1;
+                }
+                std::string clean_exported = "";
+                size_t last = 0;
+                inc_pos = 0;
+                while ((inc_pos = exported_content.find("#include", inc_pos)) != std::string::npos) {
+                    bool in_str = false;
+                    for (size_t check = 0; check < inc_pos; check++) {
+                        if (exported_content[check] == '"' && (check == 0 || exported_content[check-1] != '\\')) {
+                            in_str = !in_str;
+                        }
+                    }
+                    if (in_str) {
+                        inc_pos++;
+                        continue;
+                    }
+                    
+                    clean_exported += exported_content.substr(last, inc_pos - last);
+                    size_t end = exported_content.find('>', inc_pos);
+                    last = end + 1;
+                    if (last < exported_content.size() && exported_content[last] == '\n') {
+                        last++;
+                    }
+                    inc_pos = last;
+                }
+                clean_exported += exported_content.substr(last);
+                
+                if (clean_exported.find_first_not_of(" \t\n\r") != std::string::npos) {
+                    exported_blocks.push_back(clean_exported);
+                }
+            }
+        }
+        if (ns_to_include != "Exported" && ns_to_include != "*") {
+            size_t ns_pos = 0;
+            while (ns_pos < file_content.size()) {
+                bool in_string = false;
+                size_t search_start = ns_pos;
+                for (size_t scan = 0; scan < search_start; scan++) {
+                    if (file_content[scan] == '"' && (scan == 0 || file_content[scan-1] != '\\')) {
+                        in_string = !in_string;
+                    }
+                }
+                
+                ns_pos = file_content.find("namespace " + ns_to_include, ns_pos);
+                if (ns_pos == std::string::npos) break;
+                
+                in_string = false;
+                for (size_t check = 0; check < ns_pos; check++) {
+                    if (file_content[check] == '"' && (check == 0 || file_content[check-1] != '\\')) {
+                        in_string = !in_string;
+                    }
+                }
+                if (in_string) {
+                    ns_pos++;
+                    continue;
+                }
+                
+                size_t name_end = ns_pos + 10 + ns_to_include.length();
+                if (name_end < file_content.size() && 
+                    (file_content[name_end] == ' ' || file_content[name_end] == '\t' || 
+                    file_content[name_end] == '\n' || file_content[name_end] == '{')) {
+                    
+                    size_t brace_start = file_content.find('{', ns_pos);
+                    int depth = 1;
+                    size_t i = brace_start + 1;
+                    
+                    in_string = false;
+                    while (i < file_content.size() && depth > 0) {
+                        if (file_content[i] == '"' && (i == 0 || file_content[i-1] != '\\')) {
+                            in_string = !in_string;
+                        }
+                        if (!in_string) {
+                            if (file_content[i] == '{') depth++;
+                            if (file_content[i] == '}') depth--;
+                        }
+                        i++;
+                    }
+                    
+                    std::string ns_block = file_content.substr(ns_pos, i - ns_pos);
+                    namespace_order.push_back(ns_block);
+                    ns_pos = i;
+                } else {
+                    ns_pos++;
+                }
+            }
+        }
+    };
+    size_t pos = 0;
+    while ((pos = source.find("#include", pos)) != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check-1] != '\\')) {
+                in_string = !in_string;
+            }
+        }
+        if (in_string) {
+            pos++;
+            continue;
+        }
+        
+        size_t start = source.find('<', pos);
+        size_t end = source.find('>', start);
+        
+        std::string directive = source.substr(start + 1, end - start - 1);
+        size_t comma = directive.find(',');
+        
+        std::string ns_name = trim(directive.substr(0, comma));
+        std::string path = trim(directive.substr(comma + 1));
+        if (!path.empty() && path.front() == '"') {
+            path = path.substr(1);
+        }
+        if (!path.empty() && path.back() == '"') {
+            path = path.substr(0, path.size() - 1);
+        }
+        
+        std::string full_path;
+        if (path == "std") {
+            full_path = "/usr/local/QC/stdlib.qc";
+        } else {
+            full_path = resolve_path(current_file, path);
+        }
+        
+        process_file(full_path, ns_name);
+        
+        pos = end + 1;
+    }
+    std::string result = "";
+    size_t last_pos = 0;
+    pos = 0;
+    while ((pos = source.find("#include", pos)) != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check-1] != '\\')) {
+                in_string = !in_string;
+            }
+        }
+        if (in_string) {
+            pos++;
+            continue;
+        }
+        
+        result += source.substr(last_pos, pos - last_pos);
+        size_t end = source.find('>', pos);
+        last_pos = end + 1;
+        if (last_pos < source.size() && source[last_pos] == '\n') {
+            last_pos++;
+        }
+        pos = last_pos;
+    }
+    result += source.substr(last_pos);
+    
+    size_t exported_start = 0;
+    bool in_string = false;
+    for (size_t scan = 0; scan < result.size(); scan++) {
+        if (result[scan] == '"' && (scan == 0 || result[scan-1] != '\\')) {
+            in_string = !in_string;
+        }
+        if (!in_string && result.substr(scan, 18) == "namespace Exported") {
+            exported_start = scan;
+            break;
+        }
+    }
+    
+    size_t insert_pos = 0;
+    
+    if (exported_start != std::string::npos) {
+        size_t brace_start = result.find('{', exported_start);
+        int depth = 1;
+        size_t i = brace_start + 1;
+        
+        in_string = false;
+        while (i < result.size() && depth > 0) {
+            if (result[i] == '"' && (i == 0 || result[i-1] != '\\')) {
+                in_string = !in_string;
+            }
+            if (!in_string) {
+                if (result[i] == '{') depth++;
+                if (result[i] == '}') depth--;
+            }
+            i++;
+        }
+        
+        std::string all_exported = "";
+        for (auto& block : exported_blocks) {
+            all_exported += "\nnamespace Exported {\n" + block + "\n}\n";
+        }
+        
+        insert_pos = i;
+        result.insert(i, all_exported);
+        insert_pos += all_exported.length();
+    }
+    
+    for (auto& ns : namespace_order) {
+        result.insert(insert_pos, "\n" + ns + "\n");
+        insert_pos += ns.length() + 2;
+    }
+    
+    return result;
+};

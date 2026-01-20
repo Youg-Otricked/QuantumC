@@ -81,7 +81,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 
 # Development Status
 strikthrough = done
-Current Version: v7.0.0 = "User types (~~Struct~~, ~~enum~~, ~~class~~, ~~union~~, using aliases, ~~type/typedef~~, #include, ~~abstract classes~~)"
+Current Version: v7.1.0 = "Std lib"
 
 ## Working:
 
@@ -108,11 +108,13 @@ Enums
 Class
 Namespace
 Advanced OOP stuff
+More Stdlib Pt1
 ## Coming Soon:
 
 
  
-#include
+More Stdlib Pt2
+Manual Mem Managment
 
 ---
 

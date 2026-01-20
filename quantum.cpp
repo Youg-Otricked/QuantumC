@@ -46,7 +46,7 @@ void slow_print(const std::string& text, const std::string& color = "\033[0m", i
     }
 }
 
-std::string read_file(std::string filename) {
+std::string read_source_file(std::string filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
         std::cerr << YELLOW << "Error: Could not open file '" << filename << "'" << RESET <<  std::endl;
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--loose-types" || arg == "-lt") {
             config.looser_types = true;
         } else if (arg == "--demo" || arg == "-d") {
-            filename = "./syntax.qc";
+            filename = "/usr/local/QC/syntax.qc";
         } else if (arg == "--ast" || arg == "-a") {
             config.print_ast = true;
         } else if (arg == "--quiet" || arg == "-q") {
@@ -147,7 +147,7 @@ Usage: ./qc [options] <file>
 Options:
   -v, --version       Show version information
   -h, --help          Show this help message
-  -d, --demo          Run the demo file (syntax.qc)
+  -d, --demo          Run the demo file (syntax.qc) (note that for this to work you must run the install script)
   -lt, --loose-types  Enable loose type checking
   -nc, --no-context   Disable context tracking
   -a, --ast           Print the AST (Abstract Syntax Tree)
@@ -290,7 +290,7 @@ Examples:
 
     } else {
         // File mode
-        std::string code = read_file(filename);
+        std::string code = read_source_file(filename);
         auto result = tkz::run(filename, code, config);
 
         bool has_fatal = false;

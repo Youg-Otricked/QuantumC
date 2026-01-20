@@ -1673,10 +1673,19 @@ namespace tkz {
                 case TokenType::AND: return "operator&&";
                 case TokenType::NOT:  return "operator!";
                 case TokenType::EQ: return "operator=";
-                case TokenType::MORE:  return "operator>=";
-                case TokenType::LESS: return "operator<=";
+                case TokenType::MORE:  return "operator>";
+                case TokenType::LESS: return "operator<";
                 case TokenType::MORE_EQ:  return "operator>=";
                 case TokenType::LESS_EQ: return "operator<=";
+                case TokenType::POWER:  return "operator**";
+                case TokenType::MOD: return "operator%";
+                case TokenType::QNOT:  return "operator!!";
+                case TokenType::QAND: return "operator&&&";
+                case TokenType::QOR:  return "operator|||";
+                case TokenType::QXOR: return "operator^^";
+                case TokenType::COLLAPSE_OR:  return "operator|&|";
+                case TokenType::COLLAPSE_AND: return "operator&|&";
+                case TokenType::XOR: return "operator^";
                 default:                return "";
             }
         }
@@ -1784,5 +1793,10 @@ namespace tkz {
         Token make_fstring();
     };
 }
+std::string trim(const std::string& str);
+std::string read_file(const std::string& path);
+std::string resolve_path(const std::string& current_file, const std::string& include_path);
+std::string extract_namespace(const std::string& source, const std::string& ns_name);
+std::string preprocess_includes(const std::string& source, const std::string& current_file);
 #endif
     

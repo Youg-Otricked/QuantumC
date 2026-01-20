@@ -1030,7 +1030,7 @@ int main() {
     println(f);
     println(d);
     println(ld);
-    struct Vec2 {
+    struct Vector2 {
         float x;
         float y;
     };
@@ -1043,7 +1043,7 @@ int main() {
     struct Player {
         string name;
         int hp;
-        Vec2 pos;
+        Vector2 pos;
         Inventory inv;
     };
 
@@ -1176,7 +1176,7 @@ int main() {
         public void kill_lackey() {
             this.lackeys -= 1;
         }
-        final public void enrage() { // If you made a overwrite of this funciton it woulf error
+        public final void enrage() { // If you made a overwrite of this funciton it woulf error
             this.rage += 20;
         }
     }
