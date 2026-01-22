@@ -6893,7 +6893,10 @@ namespace tkz {
 
                     if constexpr (std::is_same_v<T, Number<int>> ||
                                 std::is_same_v<T, Number<double>> ||
-                                std::is_same_v<T, Number<float>>) {
+                                std::is_same_v<T, Number<float>> ||
+                                std::is_same_v<T, Number<long long>> ||
+                                std::is_same_v<T, Number<long double>> ||
+                                std::is_same_v<T, Number<short>>) {
                         return std::to_string(v.value);
                     } else if constexpr (std::is_same_v<T, CharValue>) {
                         return std::string(1, v.value);
