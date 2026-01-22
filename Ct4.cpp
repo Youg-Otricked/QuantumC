@@ -4645,7 +4645,7 @@ namespace tkz {
                   const Position& pos)
     {
         if (a.index() != b.index()) {
-            throw RTError("Cannot compare values of different types in switch/case", pos);
+            return false;
         }
 
         return std::visit([&](auto&& v) -> bool {
@@ -6567,23 +6567,23 @@ namespace tkz {
         
         if (node->op_tok.type == TokenType::AND) {
             NumberVariant left = std::move(this->process(node->left_node));
+            NumberVariant right = std::move(this->process(node->right_node));
             
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator&&");
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&&", args);
                 if (method) {
-                    NumberVariant right = std::move(this->process(node->right_node));
-                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
             if (!is_truthy(left)) return BoolValue("false");
             
-            NumberVariant right = std::move(this->process(node->right_node));
-            
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator&&");
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&&", args);
                 if (method) {
-                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
@@ -6592,23 +6592,23 @@ namespace tkz {
 
         if (node->op_tok.type == TokenType::OR) {
             NumberVariant left = std::move(this->process(node->left_node));
+            NumberVariant right = std::move(this->process(node->right_node));
             
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator||");
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator||", args);
                 if (method) {
-                    NumberVariant right = std::move(this->process(node->right_node));
-                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
             if (is_truthy(left)) return BoolValue("true");
             
-            NumberVariant right = std::move(this->process(node->right_node));
-            
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator||");
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator||", args);
                 if (method) {
-                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
@@ -6620,16 +6620,18 @@ namespace tkz {
             NumberVariant right = std::move(this->process(node->right_node));
             
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator^");
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator^", args);
                 if (method) {
-                    return call_instance_method(*inst_ptr, method, {right}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, "operator^");
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator^", args);
                 if (method) {
-                    return call_instance_method(*inst_ptr, method, {left}, node->op_tok.pos);
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             
@@ -6637,42 +6639,29 @@ namespace tkz {
             bool r = is_truthy(right);
             return BoolValue((l != r) ? "true" : "false");
         }
+
         if (node->op_tok.type == TokenType::QAND) { 
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
+            
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                std::string mname = "operator&&&";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ right },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&&&", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                std::string mname = "operator&&&";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ left },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&&&", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
-            
+
             if (l_qb && r_qb) {
                 bool t = l_qb->tval && r_qb->tval;
                 bool f = l_qb->fval || r_qb->fval;
@@ -6687,41 +6676,27 @@ namespace tkz {
         if (node->op_tok.type == TokenType::QOR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                std::string mname = "operator|||";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ right },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator|||", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                std::string mname = "operator|||";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ left },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator|||", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
-            
+
             if (l_qb && r_qb) {
-                // Quantum OR: if at least one side is both: both
                 bool t = l_qb->tval || r_qb->tval;
                 bool f = l_qb->fval || r_qb->fval;
                 
@@ -6735,41 +6710,27 @@ namespace tkz {
         if (node->op_tok.type == TokenType::QXOR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                std::string mname = "operator^^";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ right },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator^^", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                std::string mname = "operator^^";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ left },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator^^", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
-            
+
             if (l_qb && r_qb) {
-                // Quantum XOR: if one side is true or both: both
                 bool t = !(l_qb->tval && r_qb->tval);
                 bool f = l_qb->tval || r_qb->tval;
                 
@@ -6790,9 +6751,11 @@ namespace tkz {
                     return QBoolValue(std::string("none"));
                 }
             } catch (const RTError& e) {
+                errors.push_back({e, "Error"});
                 return QBoolValue(std::string("none"));
             }
         }
+
         if (node->op_tok.type == TokenType::QNEQ) {
             NumberVariant l_qb = this->process(node->left_node);
             NumberVariant r_qb = this->process(node->right_node);
@@ -6804,45 +6767,34 @@ namespace tkz {
                     return QBoolValue(std::string("none"));
                 }
             } catch (const RTError& e) {
+                errors.push_back({e, "Error"});
                 return QBoolValue(std::string("both"));
             }
         }
+
         if (node->op_tok.type == TokenType::COLLAPSE_AND) { 
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                std::string mname = "operator&|&";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ right },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&|&", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                std::string mname = "operator&|&";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ left },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator&|&", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
-            
+
             if (l_qb && r_qb) {
                 bool t = l_qb->tval && r_qb->tval;
                 
@@ -6854,39 +6806,26 @@ namespace tkz {
         if (node->op_tok.type == TokenType::COLLAPSE_OR) {
             NumberVariant left = this->process(node->left_node);
             NumberVariant right = this->process(node->right_node);
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
-                std::string mname = "operator|&|";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ right },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator|&|", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
-                std::string mname = "operator|&|";
-                if (!mname.empty()) {
-                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
-                    if (method) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            method,
-                            std::vector<NumberVariant>{ left },
-                            node->op_tok.pos
-                        );
-                        return result;
-                    }
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, "operator|&|", args);
+                if (method) {
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
-            
+
             if (l_qb && r_qb) {
                 bool t = l_qb->tval || r_qb->tval;
                 
@@ -6896,33 +6835,25 @@ namespace tkz {
         }
         NumberVariant left  = std::move(this->process(node->left_node));
         NumberVariant right = std::move(this->process(node->right_node));
+
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::string mname = op_method_name(node->op_tok.type);
             if (!mname.empty()) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                std::vector<NumberVariant> args = {right};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, mname, args);
                 if (method) {
-                    NumberVariant result = call_instance_method(
-                        *inst_ptr,
-                        method,
-                        std::vector<NumberVariant>{ right },
-                        node->op_tok.pos
-                    );
-                    return result;
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
         }
+
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::string mname = op_method_name(node->op_tok.type);
             if (!mname.empty()) {
-                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                std::vector<NumberVariant> args = {left};
+                ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, mname, args);
                 if (method) {
-                    NumberVariant result = call_instance_method(
-                        *inst_ptr,
-                        method,
-                        std::vector<NumberVariant>{ left },
-                        node->op_tok.pos
-                    );
-                    return result;
+                    return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
         }
@@ -7124,14 +7055,12 @@ namespace tkz {
                         if (ut_it != context->user_types.end() && 
                             ut_it->second.kind == UserTypeKind::Class) {
                             
-                            // Look for operator= method
-                            ClassMethodInfo* op_assign = nullptr;
-                            for (auto& m : ut_it->second.classMethods) {
-                                if (m.name_tok.value == "operator=") {
-                                    op_assign = &m;
-                                    break;
-                                }
-                            }
+                            std::vector<NumberVariant> args = {value};
+                            ClassMethodInfo* op_assign = find_method_with_args(
+                                class_name,
+                                "operator=",
+                                args
+                            );
                             
                             if (op_assign) {
                                 NumberVariant result = call_instance_method(
@@ -7226,13 +7155,12 @@ namespace tkz {
                 
                 if (ut_it != context->user_types.end() && 
                     ut_it->second.kind == UserTypeKind::Class) {
-                    ClassMethodInfo* op_assign = nullptr;
-                    for (auto& m : ut_it->second.classMethods) {
-                        if (m.name_tok.value == "operator=") {
-                            op_assign = &m;
-                            break;
-                        }
-                    }
+                    std::vector<NumberVariant> args = {value};
+                    ClassMethodInfo* op_assign = find_method_with_args(
+                        class_name,
+                        "operator=",
+                        args
+                    );
                     
                     if (op_assign) {
                         NumberVariant result = call_instance_method(
@@ -7843,10 +7771,10 @@ namespace tkz {
                 
                 return BoolValue("false");
             }
-            ClassMethodInfo* method = find_method_on_class(className, mname);
+            ClassMethodInfo* method = find_method_with_args(className, mname, final_args);
             if (!method) {
                 this->errors.push_back({RTError(
-                    "QC-M001: Class '" + className + "' has no method '" + mname + "'",
+                    "QC-M001: Class '" + className + "' has no method or no matching overload for'" + mname + "'",
                     node->method_name.pos),
                     "Error"});
                 return VoidValue{};

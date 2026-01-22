@@ -1759,6 +1759,63 @@ namespace tkz {
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);
         ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
+        ClassMethodInfo* find_method_with_args(
+            const std::string& className,
+            const std::string& mname,
+            const std::vector<NumberVariant>& args
+        ) {
+            auto it = context->user_types.find(className);
+            if (it == context->user_types.end()) return nullptr;
+
+            UserTypeInfo* cur = &it->second;
+            std::vector<ClassMethodInfo*> candidates;
+            while (cur) {
+                for (auto& m : cur->classMethods) {
+                    if (m.name_tok.value == mname || (m.is_constructor && mname == className)) {
+                        candidates.push_back(&m);
+                    }
+                }
+
+                if (cur->baseClassName.empty()) break;
+                auto bit = context->user_types.find(cur->baseClassName);
+                if (bit == context->user_types.end()) break;
+                cur = &bit->second;
+            }
+
+            if (candidates.empty()) return nullptr;
+            if (candidates.size() == 1) return candidates[0];
+            ClassMethodInfo* best = nullptr;
+            int best_score = -1;
+
+            for (auto* m : candidates) {
+                if (m->params.size() != args.size()) continue;
+
+                int score = 0;
+                bool valid = true;
+                size_t i = 0;
+
+                for (auto it = m->params.begin(); it != m->params.end(); ++it, ++i) {
+                    std::string expected = it->type.value;
+                    std::string actual = context->get_type_name(args[i]);
+
+                    if (expected == actual) {
+                        score += 100;
+                    } else if (expected == "auto") {
+                        score += 50;
+                    } else {
+                        valid = false;
+                        break;
+                    }
+                }
+
+                if (valid && score > best_score) {
+                    best_score = score;
+                    best = m;
+                }
+            }
+
+            return best ? best : candidates[0];
+        }
     };
     struct RunConfig {
         bool use_context = true;
