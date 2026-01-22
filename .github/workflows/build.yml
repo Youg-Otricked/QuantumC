@@ -75,6 +75,7 @@ jobs:
             qc.js
             qc.wasm
             stdlib.qc
+            qc.data  
   deploy-to-website:
     needs: build-wasm
     runs-on: ubuntu-latest
@@ -98,6 +99,7 @@ jobs:
           cp wasm-files/qc.js website/QuantumC/
           cp wasm-files/qc.wasm website/QuantumC/
           cp wasm-files/stdlib.qc website/QuantumC/stdlib.qc
+          cp wasm-files/qc.data website/QuantumC/
        
       - name: Commit and push to website repo
         run: |
