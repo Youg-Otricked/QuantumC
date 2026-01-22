@@ -33,7 +33,7 @@ After installing, or clone the repo directly then do
 cd QuantumC
 chmod +x install.sh
 ./install.sh
-# type_your_sudo_password
+# type_your_sudo_password (it moves the binary into /usr/local/bin/ and also moves the stdli9b into /usr/local/QC/, along with the demo script)
 # Now, you can type 
 qc [flags] (filepath)
 # to run a file
