@@ -1,6 +1,7 @@
 namespace Exported {
     #include <AdvQBool, std>
     #include <Utils, std>
+    #include <Math, std>
 }
 int main() {
     AdvQBool::AQB test = AdvQBool::AQB(70);
@@ -32,5 +33,9 @@ int main() {
     foreach (int i in Utils::range(1, 10, 1)) {
         std::qout << i << '\n';
     }
+    std::qout << Math::ceil(0.5) << '\n';
+    std::qout << Math::sqrt(4) << '\n';
+    std::qout << Math::root(27, 3) << '\n';
+    std::qout << Math::max(100, 1) << '\n' << Math::min(100, 1) << '\n';
     return 0;
 }

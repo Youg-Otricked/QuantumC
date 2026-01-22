@@ -1,0 +1,177 @@
+     45 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>(
+     40 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>(
+     30 ./Ct4.cpp:                    this->errors.push_back({RTError(
+     21 ./Ct4.cpp:                        res.failure(std::make_unique<InvalidSyntaxError>(
+     16 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>(
+     11 ./Ct4.cpp:                            res.failure(std::make_unique<InvalidSyntaxError>(
+      7 ./Ct4.cpp:                        this->errors.push_back({RTError(
+      6 ./Ct4.cpp:                this->errors.push_back({RTError(
+      5 ./Ct4.cpp:                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+      5 ./Ct4.cpp:                                this->errors.push_back({RTError(
+      4 ./Ct4.cpp:            this->errors.push_back({RTError(
+      3 QC-T001: Cannot assign to const variable '" + name + "'
+      3 QC-C001: Undefined variable: '" + name + "'
+      3 ./Ct4.cpp:                            this->errors.push_back({RTError(
+      2 QC-T003: Type mismatch: cannot assign " + actual + " to 
+      2 QC-I005: Spread target must be array or list", get_pos(sv)), "Error
+      2 QC-I005: Spread target must be array or list", get_pos(spread_val)), "Error
+      2 QC-I003: Cannot index inside non-array/list", Position()), "Error
+      2 Map access requires exactly one key", Position()), "Error
+      2 ./Ct4.cpp:        } catch (RTError& e) {
+      2 ./Ct4.cpp:            } catch (const RTError& e) {
+      2 ./Ct4.cpp:                } catch (RTError& e) {
+      2 ./Ct4.cpp:                res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+      2 ./Ct4.cpp:                res.failure(std::make_unique<MissingSemicolonError>(current_tok.pos));
+      2 ./Ct4.cpp:                    res2.failure(std::make_unique<InvalidSyntaxError>(
+      2 ./Ct4.cpp:                        throw RTError(
+      2 ./Ct4.cpp:                            throw RTError(
+      2 ./Ct4.cpp:                                res.failure(std::make_unique<InvalidSyntaxError>(
+      2 ./Ct4.cpp:                                    res.failure(std::make_unique<InvalidSyntaxError>(
+      1 seed() requires integer argument", Position()), "Error
+      1 random(min, max) requires integer arguments", Position()), "Error
+      1 random(max) requires integer argument", Position()), "Error
+      1 random() takes 0, 1, or 2 arguments", Position()), "Error
+      1 qswitch requires a qbool", get_pos(val)), "Severe
+      1 main() must return int, not 
+      1 main() must have no parameters
+      1 foreach requires an array or list", node->elem_name.pos), "Error
+      1 class inherates from a non class or non-existant object
+      1 Unknown class '" + className + "'
+      1 Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning
+      1 Unexpected 'break' outside loop or switch", node->tok.pos), "Warning
+      1 Unary operator not supported for this type
+      1 Too many errors! Execution stopped.
+      1 QC-WHAT: What the heck is that
+      1 QC-M001: Unknown method: " + node->method_name.value, node->method_name.pos), "Error
+      1 QC-I005: Spread target must be array or list", Position()), "Error
+      1 QC-I003: Cannot index non-array/list type", Position()), "Error
+      1 QC-I002: List index out of bounds: 
+      1 QC-I002: List index out of bounds", Position()), "Error
+      1 QC-I001: Array index out of bounds: 
+      1 QC-I001: Array index out of bounds", Position()), "Error
+      1 QC-F002: Unknown property: " + name, node->property_name.pos), "Error
+      1 QC-F001: Unknown field '" + name + "' on struct '" + struct_type + "'
+      1 QC-F001: Unknown field '" + name + "' on struct '" + (*s)->type_name + "'
+      1 QC-C004: Missing argument to parent constructor '" + func_name + "'", get_pos(value)), "Error
+      1 QC-C004: Missing argument to constructor '" + func_name + "'", get_pos(value)), "Error
+      1 QC-C003: Missing argument", Position()), "Error
+      1 QC-C002: Too many arguments to parent constructor '" + func_name + "'", Position()), "Error
+      1 QC-C002: Too many arguments to constructor '" + func_name + "'", Position()), "Error
+      1 QC-C001: Too many arguments", Position()), "Error
+      1 QC-BM05: Object does not support methods", node->method_name.pos), "Error
+      1 QC-BM04: Unknown map method: " + node->method_name.value, node->method_name.pos), "Error
+      1 QC-BM02: cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error
+      1 QC-BM02: (loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error
+      1 QC-BM01: set() requires 2 arguments (key, value)", node->method_name.pos), "Error
+      1 QC-BM01: remove() requires 1 argument (key)", node->method_name.pos), "Error
+      1 QC-BM01: push() requires exactly 1 argument", node->method_name.pos), "Error
+      1 QC-BM01: pop() takes no arguments", node->method_name.pos), "Error
+      1 QC-BM01: keys() takes no arguments", node->method_name.pos), "Error
+      1 QC-BM01: has() requires 1 argument (key)", node->method_name.pos), "Error
+      1 QC-B002: seed() requires integer argument",  get_pos(seed_val)), "Error
+      1 QC-B002: random(min, max) requires integer arguments", get_pos(args[1])), "Error
+      1 QC-B002: random(max) requires integer argument",  get_pos(args[0])), "Error
+      1 QC-B002: Cannot construct abstract class", Position()), "Error
+      1 QC-B001: typeof() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_string() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_qbool() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_int() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_float() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_double() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_char() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: to_bool() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: time() takes no arguments", Position()), "Error
+      1 QC-B001: throw() requires exactly 1 argument", get_pos(target_val)), "Error
+      1 QC-B001: seed() requires exactly 1 argument", Position()), "Error
+      1 QC-B001: random() takes 0, 1, or 2 arguments", get_pos(args[2])), "Error
+      1 Operation on uninitialized value", node->op_tok.pos), "Error
+      1 Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error
+      1 No main() function found
+      1 Nested struct initializer size mismatch for '" + struct_type + "'", {}), "Error
+      1 List must be initialized with array literal or another list", node->var_name_tok.pos), "Error
+      1 List index must be an integer", Position()), "Error
+      1 List access requires exactly one index", Position()), "Error
+      1 Invalid switch comparison type
+      1 Invalid operand for ++/--", pos), "Error
+      1 Invalid function value", fval.pos), "Error
+      1 Interpreter got a null VarAccessNode
+      1 Internal error: lost array/list during indexing", Position()), "Error
+      1 Integer out of range", node.tok.pos), "Severe
+      1 Index must be a number", Position()), "Error
+      1 Increment/decrement must target a variable
+      1 Inconsistent value type in map literal", node->pos), "Error
+      1 Inconsistent key type in map literal", node->pos), "Error
+      1 Expected struct or class instance on left side of '.'
+      1 Expected multi-return value", node->var_names[0].pos), "Error
+      1 Declared array has more dimensions than initialized", node->var_name_tok.pos), "Error
+      1 Context not initialized", node->var_name_tok.pos), "Severe
+      1 Cannot use !! operator on multi-return values", node->op_tok.pos), "Error
+      1 Cannot use ! operator on multi-return values", node->op_tok.pos), "Error
+      1 Cannot spread non-array type", Position()), "Error
+      1 Cannot read input into type " + type, node->op_tok.pos), "Error
+      1 Cannot preform operations on string and number", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on nothing", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on lists", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on arrays", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on a map/dict", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on a Struct", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on a Function", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic operations on a Boolean", node->op_tok.pos), "Error
+      1 Cannot preform arithmetic on a Char", node->op_tok.pos), "Error
+      1 Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error
+      1 Cannot perform arithmetic on classes", node->op_tok.pos), "Error
+      1 Cannot parse integer", node->op_tok.pos), "Error
+      1 Cannot parse float", node->op_tok.pos), "Error
+      1 Cannot parse double", node->op_tok.pos), "Error
+      1 Cannot compare values of different types in switch/case
+      1 Cannot compare multi-values in switch
+      1 Cannot assign to this type", Position()), "Error
+      1 Can only call functions
+      1 Array must be initialized with array literal", node->var_name_tok.pos), "Error
+      1 Array index must be an integer", Position()), "Error
+      1 ./quantum.cpp:            slow_print(const_cast<tkz::RTError&>(diag.error).as_string() + "\n", color);
+      1 ./quantum.cpp:                        slow_print(const_cast<tkz::RTError&>(diag.error).as_string() + "\n", color);
+      1 ./Ct4.cpp:    std::string RTError::as_string() {
+      1 ./Ct4.cpp:    std::string MissingSemicolonError::as_string() {
+      1 ./Ct4.cpp:    std::string InvalidSyntaxError::as_string() {
+      1 ./Ct4.cpp:        } catch(InvalidSyntaxError& e) {
+      1 ./Ct4.cpp:        } catch (RTError&) {
+      1 ./Ct4.cpp:        } catch (RTError& z) {
+      1 ./Ct4.cpp:        this->errors.push_back({RTError(
+      1 ./Ct4.cpp:        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+      1 ./Ct4.cpp:        res.failure(std::make_unique<InvalidSyntaxError>("Expected an atom", tok.pos));
+      1 ./Ct4.cpp:            std::unique_ptr<Error> err = std::make_unique<RTError>(e);
+      1 ./Ct4.cpp:            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("Include Error", Position())}, ""};
+      1 ./Ct4.cpp:            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S036: Expected '(' after 'for'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S035: Expected 'for'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S034: Expected ')' after while condition", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S033: Expected '(' after 'while'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S032: Expected 'while'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S025: Expected '}' after switch body", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S022: Expected '{' after switch(...)", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S021: Expected ')' after switch expression", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S020: Expected '(' after 'switch'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S019: Expected 'switch'", current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S016: Expected ')' after condition", this->current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S010: Expected '(' after 'if'", this->current_tok.pos));
+      1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S009: Expected 'if'", this->current_tok.pos));
+      1 ./Ct4.cpp:                } catch (RTError&) {
+      1 ./Ct4.cpp:                throw RTError(msg, get_pos(value));
+      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
+      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("QC-S024: Expected 'case' or 'default' inside switch", current_tok.pos));
+      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S049: Expected ']'", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S018: Expected ')' after 'else if' condition", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S017: Expected '(' after 'else if'", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S015: Expected ';' after if-init expression", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S014: Expected ';' after if-init declaration", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S012: Expected identifier in if-init", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'short'/'long'", this->current_tok.pos));
+      1 ./Ct4.cpp:                        res2.failure(std::make_unique<InvalidSyntaxError>(
+      1 ./Ct4.cpp:                        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+      1 ./Ct4.cpp:                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S023: Expected ':' after case label", current_tok.pos));
+      1 ./Ct4.cpp:                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S013: const variables must be initialized in if-init", var_name.pos));
+      1 ./Ct4.cpp:                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S011: Expected type after 'const' in if-init", this->current_tok.pos));
+      1 ./Ct4.cpp:                            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));

@@ -1309,10 +1309,13 @@ namespace tkz {
         public:
         std::string class_name;
         std::unordered_map<std::string, NumberVariant> fields;
+        Position pos;
         InstanceValue(std::string class_name, std::unordered_map<std::string, NumberVariant> fields) {
             this->class_name = class_name;
             this->fields = fields;
-        }InstanceValue(std::string class_name) {
+            this->pos = Position("", "", 0, 0, 0);
+        }
+        InstanceValue(std::string class_name) {
             this->class_name = class_name;
         }
         std::string print() const;
@@ -1320,8 +1323,8 @@ namespace tkz {
     class MultiValue {
     public:
         std::vector<NumberVariant> values;
-        
-        MultiValue(std::vector<NumberVariant>&& vals) : values(std::move(vals)) {}
+        Position pos;
+        MultiValue(std::vector<NumberVariant>&& vals) : values(std::move(vals)), pos("", "", 0, 0, 0) {}
         
         std::string print() const;
     };
@@ -1330,9 +1333,9 @@ namespace tkz {
         std::string element_type;
         std::vector<NumberVariant> elements;
         std::vector<std::vector<size_t>> nested_sizes;
-
+        Position pos;
         ArrayValue(std::string type, std::vector<NumberVariant> elems)
-            : element_type(type), elements(std::move(elems))
+            : element_type(type), elements(std::move(elems)), pos("", "", 0, 0, 0)
         {
             nested_sizes.resize(elements.size());
             for (size_t i = 0; i < elements.size(); i++) {
@@ -1355,9 +1358,9 @@ namespace tkz {
     public:
         std::string element_type;
         std::vector<NumberVariant> elements;
-        
+        Position pos;
         ListValue(std::string type, std::vector<NumberVariant> elems)
-            : element_type(type), elements(std::move(elems)) {}
+            : element_type(type), elements(std::move(elems)), pos("", "", 0, 0, 0) {}
         
         void push(NumberVariant val) {
             elements.push_back(std::move(val));

@@ -191,6 +191,36 @@ namespace tkz {
     Position Position::copy() {
         return Position(this->Filename, this->Filetxt, this->index, this->line, this->column);
     }
+    Position get_pos(const NumberVariant& v) {
+        return std::visit([](auto const& x) -> Position {
+            using T = std::decay_t<decltype(x)>;
+
+            if constexpr (std::is_same_v<T, Number<int>> ||
+                        std::is_same_v<T, Number<float>> ||
+                        std::is_same_v<T, Number<double>> ||
+                        std::is_same_v<T, Number<long long>> ||
+                        std::is_same_v<T, Number<short>> ||
+                        std::is_same_v<T, Number<long double>>) {
+                return x.pos;
+            } else if constexpr (std::is_same_v<T, StringValue> ||
+                                std::is_same_v<T, CharValue>   ||
+                                std::is_same_v<T, BoolValue>   ||
+                                std::is_same_v<T, QBoolValue>  ||
+                                std::is_same_v<T, VoidValue>   ||
+                                std::is_same_v<T, FunctionValue>) {
+                return x.pos;
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>   ||
+                                std::is_same_v<T, std::shared_ptr<ListValue>>    ||
+                                std::is_same_v<T, std::shared_ptr<MapValue>>     ||
+                                std::is_same_v<T, std::shared_ptr<StructValue>>  ||
+                                std::is_same_v<T, std::shared_ptr<InstanceValue>>||
+                                std::is_same_v<T, std::shared_ptr<MultiValue>>) {
+                return x ? x->pos : Position();
+            } else {
+                return Position();
+            }
+        }, v);
+    }
     Token::Token() {}
     Token::Token(TokenType t, std::string val, Position p)
     : type(t), value(val), pos(p)
@@ -781,7 +811,7 @@ namespace tkz {
         
         if (this->current_tok.type != TokenType::LPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '(' after 'qif'", this->current_tok.pos));
+                "QC-S001: Expected '(' after 'qif'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -794,14 +824,14 @@ namespace tkz {
 
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after qif condition", this->current_tok.pos));
+                "QC-S002: Expected ')' after qif condition", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
 
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '{' after qif condition", this->current_tok.pos));
+                "QC-S003: Expected '{' after qif condition", this->current_tok.pos));
             return res.to_prs();
         }
 
@@ -820,7 +850,7 @@ namespace tkz {
 
         if (this->current_tok.type != TokenType::RBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '}'", this->current_tok.pos));
+                "QC-S004: Expected '}'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -836,7 +866,7 @@ namespace tkz {
             this->advance();
             if (this->current_tok.type != TokenType::LPAREN) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '(' after 'qelif'", this->current_tok.pos));
+                    "QC-S005: Expected '(' after 'qelif'", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -846,14 +876,14 @@ namespace tkz {
             
             if (this->current_tok.type != TokenType::RPAREN) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected ')' after qelif condition", this->current_tok.pos));
+                    "QC-S006: Expected ')' after qelif condition", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
             
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after qelif condition", this->current_tok.pos));
+                    "QC-S007: Expected '{' after qelif condition", this->current_tok.pos));
                 return res.to_prs();
             }
             
@@ -869,7 +899,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '}'", this->current_tok.pos));
+                    "QC-S004: Expected '}'", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -885,7 +915,7 @@ namespace tkz {
             this->advance();
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after 'qelse'", this->current_tok.pos));
+                    "QC-S008: Expected '{' after 'qelse'", this->current_tok.pos));
                 return res.to_prs();
             }
             
@@ -901,7 +931,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '}'", this->current_tok.pos));
+                    "QC-S004: Expected '}'", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -937,13 +967,13 @@ namespace tkz {
         };
         ParseResult res;
         if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "if")) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected 'if'", this->current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S009: Expected 'if'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance(); 
 
         if (this->current_tok.type != TokenType::LPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'if'", this->current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S010: Expected '(' after 'if'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -969,7 +999,7 @@ namespace tkz {
                     this->advance();
                     tok = this->current_tok;
                     if (tok.type != TokenType::KEYWORD) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'const' in if-init", this->current_tok.pos));
+                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S011: Expected type after 'const' in if-init", this->current_tok.pos));
                         return res.to_prs();
                     }
                 }
@@ -977,7 +1007,7 @@ namespace tkz {
                 this->advance();
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected identifier in if-init", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S012: Expected identifier in if-init", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token var_name = this->current_tok;
@@ -990,14 +1020,14 @@ namespace tkz {
                     if (res.error) return res.to_prs();
                 } else {
                     if (is_const) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("const variables must be initialized in if-init", var_name.pos));
+                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S013: const variables must be initialized in if-init", var_name.pos));
                         return res.to_prs();
                     }
                     value = default_value_for_type(type_tok, var_name.pos);
                 }
 
                 if (this->current_tok.type != TokenType::SEMICOLON) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ';' after if-init declaration", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S014: Expected ';' after if-init declaration", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance(); 
@@ -1008,7 +1038,7 @@ namespace tkz {
                 if (res.error) return res.to_prs();
 
                 if (this->current_tok.type != TokenType::SEMICOLON) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ';' after if-init expression", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S015: Expected ';' after if-init expression", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance(); 
@@ -1020,7 +1050,7 @@ namespace tkz {
         if (res.error) return res.to_prs();
 
         if (this->current_tok.type != TokenType::RPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after condition", this->current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S016: Expected ')' after condition", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance(); 
@@ -1038,14 +1068,14 @@ namespace tkz {
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "if") {
                 this->advance();
                 if (this->current_tok.type != TokenType::LPAREN) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'else if'", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S017: Expected '(' after 'else if'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
                 AnyNode elif_cond = res.reg(this->logical_or());
                 if (res.error) return res.to_prs();
                 if (this->current_tok.type != TokenType::RPAREN) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after 'else if' condition", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S018: Expected ')' after 'else if' condition", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -1065,13 +1095,13 @@ namespace tkz {
     Prs Parser::switch_stmt() {
         ParseResult res;
         if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "switch")) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected 'switch'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S019: Expected 'switch'", current_tok.pos));
             return res.to_prs();
         }
         advance();
 
         if (current_tok.type != TokenType::LPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'switch'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S020: Expected '(' after 'switch'", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1080,13 +1110,13 @@ namespace tkz {
         if (res.error) return res.to_prs();
 
         if (current_tok.type != TokenType::RPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after switch expression", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S021: Expected ')' after switch expression", current_tok.pos));
             return res.to_prs();
         }
         advance();
 
         if (current_tok.type != TokenType::LBRACE) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '{' after switch(...)", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S022: Expected '{' after switch(...)", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1115,7 +1145,7 @@ namespace tkz {
                     if (res.error) return res.to_prs();
 
                     if (current_tok.type != TokenType::COLON ) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("Expected ':' after case expression", current_tok.pos));
+                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S023: Expected ':' after case label", current_tok.pos));
                         return res.to_prs();
                     }
                     advance();
@@ -1125,7 +1155,7 @@ namespace tkz {
             }
 
             if (!saw_label) {
-                res.failure(std::make_unique<InvalidSyntaxError>("Expected 'case' or 'default' inside switch", current_tok.pos));
+                res.failure(std::make_unique<InvalidSyntaxError>("QC-S024: Expected 'case' or 'default' inside switch", current_tok.pos));
                 return res.to_prs();
             }
             std::vector<AnyNode> stmts;
@@ -1153,7 +1183,7 @@ namespace tkz {
         }
 
         if (current_tok.type != TokenType::RBRACE) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '}' after switch body", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S025: Expected '}' after switch body", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1169,7 +1199,7 @@ namespace tkz {
         
         if (this->current_tok.type != TokenType::LPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '(' after 'qswitch'", this->current_tok.pos));
+                "QC-S026: Expected '(' after 'qswitch'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -1179,14 +1209,14 @@ namespace tkz {
         
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after qswitch value", this->current_tok.pos));
+                "QC-S027: Expected ')' after qswitch value", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
         
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '{' after qswitch", this->current_tok.pos));
+                "QC-S028: Expected '{' after qswitch", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -1201,7 +1231,7 @@ namespace tkz {
             
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected case label (t, f, n, or b)", this->current_tok.pos));
+                    "QC-S029: Expected case label (t, f, n, or b)", this->current_tok.pos));
                 return res.to_prs();
             }
             
@@ -1210,7 +1240,7 @@ namespace tkz {
             
             if (this->current_tok.type != TokenType::COLON) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected ':' after case label", this->current_tok.pos));
+                    "QC-S023: Expected ':' after case label", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -1248,14 +1278,14 @@ namespace tkz {
                 case_b = std::move(case_body);
             } else {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Invalid case label (must be t, f, n, or b)", this->current_tok.pos));
+                    "QC-S030: Invalid case label (must be t, f, n, or b)", this->current_tok.pos));
                 return res.to_prs();
             }
         }
         
         if (this->current_tok.type != TokenType::RBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '}' after qswitch", this->current_tok.pos));
+                "QC-S031: Expected '}' after qswitch", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -1270,13 +1300,13 @@ namespace tkz {
     Prs Parser::while_stmt() {
         ParseResult res;
         if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "while")) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected 'while'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S032: Expected 'while'", current_tok.pos));
             return res.to_prs();
         }
         advance();
 
         if (current_tok.type != TokenType::LPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'while'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S033: Expected '(' after 'while'", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1285,7 +1315,7 @@ namespace tkz {
         if (res.error) return res.to_prs();
 
         if (current_tok.type != TokenType::RPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected ')' after while condition", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S034: Expected ')' after while condition", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1300,13 +1330,13 @@ namespace tkz {
         ParseResult res;
         Token type_tok;
         if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "for")) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected 'for'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S035: Expected 'for'", current_tok.pos));
             return res.to_prs();
         }
         advance();
 
         if (current_tok.type != TokenType::LPAREN) {
-            res.failure(std::make_unique<InvalidSyntaxError>("Expected '(' after 'for'", current_tok.pos));
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S036: Expected '(' after 'for'", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1334,7 +1364,7 @@ namespace tkz {
                     tok = current_tok;
                     if (tok.type != TokenType::KEYWORD) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected type after 'const' in for-init", current_tok.pos));
+                            "QC-S037: Expected type after 'const' in for-init", current_tok.pos));
                         return res.to_prs();
                     }
                 }
@@ -1344,7 +1374,7 @@ namespace tkz {
 
                 if (current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected identifier in for-init", current_tok.pos));
+                        "QC-S038: Expected identifier in for-init", current_tok.pos));
                     return res.to_prs();
                 }
 
@@ -1359,7 +1389,7 @@ namespace tkz {
                 } else {
                     if (is_const) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "const variables must be initialized in for-init", var_name.pos));
+                            "QC-S039: const variables must be initialized in for-init", var_name.pos));
                         return res.to_prs();
                     }
                     value = default_value_for_type(type_tok, var_name.pos);
@@ -1377,7 +1407,7 @@ namespace tkz {
 
         if (current_tok.type != TokenType::SEMICOLON) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ';' after for-init", current_tok.pos));
+                "QC-S040: Expected ';' after for-init", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1391,7 +1421,7 @@ namespace tkz {
 
         if (current_tok.type != TokenType::SEMICOLON) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ';' after for condition", current_tok.pos));
+                "QC-S041: Expected ';' after for condition", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1404,7 +1434,7 @@ namespace tkz {
 
         if (current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after for header", current_tok.pos));
+                "QC-S042: Expected ')' after for header", current_tok.pos));
             return res.to_prs();
         }
         advance();
@@ -1431,7 +1461,7 @@ namespace tkz {
                 }
                 if (this->current_tok.type != TokenType::RBRACE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '}' after for body", this->current_tok.pos));
+                        "QC-S043: Expected '}' after for body", this->current_tok.pos));
                     return false;
                 }
                 this->advance();
@@ -1505,7 +1535,7 @@ namespace tkz {
 
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after function arguments", this->current_tok.pos));
+                "QC-S044: Expected ')' after function arguments", this->current_tok.pos));
             return res.to_prs();
         }
 
@@ -1572,7 +1602,7 @@ namespace tkz {
         
         if (this->current_tok.type != TokenType::RBRACKET) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ']' in array literal", this->current_tok.pos));
+                "QC-S045: Expected ']' in array literal", this->current_tok.pos));
             return res.to_prs();
         }
         
@@ -1617,7 +1647,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::COLON) {
                         res2.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ':' in map literal", this->current_tok.pos));
+                            "QC-S046: Expected ':' in map literal", this->current_tok.pos));
                         return res2.to_prs();
                     }
                     this->advance();
@@ -1630,7 +1660,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::RBRACE) {
                     res2.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '}' at end of map literal", this->current_tok.pos));
+                        "QC-S047: Expected '}' at end of map literal", this->current_tok.pos));
                     return res2.to_prs();
                 }
                 this->advance();
@@ -1650,7 +1680,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::RBRACE) {
                     res2.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '}' in initializer list", this->current_tok.pos));
+                        "QC-S048: Expected '}' in initializer list", this->current_tok.pos));
                     return res2.to_prs();
                 }
                 this->advance();
@@ -1719,7 +1749,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected identifier after '::'", this->current_tok.pos));
+                        "QC-N001: Expected identifier or namespace name after '::'", this->current_tok.pos));
                     return res.to_prs();
                 }
 
@@ -1750,7 +1780,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ']'", this->current_tok.pos));
+                            "QC-S049: Expected ']'", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -1799,7 +1829,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::RPAREN) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ')' after function arguments",
+                            "QC-S044: Expected ')' after function arguments",
                             this->current_tok.pos));
                         return res.to_prs();
                     }
@@ -1820,7 +1850,7 @@ namespace tkz {
                         if (res.error) return res.to_prs();
                         if (this->current_tok.type != TokenType::RBRACKET) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected ']'", this->current_tok.pos));
+                                "QC-S049: Expected ']'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3723,7 +3753,7 @@ namespace tkz {
                 this->advance();
                 if (this->current_tok.type != TokenType::RBRACKET) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ']'", this->current_tok.pos));
+                        "QC-S049: Expected ']'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -3833,7 +3863,7 @@ namespace tkz {
                 }
                 
                 if (this->current_tok.type != TokenType::RBRACKET) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected ']'", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S049: Expected ']'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -4251,7 +4281,7 @@ namespace tkz {
 
                 this->errors.push_back({RTError(
                     "eval() on class '" + className + "' must return bool",
-                    Position()),
+                    get_pos(result)),
                     "Error"});
                 return false;
             }
@@ -4341,7 +4371,7 @@ namespace tkz {
             auto sym_it = it->find(qualify(name));
             if (sym_it != it->end()) {
                 if (sym_it->second.is_const) {
-                    throw RTError("Cannot assign to const variable '" + name + "'", pos);
+                    throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", pos);
                 }
                 
                 std::string expected = sym_it->second.declared_type;
@@ -4388,7 +4418,7 @@ namespace tkz {
                     
                     if (!ok) {
                         throw RTError(
-                            "Type mismatch: value of type " + actual +
+                            "QC-T004: Type mismatch: value of type " + actual +
                             " is not assignable to union type '" + expected + "'",
                             pos
                         );
@@ -4404,7 +4434,7 @@ namespace tkz {
                 };
                 
                 if (get_base(expected) != get_base(actual) && expected != actual) {
-                    throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
+                    throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
                 }
                 
                 sym_it->second.value = std::move(new_val);
@@ -4417,7 +4447,7 @@ namespace tkz {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
                     if (sym_it->second.is_const) {
-                        throw RTError("Cannot assign to const variable '" + name + "'", pos);
+                        throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", pos);
                     }
                     
                     std::string expected = sym_it->second.declared_type;
@@ -4464,7 +4494,7 @@ namespace tkz {
                         
                         if (!ok) {
                             throw RTError(
-                                "Type mismatch: value of type " + actual +
+                                "QC-T004: Type mismatch: value of type " + actual +
                                 " is not assignable to union type '" + expected + "'",
                                 pos
                             );
@@ -4480,7 +4510,7 @@ namespace tkz {
                     };
                     
                     if (get_base(expected) != get_base(actual) && expected != actual) {
-                        throw RTError("Type mismatch: cannot assign " + actual + " to " + expected, pos);
+                        throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
                     }
                     
                     sym_it->second.value = std::move(new_val);
@@ -4489,7 +4519,7 @@ namespace tkz {
             }
         }
         
-        throw RTError("Undefined variable: '" + name + "'", pos);
+        throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
     }
     NumberVariant def_value_for_type(const std::string& type_name) {
         if (type_name == "int") return Number<int>(0);
@@ -4545,7 +4575,7 @@ namespace tkz {
 
                 this->errors.push_back({RTError(
                     "repr() on class '" + className + "' must return string",
-                    Position()),
+                    get_pos(result)),
                     "Error"});
                 return v->print();
             }
@@ -4818,7 +4848,7 @@ namespace tkz {
 
                 if (expectedKey != actualKey || expectedValue != actualValue) {
                     this->errors.push_back({RTError(
-                        "Type mismatch for map field '" + field.name +
+                        "QC-T010: Type mismatch for map field '" + field.name +
                         "': expected " + field.type +
                         ", got map<" + actualKey + "," + actualValue + ">",
                         {}
@@ -4959,7 +4989,7 @@ namespace tkz {
 
                             if (expectedKeyType != actualKeyType || expectedValType != actualValType) {
                                 this->errors.push_back({RTError(
-                                    "Type mismatch for map field '" + field.name +
+                                    "QC-T010: Type mismatch for map field '" + field.name +
                                     "': expected " + field.type +
                                     ", got map<" + actualKeyType + "," + actualValType + ">",
                                     node->var_name_tok.pos
@@ -4999,7 +5029,7 @@ namespace tkz {
 
                 if (!ok) {
                     this->errors.push_back({RTError(
-                        "Type mismatch: value of type " + valType +
+                        "QC-T004: Type mismatch: value of type " + valType +
                         " is not assignable to union type '" + node->type_tok.value + "'",
                         Position()
                     ), "Error"});
@@ -5063,7 +5093,7 @@ namespace tkz {
             }
             if (!type_matches) {
                 this->errors.push_back({RTError(
-                    "Type mismatch: expected " + declaredType + ", got " + actualType,
+                    "QC-T003: Type mismatch: expected " + declaredType + ", got " + actualType,
                     node->var_name_tok.pos
                 ), "Error"});
             }
@@ -5270,7 +5300,7 @@ namespace tkz {
             return ExecResult{std::move(last), false, false};
         }
         
-        this->errors.push_back({RTError("qswitch requires a qbool", Position()), "Severe"});
+        this->errors.push_back({RTError("qswitch requires a qbool", get_pos(val)), "Severe"});
         return {};
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode>& node) {
@@ -5442,7 +5472,7 @@ namespace tkz {
 
             for (auto& lbl : sec.cases) {
                 NumberVariant case_val = this->process(lbl.expr);
-                if (values_equal(switch_val, case_val, Position())) {
+                if (values_equal(switch_val, case_val, get_pos(case_val))) {
                     start_index = i;
                     break;
                 }
@@ -5508,13 +5538,13 @@ namespace tkz {
 
         NumberVariant target_val;
         std::string func_name = "<anonymous>";
-
+        std::vector<NumberVariant> final_args;
         if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
             auto& varacc = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
             func_name = varacc->var_name_tok.value;
             if (func_name == "throw") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("throw() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: throw() requires exactly 1 argument", get_pos(target_val)), "Error"});
                 }
                 
                 NumberVariant value = this->process(node->arg_nodes.front());
@@ -5525,7 +5555,7 @@ namespace tkz {
                         return v.print();
                     }
                 }, value);
-                throw RTError(msg, Position());
+                throw RTError(msg, get_pos(value));
             }
             if (func_name == "print" || func_name == "println") {
                 for (auto& arg : node->arg_nodes)
@@ -5551,7 +5581,7 @@ namespace tkz {
                         int r = rand() % max_num->value;
                         return Number<int>(r);
                     }
-                    this->errors.push_back({RTError("random(max) requires integer argument",  Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B002: random(max) requires integer argument",  get_pos(args[0])), "Error"});
                 }
                 else if (args.size() == 2) {
                     if (auto min_num = std::get_if<Number<int>>(&args[0])) {
@@ -5561,14 +5591,14 @@ namespace tkz {
                             return Number<int>(r);
                         }
                     }
-                    this->errors.push_back({RTError("random(min, max) requires integer arguments", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B002: random(min, max) requires integer arguments", get_pos(args[1])), "Error"});
                 }
                 
-                this->errors.push_back({RTError("random() takes 0, 1, or 2 arguments", Position()), "Error"});
+                this->errors.push_back({RTError("QC-B001: random() takes 0, 1, or 2 arguments", get_pos(args[2])), "Error"});
             }
             if (func_name == "time") {
                 if (node->arg_nodes.size() != 0) {
-                    this->errors.push_back({RTError("time() takes no arguments", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: time() takes no arguments", Position()), "Error"});
                 }
                 
                 return Number<int>(static_cast<int>(time(nullptr)));
@@ -5576,7 +5606,7 @@ namespace tkz {
             if (func_name == "seed") {
                 
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("seed() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: seed() requires exactly 1 argument", Position()), "Error"});
                 }
                 
                 NumberVariant seed_val = this->process(node->arg_nodes.front());
@@ -5587,12 +5617,12 @@ namespace tkz {
                     return VoidValue();
                 }
                 
-                this->errors.push_back({RTError("seed() requires integer argument",  Position()), "Error"});
+                this->errors.push_back({RTError("QC-B002: seed() requires integer argument",  get_pos(seed_val)), "Error"});
             }
             if (func_name == "typeof") {
                 
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("typeof() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: typeof() requires exactly 1 argument", Position()), "Error"});
                 }
                 
                 NumberVariant value = this->process(node->arg_nodes.front());
@@ -5601,7 +5631,7 @@ namespace tkz {
             }
             if (func_name == "to_qbool") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_qbool() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_qbool() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5616,20 +5646,20 @@ namespace tkz {
                         return QBoolValue(sv->value).set_pos(sv->pos);
                     }
                     this->errors.push_back({RTError(
-                        "to_qbool() requires string argument to be qtrue qfalse both or none.",
+                        "QC-B002: to_qbool() requires string argument to be qtrue qfalse both or none.",
                         sv->pos),
                         "Error"});
                 } else {
                     this->errors.push_back({RTError(
-                        "to_qbool() requires string or boolean argument",
-                        Position()),
+                        "QC-B002: to_qbool() requires string or boolean argument",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
 
             if (func_name == "to_bool") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_bool() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_bool() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5643,20 +5673,20 @@ namespace tkz {
                         return BoolValue(sv->value).set_pos(sv->pos);
                     }
                     this->errors.push_back({RTError(
-                        "to_bool() requires string argument to be true or false.",
+                        "QC-B002: to_bool() requires string argument to be true or false.",
                         sv->pos),
                         "Error"});
                 } else {
                     this->errors.push_back({RTError(
-                        "to_bool() requires string or quantum boolean argument",
-                        Position()),
+                        "QC-B002: to_bool() requires string or quantum boolean argument",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
 
             if (func_name == "to_int") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_int() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_int() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5672,7 +5702,7 @@ namespace tkz {
                         return Number<int>(std::stoi(sv->value)).set_pos(sv->pos);
                     } catch (...) {
                         this->errors.push_back({RTError(
-                            "could not convert value to int.",
+                            "QC-B002: could not convert value to int.",
                             sv->pos),
                             "Error"});
                     }
@@ -5682,22 +5712,22 @@ namespace tkz {
                     else if (qbv->valname == "qfalse") val = 1;
                     else if (qbv->valname == "qtrue")  val = 2;
                     else if (qbv->valname == "both")   val = 3;
-                    else throw RTError("What the heck is that", qbv->pos);
+                    else throw RTError("QC-WHAT: What the heck is that", qbv->pos);
 
                     return Number<int>(val).set_pos(qbv->pos);
                 } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
                     return Number<int>(bv->value ? 1 : 0).set_pos(bv->pos);
                 } else {
                     this->errors.push_back({RTError(
-                        "to_int() cannot take that argument type.",
-                        Position()),
+                        "QC-B002: to_int() cannot take that argument type.",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
 
             if (func_name == "to_float") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_float() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_float() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5713,21 +5743,21 @@ namespace tkz {
                         return Number<float>(std::stof(sv->value)).set_pos(sv->pos);
                     } catch (...) {
                         this->errors.push_back({RTError(
-                            "could not convert value to float.",
+                            "QC-B002: could not convert value to float.",
                             sv->pos),
                             "Error"});
                     }
                 } else {
                     this->errors.push_back({RTError(
-                        "to_float() cannot take that argument type.",
-                        Position()),
+                        "QC-B002: to_float() cannot take that argument type.",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
 
             if (func_name == "to_double") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_double() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_double() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5743,21 +5773,21 @@ namespace tkz {
                         return Number<double>(std::stod(sv->value)).set_pos(sv->pos);
                     } catch (...) {
                         this->errors.push_back({RTError(
-                            "could not convert value to double.",
+                            "QC-B002: could not convert value to double.",
                             sv->pos),
                             "Error"});
                     }
                 } else {
                     this->errors.push_back({RTError(
-                        "to_double() cannot take that argument type.",
-                        Position()),
+                        "QC-B002: to_double() cannot take that argument type.",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
 
             if (func_name == "to_char") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_char() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_char() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5767,21 +5797,21 @@ namespace tkz {
                         return CharValue(std::string(1, sv->value[0])).set_pos(sv->pos);
                     }
                     this->errors.push_back({RTError(
-                        "to_char() cannot take empty string.",
+                        "QC-B002: to_char() cannot take empty string.",
                         sv->pos),
                         "Error"});
                 } else if (auto cv = std::get_if<CharValue>(&cur_val)) {
                     return *cv;
                 } else {
                     this->errors.push_back({RTError(
-                        "to_char() cannot take that argument type.",
-                        Position()),
+                        "QC-B002: to_char() cannot take that argument type.",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
             if (func_name == "to_string") {
                 if (node->arg_nodes.size() != 1) {
-                    this->errors.push_back({RTError("to_string() requires exactly 1 argument", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-B001: to_string() requires exactly 1 argument", Position()), "Error"});
                 }
 
                 NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -5800,8 +5830,8 @@ namespace tkz {
                     return StringValue(bv->value ? "true" : "false").set_pos(bv->pos);
                 } else {
                     this->errors.push_back({RTError(
-                        "to_string() cannot take that argument type.",
-                        Position()),
+                        "QC-B002: to_string() cannot take that argument type.",
+                        get_pos(cur_val)),
                         "Error"});
                 }
             }
@@ -5813,7 +5843,7 @@ namespace tkz {
                 bool inside_constructor = false;
                 std::shared_ptr<InstanceValue> existing_inst = nullptr;
                 if (info.is_abstract_class) {
-                    errors.push_back({RTError("Cannot construct abstract class", Position()), "Error"});
+                    errors.push_back({RTError("QC-B002: Cannot construct abstract class", Position()), "Error"});
                     return VoidValue();
                 }
                 try {
@@ -5850,7 +5880,7 @@ namespace tkz {
                                 } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
                                     for (auto& e : (*lst)->elements) final_args.push_back(e);
                                 } else {
-                                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                                    this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(sv)), "Error"});
                                 }
                             } else {
                                 final_args.push_back(this->process(arg));
@@ -5860,7 +5890,7 @@ namespace tkz {
 
                         if (final_args.size() > ctor->params.size()) {
                             context->pop_scope();
-                            this->errors.push_back({RTError("Too many arguments to parent constructor '" + func_name + "'", Position()), "Error"});
+                            this->errors.push_back({RTError("QC-C002: Too many arguments to parent constructor '" + func_name + "'", Position()), "Error"});
                             return VoidValue();
                         }
 
@@ -5875,7 +5905,7 @@ namespace tkz {
                                 value = this->process(it_param->default_value.value());
                             } else {
                                 context->pop_scope();
-                                this->errors.push_back({RTError("Missing argument to parent constructor '" + func_name + "'", Position()), "Error"});
+                                this->errors.push_back({RTError("QC-C004: Missing argument to parent constructor '" + func_name + "'", get_pos(value)), "Error"});
                                 return VoidValue();
                             }
                             context->define(it_param->name.value, it_param->type.value, value);
@@ -5895,7 +5925,6 @@ namespace tkz {
                 }
                 auto fields = make_instance_fields(func_name);
                 auto inst = std::make_shared<InstanceValue>(func_name, std::move(fields));
-
                 ClassMethodInfo* ctor = nullptr;
                 for (auto& m : info.classMethods) {
                     if (m.is_constructor) {
@@ -5903,12 +5932,15 @@ namespace tkz {
                         break;
                     }
                 }
-
+                ClassMethodInfo* init_m = this->find_method_on_class(func_name, "init");
                 if (!ctor) {
+                    if (init_m) {
+                        this->call_instance_method(inst, init_m, {}, Position{});
+                    }
                     return inst;
                 }
 
-                std::vector<NumberVariant> final_args;
+                final_args.clear();
                 for (auto& arg : node->arg_nodes) {
                     if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
                         NumberVariant sv = this->process((*spread)->expr);
@@ -5917,7 +5949,7 @@ namespace tkz {
                         } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
                             for (auto& e : (*lst)->elements) final_args.push_back(e);
                         } else {
-                            this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                            this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(sv)), "Error"});
                         }
                     } else {
                         final_args.push_back(this->process(arg));
@@ -5929,7 +5961,7 @@ namespace tkz {
 
                 if (final_args.size() > ctor->params.size()) {
                     context->pop_scope();
-                    this->errors.push_back({RTError("Too many arguments to constructor '" + func_name + "'", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-C002: Too many arguments to constructor '" + func_name + "'", Position()), "Error"});
                     return inst;
                 }
 
@@ -5944,7 +5976,7 @@ namespace tkz {
                         value = this->process(it_param->default_value.value());
                     } else {
                         context->pop_scope();
-                        this->errors.push_back({RTError("Missing argument to constructor '" + func_name + "'", Position()), "Error"});
+                        this->errors.push_back({RTError("QC-C004: Missing argument to constructor '" + func_name + "'", get_pos(value)), "Error"});
                         return inst;
                     }
                     context->define(it_param->name.value, it_param->type.value, value);
@@ -5989,7 +6021,7 @@ namespace tkz {
         if (!fval.func) this->errors.push_back({RTError("Invalid function value", Position()), "Error"});
 
         auto func = fval.func;
-        std::vector<NumberVariant> final_args;
+        final_args.clear();
 
         for (auto& arg : node->arg_nodes) {
 
@@ -6005,7 +6037,7 @@ namespace tkz {
                         final_args.push_back(elem);
                 }
                 else {
-                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(spread_val)), "Error"});
                 }
             }
             else {
@@ -6041,7 +6073,7 @@ namespace tkz {
                 if (changed_namespace) {
                     context->namespaceStack = saved_namespace_stack;
                 }
-                this->errors.push_back({RTError("Too many arguments", Position()), "Error"});
+                this->errors.push_back({RTError("QC-C001: Too many arguments", Position()), "Error"});
             }
             for (size_t i = 0; i < func->params.size(); i++) {
                 NumberVariant value;
@@ -6054,7 +6086,7 @@ namespace tkz {
                 else if (it_param->default_value.has_value()) {
                     value = this->process(it_param->default_value.value());
                 }
-                else this->errors.push_back({RTError("Missing argument", Position()), "Error"});
+                else this->errors.push_back({RTError("QC-C003: Missing argument", Position()), "Error"});
 
                 
                 std::string expected_type = it_param->type.value;
@@ -6070,7 +6102,30 @@ namespace tkz {
                     if (expected_type == actual_type) {
                         types_compatible = true;
                     } else {
-                        auto ut_it = context->user_types.find(expected_type);
+                        std::string lookup_type = expected_type;
+                        auto ut_it = context->user_types.find(lookup_type);
+                        if (ut_it == context->user_types.end()) {
+                            size_t last_colon = lookup_type.rfind("::");
+                            if (last_colon == std::string::npos && !context->namespaceStack.empty()) {
+                                std::string qualified;
+                                for (auto& ns : context->namespaceStack) {
+                                    if (!qualified.empty()) qualified += "::";
+                                    qualified += ns;
+                                }
+                                lookup_type = qualified + "::" + expected_type;
+                                ut_it = context->user_types.find(lookup_type);
+                            }
+                        }
+                        if (ut_it == context->user_types.end()) {
+                            for (auto& [type_name, info] : context->user_types) {
+                                if (type_name == expected_type ||
+                                    type_name.rfind("::" + expected_type) != std::string::npos) {
+                                    ut_it = context->user_types.find(type_name);
+                                    break;
+                                }
+                            }
+                        }
+
                         if (ut_it != context->user_types.end() &&
                             ut_it->second.kind == UserTypeKind::Union) {
 
@@ -6087,16 +6142,16 @@ namespace tkz {
 
                             if (!ok) {
                                 this->errors.push_back({RTError(
-                                    "Type mismatch: value of type " + valType +
+                                    "QC-T004: Type mismatch: value of type " + valType +
                                     " is not assignable to union type '" + expected_type + "'",
                                     Position()
                                 ), "Error"});
                             }
 
                             actual_type = expected_type;
+                            types_compatible = true;
                         }
                     }
-
                     if (!types_compatible) {
                         if (expected_type.find("list<") != std::string::npos && actual_type.find("list<") != std::string::npos) {
                             std::string expected_base = expected_type;
@@ -6287,7 +6342,7 @@ namespace tkz {
                     return sym_it->second.value;
                 }
             }
-            throw RTError("Undefined variable: '" + name + "'", node->var_name_tok.pos);
+            throw RTError("QC-C001: Undefined variable: '" + name + "'", node->var_name_tok.pos);
         }
         
         auto result = context->get(name, node->var_name_tok.pos);
@@ -6364,7 +6419,7 @@ namespace tkz {
         if (args.size() > method->params.size()) {
             context->pop_scope();
             this->errors.push_back({RTError(
-                "Too many arguments to method '" + mname + "'",
+                "QC-C002: Too many arguments to method '" + mname + "'",
                 pos),
                 "Error"});
             return VoidValue{};
@@ -6382,7 +6437,7 @@ namespace tkz {
             } else {
                 context->pop_scope();
                 this->errors.push_back({RTError(
-                    "Missing argument " + it_param->name.value +
+                    "QC-C004: Missing argument " + it_param->name.value +
                     " for method '" + mname + "'",
                     pos),
                     "Error"});
@@ -6770,6 +6825,21 @@ namespace tkz {
                     }
                 }
             }
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                std::string mname = "operator&|&";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ left },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
             auto l_qb = std::get_if<QBoolValue>(&left);
             auto r_qb = std::get_if<QBoolValue>(&right);
             
@@ -6793,6 +6863,21 @@ namespace tkz {
                             *inst_ptr,
                             method,
                             std::vector<NumberVariant>{ right },
+                            node->op_tok.pos
+                        );
+                        return result;
+                    }
+                }
+            }
+            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                std::string mname = "operator|&|";
+                if (!mname.empty()) {
+                    ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                    if (method) {
+                        NumberVariant result = call_instance_method(
+                            *inst_ptr,
+                            method,
+                            std::vector<NumberVariant>{ left },
                             node->op_tok.pos
                         );
                         return result;
@@ -6826,12 +6911,27 @@ namespace tkz {
                 }
             }
         }
+        if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+            std::string mname = op_method_name(node->op_tok.type);
+            if (!mname.empty()) {
+                ClassMethodInfo* method = find_method_on_class((*inst_ptr)->class_name, mname);
+                if (method) {
+                    NumberVariant result = call_instance_method(
+                        *inst_ptr,
+                        method,
+                        std::vector<NumberVariant>{ left },
+                        node->op_tok.pos
+                    );
+                    return result;
+                }
+            }
+        }
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
 
             if (node->is_f) {
-                auto to_string_variant = [](auto const& v) -> std::string {
+                auto to_string_variant = [this](auto const& v) -> std::string {
                     using T = std::decay_t<decltype(v)>;
 
                     if constexpr (std::is_same_v<T, Number<int>> ||
@@ -6850,9 +6950,34 @@ namespace tkz {
                         return "<void>";
                     } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
                                         std::is_same_v<T, std::shared_ptr<ListValue>> ||
-                                        std::is_same_v<T, std::shared_ptr<MultiValue>> ||
-                                        std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
+                                        std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                         return v ? v->print() : "<null>";
+                    } else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
+                        auto inst = v;
+                        const std::string& className = inst->class_name;
+                        ClassMethodInfo* method = find_method_on_class(className, "repr");
+                        if (!method) {
+                            this->errors.push_back({RTError(
+                                "Instance of '" + className +
+                                "' printed, but missing repr function: calling base print.", Position()),
+                                "Warning"});
+                            return v->print();
+                        }
+                        NumberVariant result = call_instance_method(
+                            inst,
+                            method,
+                            {},
+                            Position()
+                        );
+                        if (auto s = std::get_if<StringValue>(&result)) {
+                            return s->value;
+                        }
+
+                        this->errors.push_back({RTError(
+                            "repr() on class '" + className + "' must return string",
+                            Position()),
+                            "Error"});
+                        return v->print();
                     } else {
                         return "<unknown>";
                     }
@@ -6989,7 +7114,7 @@ namespace tkz {
                 auto sym_it = it->find(name);
                 if (sym_it != it->end()) {
                     if (sym_it->second.is_const) {
-                        throw RTError("Cannot assign to const variable '" + name + "'", node->var_name.pos);
+                        throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", node->var_name.pos);
                     }
                     if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&sym_it->second.value)) {
                         std::cerr << "AssignExprNode found class wiht qualification" << '\n';
@@ -7063,7 +7188,7 @@ namespace tkz {
                         
                         if (!ok) {
                             throw RTError(
-                                "Type mismatch: value of type " + actual_type +
+                                "QC-T004: Type mismatch: value of type " + actual_type +
                                 " is not assignable to union type '" + declared_type + "'",
                                 node->var_name.pos
                             );
@@ -7081,7 +7206,7 @@ namespace tkz {
                     if (get_base(declared_type) != get_base(actual_type) && 
                         declared_type != actual_type) {
                         throw RTError(
-                            "Type mismatch: cannot assign " + actual_type + " to " + declared_type,
+                            "QC-T003: Type mismatch: cannot assign " + actual_type + " to " + declared_type,
                             node->var_name.pos
                         );
                     } // Need to make operrator = work
@@ -7090,7 +7215,7 @@ namespace tkz {
                     return value;
                 }
             }
-            throw RTError("Undefined variable: '" + name + "'", node->var_name.pos);
+            throw RTError("QC-C001: Undefined variable: '" + name + "'", node->var_name.pos);
         }
         try {
             NumberVariant existing = context->get(name, node->var_name.pos);
@@ -7551,7 +7676,7 @@ namespace tkz {
         bool is_list  = std::holds_alternative<std::shared_ptr<ListValue>>(base_value);
 
         if (!is_array && !is_list)
-            this->errors.push_back({RTError("Cannot index non-array/list type", Position()), "Error"});
+            this->errors.push_back({RTError("QC-I003: Cannot index non-array/list type", Position()), "Error"});
 
         std::shared_ptr<ArrayValue> current_array;
         std::shared_ptr<ListValue>  current_list;
@@ -7572,7 +7697,7 @@ namespace tkz {
 
             if (current_array) {
                 if (index < 0 || (size_t)index >= current_array->size())
-                    throw RTError("Array index out of bounds: " + std::to_string(index), Position());
+                    throw RTError("QC-I001: Array index out of bounds: " + std::to_string(index), Position());
                 NumberVariant next = current_array->elements[index];
 
                 if (dim == node->indices.size() - 1)
@@ -7585,11 +7710,11 @@ namespace tkz {
                     current_list = *next_list;
                     current_array.reset();
                 } else {
-                    this->errors.push_back({RTError("Cannot index inside non-array/list", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-I003: Cannot index inside non-array/list", Position()), "Error"});
                 }
             } else if (current_list) {
                 if (index < 0 || (size_t)index >= current_list->elements.size())
-                    throw RTError("List index out of bounds: " + std::to_string(index), Position());
+                    throw RTError("QC-I002: List index out of bounds: " + std::to_string(index), Position());
                 NumberVariant next = current_list->elements[index];
 
                 if (dim == node->indices.size() - 1)
@@ -7602,7 +7727,7 @@ namespace tkz {
                     current_list = *next_list;
                     current_array.reset();
                 } else {
-                    this->errors.push_back({RTError("Cannot index inside non-array/list", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-I003: Cannot index inside non-array/list", Position()), "Error"});
                 }
             } else {
                 this->errors.push_back({RTError("Internal error: lost array/list during indexing", Position()), "Error"});
@@ -7655,7 +7780,7 @@ namespace tkz {
                         final_args.push_back(elem);
                 }
                 else {
-                    this->errors.push_back({RTError("Spread target must be array or list", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-I005: Spread target must be array or list", Position()), "Error"});
                 }
             }
             else {
@@ -7669,7 +7794,7 @@ namespace tkz {
             if (mname == "has") {
                 if (node->args.size() != 1) {
                     this->errors.push_back({RTError(
-                        "class.has() expects 1 argument (field name)", node->method_name.pos),
+                        "QC-BM01: class.has() expects 1 argument (field name)", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7677,7 +7802,7 @@ namespace tkz {
                 NumberVariant arg = this->process(node->args[0]);
                 if (!std::holds_alternative<StringValue>(arg)) {
                     this->errors.push_back({RTError(
-                        "class.has() argument must be a string", node->method_name.pos),
+                        "QC-BM02: class.has() argument must be a string", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7690,7 +7815,7 @@ namespace tkz {
             if (mname == "has_method") {
                 if (node->args.size() != 1) {
                     this->errors.push_back({RTError(
-                        "class.has_method() expects 1 argument (method name)", node->method_name.pos),
+                        "QC-BM01: class.has_method() expects 1 argument (method name)", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7698,7 +7823,7 @@ namespace tkz {
                 NumberVariant arg = this->process(node->args[0]);
                 if (!std::holds_alternative<StringValue>(arg)) {
                     this->errors.push_back({RTError(
-                        "class.has_method() argument must be a string", node->method_name.pos),
+                        "QC-BM02: class.has_method() argument must be a string", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7721,7 +7846,7 @@ namespace tkz {
             ClassMethodInfo* method = find_method_on_class(className, mname);
             if (!method) {
                 this->errors.push_back({RTError(
-                    "Class '" + className + "' has no method '" + mname + "'",
+                    "QC-M001: Class '" + className + "' has no method '" + mname + "'",
                     node->method_name.pos),
                     "Error"});
                 return VoidValue{};
@@ -7732,7 +7857,7 @@ namespace tkz {
             if (node->method_name.value == "has") {
                 if (node->args.size() != 1) {
                     this->errors.push_back({RTError(
-                        "struct.has() expects 1 argument (field name)", node->method_name.pos),
+                        "QC-BM01: struct.has() expects 1 argument (field name)", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7740,7 +7865,7 @@ namespace tkz {
                 NumberVariant arg = this->process(node->args[0]);
                 if (!std::holds_alternative<StringValue>(arg)) {
                     this->errors.push_back({RTError(
-                        "struct.has() argument must be a string", node->method_name.pos),
+                        "QC-BM02: struct.has() argument must be a string", node->method_name.pos),
                         "Error"});
                     return BoolValue("false");
                 }
@@ -7755,14 +7880,14 @@ namespace tkz {
             
             if (node->method_name.value == "push") {
                 if (node->args.size() != 1) {
-                    this->errors.push_back({RTError("push() requires exactly 1 argument", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: push() requires exactly 1 argument", node->method_name.pos), "Error"});
                 }
                 NumberVariant val = final_args[0];
                 std::string name = context->get_type_name(val);
                 if (name.find(strip(list->element_type)) == std::string::npos && !loose) {
-                    this->errors.push_back({RTError("cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM02: cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
                 } else if (name != strip(list->element_type) && name.find("list<") == std::string::npos && name.find("[]") == std::string::npos) {
-                    this->errors.push_back({RTError("(loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM02: (loose) cannot push a " + name + " to a list of type " + list->element_type, node->method_name.pos), "Error"});
                 }
                 list->push(std::move(val));
                 return VoidValue();
@@ -7770,19 +7895,19 @@ namespace tkz {
             
             if (node->method_name.value == "pop") {
                 if (node->args.size() != 0) {
-                    this->errors.push_back({RTError("pop() takes no arguments", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: pop() takes no arguments", node->method_name.pos), "Error"});
                 }
                 return list->pop();
             }
             
-            this->errors.push_back({RTError("Unknown method: " + node->method_name.value, node->method_name.pos), "Error"});
+            this->errors.push_back({RTError("QC-M001: Unknown method: " + node->method_name.value, node->method_name.pos), "Error"});
         }
         if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
             auto map = *map_ptr;
             
             if (node->method_name.value == "set") {
                 if (node->args.size() != 2) {
-                    this->errors.push_back({RTError("set() requires 2 arguments (key, value)", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: set() requires 2 arguments (key, value)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 NumberVariant val = this->process(node->args[1]);
@@ -7794,7 +7919,7 @@ namespace tkz {
             
             if (node->method_name.value == "remove") {
                 if (node->args.size() != 1) {
-                    this->errors.push_back({RTError("remove() requires 1 argument (key)", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: remove() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 std::string key_str = this->value_to_string(key);
@@ -7805,7 +7930,7 @@ namespace tkz {
             
             if (node->method_name.value == "has") {
                 if (node->args.size() != 1) {
-                    this->errors.push_back({RTError("has() requires 1 argument (key)", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: has() requires 1 argument (key)", node->method_name.pos), "Error"});
                 }
                 NumberVariant key = this->process(node->args[0]);
                 std::string key_str = this->value_to_string(key);
@@ -7815,7 +7940,7 @@ namespace tkz {
             
             if (node->method_name.value == "keys") {
                 if (node->args.size() != 0) {
-                    this->errors.push_back({RTError("keys() takes no arguments", node->method_name.pos), "Error"});
+                    this->errors.push_back({RTError("QC-BM01: keys() takes no arguments", node->method_name.pos), "Error"});
                 }
                 
                 auto keys = map->keys();
@@ -7827,9 +7952,9 @@ namespace tkz {
                 return std::make_shared<ArrayValue>("string", std::move(key_variants));
             }
             
-            this->errors.push_back({RTError("Unknown map method: " + node->method_name.value, node->method_name.pos), "Error"});
+            this->errors.push_back({RTError("QC-BM04: Unknown map method: " + node->method_name.value, node->method_name.pos), "Error"});
         }
-        this->errors.push_back({RTError("Object does not support methods", node->method_name.pos), "Error"});
+        this->errors.push_back({RTError("QC-BM05: Object does not support methods", node->method_name.pos), "Error"});
         return VoidValue();
     }
     NumberVariant make_value_from_type_atom(const std::string& atom) {
@@ -7916,7 +8041,7 @@ namespace tkz {
                         }
                     }
                     this->errors.push_back({RTError(
-                        "Enum '" + baseName + "' has no member '" + memberName + "'",
+                        "QC-F001: Enum '" + baseName + "' has no member '" + memberName + "'",
                         node->property_name.pos
                     ), "Error"});
                 }
@@ -7930,7 +8055,7 @@ namespace tkz {
             if (auto s = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
                 auto it = (*s)->fields.find(name);
                 if (it == (*s)->fields.end()) {
-                    this->errors.push_back({RTError("Unknown field '" + name + "' on struct '" + (*s)->type_name + "'",
+                    this->errors.push_back({RTError("QC-F001: Unknown field '" + name + "' on struct '" + (*s)->type_name + "'",
                                 node->property_name.pos), "Error"});
                 }
                 obj = it->second;
@@ -7949,7 +8074,7 @@ namespace tkz {
                         if (fields[i].name == name) { idx = i; break; }
                     }
                     if (idx == SIZE_MAX) {
-                        this->errors.push_back({RTError("Unknown field '" + name + "' on struct '" + struct_type + "'",
+                        this->errors.push_back({RTError("QC-F001: Unknown field '" + name + "' on struct '" + struct_type + "'",
                                     node->property_name.pos), "Error"});
                     }
                     obj = (*arr)->elements[idx];
@@ -7971,7 +8096,7 @@ namespace tkz {
 
                 if (!field_exists_on_class(className, name)) {
                     this->errors.push_back({RTError(
-                        "Unknown field '" + name + "' on class '" + className + "'",
+                        "QC-F001: Unknown field '" + name + "' on class '" + className + "'",
                         node->property_name.pos),
                         "Error"});
                     return VoidValue{};
@@ -7980,7 +8105,7 @@ namespace tkz {
                 auto it = (*inst)->fields.find(name);
                 if (it == (*inst)->fields.end()) {
                     this->errors.push_back({RTError(
-                        "Internal error: field '" + name + "' missing on instance of '" + className + "'",
+                        "QC-X001: Internal error: field '" + name + "' missing on instance of '" + className + "'",
                         node->property_name.pos),
                         "Severe"});
                     return VoidValue{};
@@ -8003,7 +8128,7 @@ namespace tkz {
                     if (access == "private") {
                         if (!in_class_context(className)) {
                             this->errors.push_back({RTError(
-                                "Field '" + name + "' of class '" + className +
+                                "QC-A001: Field '" + name + "' of class '" + className +
                                 "' is " + access + " and cannot be accessed here",
                                 node->property_name.pos),
                                 "Error"});
@@ -8013,7 +8138,7 @@ namespace tkz {
                     if (access == "protected") {
                         if (!in_class_or_derived_context(className)) {
                             this->errors.push_back({RTError(
-                                "Field '" + name + "' of class '" + className +
+                                "QC-A001: Field '" + name + "' of class '" + className +
                                 "' is " + access + " and cannot be accessed here",
                                 node->property_name.pos),
                                 "Error"});
@@ -8025,7 +8150,7 @@ namespace tkz {
                 obj = it->second;
                 break;
             }
-            this->errors.push_back({RTError("Unknown property: " + name, node->property_name.pos), "Error"});
+            this->errors.push_back({RTError("QC-F002: Unknown property: " + name, node->property_name.pos), "Error"});
         }
 
         return obj;
@@ -8105,7 +8230,7 @@ namespace tkz {
             }
             
             if (flat_index < 0 || flat_index >= arr->elements.size()) {
-                this->errors.push_back({RTError("Array index out of bounds", Position()), "Error"});
+                this->errors.push_back({RTError("QC-I001: Array index out of bounds", Position()), "Error"});
             }
             
             arr->elements[flat_index] = std::move(val);
@@ -8125,7 +8250,7 @@ namespace tkz {
                 int idx = idx_num->value;
                 
                 if (idx < 0 || idx >= list->elements.size()) {
-                    this->errors.push_back({RTError("List index out of bounds", Position()), "Error"});
+                    this->errors.push_back({RTError("QC-I002: List index out of bounds", Position()), "Error"});
                 }
                 
                 list->elements[idx] = std::move(val);

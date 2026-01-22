@@ -10,7 +10,7 @@
 NAMESPCACES!!!!!!!!!!
 # Features checklist (suitable for change(by adding more))
 
-- [ ] User Types (
+- [x] User Types (
     - [x] Structs
     - [x] Enums
     - [x] Unions

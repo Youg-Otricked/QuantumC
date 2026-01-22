@@ -81,3 +81,42 @@ namespace Utils {
         return [@fin];
     }
 }
+namespace Math {
+    type Number = int | float | double;
+    Number max(Number a, Number b) {
+        if (a > b) {
+            return a;
+        }
+        if (a == b) {
+            return 0;
+        }
+        return b;
+    }
+    Number min(Number a, Number b) {
+        if (a > b) {
+            return b;
+        }
+        if (a == b) {
+            return 0;
+        }
+        return a;
+    }
+    Number sqrt(Number val) {
+        return to_double(val) ** 0.5;
+    }
+    Number root(Number val, Number power) {
+        return to_double(val) ** 1 / power;
+    }
+    type Floating = float | double;
+    int ceil(Floating a) {
+        double d = to_double(a);
+        int i = to_int(d);
+        if (d == i) {
+            return i;
+        } else if (d > 0) {
+            return i + 1;
+        } else {
+            return i;
+        }
+    }
+}
