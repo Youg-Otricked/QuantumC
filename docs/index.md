@@ -38,6 +38,7 @@ int main() {
 [Loops](./Loops.md)
 [Functions](./Functions.md)
 [Builtins](./BuiltInFunctions.md)
+[Advanced function features](./AdvancedFunc.md)
 
 
 ## 'Philosophy'
