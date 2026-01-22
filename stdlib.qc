@@ -13,8 +13,8 @@ namespace AdvQBool {
         int TruthLevel;
         int FalseLevel;
         AQB(int truth) {
-            if (truth > 100) {
-                throw("Cannot make a advanced qbool more than 100 percent true.");
+            if (truth > 100 || truth < 0) {
+                throw("Cannot make a advanced qbool more than 100 percent true or more than 100% false.");
             }
             this.TruthLevel = truth;
             this.FalseLevel = 100 - truth;
@@ -87,17 +87,11 @@ namespace Math {
         if (a > b) {
             return a;
         }
-        if (a == b) {
-            return 0;
-        }
         return b;
     }
     Number min(Number a, Number b) {
         if (a > b) {
             return b;
-        }
-        if (a == b) {
-            return 0;
         }
         return a;
     }
@@ -105,7 +99,9 @@ namespace Math {
         return to_double(val) ** 0.5;
     }
     Number root(Number val, Number power) {
-        return to_double(val) ** 1 / power;
+        double base = to_double(val);
+        double exp  = 1.0 / to_double(power);
+        return base ** exp;
     }
     type Floating = float | double;
     int ceil(Floating a) {

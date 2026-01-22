@@ -256,7 +256,7 @@ namespace tkz {
     }
     std::string MissingSemicolonError::as_string() {
         std::string result;
-        result += "Missing Semicolon on ";
+        result += "QC-MS99: Missing Semicolon on ";
         result += "File " + this->pos.Filename +
                 ", line " + std::to_string(this->pos.line + 1) +
                 ", col " + std::to_string(this->pos.column + 1) + "\n\n";
@@ -774,7 +774,7 @@ namespace tkz {
         if (type == "function") {
             return AnyNode{std::make_shared<FuncDefNode>(std::vector<Token>{}, std::nullopt, std::list<Parameter>{}, std::make_unique<StatementsNode>(std::vector<AnyNode>{}, true), currentNamespace)};
         }
-        return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+        return AnyNode{std::monostate{}};
     }
     Parser::Parser(std::vector<Token> tokens) {
         this->tokens = tokens;
@@ -1364,7 +1364,7 @@ namespace tkz {
                     tok = current_tok;
                     if (tok.type != TokenType::KEYWORD) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S037: Expected type after 'const' in for-init", current_tok.pos));
+                            "QC-S011:  Expected type after 'const' in for-init", current_tok.pos));
                         return res.to_prs();
                     }
                 }
@@ -1882,7 +1882,7 @@ namespace tkz {
                 this->advance();
                 return res.success(std::move(any_expr));
             } else {
-                res.failure(std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos));
+                res.failure(std::make_unique<InvalidSyntaxError>("QC-S050: Expected ')'", this->current_tok.pos));
                 return res.to_prs();
             }
         }
@@ -1946,7 +1946,7 @@ namespace tkz {
             
             if (this->current_tok.type != TokenType::LPAREN) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '(' after 'fn'", this->current_tok.pos));
+                    "QC-S051: Expected '(' after 'fn'", this->current_tok.pos));
                 return res.to_prs();
             }
             
@@ -1968,7 +1968,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected return type after '->'", this->current_tok.pos));
+                        "QC-S052: Expected return type after '->'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 
@@ -1980,7 +1980,7 @@ namespace tkz {
                     
                     if (this->current_tok.type != TokenType::KEYWORD) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected return type after ','", this->current_tok.pos));
+                            "QC-S053: Expected return type after ','", this->current_tok.pos));
                         return res.to_prs();
                     }
                     
@@ -2011,7 +2011,7 @@ namespace tkz {
             return res.success(std::move(fn_node));
         }
 
-        res.failure(std::make_unique<InvalidSyntaxError>("Expected an atom", tok.pos));
+        res.failure(std::make_unique<InvalidSyntaxError>("QC-S054: Expected an atom", tok.pos));
         return res.to_prs();
     }
 
@@ -2112,7 +2112,7 @@ namespace tkz {
             AnyNode right = res.reg(this->term());
             if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Right-hand side of >> must be a variable",
+                    "QC-S055: Right-hand side of >> must be a variable",
                     op_tok.pos
                 ));
                 return res.to_prs();
@@ -2255,7 +2255,7 @@ namespace tkz {
 
             if (!is_var && !is_array_access && !is_prop) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Left side of assignment must be a variable, struct field, or array/map access",
+                    "QC-S056: Left side of assignment must be a variable, struct field, or array/map access",
                     this->current_tok.pos
                 ));
                 return res.to_prs();
@@ -2291,7 +2291,7 @@ namespace tkz {
                     case TokenType::MOD_EQ:   binop_type = TokenType::MOD;  break;
                     default:
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Unsupported op for struct fields", op_tok.pos));
+                            "QC-S057: Unsupported op for struct fields", op_tok.pos));
                         return res.to_prs();
                 }
 
@@ -2333,7 +2333,7 @@ namespace tkz {
             if (is_array_access) {
                 if (op_tok.type != TokenType::EQ) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Compound assignment (+=, -=, etc.) not supported for array/map access",
+                        "QC-S058: Compound assignment (+=, -=, etc.) not supported for array/map access",
                         op_tok.pos
                     ));
                     return res.to_prs();
@@ -2447,7 +2447,7 @@ namespace tkz {
                 std::string modifier = param_type.value;
 
                 if (this->current_tok.type != TokenType::KEYWORD) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'short'/'long'", this->current_tok.pos));
+                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S059: Expected type after 'short'/'long'", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token base_type = this->current_tok;
@@ -2462,7 +2462,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected element type in list<T>", this->current_tok.pos));
+                        "QC-S060: Expected element type in list<T>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token elem_type = this->current_tok;
@@ -2470,7 +2470,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '>' in list<T>", this->current_tok.pos));
+                        "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -2485,7 +2485,7 @@ namespace tkz {
                 this->advance();
                 if (this->current_tok.type != TokenType::RBRACKET) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ']' after '[' in parameter", this->current_tok.pos));
+                        "QC-S062: Expected ']' after '[' in parameter", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -2493,7 +2493,7 @@ namespace tkz {
             }
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected parameter name", this->current_tok.pos));
+                    "QC-S063: Expected parameter name", this->current_tok.pos));
                 return res.to_prs();
             }
             Token param_name = this->current_tok;
@@ -2523,7 +2523,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected element type in list<T>", this->current_tok.pos));
+                            "QC-S060: Expected element type in list<T>", this->current_tok.pos));
                         return res.to_prs();
                     }
                     Token elem_type = this->current_tok;
@@ -2531,7 +2531,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::MORE) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '>' in list<T>", this->current_tok.pos));
+                            "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance(); 
@@ -2546,7 +2546,7 @@ namespace tkz {
                     this->advance();
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ']' after '[' in parameter", this->current_tok.pos));
+                            "QC-S061: Expected ']' after '[' in parameter", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -2554,7 +2554,7 @@ namespace tkz {
                 }
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected parameter name", this->current_tok.pos));
+                        "QC-S063: Expected parameter name", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token param_name = this->current_tok;
@@ -2577,7 +2577,7 @@ namespace tkz {
         
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected ')' after parameters", this->current_tok.pos));
+                "QC-S064: Expected ')' after parameters", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance(); 
@@ -2597,7 +2597,7 @@ namespace tkz {
         }
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
-                "Expected '{' to start function body", this->current_tok.pos));
+                "QC-S003: Expected '{' to start function body", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();  
@@ -2773,13 +2773,13 @@ namespace tkz {
             
             if (this->current_tok.type != TokenType::RPAREN) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected ')' after foreach", this->current_tok.pos));
+                    "QC-S016: Expected ')' after foreach", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' to start foreach body", this->current_tok.pos));
+                    "QC-S003: Expected '{' to start foreach body", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -2873,7 +2873,7 @@ namespace tkz {
             }    
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after class name", this->current_tok.pos));
+                    "QC-S003: Expected '{' after class name", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -2889,7 +2889,7 @@ namespace tkz {
             info.is_abstract_class = is_abstract_class;
             if (user_types.contains(class_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Redefinition of type '" + class_name.value + "'",
+                    "QC-UT01: Redefinition of type '" + class_name.value + "'",
                     class_name.pos));
                 return res.to_prs();
             }
@@ -3152,7 +3152,7 @@ namespace tkz {
 
             if (current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after namespace name", current_tok.pos));
+                    "QC-N004: Expected '{' after namespace name", current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -3190,7 +3190,7 @@ namespace tkz {
 
             if (current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '}' at end of namespace", current_tok.pos));
+                    "QC-N005: Expected '}' at end of namespace", current_tok.pos));
                 return res.to_prs();
             }
 
@@ -3217,7 +3217,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected struct name", this->current_tok.pos));
+                    "QC-S065: Expected struct name", this->current_tok.pos));
                 return res.to_prs();
             }
             Token struct_name = this->current_tok;
@@ -3225,7 +3225,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after struct name", this->current_tok.pos));
+                    "QC-S003: Expected '{' after struct name", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -3246,7 +3246,7 @@ namespace tkz {
                         
                         if (this->current_tok.type != TokenType::IDENTIFIER) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected identifier after '::'", this->current_tok.pos));
+                                "QC-N001: Expected identifier after '::'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         
@@ -3263,7 +3263,7 @@ namespace tkz {
                         this->advance();
                         if (this->current_tok.type != TokenType::RBRACKET) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected ']' after '[' in list type", this->current_tok.pos));
+                                "QC-S061: Expected ']' after '[' in list type", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3272,7 +3272,7 @@ namespace tkz {
                     else if (base_type.value == "map") {
                         if (this->current_tok.type != TokenType::LESS) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected '<' after map for key type", this->current_tok.pos));
+                                "QC-S066: Expected '<' after map for key type", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3280,7 +3280,7 @@ namespace tkz {
                         if (this->current_tok.type != TokenType::KEYWORD && 
                             this->current_tok.type != TokenType::IDENTIFIER) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected key type in map", this->current_tok.pos));
+                                "QC-S067: Expected key type in map", this->current_tok.pos));
                             return res.to_prs();
                         }
                         std::string key_type = this->current_tok.value;
@@ -3288,7 +3288,7 @@ namespace tkz {
 
                         if (this->current_tok.type != TokenType::COMMA) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected ',' between key and value type in map", this->current_tok.pos));
+                                "QC-S068: Expected ',' between key and value type in map", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3296,7 +3296,7 @@ namespace tkz {
                         if (this->current_tok.type != TokenType::KEYWORD && 
                             this->current_tok.type != TokenType::IDENTIFIER) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected value type in map", this->current_tok.pos));
+                                "QC-S069: Expected value type in map", this->current_tok.pos));
                             return res.to_prs();
                         }
                         std::string value_type = this->current_tok.value;
@@ -3304,7 +3304,7 @@ namespace tkz {
 
                         if (this->current_tok.type != TokenType::MORE) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected '>' after map value type", this->current_tok.pos));
+                                "QC-S070: Expected '>' after map value type", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3313,13 +3313,13 @@ namespace tkz {
                     }
                 } else {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected field type in struct", this->current_tok.pos));
+                        "QC-S071: Expected field type in struct", this->current_tok.pos));
                     return res.to_prs();
                 }
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected field name in struct", this->current_tok.pos));
+                        "QC-S072: Expected field name in struct", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token field_name = this->current_tok;
@@ -3333,7 +3333,7 @@ namespace tkz {
                     }
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected ']' after '[' in array", this->current_tok.pos));
+                            "QC-S061: Expected ']' after '[' in array", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -3352,7 +3352,7 @@ namespace tkz {
             }
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '}' at end of struct", this->current_tok.pos));
+                    "QC-S073: Expected '}' at end of struct", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance(); 
@@ -3361,7 +3361,7 @@ namespace tkz {
                 this->advance();
             }
             if (user_types.contains(struct_name.value)) {
-                res.failure(std::make_unique<InvalidSyntaxError>("Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
+                res.failure(std::make_unique<InvalidSyntaxError>("QC-UT01: Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
                 return res.to_prs();
             }
             UserTypeInfo info;
@@ -3376,7 +3376,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected type name after 'type'", this->current_tok.pos));
+                    "QC-S074: Expected type name after 'type'", this->current_tok.pos));
                 return res.to_prs();
             }
             Token type_name = this->current_tok;
@@ -3384,7 +3384,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::EQ) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '=' after type name '" + type_name.value + "'",
+                    "QC-S075: Expected '=' after type name '" + type_name.value + "'",
                     this->current_tok.pos));
                 return res.to_prs();
             }
@@ -3425,7 +3425,7 @@ namespace tkz {
 
             if (!is_type_or_literal_token(this->current_tok.type)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected type or literal in type alias",
+                    "QC-S076: Expected type or literal in type alias",
                     this->current_tok.pos));
                 return res.to_prs();
             }
@@ -3440,7 +3440,7 @@ namespace tkz {
 
                 if (!is_type_or_literal_token(this->current_tok.type)) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected type or literal after '|' in type alias",
+                        "QC-S077: Expected type or literal after '|' in type alias",
                         this->current_tok.pos));
                     return res.to_prs();
                 }
@@ -3457,7 +3457,7 @@ namespace tkz {
                     this->current_tok.type != TokenType::KEYWORD &&
                     this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected type or literal after '|'",
+                        "QC-S078: Expected type or literal after '|'",
                         this->current_tok.pos));
                     return res.to_prs();
                 }
@@ -3474,7 +3474,7 @@ namespace tkz {
             this->advance();
             if (user_types.contains(type_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Redefinition of type '" + type_name.value + "'",
+                    "QC-UT01: Redefinition of type '" + type_name.value + "'",
                     type_name.pos
                 ));
                 return res.to_prs();
@@ -3497,7 +3497,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected enum name", this->current_tok.pos));
+                    "QC-S080: Expected enum name", this->current_tok.pos));
                 return res.to_prs();
             }
             Token enum_name = this->current_tok;
@@ -3505,7 +3505,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::LBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '{' after enum name", this->current_tok.pos));
+                    "QC-S003: Expected '{' after enum name", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -3531,7 +3531,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected enum member name", this->current_tok.pos));
+                        "QC-S081: Expected enum member name", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token member_name = this->current_tok;
@@ -3539,7 +3539,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::EQ) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '=' after enum member name '" + member_name.value + "'",
+                        "QC-S082: Expected '=' after enum member name '" + member_name.value + "'",
                         this->current_tok.pos));
                     return res.to_prs();
                 }
@@ -3554,7 +3554,7 @@ namespace tkz {
 
                 if (this->current_tok.type != TokenType::SEMICOLON) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ';' after enum member", this->current_tok.pos));
+                        "QC-S083: Expected ';' after enum member", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -3562,13 +3562,13 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected '}' at end of enum", this->current_tok.pos));
+                    "QC-S084: Expected '}' at end of enum", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
             if (user_types.contains(enum_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Redefinition of type '" + enum_name.value + "'",
+                    "QC-UT01: Redefinition of type '" + enum_name.value + "'",
                     enum_name.pos));
                 return res.to_prs();
             }
@@ -3592,7 +3592,7 @@ namespace tkz {
                 
                 if (tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected type after 'const'", this->current_tok.pos));
+                        "QC-S011: Expected type after 'const'", this->current_tok.pos));
                     return res.to_prs();
                 }
             }
@@ -3605,7 +3605,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected type after " + modifier, this->current_tok.pos));
+                        "QC-S059: Expected type after " + modifier, this->current_tok.pos));
                     return res.to_prs();
                 }
                 
@@ -3621,7 +3621,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected key type in map<K, V>", this->current_tok.pos));
+                        "QC-S067: Expected key type in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token key_type = this->current_tok;
@@ -3629,14 +3629,14 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::COMMA) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected ',' in map<K, V>", this->current_tok.pos));
+                        "QC-S068: Expected ',' in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
                 
                 if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected value type in map<K, V>", this->current_tok.pos));
+                        "QC-S069: Expected value type in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token value_type = this->current_tok;
@@ -3644,14 +3644,14 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '>' in map<K, V>", this->current_tok.pos));
+                        "QC-S070: Expected '>' in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
                 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected variable name", this->current_tok.pos));
+                        "QC-S085: Expected variable name", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token var_name = this->current_tok;
@@ -3664,7 +3664,7 @@ namespace tkz {
                     
                     if (this->current_tok.type != TokenType::LBRACE) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '{' for map initialization", this->current_tok.pos));
+                            "QC-S003: Expected '{' for map initialization", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -3728,7 +3728,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected element type in list<T>", this->current_tok.pos));
+                        "QC-S060: Expected element type in list<T>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 
@@ -3737,7 +3737,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected '>' in list<T>", this->current_tok.pos));
+                        "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -3798,7 +3798,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected identifier", this->current_tok.pos));
+                        "QC-S085: Expected identifier", this->current_tok.pos));
                     return res.to_prs();
                 }
                 
@@ -3843,7 +3843,7 @@ namespace tkz {
 
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "Expected identifier", this->current_tok.pos));
+                    "QC-S085: Expected identifier", this->current_tok.pos));
                 return res.to_prs();
             }
             name_tok = this->current_tok;
@@ -3939,7 +3939,7 @@ namespace tkz {
                 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected identifier", this->current_tok.pos));
+                        "QC-S085: Expected identifier", this->current_tok.pos));
                     return res.to_prs();
                 }
                 var_names.push_back(this->current_tok);
@@ -4063,7 +4063,7 @@ namespace tkz {
 
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected name after types", this->current_tok.pos));
+                            "QC-S085: Expected name after types", this->current_tok.pos));
                         return res.to_prs();
                     }
 
@@ -4264,7 +4264,7 @@ namespace tkz {
                 ClassMethodInfo* method = find_method_on_class(className, "eval");
                 if (!method) {
                     this->errors.push_back({RTError(
-                        "Instance of '" + className +
+                        "QC-CLW1: Instance of '" + className +
                         "' used as condition but is missing eval(): defaulting true", Position()),
                         "Warning"});
                     return true;
@@ -4558,7 +4558,7 @@ namespace tkz {
                 ClassMethodInfo* method = find_method_on_class(className, "repr");
                 if (!method) {
                     this->errors.push_back({RTError(
-                        "Instance of '" + className +
+                        "QC-CLW2: Instance of '" + className +
                         "' printed, but missing repr function: calling base print.", Position()),
                         "Warning"});
                     return v->print();
@@ -4699,7 +4699,7 @@ namespace tkz {
         return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
-        this->errors.push_back({RTError("Unexpected 'break' outside loop or switch", node->tok.pos), "Warning"});
+        this->errors.push_back({RTError("QC-SW01: Unexpected 'break' outside loop or switch", node->tok.pos), "Warning"});
         return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode>& node) {
@@ -4832,7 +4832,7 @@ namespace tkz {
                 auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
                 if (!mapVal) {
                     this->errors.push_back({RTError(
-                        "Expected map initializer for field '" + field.name +
+                        "QC-E001: Expected map initializer for field '" + field.name +
                         "' of type '" + field.type + "'",
                         {}
                     ), "Error"});
@@ -4977,7 +4977,7 @@ namespace tkz {
                             auto mapVal = std::get_if<std::shared_ptr<MapValue>>(&elemVal);
                             if (!mapVal) {
                                 this->errors.push_back({RTError(
-                                    "Expected map initializer for field '" + field.name +
+                                    "QC-E001: Expected map initializer for field '" + field.name +
                                     "' of type '" + field.type + "'",
                                     node->var_name_tok.pos
                                 ), "Error"});
@@ -5026,7 +5026,15 @@ namespace tkz {
                         break;
                     }
                 }
-
+                if (actualType == "void") {
+                    ok = true;
+                    auto colon_pos = members[0].type.find(':');
+                    if (colon_pos != std::string::npos) {
+                        std::string lit_kind = members[0].type.substr(0, colon_pos);
+                        value = def_value_for_type(lit_kind);
+                    }
+                    value = def_value_for_type(members[0].type);
+                }
                 if (!ok) {
                     this->errors.push_back({RTError(
                         "QC-T004: Type mismatch: value of type " + valType +
@@ -5036,6 +5044,24 @@ namespace tkz {
                 }
 
                 actualType = node->type_tok.value;
+            }
+            else if (ut.kind == UserTypeKind::Class) {
+                if (std::holds_alternative<VoidValue>(value)) {
+                    auto fields = make_instance_fields(lookup_type);
+                    auto inst = std::make_shared<InstanceValue>(lookup_type, std::move(fields));
+                    std::vector<NumberVariant> no_args;
+                    ClassMethodInfo* init_m =
+                        this->find_method_with_args(lookup_type, "init", no_args);
+
+                    if (init_m) {
+                        context->push_scope();
+                        context->define("this", lookup_type, inst, true);
+                        this->call_instance_method(inst, init_m, no_args, node->var_name_tok.pos);
+                        context->pop_scope();
+                    }
+                    value      = inst;
+                    actualType = declaredType;
+                }
             }
         }
         if (declaredType != "auto") {
@@ -5355,7 +5381,7 @@ namespace tkz {
         return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<ContinueNode>& node) {
-        this->errors.push_back({RTError("Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning"});
+        this->errors.push_back({RTError("QC-SW02: Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning"});
         return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode>& node) {
@@ -6889,7 +6915,7 @@ namespace tkz {
                         ClassMethodInfo* method = find_method_on_class(className, "repr");
                         if (!method) {
                             this->errors.push_back({RTError(
-                                "Instance of '" + className +
+                                "QC-CLW3: Instance of '" + className +
                                 "' printed, but missing repr function: calling base print.", Position()),
                                 "Warning"});
                             return v->print();
@@ -6937,46 +6963,46 @@ namespace tkz {
                 if (node->op_tok.type == TokenType::PLUS) {
                     return std::move(StringValue(L.value + R.value).set_pos(node->op_tok.pos));
                 }
-                this->errors.push_back({RTError("Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T005: Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error"});
             } else if constexpr (std::is_same_v<T1, StringValue> ^ std::is_same_v<T2, StringValue>) {
-                this->errors.push_back({RTError("Cannot preform operations on string and number", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform operations on string and number", node->op_tok.pos), "Error"});
             } else if constexpr (std::is_same_v<T1, CharValue> || std::is_same_v<T2, CharValue>) {
-                this->errors.push_back({RTError("Cannot preform arithmetic on a Char", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic on a Char", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::monostate> || std::is_same_v<T2, std::monostate>) {
-                this->errors.push_back({RTError("Operation on uninitialized value", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Operation on uninitialized value", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, BoolValue> || std::is_same_v<T2, BoolValue>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Boolean", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on a Boolean", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, QBoolValue> || std::is_same_v<T2, QBoolValue>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, FunctionValue> || std::is_same_v<T2, FunctionValue>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Function", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on a Function", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, VoidValue> || std::is_same_v<T2, VoidValue>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on nothing", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on nothing", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ArrayValue>> || std::is_same_v<T2, std::shared_ptr<ArrayValue>>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on arrays", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on arrays", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<ListValue>> || std::is_same_v<T2, std::shared_ptr<ListValue>>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on lists", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on lists", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MapValue>> || std::is_same_v<T2, std::shared_ptr<MapValue>>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on a map/dict", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on a map/dict", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<StructValue>> || std::is_same_v<T2, std::shared_ptr<StructValue>>) { 
-                this->errors.push_back({RTError("Cannot preform arithmetic operations on a Struct", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic operations on a Struct", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<MultiValue>> || 
                             std::is_same_v<T2, std::shared_ptr<MultiValue>>) {
-                this->errors.push_back({RTError("Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error"});
             }
             else if constexpr (std::is_same_v<T1, std::shared_ptr<InstanceValue>> || 
                             std::is_same_v<T2, std::shared_ptr<InstanceValue>>) {
-                this->errors.push_back({RTError("Cannot perform arithmetic on classes", node->op_tok.pos), "Error"});
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic on classes", node->op_tok.pos), "Error"});
             }
             else{ 
                 return std::move(handle_binop(L, R, node->op_tok.type, this->error));
@@ -7335,7 +7361,7 @@ namespace tkz {
         return std::move(StringValue(node.tok.value).set_pos(node.tok.pos));
     }
     NumberVariant Interpreter::operator()(std::monostate) {
-        return std::move(Number<int>(0));
+        return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode>& node) {
         if (!node) return Number<int>(0);
@@ -8609,7 +8635,7 @@ namespace tkz {
             text = preprocess_includes(text, file);
         } catch (std::runtime_error& e) {
             std::cerr << "Include error: " << e.what() << std::endl;
-            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("Include Error", Position())}, ""};
+            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("QC-IX01: Include Error", Position())}, ""};
         }
         // Lexer
         Lexer lexer(text, file);
@@ -8839,7 +8865,7 @@ namespace tkz {
 
         if (this->current_char != '"') {
             this->advance();
-            throw IllegalCharError("Expected \"", this->pos);
+            throw IllegalCharError("QC-IC01: Expected \"", this->pos);
         }
 
         this->advance();
@@ -8866,7 +8892,7 @@ namespace tkz {
             this->advance();
         }
         if (this->current_char != '\'') {
-            throw IllegalCharError("Expected closing single quote", this->pos);
+            throw IllegalCharError("QC-IC01: Expected closing single quote", this->pos);
         }
         this->advance();
         
@@ -8935,7 +8961,7 @@ namespace tkz {
                 }
 
                 if (brace_depth != 0)
-                    throw IllegalCharError("Unclosed brace in f-string", this->pos);
+                    throw IllegalCharError("QC-IC02: Unclosed brace in f-string", this->pos);
 
                 exprs.push_back(expr);
             } else {
@@ -8946,7 +8972,7 @@ namespace tkz {
 
         parts.push_back(current);
 
-        if (this->current_char != '"') throw IllegalCharError("Unterminated f-string", this->pos);
+        if (this->current_char != '"') throw IllegalCharError("QC-IC02: Unterminated f-string", this->pos);
         this->advance(); 
         std::string encoded = "";
         for (size_t i = 0; i < parts.size(); i++) {
@@ -9223,7 +9249,7 @@ namespace tkz {
                     
                     default:
                         std::string unknown = std::string(1, this->current_char);
-                        return Ler {std::vector<Token>(), std::make_unique<IllegalCharError>(unknown, this->pos)};
+                        return Ler {std::vector<Token>(), std::make_unique<IllegalCharError>("QC-IC03:" + unknown, this->pos)};
                 }
             }
         }
@@ -9245,7 +9271,7 @@ std::string trim(const std::string& str) {
 std::string read_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open file: " + path);
+        throw std::runtime_error("QC-IX03: Could not open file: " + path);
     }
     std::stringstream buffer;
     buffer << file.rdbuf();
@@ -9266,11 +9292,11 @@ std::string extract_namespace(const std::string& source, const std::string& ns_n
     size_t pos = source.find(search);
     
     if (pos == std::string::npos) {
-        throw std::runtime_error("Namespace '" + ns_name + "' not found in file");
+        throw std::runtime_error("QC-IX02: Namespace '" + ns_name + "' not found in file");
     }
     size_t brace_start = source.find('{', pos);
     if (brace_start == std::string::npos) {
-        throw std::runtime_error("Invalid namespace syntax for '" + ns_name + "'");
+        throw std::runtime_error("QC-N003: Invalid namespace syntax for '" + ns_name + "'");
     }
     int depth = 1;
     size_t i = brace_start + 1;
@@ -9281,7 +9307,7 @@ std::string extract_namespace(const std::string& source, const std::string& ns_n
     }
     
     if (depth != 0) {
-        throw std::runtime_error("Unmatched braces in namespace '" + ns_name + "'");
+        throw std::runtime_error("QC-N002: Unmatched braces in namespace '" + ns_name + "'");
     }
     
     return source.substr(pos, i - pos);

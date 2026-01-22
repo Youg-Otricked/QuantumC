@@ -12,9 +12,9 @@
       3 QC-T001: Cannot assign to const variable '" + name + "'
       3 QC-C001: Undefined variable: '" + name + "'
       3 ./Ct4.cpp:                            this->errors.push_back({RTError(
+      2 Undefined function: '" + func_name + "'
       2 QC-T003: Type mismatch: cannot assign " + actual + " to 
       2 QC-I005: Spread target must be array or list", get_pos(sv)), "Error
-      2 QC-I005: Spread target must be array or list", get_pos(spread_val)), "Error
       2 QC-I003: Cannot index inside non-array/list", Position()), "Error
       2 Map access requires exactly one key", Position()), "Error
       2 ./Ct4.cpp:        } catch (RTError& e) {
@@ -37,12 +37,27 @@
       1 foreach requires an array or list", node->elem_name.pos), "Error
       1 class inherates from a non class or non-existant object
       1 Unknown class '" + className + "'
-      1 Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning
-      1 Unexpected 'break' outside loop or switch", node->tok.pos), "Warning
       1 Unary operator not supported for this type
       1 Too many errors! Execution stopped.
       1 QC-WHAT: What the heck is that
+      1 QC-T006: Operation on uninitialized value", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform operations on string and number", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on nothing", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on lists", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on arrays", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on a map/dict", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on a Struct", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on a Function", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic operations on a Boolean", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic on classes", node->op_tok.pos), "Error
+      1 QC-T006: Cannot perform arithmetic on a Char", node->op_tok.pos), "Error
+      1 QC-T005: Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error
+      1 QC-SW02: Unexpected 'continue' outside loop", node ? node->tok.pos : Position()), "Warning
+      1 QC-SW01: Unexpected 'break' outside loop or switch", node->tok.pos), "Warning
       1 QC-M001: Unknown method: " + node->method_name.value, node->method_name.pos), "Error
+      1 QC-I005: Spread target must be array or list", get_pos(spread_val)), "Error
       1 QC-I005: Spread target must be array or list", Position()), "Error
       1 QC-I003: Cannot index non-array/list type", Position()), "Error
       1 QC-I002: List index out of bounds: 
@@ -84,8 +99,6 @@
       1 QC-B001: throw() requires exactly 1 argument", get_pos(target_val)), "Error
       1 QC-B001: seed() requires exactly 1 argument", Position()), "Error
       1 QC-B001: random() takes 0, 1, or 2 arguments", get_pos(args[2])), "Error
-      1 Operation on uninitialized value", node->op_tok.pos), "Error
-      1 Only '+' and logical expresions are supported for strings", node->op_tok.pos), "Error
       1 No main() function found
       1 Nested struct initializer size mismatch for '" + struct_type + "'", {}), "Error
       1 List must be initialized with array literal or another list", node->var_name_tok.pos), "Error
@@ -93,7 +106,7 @@
       1 List access requires exactly one index", Position()), "Error
       1 Invalid switch comparison type
       1 Invalid operand for ++/--", pos), "Error
-      1 Invalid function value", fval.pos), "Error
+      1 Invalid function value", Position()), "Error
       1 Interpreter got a null VarAccessNode
       1 Internal error: lost array/list during indexing", Position()), "Error
       1 Integer out of range", node.tok.pos), "Severe
@@ -109,25 +122,12 @@
       1 Cannot use ! operator on multi-return values", node->op_tok.pos), "Error
       1 Cannot spread non-array type", Position()), "Error
       1 Cannot read input into type " + type, node->op_tok.pos), "Error
-      1 Cannot preform operations on string and number", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on nothing", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on lists", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on arrays", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on a map/dict", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on a Struct", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on a Quantum Boolean", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on a Function", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic operations on a Boolean", node->op_tok.pos), "Error
-      1 Cannot preform arithmetic on a Char", node->op_tok.pos), "Error
-      1 Cannot perform arithmetic on multi-return values", node->op_tok.pos), "Error
-      1 Cannot perform arithmetic on classes", node->op_tok.pos), "Error
       1 Cannot parse integer", node->op_tok.pos), "Error
       1 Cannot parse float", node->op_tok.pos), "Error
       1 Cannot parse double", node->op_tok.pos), "Error
-      1 Cannot compare values of different types in switch/case
       1 Cannot compare multi-values in switch
       1 Cannot assign to this type", Position()), "Error
-      1 Can only call functions
+      1 Can only call functions", Position()), "Error
       1 Array must be initialized with array literal", node->var_name_tok.pos), "Error
       1 Array index must be an integer", Position()), "Error
       1 ./quantum.cpp:            slow_print(const_cast<tkz::RTError&>(diag.error).as_string() + "\n", color);
@@ -140,9 +140,9 @@
       1 ./Ct4.cpp:        } catch (RTError& z) {
       1 ./Ct4.cpp:        this->errors.push_back({RTError(
       1 ./Ct4.cpp:        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
-      1 ./Ct4.cpp:        res.failure(std::make_unique<InvalidSyntaxError>("Expected an atom", tok.pos));
+      1 ./Ct4.cpp:        res.failure(std::make_unique<InvalidSyntaxError>("QC-S054: Expected an atom", tok.pos));
       1 ./Ct4.cpp:            std::unique_ptr<Error> err = std::make_unique<RTError>(e);
-      1 ./Ct4.cpp:            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("Include Error", Position())}, ""};
+      1 ./Ct4.cpp:            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("QC-IX01: Include Error", Position())}, ""};
       1 ./Ct4.cpp:            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
       1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S036: Expected '(' after 'for'", current_tok.pos));
       1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S035: Expected 'for'", current_tok.pos));
@@ -159,16 +159,16 @@
       1 ./Ct4.cpp:            res.failure(std::make_unique<InvalidSyntaxError>("QC-S009: Expected 'if'", this->current_tok.pos));
       1 ./Ct4.cpp:                } catch (RTError&) {
       1 ./Ct4.cpp:                throw RTError(msg, get_pos(value));
-      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
+      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("QC-UT01: Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
+      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("QC-S050: Expected ')'", this->current_tok.pos));
       1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("QC-S024: Expected 'case' or 'default' inside switch", current_tok.pos));
-      1 ./Ct4.cpp:                res.failure(std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos));
+      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S059: Expected type after 'short'/'long'", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S049: Expected ']'", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S018: Expected ')' after 'else if' condition", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S017: Expected '(' after 'else if'", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S015: Expected ';' after if-init expression", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S014: Expected ';' after if-init declaration", this->current_tok.pos));
       1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S012: Expected identifier in if-init", this->current_tok.pos));
-      1 ./Ct4.cpp:                    res.failure(std::make_unique<InvalidSyntaxError>("Expected type after 'short'/'long'", this->current_tok.pos));
       1 ./Ct4.cpp:                        res2.failure(std::make_unique<InvalidSyntaxError>(
       1 ./Ct4.cpp:                        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
       1 ./Ct4.cpp:                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S023: Expected ':' after case label", current_tok.pos));
