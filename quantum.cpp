@@ -68,6 +68,14 @@ std::atomic<bool> running{true};
         }
         std::cout << "\r" << std::endl; // clear line
     }
+std::string trim_ws(const std::string& s) {
+    auto first = std::find_if_not(s.begin(), s.end(),
+                                  [](unsigned char c){ return std::isspace(c); });
+    auto last  = std::find_if_not(s.rbegin(), s.rend(),
+                                  [](unsigned char c){ return std::isspace(c); }).base();
+    if (first >= last) return "";
+    return std::string(first, last);
+}
 int main(int argc, char* argv[]) {
     
     tkz::RunConfig config;
@@ -244,7 +252,6 @@ Examples:
                     slow_print("Program exited with code 1\n", RED);
                     slow_print("==============\n", BOLD);
                     code_buffer.clear();
-                    return 1;
                 } else if (has_warnings) {
                     slow_print(result.res + "\n", YELLOW);
                 } else {
@@ -271,18 +278,65 @@ Examples:
                 else
                     std::cout << "[No previous input]\n";
                 continue;
+            } else if (line == "!@load") {
+                if (!history.empty())
+                    code_buffer = history.back();
+                else
+                    std::cout << "[No previous input]\n";
+                continue;
             } else if (line == "!@help") {
                 std::cout << GREEN 
                         << "REPL Commands:\n"
+                        << "  !@history   → Show all previous buffers\n"
+                        << "  !@last      → Prints last ran code\n"
+                        << "  !@load      → Sets buffer to last ran code\n"
                         << "  !@run       → Execute current buffer\n"
                         << "  !@clear     → Clear buffer\n"
                         << "  !@showbuffer→ Show buffer with line numbers\n"
+                        << "  !@set [flag]=[0/1]→ Change that runtime flag to true/false"
                         << "  exit        → Quit REPL\n"
                         << RESET;
                 continue;
             } else if (line == "!@clear") {
                 code_buffer.clear();
                 std::cout << YELLOW << "[Buffer cleared]" << RESET << std::endl;
+            } else if (line.rfind("!@set ", 0) == 0) {
+                std::string rest = line.substr(5);
+                auto eq = rest.find('=');
+                if (eq == std::string::npos) {
+                    std::cout << RED << "Usage: !@set flag=0|1\n" << RESET;
+                    continue;
+                }
+                std::string key = trim_ws(rest.substr(0, eq));
+                std::string val = trim_ws(rest.substr(eq + 1));
+                bool on = (val == "1" || val == "true");
+
+                if (key == "context")      config.use_context   = on;
+                else if (key == "loose")   config.looser_types  = on;
+                else if (key == "time")    config.show_time     = on;
+                else if (key == "tokens")  config.print_tokens  = on;
+                else if (key == "ast")     config.print_ast     = on;
+                else if (key == "raw")     config.bst           = on;
+                else if (key == "bst")     config.raw           = on;
+                else if (key == "quiet")   config.quiet_mode    = on;
+                else if (key == "slow")    slow                 = on;
+                else {
+                    std::cout << YELLOW << "Unknown flag: " << key << RESET << "\n";
+                    continue;
+                }
+
+                std::cout << GREEN << "Set " << key << " = " << (on ? "1" : "0") << RESET << "\n";
+                continue;
+            } else if (line == "!@config") {
+                std::cout << GREEN << "Current config:\n"
+                        << "  context: "    << (config.use_context   ? "on" : "off") << "\n"
+                        << "  loose: "      << (config.looser_types  ? "on" : "off") << "\n"
+                        << "  time: "       << (config.show_time     ? "on" : "off") << "\n"
+                        << "  tokens: "     << (config.print_tokens  ? "on" : "off") << "\n"
+                        << "  ast: "        << (config.print_ast     ? "on" : "off") << "\n"
+                        << "  quiet: "      << (config.quiet_mode    ? "on" : "off") << "\n"
+                        << RESET;
+                continue;
             } else {
                 code_buffer += line + "\n";
             }
