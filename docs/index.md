@@ -35,6 +35,9 @@ int main() {
 [Basics](./BasicSyntax.md)
 [Collection types](./CollectionTypes.md)
 [Control flow](./ControlFlow.md)
+[Loops](./Loops.md)
+[Functions](./Functions.md)
+[Builtins](./BuiltInFunctions.md)
 
 
 ## 'Philosophy'
