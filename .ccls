@@ -1,0 +1,16 @@
+%clang
+%c -std=c++23
+%c++ -std=c++23
+-Iinclude
+
+%exclude build
+%exclude qc/
+%exclude docs/
+%exclude *.o
+%exclude *.deb
+%exclude *.tar.gz
+%exclude *.changes
+%exclude *.dsc
+%exclude *.buildinfo
+%exclude .vscode*
+%exclude .git*

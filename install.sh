@@ -33,14 +33,14 @@ fi
 echo -e "${GREEN}Detected OS: $OS${NC}"
 echo ""
 
-if [ -f "/usr/local/bin/qc" ]; then
+if [ -f "/usr/bin/qc" ]; then
     echo -e "${YELLOW}QC is already installed. Reinstalling...${NC}"
-    sudo rm -f /usr/local/bin/qc
+    sudo rm -f /usr/bin/qc
 fi
 
-if [ -d "/usr/local/QC" ]; then
+if [ -d "/usr/share/qc" ]; then
     echo -e "${YELLOW}Removing old stdlib...${NC}"
-    sudo rm -rf /usr/local/QC
+    sudo rm -rf /usr/share/qc
 fi
 
 echo -e "${BLUE}Compiling QC compiler...${NC}"
@@ -62,21 +62,21 @@ echo -e "${GREEN}Compilation successful${NC}"
 echo ""
 
 echo -e "${BLUE}Installing standard library...${NC}"
-sudo mkdir -p /usr/local/QC
+sudo mkdir -p /usr/share/qc
 
 if [ -f "$SCRIPT_DIR/stdlib.qc" ]; then
-    sudo cp "$SCRIPT_DIR/stdlib.qc" /usr/local/QC/stdlib.qc
-    sudo cp "$SCRIPT_DIR/syntax.qc" /usr/local/QC/syntax.qc
-    echo -e "${GREEN}stdlib.qc installed to /usr/local/QC/${NC}"
+    sudo cp "$SCRIPT_DIR/stdlib.qc" /usr/share/qc/stdlib.qc
+    sudo cp "$SCRIPT_DIR/syntax.qc" /usr/share/qc/syntax.qc
+    echo -e "${GREEN}stdlib.qc installed to /usr/share/qc/${NC}"
 else
     echo -e "${YELLOW}Warning: stdlib.qc not found (will be created later)${NC}"
-    sudo touch /usr/local/QC/stdlib.qc
+    sudo touch /usr/share/qc/stdlib.qc
 fi
 
 echo -e "${BLUE}Installing qc compiler...${NC}"
-sudo cp "$SCRIPT_DIR/qc" /usr/local/bin/qc
-sudo chmod +x /usr/local/bin/qc
-echo -e "${GREEN}qc installed to /usr/local/bin/${NC}"
+sudo cp "$SCRIPT_DIR/qc" /usr/bin/qc
+sudo chmod +x /usr/bin/qc
+echo -e "${GREEN}qc installed to /usr/bin/${NC}"
 echo ""
 
 SHELL_RC=""
@@ -95,26 +95,26 @@ if [ -n "$SHELL_RC" ]; then
     
     echo "" >> "$SHELL_RC"
     echo "# QC Compiler" >> "$SHELL_RC"
-    echo "export QC_STDLIB=\"/usr/local/QC\"" >> "$SHELL_RC"
+    echo "export QC_STDLIB=\"/usr/share/qc\"" >> "$SHELL_RC"
     
     echo -e "${GREEN}Added QC_STDLIB to $SHELL_RC${NC}"
 fi
 
-export PATH="/usr/local/bin:$PATH"
-export QC_STDLIB="/usr/local/QC"
+export PATH="/usr/bin:$PATH"
+export QC_STDLIB="/usr/share/qc"
 
 echo ""
 echo -e "${GREEN}================================${NC}"
 echo -e "${GREEN}   Installation Complete!${NC}"
 echo -e "${GREEN}================================${NC}"
 echo ""
-echo -e "Compiler: ${BLUE}/usr/local/bin/qc${NC}"
-echo -e "Stdlib:   ${BLUE}/usr/local/QC/stdlib.qc${NC}"
+echo -e "Compiler: ${BLUE}/usr/bin/qc${NC}"
+echo -e "Stdlib:   ${BLUE}/usr/share/qc/stdlib.qc${NC}"
 echo ""
 echo -e "${YELLOW}Run one of the following to reload your shell:${NC}"
 echo -e "  ${BLUE}source ~/.bashrc${NC}  (bash)"
-echo -e "  ${BLUE}source ~/.zshrc${NC}   (zsh)"
-echo -e "  ${BLUE}Or restart your terminal${NC}"
+echo -e "${BLUE}source ~/.zshrc${NC}   (zsh)"
+echo -e "${BLUE}Or restart your terminal${NC}"
 echo ""
 echo -e "Then test with: ${BLUE}qc --version${NC}"
 echo ""

@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+RC="$HOME/.bashrc"
+if [ -f "$HOME/.zshrc" ]; then
+  RC="$HOME/.zshrc"
+fi
+
+if ! grep -q "QC_STDLIB" "$RC"; then
+  echo "" >> "$RC"
+  echo "# QC Compiler" >> "$RC"
+  echo "export QC_STDLIB=/usr/local/QC" >> "$RC"
+fi

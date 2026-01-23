@@ -1,0 +1,24 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++23",
+      "-Iinclude",
+      "-c",
+      "Ct4.cpp"
+    ],
+    "directory": "/home/lucar/C^4",
+    "file": "/home/lucar/C^4/Ct4.cpp"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++23",
+      "-Iinclude",
+      "-c",
+      "quantum.cpp"
+    ],
+    "directory": "/home/lucar/C^4",
+    "file": "/home/lucar/C^4/quantum.cpp"
+  }
+]

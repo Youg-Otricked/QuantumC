@@ -601,6 +601,7 @@ namespace tkz {
             }
         }, std::move(this->node));
     }
+    
     Prs ParseResult::to_prs() {
         if (this->error) {
             return Prs{std::move(this->error)};

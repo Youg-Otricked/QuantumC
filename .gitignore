@@ -1,4 +1,24 @@
-emsdk 
-mtk 
+# Ignore build output
+qc/
+*.deb
+*.ddeb
+*.changes
+*.dsc
+*.build
+*.buildinfo
+*.tar.gz
+
+# Ignore emsdk
+emsdk/
+emsdkqc/
+
+# Ignore temp/test files
+*.text
 test.text
-./emsdkqc
+*.log
+*.o
+*.out
+
+# Ignore IDE files
+.vscode/
+.idea/

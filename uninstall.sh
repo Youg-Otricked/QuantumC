@@ -21,16 +21,16 @@ fi
 echo ""
 echo -e "${BLUE}Removing QC compiler...${NC}"
 
-if [ -f "/usr/local/bin/qc" ]; then
-    sudo rm -f /usr/local/bin/qc
-    echo -e "${GREEN}✓ Removed /usr/local/bin/qc${NC}"
+if [ -f "/usr/bin/qc" ]; then
+    sudo rm -f /usr/bin/qc
+    echo -e "${GREEN}✓ Removed /usr/bin/qc${NC}"
 else
     echo -e "${YELLOW}qc binary not found${NC}"
 fi
 
-if [ -d "/usr/local/QC" ]; then
-    sudo rm -rf /usr/local/QC
-    echo -e "${GREEN}✓ Removed /usr/local/QC${NC}"
+if [ -d "/usr/share/qc" ]; then
+    sudo rm -rf /usr/share/qc
+    echo -e "${GREEN}✓ Removed /usr/share/qc${NC}"
 else
     echo -e "${YELLOW}stdlib directory not found${NC}"
 fi
@@ -58,4 +58,3 @@ echo -e "${GREEN}================================${NC}"
 echo ""
 echo -e "${YELLOW}Restart your terminal or run:${NC}"
 echo -e "  ${BLUE}source ~/.bashrc${NC}  (bash)"
-echo

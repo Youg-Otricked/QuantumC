@@ -48,12 +48,13 @@ fn(int a) -> int {
 }(123);
 ```
 Is a immedietly invoked lambda. it instantly calls it.
+This is usefull for when you want to run a block of code without pouluting the scope. 
 ```cpp
 function func = fn(int a) -> int {
     return a;
 };
 ```
-Stores the fn in a variable. 
+Stores the fn in a variable. Note the word function is just the datatype. Auto is allowed, but explicit is prefered.
 
 You use this syntax to make a lambda:
 ```cpp

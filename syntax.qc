@@ -54,7 +54,7 @@ int main() {
     100 - 42;       // 58
     7 * 8;          // 56
     100 / 4;        // 25
-    10 % 3;         // 1 //SOON^TM
+    10 % 3;         // 1
 
     //==============================================================================
     // POWER OPERATOR (C++'s missing feature!)
@@ -269,7 +269,7 @@ int main() {
     bool is_adult = age >= 18;
     bool has_license = true;
     bool can_drive = is_adult && has_license;  // true
-
+    bool work_to_do = !can_drive ^ is_adult;
     bool is_weekend = false;
     bool is_holiday = true;
     bool day_off = is_weekend || is_holiday;   // true
