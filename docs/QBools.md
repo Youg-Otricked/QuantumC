@@ -38,6 +38,7 @@
 |  |both|qtrue|qfalse|none|
 
 Sorry this one is a bit confusing
+
 |^^|none|qfalse|qtrue|both|
 |--|----|------|-----|----|
 |**none**|none|none|both|both|
