@@ -39,6 +39,8 @@ int main() {
 [Functions](./Functions.md)
 [Builtins](./BuiltInFunctions.md)
 [Advanced function features](./AdvancedFunc.md)
+[QBools](./QBool.md)
+[Q Control Flow](./QFlow.md)
 
 
 ## 'Philosophy'
