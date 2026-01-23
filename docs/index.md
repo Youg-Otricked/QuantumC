@@ -30,16 +30,27 @@ int main() {
 
 ### Pages:
 [Features](./desc.md)
+
 [Getting started](./getStart.md)
+
 [Changelog/Features-checklist](./change.md)
+
 [Basics](./BasicSyntax.md)
+
 [Collection types](./CollectionTypes.md)
+
 [Control flow](./ControlFlow.md)
+
 [Loops](./Loops.md)
+
 [Functions](./Functions.md)
+
 [Builtins](./BuiltInFunctions.md)
+
 [Advanced function features](./AdvancedFunc.md)
-[QBools](./QBool.md)
+
+[QBools](./QBools.md)
+
 [Q Control Flow](./QFlow.md)
 
 
