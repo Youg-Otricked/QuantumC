@@ -18,6 +18,7 @@ C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Ru
 -  **Type Safety** - Strong typing with `auto` inference
 -  **Quantum Booleans** - Superposition of true/false
 -  **F-Strings** - Python-style string interpolation
+-  **Special class methods** - Default initlization, representation, and evaluation methods along with operator overloads
 
 ---
 
@@ -161,5 +162,9 @@ qif (qb) {
 | **Requires quantum computer** | No (What?) | Huh?   | WDYM           | NO!**(Unlike Q#!)** _(we get it microsoft, you wanted to be able to program your chip that sounds like a drug)_ |
 
 ---
+
+## Known limitations:
+
+- You cannot use + style string concat on class instances if you arn't entending the + to call the operator+ method because it won't call repr, instead it will try and call operator+ on the class with a string argument. This limitation doesn't exist on fstrings though.
 Made by [Me](https://github.com/Youg-Otricked)
 

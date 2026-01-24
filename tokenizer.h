@@ -1783,7 +1783,6 @@ namespace tkz {
             }
 
             if (candidates.empty()) return nullptr;
-            if (candidates.size() == 1) return candidates[0];
             ClassMethodInfo* best = nullptr;
             int best_score = -1;
 
@@ -1813,8 +1812,10 @@ namespace tkz {
                     best = m;
                 }
             }
-
-            return best ? best : candidates[0];
+            if (best) {
+                return best;
+            }
+            return nullptr;
         }
     };
     struct RunConfig {

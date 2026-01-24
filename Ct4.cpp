@@ -6429,7 +6429,7 @@ namespace tkz {
                 "' is private and cannot be called here",
                 pos),
                 "Error"});
-            return VoidValue{};
+            return VoidValue();
         }
         if (method->access == "protected" && !in_class_or_derived_context(className)) {
             this->errors.push_back({RTError(
@@ -6437,7 +6437,7 @@ namespace tkz {
                 "' is protected and cannot be called here",
                 pos),
                 "Error"});
-            return VoidValue{};
+            return VoidValue();
         }
 
         context->push_scope();
@@ -6449,7 +6449,7 @@ namespace tkz {
                 "QC-C002: Too many arguments to method '" + mname + "'",
                 pos),
                 "Error"});
-            return VoidValue{};
+            return VoidValue();
         }
 
         for (size_t i = 0; i < method->params.size(); ++i) {
@@ -6507,7 +6507,7 @@ namespace tkz {
         }
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
-        if (!node) return std::move(Number<int>(0));
+        if (!node) return VoidValue();
         if (node->op_tok.type == TokenType::RSHIFT) {
             bool is_qin_start = std::holds_alternative<QInNode>(node->left_node);
             
@@ -6591,7 +6591,6 @@ namespace tkz {
             }
             return VoidValue();
         }
-        
         if (node->op_tok.type == TokenType::AND) {
             NumberVariant left = std::move(this->process(node->left_node));
             NumberVariant right = std::move(this->process(node->right_node));
@@ -6862,16 +6861,34 @@ namespace tkz {
         }
         NumberVariant left  = std::move(this->process(node->left_node));
         NumberVariant right = std::move(this->process(node->right_node));
-
+        if (node->is_f) {
+            if (auto ls = std::get_if<StringValue>(&left)) {
+                if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
+                    std::string r_str = this->value_to_string(*inst); // use repr here
+                    return StringValue(ls->value + r_str).set_pos(node->op_tok.pos);
+                }
+            } else if (auto rs = std::get_if<StringValue>(&right)) {
+                if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
+                    std::string l_str = this->value_to_string(*inst);
+                    return StringValue(l_str + rs->value).set_pos(node->op_tok.pos);
+                }
+            }
+        }
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::string mname = op_method_name(node->op_tok.type);
             if (!mname.empty()) {
                 std::vector<NumberVariant> args = {right};
                 ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, mname, args);
-                if (method) {
+                if (method != nullptr) {
                     return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+            errors.push_back({RTError(
+                "QC-C005: No matching '" + mname + "' operator found for class '" +
+                (*inst_ptr)->class_name + "'",
+                get_pos(left)
+            ), "Error"});
+            return VoidValue();
         }
 
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
@@ -6879,73 +6896,24 @@ namespace tkz {
             if (!mname.empty()) {
                 std::vector<NumberVariant> args = {left};
                 ClassMethodInfo* method = find_method_with_args((*inst_ptr)->class_name, mname, args);
-                if (method) {
+                if (method != nullptr) {
                     return call_instance_method(*inst_ptr, method, args, node->op_tok.pos);
                 }
             }
+            errors.push_back({RTError(
+                "QC-C005: No matching '" + mname + "' operator found for class '" +
+                (*inst_ptr)->class_name + "'",
+                get_pos(left)
+            ), "Error"});
+            return VoidValue();
         }
         return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
 
             if (node->is_f) {
-                auto to_string_variant = [this](auto const& v) -> std::string {
-                    using T = std::decay_t<decltype(v)>;
-
-                    if constexpr (std::is_same_v<T, Number<int>> ||
-                                std::is_same_v<T, Number<double>> ||
-                                std::is_same_v<T, Number<float>> ||
-                                std::is_same_v<T, Number<long long>> ||
-                                std::is_same_v<T, Number<long double>> ||
-                                std::is_same_v<T, Number<short>>) {
-                        return std::to_string(v.value);
-                    } else if constexpr (std::is_same_v<T, CharValue>) {
-                        return std::string(1, v.value);
-                    } else if constexpr (std::is_same_v<T, BoolValue>) {
-                        return v.value ? "true" : "false";
-                    } else if constexpr (std::is_same_v<T, QBoolValue>) {
-                        return v.valname;
-                    } else if constexpr (std::is_same_v<T, StringValue>) {
-                        return v.value;
-                    } else if constexpr (std::is_same_v<T, VoidValue>) {
-                        return "<void>";
-                    } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
-                                        std::is_same_v<T, std::shared_ptr<ListValue>> ||
-                                        std::is_same_v<T, std::shared_ptr<MultiValue>>) {
-                        return v ? v->print() : "<null>";
-                    } else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
-                        auto inst = v;
-                        const std::string& className = inst->class_name;
-                        ClassMethodInfo* method = find_method_on_class(className, "repr");
-                        if (!method) {
-                            this->errors.push_back({RTError(
-                                "QC-CLW3: Instance of '" + className +
-                                "' printed, but missing repr function: calling base print.", Position()),
-                                "Warning"});
-                            return v->print();
-                        }
-                        NumberVariant result = call_instance_method(
-                            inst,
-                            method,
-                            {},
-                            Position()
-                        );
-                        if (auto s = std::get_if<StringValue>(&result)) {
-                            return s->value;
-                        }
-
-                        this->errors.push_back({RTError(
-                            "repr() on class '" + className + "' must return string",
-                            Position()),
-                            "Error"});
-                        return v->print();
-                    } else {
-                        return "<unknown>";
-                    }
-                };
-
-                std::string l_str = to_string_variant(L);
-                std::string r_str = to_string_variant(R);
+                std::string l_str = value_to_string(L);
+                std::string r_str = value_to_string(R);
                 return std::move(StringValue(l_str + r_str).set_pos(node->op_tok.pos));
             }
             
