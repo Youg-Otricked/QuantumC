@@ -49,7 +49,7 @@ int main() {
 
 [Advanced function features](./AdvancedFunc.md)
 
-[QBools](./QBool.md)
+[QBools](./QBools.md)
 
 [Q Control Flow](./QFlow.md)
 
