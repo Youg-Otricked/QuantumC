@@ -59,6 +59,8 @@ int main() {
 
 [Special Methods](./SpecialMethods.md)
 
+[Inheritance](./inheritance.md)
+
 
 ## 'Philosophy'
 
