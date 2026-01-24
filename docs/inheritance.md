@@ -34,7 +34,7 @@ class Child : Base {
 ```
 Here, `Child` inherits from `Base`:
 
-`Child` has `x` and `say_x()` from Base`,
+`Child` has `x` and `say_x()` from `Base`,
 Plus its own `y` and `say_xy()`.
 Basic syntax
 ```cpp
