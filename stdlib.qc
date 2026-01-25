@@ -57,6 +57,10 @@ namespace AdvQBool {
                 return true;
             }
         }
+        void init() {
+            this.TruthLevel = 50;
+            this.FalseLevel = 50;
+        }
         string repr() {
             return f"Advanced QBool is {this.TruthLevel} true and {this.FalseLevel} false.";
         }
@@ -113,6 +117,116 @@ namespace Math {
             return i + 1;
         } else {
             return i;
+        }
+    }
+}
+namespace UnitTest {
+    class Test {
+        int Total;
+        int Ran;
+        int Passed;
+        int Failed;
+        string[] Messages;
+        Test(int Ttl) {
+            this.Total = Ttl;
+            this.Ran = 0;
+            this.Passed = 0;
+            this.Failed = 0;
+        }
+        void Check() {
+            if (this.Ran >= this.Total) {
+                if (this.Messages.length > 0) {
+                    foreach(string message in this.Messages) {
+                        std::qout << "==============================" << '\n';
+                        std::qout << message << '\n';
+                    }
+                    std::qout << "==============================" << '\n';
+                }
+                
+                std::qout << f"Failed: {this.Failed}" << '\n';
+                std::qout << f"Passed: {this.Passed}" << '\n';
+
+                std::qout << "==============================" << '\n';
+                if (this.Failed > 0) {
+                    std::qout << "[FAIL]" << '\n';
+                } else {
+                    std::qout << "[PASS]" << '\n';
+                }
+            }
+        }
+        void Success(string message = "[SUCCESS]") {
+            this.Ran += 1;
+            this.Passed += 1;
+            this.Messages.push(message + f": [{this.Ran}/{this.Total}]");
+            this.Check();
+        }
+        void Fail(string message = "[FAIL]") {
+            this.Ran += 1;
+            this.Failed += 1;
+            this.Messages.push(message + f": [{this.Ran}/{this.Total}]");
+            this.Check();
+        }
+        void AssertEqual(auto expected, auto result, string FailMessage = "", string Call = "") {
+            if (expected != result) {
+                if (Call != "") {
+                    this.Fail(f"[FAIL] On call {Call}: Expected {expected}, got {result}. {FailMessage}");
+                } else {
+                    this.Fail(f"[FAIL] Expected {expected}, got {result}. {FailMessage}");
+                }
+            } else {
+                if (Call != "") {
+                    this.Success(f"[SUCCESS] on call {Call}: {result} was equal to {expected}");
+                } else {
+                    this.Success(f"[SUCCESS] {result} was equal to {expected}");
+                }
+            }
+        }
+        void AssertTrue(bool cond, string FailMessage = "", string Call = "") {
+            if (!cond) {
+                if (Call != "") {
+                    this.Fail(f"[FAIL] On call {Call}: Expected condition to be true. {FailMessage}");
+                } else {
+                    this.Fail(f"[FAIL] Expected condition to be true. {FailMessage}");
+                }
+            } else {
+                if (Call != "") {
+                    this.Success(f"[SUCCESS] on call {Call}: Condition was true");
+                } else {
+                    this.Success(f"[SUCCESS] Condition was true");
+                }
+            }
+        }
+
+        void AssertFalse(bool cond, string FailMessage = "", string Call = "") {
+            if (cond) {
+                if (Call != "") {
+                    this.Fail(f"[FAIL] On call {Call}: Expected condition to be false. {FailMessage}");
+                } else {
+                    this.Fail(f"[FAIL] Expected condition to be false. {FailMessage}");
+                }
+            } else {
+                if (Call != "") {
+                    this.Success(f"[SUCCESS] on call {Call}: Condition was false");
+                } else {
+                    this.Success(f"[SUCCESS] Condition was false");
+                }
+            }
+        }
+
+        void AssertNotEqual(auto notExpected, auto result, string FailMessage = "", string Call = "") {
+            if (notExpected == result) {
+                if (Call != "") {
+                    this.Fail(f"[FAIL] On call {Call}: Expected {result} to not equal {notExpected}. {FailMessage}");
+                } else {
+                    this.Fail(f"[FAIL] Expected {result} to not equal {notExpected}. {FailMessage}");
+                }
+            } else {
+                if (Call != "") {
+                    this.Success(f"[SUCCESS] on call {Call}: {result} wasn't equal to {notExpected}");
+                } else {
+                    this.Success(f"[SUCCESS] {result} wasn't equal to {notExpected}");
+                }
+            }
         }
     }
 }

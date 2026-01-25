@@ -30,3 +30,6 @@ int main() {
     string[] MapsKeys = MapIds.keys(); // Returns a array of the keys in MapIds
 }
 ```
+## WARNING
+
+Do NOT initialize collection types with empty `[]` or `{}`. They are already initialized with default values. Doing so will force type inference to `int[]` or `map<string, any(not a type)>`, which may not be what you want.

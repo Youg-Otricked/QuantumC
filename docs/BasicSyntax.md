@@ -76,4 +76,4 @@ Example:
 std::qout << "Hello, World" << '\n';
 ```
 
-## Now, you can write to console the imortal words "Hello, Linus Torvalds" (you though i was gonna say hello, world didnt you)
+## Now, you can write to console the imortal words "Hello, Linus Torvalds" (you though i was gonna say `Hello, World!` didnt you)

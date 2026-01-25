@@ -118,7 +118,7 @@ The child’s speak() replaces the parent’s speak() when called on a Dog insta
 
 Use inheritance when one thing really is a kind of another thing, and you want to share code between them.
 
-2 more inheritance features are A: abstract classes, and B: final
+3 more inheritance features are A: abstract classes, B: final, and C: **_Protected_**
 
 Abstract classes are the exact same thing as classes but you put abstract before class, and you cannot create instances of them, only make children of them.
 ```cpp
@@ -142,3 +142,43 @@ class Thing {
     } // This method cannot be overwriten in child classes.
 }
 ```
+
+and protected is simple.
+**Protected** means the field/method can be accessed by:
+- The class itself
+- Any child class
+- Any grandchild class (and so on...)
+- NOT by outside code (like `main()`)
+
+```cpp
+class Base {
+    protected int shared_value;
+    
+    Base(int val) {
+        this.shared_value = val;
+    }
+}
+
+class Child : Base {
+    void modify() {
+        this.shared_value = 100;
+    }
+}
+
+class GrandChild : Child {
+    void change() {
+        this.shared_value = 200;
+    }
+}
+
+int main() {
+    GrandChild g;
+    // g.shared_value = 50;  // ERROR: protected!
+    return 0;
+}
+```
+Use protected when:
+
+- You want child classes to access something
+- But you don't want outside code to touch it
+

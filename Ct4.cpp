@@ -2437,13 +2437,17 @@ namespace tkz {
     Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
         ParseResult res;
         this->advance();
-        
         std::list<Parameter> params;
         
         if (this->current_tok.type != TokenType::RPAREN) {
             Token param_type = this->current_tok;
             this->advance();
-
+            bool ran = false;
+            while (this->current_tok.type == TokenType::SCOPE) {
+                this->advance();
+                param_type.value += "::" + this->current_tok.value;
+                this->advance();
+            }
             if (param_type.value == "short" || param_type.value == "long") {
                 std::string modifier = param_type.value;
 
@@ -2453,7 +2457,6 @@ namespace tkz {
                 }
                 Token base_type = this->current_tok;
                 this->advance();
-
                 param_type.value = modifier + " " + base_type.value;
                 param_type.pos = base_type.pos;
             }
@@ -2468,7 +2471,11 @@ namespace tkz {
                 }
                 Token elem_type = this->current_tok;
                 this->advance();
-
+                while (this->current_tok.type == TokenType::SCOPE) {
+                    this->advance();
+                    elem_type.value += "::" + this->current_tok.value;
+                    this->advance();
+                }
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
@@ -2518,7 +2525,23 @@ namespace tkz {
                 
                 Token param_type = this->current_tok;
                 this->advance();
+                while (this->current_tok.type == TokenType::SCOPE) {
+                    this->advance();
+                    param_type.value += "::" + this->current_tok.value;
+                    this->advance();
+                }
+                if (param_type.value == "short" || param_type.value == "long") {
+                    std::string modifier = param_type.value;
 
+                    if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S059: Expected type after 'short'/'long'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    Token base_type = this->current_tok;
+                    this->advance();
+                    param_type.value = modifier + " " + base_type.value;
+                    param_type.pos = base_type.pos;
+                }
                 if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                     this->advance(); 
 
@@ -2529,7 +2552,11 @@ namespace tkz {
                     }
                     Token elem_type = this->current_tok;
                     this->advance();
-
+                    while (this->current_tok.type == TokenType::SCOPE) {
+                        this->advance();
+                        elem_type.value += "::" + this->current_tok.value;
+                        this->advance();
+                    }
                     if (this->current_tok.type != TokenType::MORE) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
@@ -2584,7 +2611,10 @@ namespace tkz {
         this->advance(); 
         if (this->current_tok.type == TokenType::ARROW) {
             this->advance();
-            
+            while (this->current_tok.type == TokenType::SCOPE) {
+                this->advance();
+                this->advance();
+            }
             if (this->current_tok.type == TokenType::KEYWORD || this->user_types.count(this->current_tok.value) > 0) {
                 this->advance();
                 
@@ -2784,16 +2814,28 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-            AnyNode body = res.reg(this->statement());
-            if (res.error) return res.to_prs();
+            std::vector<AnyNode> stmts;
+            while (this->current_tok.type != TokenType::RBRACE &&
+                this->current_tok.type != TokenType::EOFT) {
+                Prs st = this->statement();
+                if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
+                    res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                    return res.to_prs();
+                }
+                AnyNode any_stmt = this->prs_to_anynode(std::move(st));
+                stmts.push_back(std::move(any_stmt));
+            }
+
             if (this->current_tok.type != TokenType::RBRACE) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Expected '}' to end foreach body", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
+            auto body_block = std::make_unique<StatementsNode>(std::move(stmts), true);
+
             return res.success(std::make_unique<ForeachNode>(
-                elem_type, elem_name, std::move(collection), std::move(body)));
+                elem_type, elem_name, std::move(collection), std::move(body_block)));
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "continue") {
             this->advance();
@@ -2903,6 +2945,7 @@ namespace tkz {
 
                 std::string access = "public";
                 bool is_final_method = false;
+
                 if (this->current_tok.type == TokenType::KEYWORD &&
                     this->current_tok.value == "final") {
                     is_final_method = true;
@@ -2922,12 +2965,14 @@ namespace tkz {
                 }
                 if (this->current_tok.type == TokenType::IDENTIFIER &&
                     this->current_tok.value == class_name.value) {
+
                     if (is_abstract_class) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Cannot make constructor on abstract class '" + class_name.value + "'",
                             class_name.pos));
                         return res.to_prs();
                     }
+
                     Token next_tok;
                     if (index + 1 < tokens.size()) {
                         next_tok = tokens[index + 1];
@@ -2967,28 +3012,130 @@ namespace tkz {
                         continue;
                     }
                 }
-
                 if (this->current_tok.type != TokenType::KEYWORD &&
                     this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Expected type or constructor in class body", this->current_tok.pos));
                     return res.to_prs();
                 }
-                std::vector<Token> type_list;
-                type_list.push_back(this->current_tok);
-                this->advance();
 
+                std::vector<Token> type_list;
+
+                auto parse_one_type_into = [&](Token& out_tok) -> bool {
+                    std::string field_type;
+                    bool is_user_type = false;
+
+                    if (this->current_tok.type == TokenType::IDENTIFIER) {
+                        is_user_type = true;
+                        field_type = this->current_tok.value;
+                        this->advance();
+                        while (this->current_tok.type == TokenType::SCOPE) {
+                            this->advance();
+                            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-N001: Expected identifier after '::'", this->current_tok.pos));
+                                return false;
+                            }
+                            field_type += "::" + this->current_tok.value;
+                            this->advance();
+                        }
+                    }
+                    else if (this->current_tok.type == TokenType::KEYWORD) {
+                        Token base_type = this->current_tok;
+                        field_type = base_type.value;
+                        this->advance();
+                        if (base_type.value == "list" && this->current_tok.type == TokenType::LESS) {
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::KEYWORD &&
+                                this->current_tok.type != TokenType::IDENTIFIER) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected element type in list<T>", this->current_tok.pos));
+                                return false;
+                            }
+                            std::string elem_type = this->current_tok.value;
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::MORE) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected '>' after list element type", this->current_tok.pos));
+                                return false;
+                            }
+                            this->advance();
+
+                            field_type = "list<" + elem_type + ">";
+                        }
+                        else if (this->current_tok.type == TokenType::LBRACKET) {
+                            this->advance();
+                            if (this->current_tok.type != TokenType::RBRACKET) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S061: Expected ']' after '[' in list type", this->current_tok.pos));
+                                return false;
+                            }
+                            this->advance();
+                            field_type = "list<" + base_type.value + ">";
+                        }
+                        else if (base_type.value == "map") {
+                            if (this->current_tok.type != TokenType::LESS) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S066: Expected '<' after map for key type", this->current_tok.pos));
+                                return false;
+                            }
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::KEYWORD &&
+                                this->current_tok.type != TokenType::IDENTIFIER) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S067: Expected key type in map", this->current_tok.pos));
+                                return false;
+                            }
+                            std::string key_type = this->current_tok.value;
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::COMMA) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S068: Expected ',' between key and value type in map", this->current_tok.pos));
+                                return false;
+                            }
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::KEYWORD &&
+                                this->current_tok.type != TokenType::IDENTIFIER) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S069: Expected value type in map", this->current_tok.pos));
+                                return false;
+                            }
+                            std::string value_type = this->current_tok.value;
+                            this->advance();
+
+                            if (this->current_tok.type != TokenType::MORE) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S070: Expected '>' after map value type", this->current_tok.pos));
+                                return false;
+                            }
+                            this->advance();
+
+                            field_type = "map<" + key_type + "," + value_type + ">";
+                        }
+                    } else {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-S071: Expected type in class body", this->current_tok.pos));
+                        return false;
+                    }
+
+                    out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
+                    return true;
+                };
+                {
+                    Token t;
+                    if (!parse_one_type_into(t)) return res.to_prs();
+                    type_list.push_back(t);
+                }
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
-
-                    if (this->current_tok.type != TokenType::KEYWORD &&
-                        this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected type after ',' in return type list", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    type_list.push_back(this->current_tok);
-                    this->advance();
+                    Token t;
+                    if (!parse_one_type_into(t)) return res.to_prs();
+                    type_list.push_back(t);
                 }
                 Token name_tok;
                 if (this->current_tok.type == TokenType::IDENTIFIER &&
@@ -3031,32 +3178,31 @@ namespace tkz {
                                 "Unsupported operator in operator method", op_tok.pos));
                             return res.to_prs();
                     }
-
-                    std::string op_name;
+                            std::string op_name;
                     switch (op_tok.type) {
-                        case TokenType::PLUS:     op_name = "operator+";  break;
-                        case TokenType::MINUS:    op_name = "operator-";  break;
-                        case TokenType::MUL:      op_name = "operator*";  break;
-                        case TokenType::DIV:      op_name = "operator/";  break;
-                        case TokenType::EQ_TO:    op_name = "operator=="; break;
-                        case TokenType::NOT_EQ:   op_name = "operator!="; break;
-                        case TokenType::EQ:       op_name = "operator=";  break;
-                        case TokenType::NOT:      op_name = "operator!";  break;
-                        case TokenType::AND:      op_name = "operator&&"; break;
-                        case TokenType::OR:       op_name = "operator||"; break;
-                        case TokenType::MORE:     op_name = "operator>";  break;
-                        case TokenType::LESS:     op_name = "operator<";  break;
-                        case TokenType::MORE_EQ:  op_name = "operator>="; break;
-                        case TokenType::LESS_EQ:  op_name = "operator<="; break;
-                        case TokenType::POWER:  op_name = "operator**"; break;
-                        case TokenType::MOD: op_name = "operator%"; break;
-                        case TokenType::XOR: op_name = "operator^"; break;
-                        case TokenType::QNOT:  op_name = "operator!!"; break;
-                        case TokenType::QAND: op_name = "operator&&&"; break;
-                        case TokenType::QOR:  op_name = "operator|||"; break;
-                        case TokenType::QXOR: op_name = "operator^^"; break;
-                        case TokenType::COLLAPSE_OR:  op_name = "operator|&|"; break;
-                        case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                        case TokenType::PLUS:        op_name = "operator+";    break;
+                        case TokenType::MINUS:       op_name = "operator-";    break;
+                        case TokenType::MUL:         op_name = "operator*";    break;
+                        case TokenType::DIV:         op_name = "operator/";    break;
+                        case TokenType::EQ_TO:       op_name = "operator==";   break;
+                        case TokenType::NOT_EQ:      op_name = "operator!=";   break;
+                        case TokenType::EQ:          op_name = "operator=";    break;
+                        case TokenType::NOT:         op_name = "operator!";    break;
+                        case TokenType::AND:         op_name = "operator&&";   break;
+                        case TokenType::OR:          op_name = "operator||";   break;
+                        case TokenType::MORE:        op_name = "operator>";    break;
+                        case TokenType::LESS:        op_name = "operator<";    break;
+                        case TokenType::MORE_EQ:     op_name = "operator>=";   break;
+                        case TokenType::LESS_EQ:     op_name = "operator<=";   break;
+                        case TokenType::POWER:       op_name = "operator**";   break;
+                        case TokenType::MOD:         op_name = "operator%";    break;
+                        case TokenType::XOR:         op_name = "operator^";    break;
+                        case TokenType::QNOT:        op_name = "operator!!";   break;
+                        case TokenType::QAND:        op_name = "operator&&&";  break;
+                        case TokenType::QOR:         op_name = "operator|||";  break;
+                        case TokenType::QXOR:        op_name = "operator^^";   break;
+                        case TokenType::COLLAPSE_OR: op_name = "operator|&|";  break;
+                        case TokenType::COLLAPSE_AND:op_name = "operator&|&";  break;
                     }
 
                     name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
@@ -3087,23 +3233,23 @@ namespace tkz {
                             }
                         }
                     }
+
                     auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok));
                     if (std::holds_alternative<std::unique_ptr<Error>>(m_pr))
                         return m_pr;
 
                     auto fn = std::get<std::shared_ptr<FuncDefNode>>(std::move(m_pr));
 
-                    mi.name_tok = name_tok;
                     mi.params.clear();
                     mi.params.reserve(fn->params.size());
                     for (auto it = fn->params.begin(); it != fn->params.end(); ++it) {
                         mi.params.push_back(std::move(*it)); 
                     }
-                    mi.return_types = fn->return_types;
-                    mi.body = std::move(fn->body);
+                    mi.return_types   = fn->return_types;
+                    mi.body           = std::move(fn->body);
                     mi.is_constructor = false;
-                    mi.is_final = is_final_method;
-                    mi.access = access;
+                    mi.is_final       = is_final_method;
+                    mi.access         = access;
 
                     info.classMethods.push_back(std::move(mi));
                     continue;
@@ -3113,6 +3259,22 @@ namespace tkz {
                         "Class fields cannot have multiple types", name_tok.pos));
                     return res.to_prs();
                 }
+                std::string field_type = type_list[0].value;
+                int array_dims = 0;
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type == TokenType::KEYWORD) {
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-S061: Expected ']' after '[' in array", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    array_dims++;
+                }
+                for (int i = 0; i < array_dims; ++i) field_type += "[]";
 
                 if (this->current_tok.type != TokenType::SEMICOLON) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -3122,8 +3284,8 @@ namespace tkz {
                 this->advance();
 
                 ClassField cf;
-                cf.name = name_tok.value;
-                cf.type = type_list[0].value;
+                cf.name   = name_tok.value;
+                cf.type   = field_type;
                 cf.access = access;
                 info.classFields.push_back(std::move(cf));
             }
@@ -3391,30 +3553,44 @@ namespace tkz {
             }
             this->advance();
 
-            auto parse_type_atom = [&](Token tok) -> std::string {
-                switch (tok.type) {
-                    case TokenType::STRING:
-                        return "string:\"" + tok.value + "\"";
-                    case TokenType::INT:
-                        return "int:" + tok.value;
-                    case TokenType::FLOAT:
-                        return "float:" + tok.value;
-                    case TokenType::DOUBLE:
-                        return "double:" + tok.value;
-                    case TokenType::CHAR:
-                        return "char:" + tok.value;
-                    case TokenType::BOOL:
-                        return "bool:" + tok.value;
-                    case TokenType::QBOOL:
-                        return "qbool:" + tok.value;
+            auto parse_type_atom = [&](Token first_tok) -> UnionMember {
+                std::string type_str;
+                switch (first_tok.type) {
+                    case TokenType::STRING:  return UnionMember{ "string:\"" + first_tok.value + "\"" };
+                    case TokenType::INT:     return UnionMember{ "int:"    + first_tok.value };
+                    case TokenType::FLOAT:   return UnionMember{ "float:"  + first_tok.value };
+                    case TokenType::DOUBLE:  return UnionMember{ "double:" + first_tok.value };
+                    case TokenType::CHAR:    return UnionMember{ "char:"   + first_tok.value };
+                    case TokenType::BOOL:    return UnionMember{ "bool:"   + first_tok.value };
+                    case TokenType::QBOOL:   return UnionMember{ "qbool:"  + first_tok.value };
                     default:
-                        return tok.value;
+                        break;
                 }
+                type_str = first_tok.value;
+                int array_dims = 0;
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    if (this->current_tok.type == TokenType::INT) {
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-S061: Expected ']' after '[' in array", this->current_tok.pos));
+                        return UnionMember{ "" };
+                    }
+                    this->advance();
+                    array_dims++;
+                }
+                for (int i = 0; i < array_dims; ++i) {
+                    type_str += "[]";
+                }
+
+                return UnionMember{ type_str };
             };
 
             auto is_type_or_literal_token = [&](TokenType tt) {
-                return tt == TokenType::STRING ||
-                    tt == TokenType::IDENTIFIER||
+                return tt == TokenType::STRING  ||
+                    tt == TokenType::IDENTIFIER ||
                     tt == TokenType::KEYWORD   ||
                     tt == TokenType::INT       ||
                     tt == TokenType::FLOAT     ||
@@ -3432,10 +3608,11 @@ namespace tkz {
             }
 
             std::vector<UnionMember> members;
-            Token first_tok = this->current_tok;
-            this->advance();
-            members.push_back(UnionMember{ parse_type_atom(first_tok) });
-
+            {
+                Token first_tok = this->current_tok;
+                this->advance();
+                members.push_back(parse_type_atom(first_tok));
+            }
             while (this->current_tok.type == TokenType::PIPE) {
                 this->advance();
 
@@ -3448,24 +3625,7 @@ namespace tkz {
 
                 Token t = this->current_tok;
                 this->advance();
-                members.push_back(UnionMember{ parse_type_atom(t) });
-            }
-
-            while (this->current_tok.type == TokenType::PIPE) {
-                this->advance();
-
-                if (this->current_tok.type != TokenType::STRING &&
-                    this->current_tok.type != TokenType::KEYWORD &&
-                    this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S078: Expected type or literal after '|'",
-                        this->current_tok.pos));
-                    return res.to_prs();
-                }
-
-                Token t = this->current_tok;
-                this->advance();
-                members.push_back(UnionMember{ parse_type_atom(t) });
+                members.push_back(parse_type_atom(t));
             }
 
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -3473,6 +3633,7 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
+
             if (user_types.contains(type_name.value)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "QC-UT01: Redefinition of type '" + type_name.value + "'",
@@ -4523,17 +4684,43 @@ namespace tkz {
         throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
     }
     NumberVariant def_value_for_type(const std::string& type_name) {
-        if (type_name == "int") return Number<int>(0);
-        else if (type_name == "float") return Number<float>(0.0f);
+        if (type_name == "int")    return Number<int>(0);
+        else if (type_name == "float")  return Number<float>(0.0f);
         else if (type_name == "double") return Number<double>(0.0);
         else if (type_name == "string") return StringValue("");
-        else if (type_name == "char") return CharValue("");
-        else if (type_name == "bool") return BoolValue("");
-        else if (type_name == "qbool") return QBoolValue("");
-        if (type_name == "short int")    return Number<short>(0);
-        if (type_name == "long int")     return Number<long long>(0);
-        if (type_name == "long double")  return Number<long double>(0.0L);
-        else return VoidValue();
+        else if (type_name == "char")   return CharValue("");
+        else if (type_name == "bool")   return BoolValue("");
+        else if (type_name == "qbool")  return QBoolValue("");
+        else if (type_name == "short int")   return Number<short>(0);
+        else if (type_name == "long int")    return Number<long long>(0);
+        else if (type_name == "long double") return Number<long double>(0.0L);
+        if (type_name.rfind("list<", 0) == 0 && type_name.back() == '>') {
+        std::string elem_type = type_name.substr(5, type_name.size() - 6);
+            auto list = std::make_shared<ListValue>(elem_type, std::vector<NumberVariant>{});
+            return list;
+        }
+        if (type_name.rfind("map<", 0) == 0 && type_name.back() == '>') {
+            std::string inner = type_name.substr(4, type_name.size() - 5);
+            size_t comma = inner.find(',');
+            std::string key_type = "auto";
+            std::string val_type = "auto";
+            if (comma != std::string::npos) {
+                key_type = inner.substr(0, comma);
+                val_type = inner.substr(comma + 1);
+            }
+            auto map = std::make_shared<MapValue>(key_type, val_type);
+            return map;
+        }
+        if (type_name.size() >= 2 && type_name.find("[]") != std::string::npos) {
+            std::string elem_type = type_name;
+            while (elem_type.size() >= 2 &&
+                elem_type.substr(elem_type.size() - 2) == "[]") {
+                elem_type = elem_type.substr(0, elem_type.size() - 2);
+            }
+            auto arr = std::make_shared<ArrayValue>(elem_type, std::vector<NumberVariant>{});
+            return arr;
+        }
+        return VoidValue();
     }
     std::string Interpreter::value_to_string(const NumberVariant& val) {
         return std::visit([this](auto const& v) -> std::string {
@@ -6218,6 +6405,7 @@ namespace tkz {
                         }
                         else {
                             types_compatible = (expected_type == actual_type);
+
                         }
                     }
                     
@@ -7046,7 +7234,6 @@ namespace tkz {
                         throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", node->var_name.pos);
                     }
                     if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&sym_it->second.value)) {
-                        std::cerr << "AssignExprNode found class wiht qualification" << '\n';
                         std::string class_name = (*inst_ptr)->class_name;
                         auto ut_it = context->user_types.find(class_name);
                         
@@ -9486,7 +9673,7 @@ std::string preprocess_includes(const std::string& source, const std::string& cu
         
         std::string full_path;
         if (path == "std") {
-            full_path = "/usr/local/QC/stdlib.qc";
+            full_path = "/usr/share/qc/stdlib.qc";
         } else {
             full_path = resolve_path(current_file, path);
         }
