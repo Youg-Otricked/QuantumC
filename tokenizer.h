@@ -47,7 +47,6 @@ namespace tkz {
     };
     
     // Forward declarations
-    class ListNode;
     class NumberNode;
     class BinOpNode;
     class UnaryOpNode;
@@ -90,6 +89,7 @@ namespace tkz {
     class RandomCallNode;
     class FieldAssignNode;
     class MapLiteralNode;
+    class TryCatchNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -133,7 +133,8 @@ namespace tkz {
         std::unique_ptr<RandomCallNode>,
         std::unique_ptr<FieldAssignNode>,
         std::unique_ptr<MapLiteralNode>,
-        std::unique_ptr<NamespaceNode>
+        std::unique_ptr<NamespaceNode>,
+        std::unique_ptr<TryCatchNode>
     >;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -545,7 +546,32 @@ namespace tkz {
             return "(while " + printAny(condition) + " " + body->print() + ")";
         }
     };
-
+    class TryCatchNode {
+    public:
+        std::unique_ptr<StatementsNode> try_body;
+        std::string catch_var_name;
+        std::string catch_var_type;
+        std::unique_ptr<StatementsNode> catch_body;
+        Token tok;
+        Position pos;
+        
+        TryCatchNode(
+            std::unique_ptr<StatementsNode> try_b,
+            std::string var_name,
+            std::string var_type,
+            std::unique_ptr<StatementsNode> catch_b,
+            Token t,
+            Position p
+        ) : try_body(std::move(try_b)),
+            catch_var_name(var_name),
+            catch_var_type(var_type),
+            catch_body(std::move(catch_b)),
+            tok(t),
+            pos(p) {}
+        std::string print() {
+            return "try {\n\t" + try_body->print() + "\n} catch {\n\t" + catch_body->print() + "\n}";
+        }
+    };
     class ForNode {
     public:
         std::optional<AnyNode> init;
@@ -926,7 +952,8 @@ namespace tkz {
         std::unique_ptr<RandomCallNode>,
         std::unique_ptr<FieldAssignNode>,
         std::unique_ptr<MapLiteralNode>,
-        std::unique_ptr<NamespaceNode>
+        std::unique_ptr<NamespaceNode>,
+        std::unique_ptr<TryCatchNode>
     >;
         
     class ParseResult {
@@ -1055,6 +1082,7 @@ namespace tkz {
         Prs statement();
         Prs while_stmt();
         Prs for_stmt();
+        Prs try_catch_expr();
         Prs array_literal();
         Prs call(AnyNode node_to_call);
         Prs func_def(Token return_type, std::optional<Token> func_name);
@@ -1318,6 +1346,26 @@ namespace tkz {
         InstanceValue(std::string class_name) {
             this->class_name = class_name;
         }
+        bool equals(const InstanceValue& other,
+                std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
+            if (class_name != other.class_name) {
+                return false;
+            }
+            if (fields.size() != other.fields.size()) {
+                return false;
+            }
+            for (const auto& [field_name, value] : fields) {
+                auto it = other.fields.find(field_name);
+                if (it == other.fields.end()) {
+                    return false;
+                }
+                if (!value_eq(value, it->second, pos)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
         std::string print() const;
     };
     class MultiValue {
@@ -1425,7 +1473,21 @@ namespace tkz {
             }
             return result;
         }
-        
+        bool equals(const MapValue& other, std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
+            if (data.size() != other.data.size()) {
+                return false;
+            }
+            for (const auto& [key, value] : data) {
+                if (other.data.find(key) == other.data.end()) {
+                    return false;
+                }
+                if (!value_eq(value, other.data.at(key), pos)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
         std::string print() const;
     };
     class StructValue {
@@ -1437,7 +1499,26 @@ namespace tkz {
         StructValue(std::string t) : type_name(std::move(t)), pos("", "", 0, 0, 0) {}
 
         StructValue& set_pos(Position p) { pos = p; return *this; }
-
+            bool equals(const StructValue& other,
+                    std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
+            if (type_name != other.type_name) {
+                return false;
+            }
+            if (fields.size() != other.fields.size()) {
+                return false;
+            }
+            for (const auto& [field_name, value] : fields) {
+                auto it = other.fields.find(field_name);
+                if (it == other.fields.end()) {
+                    return false;
+                }
+                if (!value_eq(value, it->second, pos)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
         std::string print() const;
     };
     struct ExecResult {
@@ -1726,6 +1807,7 @@ namespace tkz {
         NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
         NumberVariant operator()(std::unique_ptr<IfNode>& node);
         NumberVariant operator()(std::unique_ptr<QIfNode>& node);
+        NumberVariant operator()(std::unique_ptr<TryCatchNode>& node);
         NumberVariant operator()(std::unique_ptr<SwitchNode>& node);
         NumberVariant operator()(std::unique_ptr<QSwitchNode>& node);
         NumberVariant operator()(std::unique_ptr<BreakNode>& node); 
@@ -1758,65 +1840,13 @@ namespace tkz {
         ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
         ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);
         ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
+        ExecResult exec_stmt_in_loop_or_switch(TryCatchNode& tcn);
         std::string run_statements(std::unique_ptr<StatementsNode>& node);
         ClassMethodInfo* find_method_with_args(
             const std::string& className,
             const std::string& mname,
             const std::vector<NumberVariant>& args
-        ) {
-            auto it = context->user_types.find(className);
-            if (it == context->user_types.end()) return nullptr;
-
-            UserTypeInfo* cur = &it->second;
-            std::vector<ClassMethodInfo*> candidates;
-            while (cur) {
-                for (auto& m : cur->classMethods) {
-                    if (m.name_tok.value == mname || (m.is_constructor && mname == className)) {
-                        candidates.push_back(&m);
-                    }
-                }
-
-                if (cur->baseClassName.empty()) break;
-                auto bit = context->user_types.find(cur->baseClassName);
-                if (bit == context->user_types.end()) break;
-                cur = &bit->second;
-            }
-
-            if (candidates.empty()) return nullptr;
-            ClassMethodInfo* best = nullptr;
-            int best_score = -1;
-
-            for (auto* m : candidates) {
-                if (m->params.size() != args.size()) continue;
-
-                int score = 0;
-                bool valid = true;
-                size_t i = 0;
-
-                for (auto it = m->params.begin(); it != m->params.end(); ++it, ++i) {
-                    std::string expected = it->type.value;
-                    std::string actual = context->get_type_name(args[i]);
-
-                    if (expected == actual) {
-                        score += 100;
-                    } else if (expected == "auto") {
-                        score += 50;
-                    } else {
-                        valid = false;
-                        break;
-                    }
-                }
-
-                if (valid && score > best_score) {
-                    best_score = score;
-                    best = m;
-                }
-            }
-            if (best) {
-                return best;
-            }
-            return nullptr;
-        }
+        );
     };
     struct RunConfig {
         bool use_context = true;

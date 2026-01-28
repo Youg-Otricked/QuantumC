@@ -61,6 +61,10 @@ int main() {
 
 [Inheritance](./inheritance.md)
 
+[Namespaces](./namespaces.md)
+
+[Multi File](./include.md)
+
 
 ## 'Philosophy'
 

@@ -84,8 +84,21 @@ namespace Utils {
         }
         return [@fin];
     }
+    void sleep(long int crr) {
+        crr += time();
+        while (time() < crr) {
+            for (int i = 0; i < 5000; i++) {}
+        }
+    }
 }
 namespace Math {
+    double e() {
+        return 2.71828182845904523536;
+    }
+    
+    double pi() {
+        return 3.14159265358979323846;
+    }
     type Number = int | float | double;
     Number max(Number a, Number b) {
         if (a > b) {
@@ -111,13 +124,95 @@ namespace Math {
     int ceil(Floating a) {
         double d = to_double(a);
         int i = to_int(d);
-        if (d == i) {
+        if (d == to_double(i)) {
             return i;
         } else if (d > 0) {
             return i + 1;
         } else {
             return i;
         }
+    }
+    int floor(Floating a) {
+        double d = to_double(a);
+        int i = to_int(d);
+        if (d >= 0) {
+            return i;
+        } else {
+            if (d == to_double(i)) {
+                return i;
+            } else {
+                return i - 1;
+            }
+        }
+    }
+    Number abs(Number a) {
+        if (a < 0) {
+            return a * -1;
+        }
+        return a;
+    }
+    double sin(double x) {
+        double pi = 3.14159265358979323846;
+        while (x > pi) { x -= 2 * pi; }
+        while (x < -pi) { x += 2 * pi; }
+        
+        double result = 0.0;
+        double term = x;
+        int n = 1;
+        for (int i = 0; i < 10; i++) {
+            result += term;
+            term *= -1.0 * x * x / ((2 * n) * (2 * n + 1));
+            n++;
+        }
+        
+        return result;
+    }
+    double cos(double x) {
+        
+        double pi = 3.14159265358979323846;
+        while (x > pi) { x -= 2 * pi; }
+        while (x < -pi) { x += 2 * pi; }
+        
+        double result = 0.0;
+        double term = 1.0;
+        int n = 1;
+        
+        for (int i = 0; i < 10; i++) {
+            result += term;
+            term *= -1.0 * x * x / ((2 * n - 1) * (2 * n));
+            n++;
+        }
+        
+        return result;
+    }
+    double tan(double x) {
+        return sin(x) / cos(x);
+    }
+    double log(double x) {
+        if (x <= 0) {
+            throw("log: x must be positive");
+        }
+        double log2 = 0.693147180559945309417;
+        int n = 0;
+        
+        while (x > 2.0) {
+            x /= 2.0;
+            n++;
+        }
+        while (x < 0.5) {
+            x *= 2.0;
+            n--;
+        }
+        double y = x - 1.0;
+        double result = 0.0;
+        double term = y;
+        
+        for (int i = 1; i <= 20; i++) {
+            result += term / to_double(i);
+            term *= -y;
+        }
+        
+        return result + n * log2;
     }
 }
 namespace UnitTest {
@@ -228,5 +323,59 @@ namespace UnitTest {
                 }
             }
         }
+    }
+}
+namespace Collections {
+    bool has(auto collection, auto value) {
+        foreach (auto val in collection) {
+            if (val == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+    int index_of(auto collection, auto value) {
+        for (int i = 0; i < collection.length; i++) {
+            if (collection[i] == value) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    list<int> sort(list<int> collection) {
+        bool swapped = true;
+        int n = collection.length;
+        while(swapped) {
+            swapped = false;
+            for (int i = 0; i < n - 1; i++) {
+                if (collection[i] > collection[i + 1]) {
+                    int iv = collection[i];
+                    collection[i] = collection[i + 1];
+                    collection[i + 1] = iv;
+                    swapped = true;
+                }
+            }
+            n -= 1;
+        }
+        return collection;
+    }
+    list<auto> remove(list<auto> collection, auto value) {
+        int index = index_of(collection, value);
+        if (index != -1) {
+            for (int i = index; i < collection.length - 1; i++) {
+                collection[i] = collection[i + 1];
+            }
+            collection.pop();
+        }
+        return collection;
+    }
+    list<auto> reverse(list<auto> collection) {
+        int n = collection.length;
+        for (int i = 0; i < n / 2; i++) {
+            auto temp = collection[i];
+            collection[i] = collection[n - 1 - i];
+            collection[n - 1 - i] = temp;
+        }
+        return collection;
     }
 }

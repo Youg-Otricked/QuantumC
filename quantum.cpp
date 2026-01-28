@@ -106,16 +106,13 @@ int main(int argc, char* argv[]) {
 `8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.         `8 888       .8' 
  ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.           888     ,88'  
     `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.          `888888P'  
-        Quantum C (C⁴) v9.0.0
+        Quantum C (C⁴) v10.0.0
 
         The 4th Evolution of C
         More Powerful Than Explosives
-        Now turing complete.
-        Functions comming: NOW
-        Beter syntax guide comming: NOW
-        
         Now on a higher version than Geometry Dash
         Now officaly past version 1(byte)
+        ITS OVER... NINE.
         Features:
         ✓ C++ Performance -- without the 20 #includes
         ✓ C# Ergonomics  
@@ -148,7 +145,7 @@ int main(int argc, char* argv[]) {
             slow = true;
         } else if (arg == "--help" || arg == "-h") {
         std::cout << GREEN << R"(
-Quantum C Interpreter v9.0.0
+Quantum C Interpreter v10.0.0
 
 Usage: ./qc [options] <file>
 
@@ -192,7 +189,7 @@ Examples:
         
         // REPL mode
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL v9.0.0" << RESET << std::endl;
+        std::cout << GREEN << "Quantum C REPL v10.0.0" << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
@@ -316,8 +313,8 @@ Examples:
                 else if (key == "time")    config.show_time     = on;
                 else if (key == "tokens")  config.print_tokens  = on;
                 else if (key == "ast")     config.print_ast     = on;
-                else if (key == "raw")     config.bst           = on;
-                else if (key == "bst")     config.raw           = on;
+                else if (key == "raw")     config.raw           = on;
+                else if (key == "bst")     config.bst           = on;
                 else if (key == "quiet")   config.quiet_mode    = on;
                 else if (key == "slow")    slow                 = on;
                 else {

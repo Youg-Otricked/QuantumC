@@ -1265,7 +1265,7 @@ int main() {
     std::qout << "c.x=" << c.x << " c.y=" << c.y << "\n";
     std::qout << "eq1=" << eq1 << " eq2=" << eq2 << "\n";
     // END OF DEMO
-    // All features shown above are working in Quantum C v9.0.0!
+    // All features shown above are working in Quantum C v10.0.0!
     //==============================================================================
     return res;
 }

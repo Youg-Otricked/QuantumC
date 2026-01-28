@@ -42,8 +42,9 @@ std::string strip_brace(const std::string& s) {
 
 std::string strip(const std::string& s) {
     std::string r = s;
-    while(r.size()>=2 && r.substr(r.size()-2)=="[]") r=r.substr(0,r.size()-2);
     size_t pos;
+    while((pos=r.find("list<"))!=std::string::npos && r.back()=='>') r=r.substr(pos+5,r.size()-(pos+6));
+    while(r.size()>=2 && r.substr(r.size()-2)=="[]") r=r.substr(0,r.size()-2);
     while((pos=r.find("list<"))!=std::string::npos && r.back()=='>') r=r.substr(pos+5,r.size()-(pos+6));
     return r;
 }
@@ -324,6 +325,9 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
                 return arg->print();
             }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<TryCatchNode>>) {
+                return arg->print();
+            }
             else if constexpr (std::is_same_v<T, std::monostate>) {
                 return "";
             }
@@ -525,6 +529,8 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<TryCatchNode>>) {
+                return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<BreakNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<SwitchNode>>) {
@@ -631,6 +637,8 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<StatementsNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, std::unique_ptr<TryCatchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<BreakNode>>) {
                 return Prs{std::move(arg)};
@@ -1092,6 +1100,58 @@ namespace tkz {
 
         auto ifnode = std::make_unique<IfNode>(std::move(init_node), std::move(condition), std::move(then_branch), std::move(elifs), std::move(else_branch));
         return res.success(std::move(ifnode));
+    }
+    Prs Parser::try_catch_expr() {
+        ParseResult res;
+        if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "try")) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S030: Expected 'try'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        Token try_tok = this->current_tok;
+        this->advance();
+        std::unique_ptr<StatementsNode> try_body;
+        if (!parse_block_into(try_body, res)) return res.to_prs();
+        if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "catch")) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S031: Expected 'catch' after try block", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        if (this->current_tok.type != TokenType::LPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S032: Expected '(' after 'catch'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S033: Expected type in catch declaration", this->current_tok.pos));
+            return res.to_prs();
+        }
+        Token type_tok = this->current_tok;
+        std::string catch_type = type_tok.value;
+        this->advance();
+        if (this->current_tok.type != TokenType::IDENTIFIER) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S034: Expected variable name in catch declaration", this->current_tok.pos));
+            return res.to_prs();
+        }
+        Token var_tok = this->current_tok;
+        std::string catch_var = var_tok.value;
+        this->advance();
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(std::make_unique<InvalidSyntaxError>("QC-S035: Expected ')' after catch variable", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        std::unique_ptr<StatementsNode> catch_body;
+        if (!parse_block_into(catch_body, res)) return res.to_prs();
+        auto try_catch_node = std::make_unique<TryCatchNode>(
+            std::move(try_body),
+            catch_var,
+            catch_type,
+            std::move(catch_body),
+            try_tok,
+            try_tok.pos
+        );
+        
+        return res.success(std::move(try_catch_node));
     }
     Prs Parser::switch_stmt() {
         ParseResult res;
@@ -2423,7 +2483,8 @@ namespace tkz {
                 std::is_same_v<T, std::unique_ptr<QSwitchNode>> ||
                 std::is_same_v<T, std::unique_ptr<FieldAssignNode>> ||
                 std::is_same_v<T, std::unique_ptr<MapLiteralNode>> ||
-                std::is_same_v<T, std::unique_ptr<NamespaceNode>>
+                std::is_same_v<T, std::unique_ptr<NamespaceNode>> ||
+                std::is_same_v<T, std::unique_ptr<TryCatchNode>>
             ) {
                 return std::move(arg);
             } else {
@@ -2751,6 +2812,9 @@ namespace tkz {
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
             return this->if_expr();
         }
+        if (tok.type == TokenType::KEYWORD && tok.value == "try") {
+            return this->try_catch_expr();
+        }
         if (tok.type == TokenType::KEYWORD && tok.value == "qif") {
             return this->qif_expr();
         }
@@ -2800,8 +2864,9 @@ namespace tkz {
             this->advance();
             
             AnyNode collection = res.reg(this->logical_or());
-            if (res.error) return res.to_prs();
-            
+            if (res.error) {
+                return res.to_prs();
+            }
             if (this->current_tok.type != TokenType::RPAREN) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "QC-S016: Expected ')' after foreach", this->current_tok.pos));
@@ -4456,7 +4521,25 @@ namespace tkz {
         if (colon_pos != std::string::npos) {
             std::string lit_kind = member_type.substr(0, colon_pos);
             std::string lit_val  = member_type.substr(colon_pos + 1);
-
+            if (member_type == "auto" || actual_type == "auto") return true;
+            if (member_type == "list<auto>") {
+                if (actual_type.find("list<") != std::string::npos || actual_type.find("[]") != std::string::npos) {
+                    return true;
+                }
+            }
+            else if (member_type.find("list<") == 0) {
+                std::string inner = strip(member_type);
+                if (strip(actual_type) == inner && actual_type != inner) {
+                    return true;
+                }
+            }
+            if (actual_type.find("list<") == 0) {
+                std::string inner = strip(actual_type);
+                
+                if (strip(member_type) == inner && member_type != inner) {
+                    return true;
+                }
+            }
             if (lit_kind == "string" && actual_type == "string") {
                 if (auto sv = std::get_if<StringValue>(&val)) {
                     if (lit_val.size() >= 2 && lit_val.front() == '"' && lit_val.back() == '"') {
@@ -4589,13 +4672,36 @@ namespace tkz {
                     sym_it->second.value = std::move(new_val);
                     return;
                 }
-                
-                auto get_base = [](const std::string& t) {
-                    size_t pos = t.rfind("::");
-                    return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                if (expected == "list<auto>") {
+                    if (actual.find("list<") != std::string::npos || actual.find("[]") != std::string::npos) {
+                        actual = expected;
+                    }
+                }
+                if (expected.find("list<") == 0) {
+                    std::string inner = strip(expected);
+                    if (strip(actual) == inner && actual != inner) {
+                        actual = expected;
+                    }
+                }
+                if (actual.find("list<") == 0) {
+                    std::string inner = strip(actual);
+                    
+                    if (strip(expected) == inner && expected != inner) {
+                        actual = expected;
+                    }
+                }
+                auto normalize_type = [](const std::string& t) {
+                    std::string type = t;
+                    size_t pos = type.rfind("::");
+                    type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
+                    if (type == "long int") type = "int";
+                    if (type == "short int") type = "int";
+                    if (type == "long double") type = "double";
+
+                    return type;
                 };
-                
-                if (get_base(expected) != get_base(actual) && expected != actual) {
+
+                if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
                     throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
                 }
                 
@@ -4665,16 +4771,33 @@ namespace tkz {
                         sym_it->second.value = std::move(new_val);
                         return;
                     }
-                    
-                    auto get_base = [](const std::string& t) {
-                        size_t pos = t.rfind("::");
-                        return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                    if (expected.find("list<") == 0) {
+                        std::string inner = strip(expected);
+                        if (strip(actual) == inner && actual != inner) {
+                            actual = expected;
+                        }
+                    }
+                    if (actual.find("list<") == 0) {
+                        std::string inner = strip(actual);
+                        
+                        if (strip(expected) == inner && expected != inner) {
+                            actual = expected;
+                        }
+                    }
+                    auto normalize_type = [](const std::string& t) {
+                        std::string type = t;
+                        size_t pos = type.rfind("::");
+                        type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
+                        if (type == "long int") type = "int";
+                        if (type == "short int") type = "int";
+                        if (type == "long double") type = "double";
+
+                        return type;
                     };
-                    
-                    if (get_base(expected) != get_base(actual) && expected != actual) {
+
+                    if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
                         throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
                     }
-                    
                     sym_it->second.value = std::move(new_val);
                     return;
                 }
@@ -4829,13 +4952,41 @@ namespace tkz {
         return out;
     }
     bool values_equal(const NumberVariant& a,
-                  const NumberVariant& b,
-                  const Position& pos)
+                    const NumberVariant& b,
+                    const Position& pos)
     {
+        auto get_elements = [](const NumberVariant& v) -> const std::vector<NumberVariant>* {
+            if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&v)) {
+                return &((*list_ptr)->elements);
+            }
+            if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&v)) {
+                return &((*arr_ptr)->elements);
+            }
+            return nullptr;
+        };
+        
+        auto a_elements = get_elements(a);
+        auto b_elements = get_elements(b);
+        if (a_elements && b_elements) {
+            if (a_elements->size() != b_elements->size()) {
+                return false;
+            }
+            
+            for (size_t i = 0; i < a_elements->size(); i++) {
+                if (!values_equal((*a_elements)[i], (*b_elements)[i], pos)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+        if (a_elements || b_elements) {
+            return false;
+        }
         if (a.index() != b.index()) {
             return false;
         }
-
+        
         return std::visit([&](auto&& v) -> bool {
             using T = std::decay_t<decltype(v)>;
 
@@ -4850,14 +5001,96 @@ namespace tkz {
             } else if constexpr (
                 std::is_same_v<T, Number<int>> ||
                 std::is_same_v<T, Number<float>> ||
-                std::is_same_v<T, Number<double>>
+                std::is_same_v<T, Number<double>> ||
+                std::is_same_v<T, Number<long long>> ||
+                std::is_same_v<T, Number<long double>> ||
+                std::is_same_v<T, Number<short>>
             ) {
                 return static_cast<double>(v.value)
                     == static_cast<double>(std::get<T>(b).value);
-            } else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
-                throw RTError("Cannot compare multi-values in switch", pos);
-            } else {
-                throw RTError("Invalid switch comparison type", pos);
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<ListValue>> ||
+                            std::is_same_v<T, std::shared_ptr<ArrayValue>>) {
+                return false;
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
+                auto map_a = v;
+                auto map_b = std::get<std::shared_ptr<MapValue>>(b);
+                
+                if (map_a->data.size() != map_b->data.size()) {
+                    return false;
+                }
+                
+                for (const auto& [key, value] : map_a->data) {
+                    if (map_b->data.find(key) == map_b->data.end()) {
+                        return false;
+                    }
+                    if (!values_equal(value, map_b->data.at(key), pos)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<StructValue>>) {
+                auto struct_a = v;
+                auto struct_b = std::get<std::shared_ptr<StructValue>>(b);
+                
+                if (struct_a->type_name != struct_b->type_name) {
+                    return false;
+                }
+                
+                if (struct_a->fields.size() != struct_b->fields.size()) {
+                    return false;
+                }
+                
+                for (const auto& [field_name, value] : struct_a->fields) {
+                    auto it = struct_b->fields.find(field_name);
+                    if (it == struct_b->fields.end()) {
+                        return false;
+                    }
+                    if (!values_equal(value, it->second, pos)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
+                auto inst_a = v;
+                auto inst_b = std::get<std::shared_ptr<InstanceValue>>(b);
+                
+                if (inst_a->class_name != inst_b->class_name) {
+                    return false;
+                }
+                
+                if (inst_a->fields.size() != inst_b->fields.size()) {
+                    return false;
+                }
+                
+                for (const auto& [field_name, value] : inst_a->fields) {
+                    auto it = inst_b->fields.find(field_name);
+                    if (it == inst_b->fields.end()) {
+                        return false;
+                    }
+                    if (!values_equal(value, it->second, pos)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
+                throw RTError("Cannot compare multi-values", pos);
+            }
+            else if constexpr (std::is_same_v<T, VoidValue>) {
+                return true;
+            }
+            else if constexpr (std::is_same_v<T, FunctionValue>) {
+                throw RTError("Cannot compare functions", pos);
+            }
+            else {
+                throw RTError("Invalid comparison type", pos);
             }
         }, a);
     }
@@ -4871,11 +5104,93 @@ namespace tkz {
         context->pop_namespace();
         return VoidValue();
     }
-
+    NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode>& node) {
+        try {
+            if (node->try_body) {
+                AnyNode try_node = std::move(node->try_body);
+                this->process(try_node);
+            }
+        }
+        catch (const NumberVariant& thrown_value) {
+            std::string thrown_type = context->get_type_name(thrown_value);
+            
+            bool type_matches = false;
+            
+            if (node->catch_var_type == "auto") {
+                type_matches = true;
+            }
+            else if (thrown_type == node->catch_var_type) {
+                type_matches = true;
+            }
+            else {
+                if (node->catch_var_type == "list<auto>") {
+                    if (thrown_type.find("list<") != std::string::npos || 
+                        thrown_type.find("[]") != std::string::npos) {
+                        type_matches = true;
+                    }
+                }
+                else if (node->catch_var_type.find("list<") == 0) {
+                    std::string inner = strip(node->catch_var_type);
+                    if (strip(thrown_type) == inner && thrown_type != inner) {
+                        type_matches = true;
+                    }
+                }
+                else if (thrown_type.find("list<") == 0) {
+                    std::string inner = strip(thrown_type);
+                    if (strip(node->catch_var_type) == inner && node->catch_var_type != inner) {
+                        type_matches = true;
+                    }
+                }
+            }
+            
+            if (type_matches) {
+                context->push_scope();
+                context->define(
+                    node->catch_var_name,
+                    node->catch_var_type,
+                    thrown_value,
+                    false
+                );
+                
+                if (node->catch_body) {
+                    AnyNode catch_node = std::move(node->catch_body);
+                    this->process(catch_node);
+                }
+                
+                context->pop_scope();
+            }
+            else {
+                throw;
+            }
+        }
+        catch (const RTError& e) {
+            if (node->catch_var_type == "string" || node->catch_var_type == "auto") {
+                context->push_scope();
+                context->define(
+                    node->catch_var_name,
+                    "string",
+                    StringValue(e.details),
+                    false
+                );
+                
+                if (node->catch_body) {
+                    AnyNode catch_node = std::move(node->catch_body);
+                    this->process(catch_node);
+                }
+                
+                context->pop_scope();
+            }
+            else {
+                throw;
+            }
+        }
+        
+        return VoidValue();
+    }
     NumberVariant Interpreter::process(AnyNode& node) {
         try {
             if (this->errors.size() > 50) {
-                throw RTError("Too many errors! Execution stopped.", Position());
+                throw RTError("Too many errors! Execution stopped.", Position("", "", 0, 0, 0));
             }
             return std::visit([this](auto& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
@@ -4926,6 +5241,12 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<QSwitchNode>>) {
+                return exec_stmt_in_loop_or_switch(*n);
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<TryCatchNode>>) {
+                return exec_stmt_in_loop_or_switch(*n);
+            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 NumberVariant v;
                 if (!n) v = Number<int>(0);
@@ -4974,7 +5295,7 @@ namespace tkz {
         const auto& fields = info.fields;
 
         if (arr->elements.size() != fields.size()) {
-            this->errors.push_back({RTError("Nested struct initializer size mismatch for '" + struct_type + "'", {}), "Error"});
+            this->errors.push_back({RTError("Nested struct initializer size mismatch for '" + struct_type + "'", Position("", "", 0, 0, 0)), "Error"});
         }
 
         auto sv = std::make_shared<StructValue>(struct_type);
@@ -4988,7 +5309,7 @@ namespace tkz {
                 if (!nestedArr) {
                     this->errors.push_back({RTError(
                         "Expected struct initializer for nested struct '" + field.type + "'",
-                        {}
+                        Position("", "", 0, 0, 0)
                     ), "Error"});
                 }
                 elemVal = convert_array_to_struct(*nestedArr, field.type, context);
@@ -5002,7 +5323,7 @@ namespace tkz {
                 if (!arrVal) {
                     this->errors.push_back({RTError(
                         "Expected array initializer for list/array field '" + field.name + "'",
-                        {}
+                        Position("", "", 0, 0, 0)
                     ), "Error"});
                 }
 
@@ -5022,7 +5343,7 @@ namespace tkz {
                     this->errors.push_back({RTError(
                         "QC-E001: Expected map initializer for field '" + field.name +
                         "' of type '" + field.type + "'",
-                        {}
+                        Position("", "", 0, 0, 0)
                     ), "Error"});
                 }
 
@@ -5039,7 +5360,7 @@ namespace tkz {
                         "QC-T010: Type mismatch for map field '" + field.name +
                         "': expected " + field.type +
                         ", got map<" + actualKey + "," + actualValue + ">",
-                        {}
+                        Position("", "", 0, 0, 0)
                     ), "Error"});
                 }
             }
@@ -5049,7 +5370,81 @@ namespace tkz {
 
         return sv;
     }
-    
+    ClassMethodInfo* Interpreter::find_method_with_args(
+        const std::string& className,
+        const std::string& mname,
+        const std::vector<NumberVariant>& args
+    ) {
+        auto it = context->user_types.find(className);
+        if (it == context->user_types.end()) return nullptr;
+
+        UserTypeInfo* cur = &it->second;
+        std::vector<ClassMethodInfo*> candidates;
+        while (cur) {
+            for (auto& m : cur->classMethods) {
+                if (m.name_tok.value == mname || (m.is_constructor && mname == className)) {
+                    candidates.push_back(&m);
+                }
+            }
+
+            if (cur->baseClassName.empty()) break;
+            auto bit = context->user_types.find(cur->baseClassName);
+            if (bit == context->user_types.end()) break;
+            cur = &bit->second;
+        }
+
+        if (candidates.empty()) return nullptr;
+        ClassMethodInfo* best = nullptr;
+        int best_score = -1;
+
+        for (auto* m : candidates) {
+            if (m->params.size() != args.size()) continue;
+
+            int score = 0;
+            bool valid = true;
+            size_t i = 0;
+
+            for (auto it = m->params.begin(); it != m->params.end(); ++it, ++i) {
+                std::string expected = it->type.value;
+                std::string actual = context->get_type_name(args[i]);
+                if (expected == "list<auto>") {
+                    if (actual.find("list<") != std::string::npos || actual.find("[]") != std::string::npos) {
+                        score += 50;
+                    }
+                }
+                else if (expected.find("list<") == 0) {
+                    std::string inner = strip(expected);
+                    if (strip(actual) == inner && actual != inner) {
+                        score += 100;
+                    }
+                }
+                else if (actual.find("list<") == 0) {
+                    std::string inner = strip(actual);
+                    
+                    if (strip(expected) == inner && expected != inner) {
+                        score += 100;
+                    }
+                }
+                else if (expected == actual) {
+                    score += 100;
+                } else if (expected == "auto") {
+                    score += 50;
+                } else {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid && score > best_score) {
+                best_score = score;
+                best = m;
+            }
+        }
+        if (best) {
+            return best;
+        }
+        return nullptr;
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
         if (!node) return std::move(Number<int>(0));
         NumberVariant value = this->process(node->value_node);
@@ -5305,6 +5700,24 @@ namespace tkz {
             } else if (declaredType == "qbool" && actualType == "qbool") {
                 type_matches = true;
             }
+            if (declaredType == "list<auto>") {
+                if (actualType.find("list<") != std::string::npos || actualType.find("[]") != std::string::npos) {
+                    type_matches = true;
+                }
+            }
+            else if (declaredType.find("list<") != std::string::npos) {
+                std::string inner = strip(declaredType);
+                if (strip(actualType) == inner && actualType != inner) {
+                    type_matches = true;
+                }
+            }
+            if (actualType.find("list<") != std::string::npos) {
+                std::string inner = strip(actualType);
+                
+                if (strip(declaredType) == inner && declaredType != inner) {
+                    type_matches = true;
+                }
+            }
             if (!type_matches) {
                 this->errors.push_back({RTError(
                     "QC-T003: Type mismatch: expected " + declaredType + ", got " + actualType,
@@ -5314,7 +5727,7 @@ namespace tkz {
         }
 
         context->define(node->var_name_tok.value, 
-                        declaredType == "auto" ? actualType : declaredType, 
+                        declaredType == "auto" || declaredType == "list<auto>" ? actualType : declaredType, 
                         std::move(value), 
                         node->is_const);
         return std::move(value);
@@ -5515,6 +5928,91 @@ namespace tkz {
         }
         
         this->errors.push_back({RTError("qswitch requires a qbool", get_pos(val)), "Severe"});
+        return {};
+    }
+    ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode& tcn) {
+        try {
+            if (tcn.try_body) {
+                ExecResult r = exec_stmt_in_loop_or_switch(*tcn.try_body);
+                if (r.did_break || r.did_continue || r.did_return) {
+                    return r;
+                }
+            }
+        }
+        catch (const NumberVariant& thrown_value) {
+            std::string thrown_type = context->get_type_name(thrown_value);
+            bool type_matches = false;
+            
+            if (tcn.catch_var_type == "auto") {
+                type_matches = true;
+            }
+            else if (thrown_type == tcn.catch_var_type) {
+                type_matches = true;
+            }
+            else {
+                if (tcn.catch_var_type == "list<auto>") {
+                    if (thrown_type.find("list<") != std::string::npos || 
+                        thrown_type.find("[]") != std::string::npos) {
+                        type_matches = true;
+                    }
+                }
+                else if (tcn.catch_var_type.find("list<") == 0) {
+                    std::string inner = strip(tcn.catch_var_type);
+                    if (strip(thrown_type) == inner && thrown_type != inner) {
+                        type_matches = true;
+                    }
+                }
+                else if (thrown_type.find("list<") == 0) {
+                    std::string inner = strip(thrown_type);
+                    if (strip(tcn.catch_var_type) == inner && tcn.catch_var_type != inner) {
+                        type_matches = true;
+                    }
+                }
+            }
+            
+            if (type_matches) {
+                context->push_scope();
+                context->define(
+                    tcn.catch_var_name,
+                    tcn.catch_var_type,
+                    thrown_value,
+                    false
+                );
+                ExecResult r = {};
+                if (tcn.catch_body) {
+                    r = exec_stmt_in_loop_or_switch(*tcn.catch_body);
+                }
+                context->pop_scope();
+                return r;
+            }
+            else {
+                throw;
+            }
+        }
+        catch (const RTError& e) {
+            if (tcn.catch_var_type == "string" || tcn.catch_var_type == "auto") {
+                context->push_scope();
+                
+                context->define(
+                    tcn.catch_var_name,
+                    "string",
+                    StringValue(e.details),
+                    false
+                );
+                
+                ExecResult r = {};
+                if (tcn.catch_body) {
+                    r = exec_stmt_in_loop_or_switch(*tcn.catch_body);
+                }
+                
+                context->pop_scope();
+                
+                return r;
+            }
+            else {
+                throw;
+            }
+        }
         return {};
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode>& node) {
@@ -5762,14 +6260,7 @@ namespace tkz {
                 }
                 
                 NumberVariant value = this->process(node->arg_nodes.front());
-                std::string msg = std::visit([](auto&& v) -> std::string {
-                    if constexpr (requires { v->print(); }) {
-                        return v->print();
-                    } else {
-                        return v.print();
-                    }
-                }, value);
-                throw RTError(msg, get_pos(value));
+                throw value;
             }
             if (func_name == "print" || func_name == "println") {
                 for (auto& arg : node->arg_nodes)
@@ -6049,6 +6540,264 @@ namespace tkz {
                         "Error"});
                 }
             }
+            if (func_name == "split") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: split() requires exactly 2 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant delim_val = this->process(*it);
+
+                if (!std::holds_alternative<StringValue>(str_val) || !std::holds_alternative<StringValue>(delim_val)) {
+                    this->errors.push_back({RTError("QC-B002: split() requires string arguments", get_pos(str_val)), "Error"});
+                }
+
+                std::string s = std::get<StringValue>(str_val).value;
+                std::string delim = std::get<StringValue>(delim_val).value;
+
+                std::vector<NumberVariant> out;
+                size_t start = 0;
+                size_t pos = s.find(delim);
+
+                while (pos != std::string::npos) {
+                    out.push_back(StringValue(s.substr(start, pos - start)));
+                    start = pos + delim.size();
+                    pos = s.find(delim, start);
+                }
+
+                out.push_back(StringValue(s.substr(start)));
+
+                return std::make_shared<ListValue>("string", out);
+            }
+            if (func_name == "len") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: len() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&val)) {
+                    return Number<int>(static_cast<int>(sv->value.size())).set_pos(sv->pos);
+                } else {
+                    this->errors.push_back({RTError("QC-B002: len() requires string argument", get_pos(val)), "Error"});
+                }
+            }
+            if (func_name == "to_lower") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: to_lower() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&val)) {
+                    std::string out = sv->value;
+                    std::transform(out.begin(), out.end(), out.begin(), ::tolower);
+                    return StringValue(out).set_pos(sv->pos);
+                } else {
+                    this->errors.push_back({RTError("QC-B002: to_lower() requires string argument", get_pos(val)), "Error"});
+                }
+            }
+            if (func_name == "to_upper") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: to_upper() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&val)) {
+                    std::string out = sv->value;
+                    std::transform(out.begin(), out.end(), out.begin(), ::toupper);
+                    return StringValue(out).set_pos(sv->pos);
+                } else {
+                    this->errors.push_back({RTError("QC-B002: to_upper() requires string argument", get_pos(val)), "Error"});
+                }
+            }
+            if (func_name == "substring") {
+                if (node->arg_nodes.size() != 3) {
+                    this->errors.push_back({RTError("QC-B001: substring() requires 3 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant start_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant len_val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&str_val)) {
+                    if (auto start_n = std::get_if<Number<int>>(&start_val)) {
+                        if (auto len_n = std::get_if<Number<int>>(&len_val)) {             
+                            std::string s = sv->value;
+                            int start = start_n->value;
+                            int len   = len_n->value;
+                            if (start < 0 || len < 0 || start > (int)s.size()) {
+                                return StringValue("").set_pos(sv->pos);
+                            }
+                            if (start + len > (int)s.size()) {
+                                len = s.size() - start;
+                            }
+
+                            std::string out = s.substr(start, len);
+                            return StringValue(out).set_pos(sv->pos);
+                        }
+                    }
+                    this->errors.push_back({RTError("QC-B002: substring() requires (string, int, int)", get_pos(str_val)), "Error"});
+                } else {
+                    this->errors.push_back({RTError("QC-B002: substring() requires string argument", get_pos(str_val)), "Error"});
+                }
+            }
+            if (func_name == "join") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: join() requires 2 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant list_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant delim_val = this->process(*it);
+
+                if (auto lv = std::get_if<std::shared_ptr<ListValue>>(&list_val)) {
+                    if (auto sv = std::get_if<StringValue>(&delim_val)) {
+                        std::string out;
+                        for (size_t i = 0; i < (*lv)->elements.size(); i++) {
+                            auto& el = (*lv)->elements[i];
+                            if (auto s = std::get_if<StringValue>(&el)) {
+                                out += s->value;
+                                if (i != (*lv)->elements.size() - 1) out += sv->value;
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: join() requires list of strings", get_pos(el)), "Error"});
+                            }
+                        }
+                        return StringValue(out).set_pos(sv->pos);
+                    }
+                }
+
+                this->errors.push_back({RTError("QC-B002: join() requires (list, string)", get_pos(list_val)), "Error"});
+            }
+            if (func_name == "contains") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: contains() requires 2 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant substr_val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&str_val)) {
+                    if (auto ss = std::get_if<StringValue>(&substr_val)) {
+                        bool res = (sv->value.find(ss->value) != std::string::npos);
+                        return BoolValue(res ? "true" : "false").set_pos(sv->pos);
+                    }
+                }
+
+                this->errors.push_back({RTError("QC-B002: contains() requires (string, string)", get_pos(str_val)), "Error"});
+            }
+            if (func_name == "startswith") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: startswith() requires 2 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant prefix_val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&str_val)) {
+                    if (auto ss = std::get_if<StringValue>(&prefix_val)) {
+                        bool res = (sv->value.rfind(ss->value, 0) == 0);
+                        return BoolValue(res ? "true" : "false").set_pos(sv->pos);
+                    }
+                }
+
+                this->errors.push_back({RTError("QC-B002: startswith() requires (string, string)", get_pos(str_val)), "Error"});
+            }
+            if (func_name == "endswith") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: endswith() requires 2 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant suffix_val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&str_val)) {
+                    if (auto ss = std::get_if<StringValue>(&suffix_val)) {
+                        bool res = (sv->value.size() >= ss->value.size() &&
+                                    sv->value.compare(sv->value.size() - ss->value.size(), ss->value.size(), ss->value) == 0);
+                        return BoolValue(res ? "true" : "false").set_pos(sv->pos);
+                    }
+                }
+
+                this->errors.push_back({RTError("QC-B002: endswith() requires (string, string)", get_pos(str_val)), "Error"});
+            }
+            if (func_name == "trim") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: trim() requires exactly 1 argument", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&val)) {
+                    std::string s = sv->value;
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front()))) {
+                        s.erase(s.begin());
+                    }
+                    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) {
+                        s.pop_back();
+                    }
+
+                    return StringValue(s).set_pos(sv->pos);
+                }
+
+                this->errors.push_back({RTError("QC-B002: trim() requires string argument", get_pos(val)), "Error"});
+            }
+            if (func_name == "replace") {
+                if (node->arg_nodes.size() != 3) {
+                    this->errors.push_back({RTError("QC-B001: replace() requires 3 arguments", Position()), "Error"});
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant str_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant find_val = this->process(*it);
+
+                std::advance(it, 1);
+                NumberVariant replace_val = this->process(*it);
+
+                if (auto sv = std::get_if<StringValue>(&str_val)) {
+                    if (auto fs = std::get_if<StringValue>(&find_val)) {
+                        if (auto rs = std::get_if<StringValue>(&replace_val)) {
+                            std::string out = sv->value;
+                            size_t pos = out.find(fs->value);
+
+                            while (pos != std::string::npos) {
+                                out.replace(pos, fs->value.size(), rs->value);
+                                pos = out.find(fs->value, pos + rs->value.size());
+                            }
+
+                            return StringValue(out).set_pos(sv->pos);
+                        }
+                    }
+                }
+
+                this->errors.push_back({RTError("QC-B002: replace() requires (string, string, string)", get_pos(str_val)), "Error"});
+            }
             auto ut_it = context->user_types.find(func_name);
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
@@ -6194,7 +6943,7 @@ namespace tkz {
                         return inst;
                     }
                     context->define(it_param->name.value, it_param->type.value, value);
-                }
+                }// need do this for methods
 
                 try {
                     for (auto& stmt : ctor->body->statements) {
@@ -6365,42 +7114,39 @@ namespace tkz {
                             actual_type = expected_type;
                             types_compatible = true;
                         }
+                        if (actual_type == "long int") actual_type = "int";
+                        if (actual_type == "short int") actual_type = "int";
+                        if (actual_type == "long double") actual_type = "double";
+                        if (expected_type == "long int") expected_type = "int";
+                        if (expected_type == "short int") expected_type = "int";
+                        if (expected_type == "long double") expected_type = "double";
                     }
                     if (!types_compatible) {
-                        if (expected_type.find("list<") != std::string::npos && actual_type.find("list<") != std::string::npos) {
-                            std::string expected_base = expected_type;
-                            std::string actual_base = actual_type;
-
-                            auto clean_type = [](std::string& s) {
-                                std::erase_if(s, [](char c) { 
-                                    return c == '[' || c == ']' || c == ' '; 
-                                });
-
-                                size_t pos;
-                                while ((pos = s.find("list<")) != std::string::npos) {
-                                    s.erase(pos, 5);
-                                }
-
-                                while ((pos = s.find(">")) != std::string::npos) {
-                                    s.erase(pos, 1);
-                                }
-                            };
-
-                            clean_type(expected_base);
-                            clean_type(actual_base);
-
-
-                            if (actual_base == expected_base) {
+                        if (expected_type == "list<auto>") {
+                            if (actual_type.find("list<") != std::string::npos || actual_type.find("[]") != std::string::npos) {
                                 types_compatible = true;
+                                if (auto av = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
+                                    value = std::make_shared<ListValue>(strip((*av)->element_type), (*av)->elements);
+                                }
                             }
                         }
-                        else if (expected_type.find("[]") != std::string::npos) {
-                            size_t bracket_pos = expected_type.find('[');
-                            std::string expected_base = expected_type.substr(0, bracket_pos);
-                            
-                            if (actual_type.find("list<") == std::string::npos &&  
-                                actual_type.find(expected_base) == 0) {            
+                        else if (expected_type.find("list<") == 0) {
+                            std::string inner = strip(expected_type);
+                            if (strip(actual_type) == inner && actual_type != inner) {
                                 types_compatible = true;
+                                if (auto av = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
+                                    value = std::make_shared<ListValue>(strip((*av)->element_type), (*av)->elements);
+                                }
+                            }
+                        }
+                        else if (actual_type.find("list<") == 0) {
+                            std::string inner = strip(actual_type);
+                            
+                            if (strip(expected_type) == inner && expected_type != inner) {
+                                types_compatible = true;
+                                if (auto lv = std::get_if<std::shared_ptr<ListValue>>(&value)) {
+                                    value = std::make_shared<ArrayValue>(strip((*lv)->element_type), (*lv)->elements);
+                                }
                             }
                         }
                         else {
@@ -6658,8 +7404,23 @@ namespace tkz {
                     "Error"});
                 return VoidValue{};
             }
+            const std::string& ptype = it_param->type.value;
+            if (ptype.rfind("list<", 0) == 0 && ptype.back() == '>') {
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
+                    std::string elem_type = ptype.substr(5, ptype.size() - 6);
+                    auto list = std::make_shared<ListValue>(elem_type, (*arr)->elements);
+                    value = list;
+                }
+            }
+            else if (ptype.size() >= 2 && ptype.substr(ptype.size() - 2) == "[]") {
+                if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&value)) {
+                    std::string elem_type = ptype.substr(0, ptype.size() - 2);
+                    auto arr = std::make_shared<ArrayValue>(elem_type, (*lst)->elements);
+                    value = arr;
+                }
+            }
 
-            context->define(it_param->name.value, it_param->type.value, value);
+            context->define(it_param->name.value, ptype, value);
         }
 
         try {
@@ -7095,7 +7856,7 @@ namespace tkz {
             ), "Error"});
             return VoidValue();
         }
-        return std::visit([this, &node](const auto& L, const auto& R) -> NumberVariant {
+        return std::visit([this, &node, right, left](const auto& L, const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
 
@@ -7107,14 +7868,14 @@ namespace tkz {
             
             if (node->op_tok.type == TokenType::EQ_TO) {
                 try {
-                    return BoolValue(values_equal(L, R, node->op_tok.pos) ? "true" : "false");
+                    return BoolValue(values_equal(left, right, node->op_tok.pos) ? "true" : "false");
                 } catch (RTError& e) {
                     return BoolValue("false");
                 } 
             }
             if (node->op_tok.type == TokenType::NOT_EQ) {
                 try {
-                    return BoolValue(!values_equal(L, R, node->op_tok.pos) ? "true" : "false");
+                    return BoolValue(!values_equal(left, right, node->op_tok.pos) ? "true" : "false");
                 } catch (RTError& e) {
                     return BoolValue("false");
                 }
@@ -7311,20 +8072,37 @@ namespace tkz {
                         sym_it->second.value = std::move(value);
                         return value;
                     }
-                    
-                    auto get_base = [](const std::string& t) {
-                        size_t pos = t.rfind("::");
-                        return (pos != std::string::npos) ? t.substr(pos + 2) : t;
+                    if (declared_type == "list<auto>") {
+                        if (actual_type.find("list<") != std::string::npos || actual_type.find("[]") != std::string::npos) {
+                            actual_type = declared_type;
+                        }
+                    }
+                    if (declared_type.find("list<") == 0) {
+                        std::string inner = strip(declared_type);
+                        if (strip(actual_type) == inner && actual_type != inner) {
+                            actual_type = declared_type;
+                        }
+                    }
+                    if (actual_type.find("list<") == 0) {
+                        std::string inner = strip(actual_type);
+                        
+                        if (strip(declared_type) == inner && declared_type != inner) {
+                            actual_type = declared_type;
+                        }
+                    }
+                    auto normalize_type = [](const std::string& t) {
+                        std::string type = t;
+                        size_t pos = type.rfind("::");
+                        type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
+                        if (type == "long int") type = "int";
+                        if (type == "short int") type = "int";
+                        if (type == "long double") type = "double";
+
+                        return type;
                     };
-                    
-                    if (get_base(declared_type) != get_base(actual_type) && 
-                        declared_type != actual_type) {
-                        throw RTError(
-                            "QC-T003: Type mismatch: cannot assign " + actual_type + " to " + declared_type,
-                            node->var_name.pos
-                        );
-                    } // Need to make operrator = work
-                    
+                    if (normalize_type(declared_type) != normalize_type(actual_type) && declared_type != actual_type) {
+                        throw RTError("QC-T003: Type mismatch: cannot assign " + actual_type + " to " + declared_type, node->var_name.pos);
+                    }
                     sym_it->second.value = std::move(value);
                     return value;
                 }
@@ -8909,6 +9687,16 @@ namespace tkz {
             std::unique_ptr<Error> err = std::make_unique<RTError>(e);
             ast = Aer(std::move(ast.statements), std::move(err), std::move(ast.user_types));
             return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
+        } catch (NumberVariant nv) {
+            delete ctx;
+            std::unique_ptr<Error> err = std::make_unique<RTError>(interpreter.value_to_string(nv), Position("", "", 0, 0, 0));
+            ast = Aer(std::move(ast.statements), std::move(err), std::move(ast.user_types));
+            return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
+        } catch (...) {
+            delete ctx;
+            std::unique_ptr<Error> err = std::make_unique<RTError>("Unknown exception", Position("", "", 0, 0, 0));
+            ast = Aer(std::move(ast.statements), std::move(err), std::move(ast.user_types));
+            return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
         }
         
         delete ctx;
@@ -8983,7 +9771,7 @@ namespace tkz {
             id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
             id == "map" || id == "type" || id == "public" || id == "protected" || id == "private" ||
             id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" ||
-            id == "final") {
+            id == "final" ||id == "try" || id == "catch") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {

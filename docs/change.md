@@ -8,6 +8,7 @@
 1/13/2026: Current version: 5.0: Enums
 1/15/2026: Current version: 5.2->8: Classes, other stuff
 NAMESPCACES!!!!!!!!!!
+1/27/26: Current version: 10.0.0(i missed a lot of changelogs). Multifile, more stdlib, typing, trycatch
 # Features checklist (suitable for change(by adding more))
 
 - [x] User Types (
@@ -36,5 +37,9 @@ NAMESPCACES!!!!!!!!!!
 )
 - [ ] Standard library (
     - [x] Advanced random quantum booleans
-    - [ ] Other stuff idk
+    - [x] Math
+    - [x] Collections
+    - [x] Utils
+    - [x] UnitTest
+    - [ ] Ever growing
 )
