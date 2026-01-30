@@ -16,7 +16,7 @@ In QC there are various binary math operators. Examples are:
 |'-'     |L - R |Subtraction   |
 |'*'     |L * R |Multiplication|
 |'/'     |L / R |Division      |
-|'**'    |L ** R|Power         |
+|'^*'    |L ^* R|Power         |
 |'%'     |L % R |Modulo        |
 |'?='    |L ?= R|Combinational |
 
@@ -25,7 +25,7 @@ In QC there are various binary math operators. Examples are:
 - -: Subtraction: 5 - 2 = 3;
 - *: Multiplication: 5 * 2 = 10;
 - /: Division: 5 / 2 = 2.5;
-- **: Power: 5 \*\* 2 = 25;
+- ^*: Power: 5 ^\* 2 = 25;
 - %: Modulo: 5 % 2 = 1;
 - ?=: Combinational expresion. a ?= x is equal to a = a ? x;
 

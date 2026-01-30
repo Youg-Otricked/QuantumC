@@ -134,7 +134,7 @@ namespace tkz {
             case TokenType::MUL:        return "*";
             case TokenType::DIV:        return "/";
             case TokenType::MOD:        return "%";
-            case TokenType::POWER:      return "**";
+            case TokenType::POWER:      return "^*";
 
             case TokenType::PLUS_EQ:    return "+=";
             case TokenType::MINUS_EQ:   return "-=";
@@ -178,6 +178,8 @@ namespace tkz {
             case TokenType::COLON:      return ":";
             case TokenType::SEMICOLON:  return ";";
             case TokenType::ARROW:      return "->";
+            case TokenType::AMPERSAND:  return "&";
+            case TokenType::STAR:       return "*";
             case TokenType::SCOPE:      return "::";
             case TokenType::LSHIFT:     return "<<";
             case TokenType::RSHIFT:     return ">>";
@@ -208,7 +210,8 @@ namespace tkz {
                                 std::is_same_v<T, BoolValue>   ||
                                 std::is_same_v<T, QBoolValue>  ||
                                 std::is_same_v<T, VoidValue>   ||
-                                std::is_same_v<T, FunctionValue>) {
+                                std::is_same_v<T, FunctionValue> || 
+                                std::is_same_v<T, PointerValue>) {
                 return x.pos;
             } else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>   ||
                                 std::is_same_v<T, std::shared_ptr<ListValue>>    ||
@@ -285,6 +288,69 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // NODES ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    AnyNode clone_node(const AnyNode& node) {
+        return std::visit([](auto&& arg) -> AnyNode {
+            using T = std::decay_t<decltype(arg)>;
+            
+            if constexpr (std::is_same_v<T, NumberNode>) {
+                return NumberNode(arg.tok);
+            }
+            else if constexpr (std::is_same_v<T, StringNode>) {
+                return StringNode(arg.tok);
+            }
+            else if constexpr (std::is_same_v<T, CharNode>) {
+                return CharNode(arg.tok);
+            }
+            else if constexpr (std::is_same_v<T, BoolNode>) {
+                return BoolNode(arg.tok);
+            }
+            else if constexpr (std::is_same_v<T, QBoolNode>) {
+                return QBoolNode(arg.tok);
+            }
+            else if constexpr (std::is_same_v<T, QOutNode>) {
+                return QOutNode();
+            }
+            else if constexpr (std::is_same_v<T, QInNode>) {
+                return QInNode();
+            }
+            else if constexpr (std::is_same_v<T, NullptrNode>) {
+                return NullptrNode(arg.pos);
+            }
+            else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
+                return RefVarDeclNode(arg.type_tok, arg.var_name_tok, arg.target_tok, arg.pos);
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<VarAccessNode>>) {
+                return std::make_unique<VarAccessNode>(arg->var_name_tok);
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<UnaryOpNode>>) {
+                return std::make_unique<UnaryOpNode>(
+                    arg->op_tok,
+                    clone_node(arg->node),
+                    arg->is_postfix
+                );
+            }
+            else if constexpr (std::is_same_v<T, std::shared_ptr<PropertyAccessNode>>) {
+                return std::make_shared<PropertyAccessNode>(
+                    clone_node(*(arg->base)),
+                    arg->base_name_tok,
+                    arg->property_name
+                );
+            }
+            else if constexpr (std::is_same_v<T, std::unique_ptr<ArrayAccessNode>>) {
+                std::vector<AnyNode> cloned_indices;
+                for (auto& idx : arg->indices) {
+                    cloned_indices.push_back(clone_node(idx));
+                }
+                return std::make_unique<ArrayAccessNode>(
+                    clone_node(arg->base),
+                    std::move(cloned_indices)
+                );
+            }
+            else {
+                throw std::runtime_error("Cannot clone complex node type");
+            }
+        }, node);
+    }
     std::string printAny(const AnyNode& node) {
         return std::visit([](auto&& arg) -> std::string {
             using T = std::decay_t<decltype(arg)>;
@@ -302,6 +368,12 @@ namespace tkz {
                 return arg.print();
             }
             else if constexpr (std::is_same_v<T, QBoolNode>) { 
+                return arg.print();
+            }
+            else if constexpr (std::is_same_v<T, RefVarDeclNode>) { 
+                return arg.print();
+            }
+            else if constexpr (std::is_same_v<T, NullptrNode>) { 
                 return arg.print();
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
@@ -515,6 +587,10 @@ namespace tkz {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, BoolNode>) {
                 return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, RefVarDeclNode>) { 
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, NullptrNode>) { 
+                return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<UnaryOpNode>>) {
@@ -623,6 +699,8 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, CharNode>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, BoolNode>) {
+                return Prs{std::move(arg)};
+            } else if constexpr (std::is_same_v<T, RefVarDeclNode>) { 
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<BinOpNode>>) {
                 return Prs{std::move(arg)};
@@ -1014,7 +1092,15 @@ namespace tkz {
                 }
                 Token type_tok = tok;
                 this->advance();
-
+                if (this->current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    type_tok.value += "&";
+                }
+                
+                while (this->current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    type_tok.value += "*";
+                }
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>("QC-S012: Expected identifier in if-init", this->current_tok.pos));
                     return res.to_prs();
@@ -1126,8 +1212,17 @@ namespace tkz {
             return res.to_prs();
         }
         Token type_tok = this->current_tok;
-        std::string catch_type = type_tok.value;
         this->advance();
+        if (this->current_tok.type == TokenType::AMPERSAND) {
+            this->advance();
+            type_tok.value += "&";
+        }
+        
+        while (this->current_tok.type == TokenType::MUL) {
+            this->advance();
+            type_tok.value += "*";
+        }
+        std::string catch_type = type_tok.value;
         if (this->current_tok.type != TokenType::IDENTIFIER) {
             res.failure(std::make_unique<InvalidSyntaxError>("QC-S034: Expected variable name in catch declaration", this->current_tok.pos));
             return res.to_prs();
@@ -1390,31 +1485,31 @@ namespace tkz {
     Prs Parser::for_stmt() {
         ParseResult res;
         Token type_tok;
-        if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "for")) {
+        if (!(this->current_tok.type == TokenType::KEYWORD && current_tok.value == "for")) {
             res.failure(std::make_unique<InvalidSyntaxError>("QC-S035: Expected 'for'", current_tok.pos));
             return res.to_prs();
         }
-        advance();
+        this->advance();
 
-        if (current_tok.type != TokenType::LPAREN) {
+        if (this->current_tok.type != TokenType::LPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>("QC-S036: Expected '(' after 'for'", current_tok.pos));
             return res.to_prs();
         }
-        advance();
+        this->advance();
 
         std::optional<AnyNode> init;
         std::optional<AnyNode> update;
         AnyNode condition;
 
-        if (current_tok.type != TokenType::SEMICOLON) {
-            if (current_tok.type == TokenType::KEYWORD &&
-                (current_tok.value == "const" ||
-                current_tok.value == "int"   ||
-                current_tok.value == "float" ||
-                current_tok.value == "double"||
-                current_tok.value == "bool"  ||
-                current_tok.value == "string"||
-                current_tok.value == "char")) {
+        if (this->current_tok.type != TokenType::SEMICOLON) {
+            if (this->current_tok.type == TokenType::KEYWORD &&
+                (this->current_tok.value == "const" ||
+                this->current_tok.value == "int"   ||
+                this->current_tok.value == "float" ||
+                this->current_tok.value == "double"||
+                this->current_tok.value == "bool"  ||
+                this->current_tok.value == "string"||
+                this->current_tok.value == "char")) {
 
                 bool is_const = false;
                 Token tok = current_tok;
@@ -1432,7 +1527,15 @@ namespace tkz {
 
                 type_tok = tok;
                 advance();
-
+                if (this->current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    type_tok.value += "&";
+                }
+                
+                while (this->current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    type_tok.value += "*";
+                }
                 if (current_tok.type != TokenType::IDENTIFIER) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S038: Expected identifier in for-init", current_tok.pos));
@@ -1471,7 +1574,7 @@ namespace tkz {
                 "QC-S040: Expected ';' after for-init", current_tok.pos));
             return res.to_prs();
         }
-        advance();
+        this->advance();
 
         if (current_tok.type == TokenType::SEMICOLON) {
             condition = AnyNode{ BoolNode(Token(TokenType::BOOL, "true", current_tok.pos)) };
@@ -1485,7 +1588,7 @@ namespace tkz {
                 "QC-S041: Expected ';' after for condition", current_tok.pos));
             return res.to_prs();
         }
-        advance();
+        this->advance();
 
         if (current_tok.type != TokenType::RPAREN) {
             AnyNode upd_expr = res.reg(this->assignment_expr());
@@ -1498,7 +1601,7 @@ namespace tkz {
                 "QC-S042: Expected ')' after for header", current_tok.pos));
             return res.to_prs();
         }
-        advance();
+        this->advance();
 
         auto parse_block = [&](std::unique_ptr<StatementsNode>& out_block) -> bool {
             if (this->current_tok.type == TokenType::LBRACE) {
@@ -1799,7 +1902,10 @@ namespace tkz {
 
             return res.success(std::make_unique<SpreadNode>(std::move(value)));
         }
-        else if (tok.type == TokenType::IDENTIFIER) {
+        else if (tok.type == TokenType::KEYWORD && tok.value == "nullptr") {
+            this->advance();
+            return res.success(NullptrNode(tok.pos));
+        } else if (tok.type == TokenType::IDENTIFIER) {
             std::string name = tok.value;
             Position pos = tok.pos;
 
@@ -1853,83 +1959,154 @@ namespace tkz {
                                                         std::move(indices));
             }
 
-            while (this->current_tok.type == TokenType::DOT) {
-                this->advance();
-
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected property or method name after '.'",
-                        this->current_tok.pos));
-                    return res.to_prs();
-                }
-
-                Token property_name = this->current_tok;
-                this->advance();
-
-                if (this->current_tok.type == TokenType::LPAREN) {
-                    this->advance(); 
-                    std::vector<AnyNode> args;
-
-                    if (this->current_tok.type != TokenType::RPAREN) {
-                        while (true) {
-                            if (this->current_tok.type == TokenType::AT) {
-                                this->advance();
-                                AnyNode expr = res.reg(this->logical_or());
-                                if (res.error) return res.to_prs();
-                                args.push_back(
-                                    std::make_unique<SpreadNode>(std::move(expr)));
-                            } else {
-                                AnyNode arg = res.reg(this->logical_or());
-                                if (res.error) return res.to_prs();
-                                args.push_back(std::move(arg));
-                            }
-                            if (this->current_tok.type != TokenType::COMMA) break;
-                            this->advance();
-                        }
-                    }
-
-                    if (this->current_tok.type != TokenType::RPAREN) {
+            while (this->current_tok.type == TokenType::DOT || 
+                this->current_tok.type == TokenType::ARROW) {
+                
+                if (this->current_tok.type == TokenType::ARROW) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S044: Expected ')' after function arguments",
+                            "Expected property or method name after '->'",
                             this->current_tok.pos));
                         return res.to_prs();
                     }
+                    
+                    Token property_name = this->current_tok;
                     this->advance();
-
-                    base = std::make_unique<MethodCallNode>(
-                        std::move(base), property_name, std::move(args));
-                } else {
-                    base = std::make_shared<PropertyAccessNode>(
-                        std::move(base), ident, property_name);
-                }
-
-                while (this->current_tok.type == TokenType::LBRACKET) {
-                    std::vector<AnyNode> indices;
-                    while (this->current_tok.type == TokenType::LBRACKET) {
+                    Token base_name_tok;
+                    if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&base)) {
+                        base_name_tok = (*var)->var_name_tok;
+                    } else {
+                        base_name_tok = Token(TokenType::IDENTIFIER, "", property_name.pos);
+                    }
+                    
+                    auto deref = std::make_unique<UnaryOpNode>(
+                        Token(TokenType::MUL, "*", property_name.pos),
+                        std::move(base) 
+                    );
+                    
+                    if (this->current_tok.type == TokenType::LPAREN) {
                         this->advance();
-                        AnyNode index = res.reg(this->logical_or());
-                        if (res.error) return res.to_prs();
-                        if (this->current_tok.type != TokenType::RBRACKET) {
+                        
+                        std::vector<AnyNode> args;
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::make_unique<SpreadNode>(std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+                                if (this->current_tok.type != TokenType::COMMA) break;
+                                this->advance();
+                            }
+                        }
+                        
+                        if (this->current_tok.type != TokenType::RPAREN) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
-                                "QC-S049: Expected ']'", this->current_tok.pos));
+                                "Expected ')' after method arguments",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
-                        indices.push_back(std::move(index));
+                        
+                        base = std::make_unique<MethodCallNode>(
+                            std::move(deref), property_name, std::move(args));
                     }
-                    base = std::make_unique<ArrayAccessNode>(std::move(base),
-                                                            std::move(indices));
+                    else {
+                        base = std::make_shared<PropertyAccessNode>(
+                            std::move(deref), base_name_tok, property_name);
+                    }
+                }
+                else if (this->current_tok.type == TokenType::DOT) {
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected property or method name after '.'",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
+
+                    Token property_name = this->current_tok;
+                    this->advance();
+
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        this->advance(); 
+                        std::vector<AnyNode> args;
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(
+                                        std::make_unique<SpreadNode>(std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+                                if (this->current_tok.type != TokenType::COMMA) break;
+                                this->advance();
+                            }
+                        }
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "QC-S044: Expected ')' after function arguments",
+                                this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        base = std::make_unique<MethodCallNode>(
+                            std::move(base), property_name, std::move(args));
+                    } else {
+                        base = std::make_shared<PropertyAccessNode>(
+                            std::move(base), ident, property_name);
+                    }
+
+                    while (this->current_tok.type == TokenType::LBRACKET) {
+                        std::vector<AnyNode> indices;
+                        while (this->current_tok.type == TokenType::LBRACKET) {
+                            this->advance();
+                            AnyNode index = res.reg(this->logical_or());
+                            if (res.error) return res.to_prs();
+                            if (this->current_tok.type != TokenType::RBRACKET) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S049: Expected ']'", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                            indices.push_back(std::move(index));
+                        }
+                        base = std::make_unique<ArrayAccessNode>(std::move(base),
+                                                                std::move(indices));
+                    }
                 }
             }
-
             if (this->current_tok.type == TokenType::INCREMENT ||
                 this->current_tok.type == TokenType::DECREMENT) {
                 Token op = this->current_tok;
                 this->advance();
+                AnyNode target = std::make_unique<VarAccessNode>(ident);
+                AnyNode value_node = std::make_unique<UnaryOpNode>(
+                    op,
+                    std::make_unique<VarAccessNode>(ident)
+                );
+
                 return res.success(std::make_unique<AssignExprNode>(
-                    ident,
-                    std::make_unique<UnaryOpNode>(op,
-                        std::make_unique<VarAccessNode>(tok))));
+                    std::move(target),
+                    Token(TokenType::EQ, "=", op.pos),
+                    std::move(value_node)
+                ));
             }
 
             return res.success(std::move(base));
@@ -1941,7 +2118,78 @@ namespace tkz {
 
             if (this->current_tok.type == TokenType::RPAREN) {
                 this->advance();
-                return res.success(std::move(any_expr));
+                AnyNode base = std::move(any_expr);
+                
+                while (this->current_tok.type == TokenType::DOT) {
+                    this->advance();
+                    
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected property or method name after '.'",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    
+                    Token property_name = this->current_tok;
+                    this->advance();
+                    Token base_name_tok;
+                    if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&base)) {
+                        if ((*unary)->op_tok.type == TokenType::MUL) {
+                            if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node)) {
+                                base_name_tok = (*var)->var_name_tok;
+                            } else {
+                                base_name_tok = Token(TokenType::IDENTIFIER, "", property_name.pos);
+                            }
+                        } else {
+                            base_name_tok = Token(TokenType::IDENTIFIER, "", property_name.pos);
+                        }
+                    }
+                    else if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&base)) {
+                        base_name_tok = (*var)->var_name_tok;
+                    }
+                    else {
+                        base_name_tok = Token(TokenType::IDENTIFIER, "", property_name.pos);
+                    }
+                    
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        this->advance();
+                        std::vector<AnyNode> args;
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(
+                                        std::make_unique<SpreadNode>(std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+                                if (this->current_tok.type != TokenType::COMMA) break;
+                                this->advance();
+                            }
+                        }
+                        
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ')' after method arguments",
+                                this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        base = std::make_unique<MethodCallNode>(
+                            std::move(base), property_name, std::move(args));
+                    }
+                    else {
+                        base = std::make_shared<PropertyAccessNode>(
+                            std::move(base), base_name_tok, property_name);
+                    }
+                }
+                
+                return res.success(std::move(base));
             } else {
                 res.failure(std::make_unique<InvalidSyntaxError>("QC-S050: Expected ')'", this->current_tok.pos));
                 return res.to_prs();
@@ -2098,7 +2346,7 @@ namespace tkz {
         Token tok = this->current_tok;
 
         if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS ||
-            tok.type == TokenType::NOT || tok.type == TokenType::QNOT) {
+            tok.type == TokenType::NOT || tok.type == TokenType::QNOT || tok.type == TokenType::AMPERSAND || tok.type == TokenType::MUL) {
             
             this->advance();
             AnyNode factor_node = res.reg(this->factor());
@@ -2313,10 +2561,10 @@ namespace tkz {
             bool is_var = std::holds_alternative<std::unique_ptr<VarAccessNode>>(left);
             bool is_array_access = std::holds_alternative<std::unique_ptr<ArrayAccessNode>>(left);
             bool is_prop = std::holds_alternative<std::shared_ptr<PropertyAccessNode>>(left);
-
-            if (!is_var && !is_array_access && !is_prop) {
+            bool is_deref = std::holds_alternative<std::unique_ptr<UnaryOpNode>>(left) && std::get<std::unique_ptr<UnaryOpNode>>(left)->op_tok.type == TokenType::MUL;
+            if (!is_var && !is_array_access && !is_prop && !is_deref) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
-                    "QC-S056: Left side of assignment must be a variable, struct field, or array/map access",
+                    "QC-S056: Left side of assignment must be a variable, struct field, array/map access, or *pointer",
                     this->current_tok.pos
                 ));
                 return res.to_prs();
@@ -2355,9 +2603,7 @@ namespace tkz {
                             "QC-S057: Unsupported op for struct fields", op_tok.pos));
                         return res.to_prs();
                 }
-
-                auto baseVarForLhs = std::make_unique<VarAccessNode>(prop->base_name_tok);
-                AnyNode lhsBase = AnyNode{ std::move(baseVarForLhs) };
+                AnyNode lhsBase = clone_node(*(prop->base));
 
                 if (binop_type == TokenType::EQ) {
                     return res.success(std::make_unique<FieldAssignNode>(
@@ -2366,16 +2612,14 @@ namespace tkz {
                         std::move(right)
                     ));
                 }
-                auto baseVarForRhs = std::make_unique<VarAccessNode>(prop->base_name_tok);
-                AnyNode rhsBase = AnyNode{ std::move(baseVarForRhs) };
-
-                auto readProp = std::make_unique<PropertyAccessNode>(
+                AnyNode rhsBase = clone_node(*(prop->base));
+                
+                auto readProp = std::make_shared<PropertyAccessNode>(
                     std::move(rhsBase),
                     prop->base_name_tok,
                     field
                 );
                 AnyNode readPropNode = AnyNode{ std::move(readProp) };
-
                 Token bin_tok(binop_type, get_token_name(binop_type), op_tok.pos);
                 AnyNode binExpr = AnyNode{
                     std::make_unique<BinOpNode>(
@@ -2384,7 +2628,6 @@ namespace tkz {
                         std::move(right)
                     )
                 };
-
                 return res.success(std::make_unique<FieldAssignNode>(
                     std::move(lhsBase),
                     field,
@@ -2406,28 +2649,11 @@ namespace tkz {
                 ));
             }
             
-            Token var = std::get<std::unique_ptr<VarAccessNode>>(left)->var_name_tok;
-            
-            if (op_tok.type != TokenType::EQ) {
-                TokenType binop_type;
-                if (op_tok.type == TokenType::PLUS_EQ) binop_type = TokenType::PLUS;
-                else if (op_tok.type == TokenType::MINUS_EQ) binop_type = TokenType::MINUS;
-                else if (op_tok.type == TokenType::MUL_EQ) binop_type = TokenType::MUL;
-                else if (op_tok.type == TokenType::DIV_EQ) binop_type = TokenType::DIV;
-                else if (op_tok.type == TokenType::MOD_EQ) binop_type = TokenType::MOD;
-                
-                Token binop_tok(binop_type, "", op_tok.pos);
-                AnyNode var_access = std::make_unique<VarAccessNode>(var);
-                AnyNode expanded = std::make_unique<BinOpNode>(
-                    std::move(var_access), 
-                    binop_tok, 
-                    std::move(right)
-                );
-                
-                return res.success(std::make_unique<AssignExprNode>(var, std::move(expanded)));
-            }
-
-            return res.success(std::make_unique<AssignExprNode>(var, std::move(right)));
+            return res.success(std::make_unique<AssignExprNode>(
+                std::move(left),
+                op_tok,
+                std::move(right)
+            ));
         }
 
         return res.success(std::move(left));
@@ -2509,6 +2735,14 @@ namespace tkz {
                 param_type.value += "::" + this->current_tok.value;
                 this->advance();
             }
+            if (this->current_tok.type == TokenType::AMPERSAND) {
+                this->advance();
+                param_type.value += "&";
+            }
+            while (this->current_tok.type == TokenType::MUL) {
+                this->advance();
+                param_type.value += "*";
+            }
             if (param_type.value == "short" || param_type.value == "long") {
                 std::string modifier = param_type.value;
 
@@ -2518,6 +2752,14 @@ namespace tkz {
                 }
                 Token base_type = this->current_tok;
                 this->advance();
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    base_type.value += "&";
+                }
+                while (this->current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    base_type.value += "*";
+                }
                 param_type.value = modifier + " " + base_type.value;
                 param_type.pos = base_type.pos;
             }
@@ -2536,6 +2778,14 @@ namespace tkz {
                     this->advance();
                     elem_type.value += "::" + this->current_tok.value;
                     this->advance();
+                }
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    elem_type.value += "&";
+                }
+                while (this->current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    elem_type.value += "*";
                 }
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -2591,6 +2841,14 @@ namespace tkz {
                     param_type.value += "::" + this->current_tok.value;
                     this->advance();
                 }
+                if (this->current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    param_type.value += "&";
+                }
+                while (this->current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    param_type.value += "*";
+                }
                 if (param_type.value == "short" || param_type.value == "long") {
                     std::string modifier = param_type.value;
 
@@ -2600,6 +2858,14 @@ namespace tkz {
                     }
                     Token base_type = this->current_tok;
                     this->advance();
+                    if (current_tok.type == TokenType::AMPERSAND) {
+                        this->advance();
+                        base_type.value += "&";
+                    }
+                    while (this->current_tok.type == TokenType::MUL) {
+                        this->advance();
+                        base_type.value += "*";
+                    }
                     param_type.value = modifier + " " + base_type.value;
                     param_type.pos = base_type.pos;
                 }
@@ -2617,6 +2883,14 @@ namespace tkz {
                         this->advance();
                         elem_type.value += "::" + this->current_tok.value;
                         this->advance();
+                    }
+                    if (current_tok.type == TokenType::AMPERSAND) {
+                        this->advance();
+                        elem_type.value += "&";
+                    }
+                    while (this->current_tok.type == TokenType::MUL) {
+                        this->advance();
+                        elem_type.value += "*";
                     }
                     if (this->current_tok.type != TokenType::MORE) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
@@ -2847,7 +3121,14 @@ namespace tkz {
             }
             Token elem_type = this->current_tok;
             this->advance();
-            
+            if (current_tok.type == TokenType::AMPERSAND) {
+                this->advance();
+                elem_type.value += "&";
+            }
+            while (this->current_tok.type == TokenType::MUL) {
+                this->advance();
+                elem_type.value += "*";
+            }
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Expected variable name in foreach", this->current_tok.pos));
@@ -3104,11 +3385,27 @@ namespace tkz {
                             field_type += "::" + this->current_tok.value;
                             this->advance();
                         }
+                        if (this->current_tok.type == TokenType::AMPERSAND) {
+                            this->advance();
+                            field_type += "&";
+                        }
+                        while (this->current_tok.type == TokenType::MUL) {
+                            this->advance();
+                            field_type += "*";
+                        }
                     }
                     else if (this->current_tok.type == TokenType::KEYWORD) {
                         Token base_type = this->current_tok;
-                        field_type = base_type.value;
                         this->advance();
+                        if (current_tok.type == TokenType::AMPERSAND) {
+                            this->advance();
+                            base_type.value += "&";
+                        }
+                        while (this->current_tok.type == TokenType::MUL) {
+                            this->advance();
+                            base_type.value += "*";
+                        }
+                        field_type = base_type.value;
                         if (base_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                             this->advance();
 
@@ -3259,7 +3556,7 @@ namespace tkz {
                         case TokenType::LESS:        op_name = "operator<";    break;
                         case TokenType::MORE_EQ:     op_name = "operator>=";   break;
                         case TokenType::LESS_EQ:     op_name = "operator<=";   break;
-                        case TokenType::POWER:       op_name = "operator**";   break;
+                        case TokenType::POWER:       op_name = "operator^*";   break;
                         case TokenType::MOD:         op_name = "operator%";    break;
                         case TokenType::XOR:         op_name = "operator^";    break;
                         case TokenType::QNOT:        op_name = "operator!!";   break;
@@ -3481,12 +3778,27 @@ namespace tkz {
                         field_type += "::" + this->current_tok.value;
                         this->advance();
                     }
+                    if (this->current_tok.type == TokenType::AMPERSAND) {
+                        this->advance();
+                        field_type += "&";
+                    }
+                    while (this->current_tok.type == TokenType::MUL) {
+                        this->advance();
+                        field_type += "*";
+                    }
                 }
                 else if (this->current_tok.type == TokenType::KEYWORD) {
                     Token base_type = this->current_tok;
-                    field_type = base_type.value;
                     this->advance();
-                    
+                    if (current_tok.type == TokenType::AMPERSAND) {
+                        this->advance();
+                        base_type.value += "&";
+                    }
+                    while (current_tok.type == TokenType::MUL) {
+                        this->advance();
+                        base_type.value += "*";
+                    }
+                    field_type = base_type.value;
                     if (this->current_tok.type == TokenType::LBRACKET) {
                         this->advance();
                         if (this->current_tok.type != TokenType::RBRACKET) {
@@ -3827,6 +4139,17 @@ namespace tkz {
             Token name_tok;
             Token type_tok = tok;
             this->advance();
+            bool is_reference = false;
+            if (this->current_tok.type == TokenType::AMPERSAND) {
+                this->advance();
+                is_reference = true;
+                type_tok.value += "&";
+            }
+            
+            while (this->current_tok.type == TokenType::MUL) {
+                this->advance();
+                type_tok.value += "*";
+            }
             if (type_tok.value == "short" || type_tok.value == "long") {
                 std::string modifier = type_tok.value;
                 
@@ -3838,7 +4161,14 @@ namespace tkz {
                 
                 Token base_type = this->current_tok;
                 this->advance();
-                
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    base_type.value += "&";
+                }
+                while (current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    base_type.value += "*";
+                }
                 type_tok.value = modifier + " " + base_type.value;
                 type_tok.pos = base_type.pos;
             }
@@ -3853,7 +4183,14 @@ namespace tkz {
                 }
                 Token key_type = this->current_tok;
                 this->advance();
-                
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    key_type.value += "&";
+                }
+                while (current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    key_type.value += "*";
+                }
                 if (this->current_tok.type != TokenType::COMMA) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S068: Expected ',' in map<K, V>", this->current_tok.pos));
@@ -3868,7 +4205,14 @@ namespace tkz {
                 }
                 Token value_type = this->current_tok;
                 this->advance();
-                
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    value_type.value += "&";
+                }
+                while (current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    value_type.value += "*";
+                }
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S070: Expected '>' in map<K, V>", this->current_tok.pos));
@@ -3961,7 +4305,14 @@ namespace tkz {
                 
                 Token elem_type = this->current_tok;
                 this->advance();
-                
+                if (current_tok.type == TokenType::AMPERSAND) {
+                    this->advance();
+                    elem_type.value += "&";
+                }
+                while (current_tok.type == TokenType::MUL) {
+                    this->advance();
+                    elem_type.value += "*";
+                }
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
@@ -4111,7 +4462,7 @@ namespace tkz {
                 } else {
                     if (is_const) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "const variables must be initialized", name_tok.pos));
+                            "QC-T007: const variables and references must be initialized", name_tok.pos));
                         return res.to_prs();
                     }
                     value = std::make_unique<ArrayLiteralNode>(std::vector<AnyNode>{}, name_tok.pos);
@@ -4135,7 +4486,7 @@ namespace tkz {
                 } else {
                     if (is_const) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "const variables must be initialized", name_tok.pos));
+                            "QC-T007: const variables must be initialized", name_tok.pos));
                         return res.to_prs();
                     }
                     value = default_value_for_type(type_tok, name_tok.pos);
@@ -4181,12 +4532,31 @@ namespace tkz {
             }
             if (this->current_tok.type == TokenType::EQ) {
                 this->advance();
+                if (is_reference) {
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-R001: Cannot assing a expression to a reference.", var_names[0].pos));
+                        return res.to_prs();
+                    }
+                    
+                    Token target = this->current_tok;
+                    this->advance();
+                    if (this->current_tok.type != TokenType::SEMICOLON) {
+                        res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    auto ref_node = RefVarDeclNode(
+                        type_tok, var_names[0], target, type_tok.pos
+                    );
+                    return res.success(std::move(ref_node));
+                }
                 value = res.reg(this->qout_expr());
                 if (res.error) return res.to_prs();
             } else {
-                if (is_const) {
+                if (is_const || is_reference) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
-                        "const variables must be initialized", var_names[0].pos));
+                        "const variables and references must be initialized", var_names[0].pos));
                     return res.to_prs();
                 }
                 value = default_value_for_type(type_tok, var_names[0].pos);
@@ -4258,7 +4628,14 @@ namespace tkz {
                     }
                     
                     Token first_type = this->consume_qualified_name();
-                    
+                    if (this->current_tok.type == TokenType::AMPERSAND) {
+                        this->advance();
+                        first_type.value += "&";
+                    }
+                    while (this->current_tok.type == TokenType::MUL) {
+                        this->advance();
+                        first_type.value += "*";
+                    }
                     std::vector<Token> return_types;
                     return_types.push_back(first_type);
                     if (this->current_tok.type == TokenType::COMMA) {
@@ -4266,15 +4643,36 @@ namespace tkz {
                             this->advance();
 
                             if (this->current_tok.type == TokenType::KEYWORD) {
-                                return_types.push_back(this->current_tok);
+                                Token t = this->current_tok;
                                 this->advance();
+                                if (this->current_tok.type == TokenType::AMPERSAND) {
+                                    this->advance();
+                                    t.value += "&";
+                                }
+                                while (this->current_tok.type == TokenType::MUL) {
+                                    this->advance();
+                                    t.value += "*";
+                                }
+
+                                return_types.push_back(t);
                             } else if (this->current_tok.type == TokenType::IDENTIFIER) {
                                 auto next_qual = this->try_parse_qualified_name();
                                 if (next_qual.has_value() && 
                                     (is_known_type(*next_qual) || 
                                     is_known_qualified_type(*next_qual) ||
                                     user_types.count(*next_qual) > 0)) {
-                                    return_types.push_back(this->consume_qualified_name());
+
+                                    Token t = this->consume_qualified_name();
+                                    if (this->current_tok.type == TokenType::AMPERSAND) {
+                                        this->advance();
+                                        t.value += "&";
+                                    }
+                                    while (this->current_tok.type == TokenType::MUL) {
+                                        this->advance();
+                                        t.value += "*";
+                                    }
+
+                                    return_types.push_back(t);
                                 } else {
                                     res.failure(std::make_unique<InvalidSyntaxError>(
                                         "Expected return type after ','", this->current_tok.pos));
@@ -4469,6 +4867,22 @@ namespace tkz {
         }
         return nullptr;
     }
+    std::string PointerValue::print(Context* ctx) const {
+        if (this->is_null) return "nullptr";
+        if (!ctx || frame_index >= ctx->frames.size()) {
+            return "&<dangling>";
+        }
+        auto& frame = ctx->frames[frame_index];
+        auto it = frame.find(symbol_key);
+        if (it == frame.end()) {
+            return "&<dangling>";
+        }
+
+        const void* addr = static_cast<const void*>(&(it->second.value));
+        std::ostringstream oss;
+        oss << "0x" << std::hex << reinterpret_cast<std::uintptr_t>(addr);
+        return oss.str();
+    }
     bool Interpreter::is_truthy(const NumberVariant& val) {
         return std::visit([this](auto&& v) -> bool {
             using T = std::decay_t<decltype(v)>;
@@ -4478,12 +4892,17 @@ namespace tkz {
                 return v.tval;
             } else if constexpr (std::is_same_v<T, Number<int>> || 
                                 std::is_same_v<T, Number<float>> || 
-                                std::is_same_v<T, Number<double>>) {
+                                std::is_same_v<T, Number<double>> ||
+                                std::is_same_v<T, Number<short>> || 
+                                std::is_same_v<T, Number<long long>> || 
+                                std::is_same_v<T, Number<long double>>) {
                 return v.value != 0;
             } else if constexpr (std::is_same_v<T, StringValue>) {
                 return !v.value.empty();
             } else if constexpr (std::is_same_v<T, MultiValue>) { 
                 return true; 
+            } else if constexpr (std::is_same_v<T, PointerValue>) {
+                return !v.is_null;
             } else if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) { 
                 auto inst = v;
                 const std::string& className = inst->class_name;
@@ -4612,199 +5031,120 @@ namespace tkz {
         return actual_type == member_type;
     }
     void Context::set(const std::string& name, NumberVariant new_val, Position pos) {
-        for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-            auto sym_it = it->find(qualify(name));
-            if (sym_it != it->end()) {
-                if (sym_it->second.is_const) {
-                    throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", pos);
-                }
-                
-                std::string expected = sym_it->second.declared_type;
-                std::string actual = get_type_name(new_val);
-                
-                std::string lookup_type = expected;
-                auto ut_it = user_types.find(lookup_type);
-                
-                if (ut_it == user_types.end()) {
-                    size_t last_colon = lookup_type.rfind("::");
-                    if (last_colon == std::string::npos && !namespaceStack.empty()) {
-                        std::string qualified = "";
-                        for (auto& ns : namespaceStack) {
-                            if (!qualified.empty()) qualified += "::";
-                            qualified += ns;
-                        }
-                        lookup_type = qualified + "::" + expected;
-                        ut_it = user_types.find(lookup_type);
-                    }
-                }
-                
-                if (ut_it == user_types.end()) {
-                    for (auto& [type_name, info] : user_types) {
-                        if (type_name == expected || 
-                            type_name.find("::" + expected) != std::string::npos) {
-                            ut_it = user_types.find(type_name);
-                            break;
-                        }
-                    }
-                }
-                
-                if (ut_it != user_types.end() && 
-                    ut_it->second.kind == UserTypeKind::Union) {
-                    
-                    auto& members = ut_it->second.members;
-                    bool ok = false;
-                    
-                    for (auto& m : members) {
-                        if (value_matches_union_member(m.type, actual, new_val)) {
-                            ok = true;
-                            break;
-                        }
-                    }
-                    
-                    if (!ok) {
-                        throw RTError(
-                            "QC-T004: Type mismatch: value of type " + actual +
-                            " is not assignable to union type '" + expected + "'",
-                            pos
-                        );
-                    }
-                    
-                    sym_it->second.value = std::move(new_val);
-                    return;
-                }
-                if (expected == "list<auto>") {
-                    if (actual.find("list<") != std::string::npos || actual.find("[]") != std::string::npos) {
-                        actual = expected;
-                    }
-                }
-                if (expected.find("list<") == 0) {
-                    std::string inner = strip(expected);
-                    if (strip(actual) == inner && actual != inner) {
-                        actual = expected;
-                    }
-                }
-                if (actual.find("list<") == 0) {
-                    std::string inner = strip(actual);
-                    
-                    if (strip(expected) == inner && expected != inner) {
-                        actual = expected;
-                    }
-                }
-                auto normalize_type = [](const std::string& t) {
-                    std::string type = t;
-                    size_t pos = type.rfind("::");
-                    type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
-                    if (type == "long int") type = "int";
-                    if (type == "short int") type = "int";
-                    if (type == "long double") type = "double";
+        auto loc_opt = find_any_symbol(name);
+        if (!loc_opt.has_value()) {
+            throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
+        }
 
-                    return type;
-                };
+        auto [fi, key] = *loc_opt;
+        auto [t_fi, t_key] = follow_ref_chain(fi, key, pos);
 
-                if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
-                    throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
+        if (t_fi >= frames.size()) {
+            throw RTError("Dangling reference: invalid frame index", pos);
+        }
+
+        auto& frame = frames[t_fi];
+        auto sym_it = frame.find(t_key);
+        if (sym_it == frame.end()) {
+            throw RTError("Dangling reference: symbol '" + t_key + "' not found", pos);
+        }
+
+        Symbol& sym = sym_it->second;
+
+        if (sym.is_const) {
+            throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", pos);
+        }
+
+        std::string expected = sym.declared_type;
+        std::string actual   = get_type_name(new_val);
+        std::string lookup_type = expected;
+        auto ut_it = user_types.find(lookup_type);
+
+        if (ut_it == user_types.end()) {
+            size_t last_colon = lookup_type.rfind("::");
+            if (last_colon == std::string::npos && !namespaceStack.empty()) {
+                std::string qualified;
+                for (auto& ns : namespaceStack) {
+                    if (!qualified.empty()) qualified += "::";
+                    qualified += ns;
                 }
-                
-                sym_it->second.value = std::move(new_val);
-                return;
+                lookup_type = qualified + "::" + expected;
+                ut_it = user_types.find(lookup_type);
             }
         }
-        
-        if (name.find("::") != std::string::npos) {
-            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                auto sym_it = it->find(name);
-                if (sym_it != it->end()) {
-                    if (sym_it->second.is_const) {
-                        throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", pos);
-                    }
-                    
-                    std::string expected = sym_it->second.declared_type;
-                    std::string actual = get_type_name(new_val);
-                    
-                    std::string lookup_type = expected;
-                    auto ut_it = user_types.find(lookup_type);
-                    
-                    if (ut_it == user_types.end()) {
-                        size_t last_colon = lookup_type.rfind("::");
-                        if (last_colon == std::string::npos && !namespaceStack.empty()) {
-                            std::string qualified = "";
-                            for (auto& ns : namespaceStack) {
-                                if (!qualified.empty()) qualified += "::";
-                                qualified += ns;
-                            }
-                            lookup_type = qualified + "::" + expected;
-                            ut_it = user_types.find(lookup_type);
-                        }
-                    }
-                    
-                    if (ut_it == user_types.end()) {
-                        for (auto& [type_name, info] : user_types) {
-                            if (type_name == expected || 
-                                type_name.find("::" + expected) != std::string::npos) {
-                                ut_it = user_types.find(type_name);
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (ut_it != user_types.end() && 
-                        ut_it->second.kind == UserTypeKind::Union) {
-                        
-                        auto& members = ut_it->second.members;
-                        bool ok = false;
-                        
-                        for (auto& m : members) {
-                            if (value_matches_union_member(m.type, actual, new_val)) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!ok) {
-                            throw RTError(
-                                "QC-T004: Type mismatch: value of type " + actual +
-                                " is not assignable to union type '" + expected + "'",
-                                pos
-                            );
-                        }
-                        
-                        sym_it->second.value = std::move(new_val);
-                        return;
-                    }
-                    if (expected.find("list<") == 0) {
-                        std::string inner = strip(expected);
-                        if (strip(actual) == inner && actual != inner) {
-                            actual = expected;
-                        }
-                    }
-                    if (actual.find("list<") == 0) {
-                        std::string inner = strip(actual);
-                        
-                        if (strip(expected) == inner && expected != inner) {
-                            actual = expected;
-                        }
-                    }
-                    auto normalize_type = [](const std::string& t) {
-                        std::string type = t;
-                        size_t pos = type.rfind("::");
-                        type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
-                        if (type == "long int") type = "int";
-                        if (type == "short int") type = "int";
-                        if (type == "long double") type = "double";
 
-                        return type;
-                    };
-
-                    if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
-                        throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
-                    }
-                    sym_it->second.value = std::move(new_val);
-                    return;
+        if (ut_it == user_types.end()) {
+            for (auto& [type_name, info] : user_types) {
+                if (type_name == expected ||
+                    type_name.find("::" + expected) != std::string::npos) {
+                    ut_it = user_types.find(type_name);
+                    break;
                 }
             }
         }
-        
-        throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
+
+        if (ut_it != user_types.end() &&
+            ut_it->second.kind == UserTypeKind::Union) {
+
+            auto& members = ut_it->second.members;
+            bool ok = false;
+
+            for (auto& m : members) {
+                if (value_matches_union_member(m.type, actual, new_val)) {
+                    ok = true;
+                    break;
+                }
+            }
+
+            if (!ok) {
+                throw RTError(
+                    "QC-T004: Type mismatch: value of type " + actual +
+                    " is not assignable to union type '" + expected + "'",
+                    pos
+                );
+            }
+
+            sym.value = std::move(new_val);
+            return;
+        }
+
+        if (expected == "list<auto>") {
+            if (actual.find("list<") != std::string::npos ||
+                actual.find("[]")     != std::string::npos) {
+                actual = expected;
+            }
+        }
+        if (expected.find("list<") == 0) {
+            std::string inner = strip(expected);
+            if (strip(actual) == inner && actual != inner) {
+                actual = expected;
+            }
+        }
+        if (actual.find("list<") == 0) {
+            std::string inner = strip(actual);
+            if (strip(expected) == inner && expected != inner) {
+                actual = expected;
+            }
+        }
+
+        auto normalize_type = [](const std::string& t) {
+            std::string type = t;
+            size_t pos = type.rfind("::");
+            type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
+            if (type == "long int")     type = "int";
+            if (type == "short int")    type = "int";
+            if (type == "long double")  type = "double";
+            return type;
+        };
+        if (expected.find("*") != std::string::npos && actual == "void*") {
+            sym.value = std::move(new_val);
+            return;
+        }
+        if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
+            throw RTError("QC-T003: Type mismatch: cannot assign " + actual + " to " + expected, pos);
+        }
+
+        sym.value = std::move(new_val);
     }
     NumberVariant def_value_for_type(const std::string& type_name) {
         if (type_name == "int")    return Number<int>(0);
@@ -4843,6 +5183,7 @@ namespace tkz {
             auto arr = std::make_shared<ArrayValue>(elem_type, std::vector<NumberVariant>{});
             return arr;
         }
+
         return VoidValue();
     }
     std::string Interpreter::value_to_string(const NumberVariant& val) {
@@ -4890,6 +5231,9 @@ namespace tkz {
                     "Error"});
                 return v->print();
             }
+            else if constexpr (std::is_same_v<T, PointerValue>) {
+                return v.print(this->context);
+            }
             else {
                 return v.print();
             }
@@ -4904,6 +5248,9 @@ namespace tkz {
             } 
             else if constexpr (std::is_same_v<T, QBoolValue>) {
                 return v.print();
+            }
+            else if constexpr (std::is_same_v<T, PointerValue>) {
+                return "&" + v.pointee_type;
             }
             else if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>> ||
                             std::is_same_v<T, std::shared_ptr<ArrayValue>> ||
@@ -5093,6 +5440,11 @@ namespace tkz {
                 throw RTError("Invalid comparison type", pos);
             }
         }, a);
+    }
+    NumberVariant Interpreter::operator()(NullptrNode& node) {
+        PointerValue pv("void", 0, "", true);
+        pv.pos = node.pos;
+        return pv;
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<NamespaceNode>& node) {
         context->push_namespace(node->name);
@@ -5370,6 +5722,31 @@ namespace tkz {
 
         return sv;
     }
+    NumberVariant Interpreter::operator()(RefVarDeclNode& node) {
+        std::string target_name = node.target_tok.value;
+        NumberVariant target_value;
+        try {
+            target_value = context->get(target_name, Position("", "", 0, 0, 0));
+        } catch (RTError& e) {
+            errors.push_back({RTError(
+                "Cannot create reference to undefined variable '" + target_name + "'",
+                Position("", "", 0, 0, 0)
+            ), "Error"});
+            return VoidValue();
+        }
+        std::string target_type = context->get_type_name(target_value);
+        std::string ref_type = node.type_tok.value;
+        if (ref_type != target_type) {
+            errors.push_back({RTError(
+                "Reference type mismatch: cannot bind " + ref_type + "& to " + target_type,
+                Position("", "", 0, 0, 0)
+            ), "Error"});
+            return VoidValue();
+        }
+        std::string ref_name = node.var_name_tok.value;
+        context->define_reference(ref_name, target_name, ref_type + "&", node.var_name_tok.pos);
+        return VoidValue();
+    }
     ClassMethodInfo* Interpreter::find_method_with_args(
         const std::string& className,
         const std::string& mname,
@@ -5404,9 +5781,22 @@ namespace tkz {
             bool valid = true;
             size_t i = 0;
 
+            auto norm = [](std::string t) {
+                if (!t.empty() && t.back() == '&') t.pop_back();
+                size_t pos = t.rfind("::");
+                if (pos != std::string::npos) t = t.substr(pos + 2);
+                if (t == "long int" || t == "short int") t = "int";
+                if (t == "long double") t = "double";
+                return t;
+            };
+
             for (auto it = m->params.begin(); it != m->params.end(); ++it, ++i) {
                 std::string expected = it->type.value;
-                std::string actual = context->get_type_name(args[i]);
+                std::string actual   = context->get_type_name(args[i]);
+
+                std::string exp_n = norm(expected);
+                std::string act_n = norm(actual);
+
                 if (expected == "list<auto>") {
                     if (actual.find("list<") != std::string::npos || actual.find("[]") != std::string::npos) {
                         score += 50;
@@ -5420,12 +5810,11 @@ namespace tkz {
                 }
                 else if (actual.find("list<") == 0) {
                     std::string inner = strip(actual);
-                    
                     if (strip(expected) == inner && expected != inner) {
                         score += 100;
                     }
                 }
-                else if (expected == actual) {
+                else if (exp_n == act_n) {
                     score += 100;
                 } else if (expected == "auto") {
                     score += 50;
@@ -5682,7 +6071,11 @@ namespace tkz {
             if (declaredType == actualType) {
                 type_matches = true;
             }
-
+            else if (declaredType.find("*") != std::string::npos) {
+                if (actualType == "void*") {
+                    type_matches = true;
+                }
+            }
             if (declaredType == "float" && actualType == "float") {
                 type_matches = true;
             } else if (declaredType == "double" && (actualType == "float" || actualType == "double")) {
@@ -6245,12 +6638,57 @@ namespace tkz {
 
         return fields;
     }
+    size_t Interpreter::get_sizeof_type(const std::string& type) {
+        std::string base_type = type;
+        size_t ptr_count = 0;
+        while (!base_type.empty() && base_type.back() == '*') {
+            base_type.pop_back();
+            ptr_count++;
+        }
+        if (!base_type.empty() && base_type.back() == '&') {
+            base_type.pop_back();
+        }
+        base_type.erase(base_type.find_last_not_of(" \t") + 1);
+        if (ptr_count > 0) {
+            return 8;
+        }
+        if (base_type == "char") return 1;
+        if (base_type == "bool") return 1;
+        if (base_type == "qbool") return 1;
+        if (base_type == "short" || base_type == "short int") return 2;
+        if (base_type == "int") return 4;
+        if (base_type == "long" || base_type == "long int") return 8;
+        if (base_type == "float") return 4;
+        if (base_type == "double") return 8;
+        if (base_type == "long double") return 16;
+        auto ut_it = context->user_types.find(base_type);
+        if (ut_it != context->user_types.end()) {
+            if (ut_it->second.kind == UserTypeKind::Struct) {
+                size_t total = 0;
+                for (auto& field : ut_it->second.fields) {
+                    total += get_sizeof_type(field.type);
+                }
+                return total;
+            }
+            else if (ut_it->second.kind == UserTypeKind::Class) {
+                size_t total = 0;
+                for (auto& field : ut_it->second.classFields) {
+                    total += get_sizeof_type(field.type);
+                }
+                return total;
+            }
+        }
+        if (base_type.find("[]") != std::string::npos) return 8;
+        if (base_type.find("list<") != std::string::npos) return 8;
+        if (base_type.find("map<") != std::string::npos) return 8;
+        return 0;
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
         if (!node) return Number<int>(0);
-
-        NumberVariant target_val;
+        NumberVariant target_val;  
         std::string func_name = "<anonymous>";
         std::vector<NumberVariant> final_args;
+        std::vector<std::string>   final_lvalues;
         if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(node->node_to_call)) {
             auto& varacc = std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
             func_name = varacc->var_name_tok.value;
@@ -6798,6 +7236,174 @@ namespace tkz {
 
                 this->errors.push_back({RTError("QC-B002: replace() requires (string, string, string)", get_pos(str_val)), "Error"});
             }
+            if (func_name == "sizeof") {
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("QC-B001: sizeof expects exactly 1 argument", Position("", "", 0, 0, 0));
+                }
+                NumberVariant arg_val = this->process(node->arg_nodes.front());
+                
+                auto str_val = std::get_if<StringValue>(&arg_val);
+                if (!str_val) {
+                    throw RTError("QC-B002: sizeof expects a string argument (type name)", Position("", "", 0, 0, 0));
+                }
+                
+                std::string type = str_val->value;
+                size_t size = get_sizeof_type(type);
+                
+                if (size == 0) {
+                    throw RTError("QC-B002: Unknown type: " + type, Position("", "", 0, 0, 0));
+                }
+                
+                return Number<int>(size);
+            }
+            if (func_name == "malloc") {
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("QC-B001: malloc expects exactly 1 argument (type name string)", Position());
+                }
+
+                NumberVariant type_val = this->process(node->arg_nodes.front());
+                auto sv = std::get_if<StringValue>(&type_val);
+                if (!sv) {
+                    throw RTError("QC-B002: malloc expects a string type name", get_pos(type_val));
+                }
+
+                std::string type_name = sv->value;
+                size_t sz = this->get_sizeof_type(type_name);
+                if (sz == 0) {
+                    throw RTError("QC-B002: Unknown or unsupported type in malloc: " + type_name, get_pos(type_val));
+                }
+
+                NumberVariant def_val = def_value_for_type(type_name);
+                size_t heap_id = context->heap_alloc(def_val);
+
+                return PointerValue::heap_ptr(type_name, heap_id).set_pos(get_pos(type_val));
+            }
+            if (func_name == "free") {
+                if (node->arg_nodes.size() != 1) {
+                    throw RTError("QC-B001: free expects exactly 1 argument (pointer)", Position("", "", 0, 0, 0));
+                }
+                
+                NumberVariant ptr_val = this->process(node->arg_nodes.front());
+                
+                auto ptr = std::get_if<PointerValue>(&ptr_val);
+                if (!ptr) {
+                    throw RTError("QC-B002: free expects a pointer argument", get_pos(ptr_val));
+                }
+                
+                if (ptr->is_null) {
+                    return VoidValue();
+                }
+                
+                if (!ptr->is_heap) {
+                    throw RTError("QC-M010: Cannot free stack-allocated memory", ptr->pos);
+                }
+                
+                context->heap_free(ptr->heap_id);
+                
+                return VoidValue();
+            }
+            if (func_name == "calloc") {
+                if (node->arg_nodes.size() != 2) {
+                    throw RTError("QC-B001: calloc expects 2 arguments (count, type name)", Position());
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant count_val = this->process(*it);
+                ++it;
+                NumberVariant type_val = this->process(*it);
+
+                int count = std::visit([&](auto&& arg) -> int {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, Number<int>>  ||
+                                std::is_same_v<T, Number<long long>> ||
+                                std::is_same_v<T, Number<short>>) {
+                        return (int)arg.value;
+                    }
+                    throw RTError("QC-B002: calloc count must be an integer", get_pos(count_val));
+                }, count_val);
+
+                auto sv = std::get_if<StringValue>(&type_val);
+                if (!sv) {
+                    throw RTError("QC-B002: calloc type must be a string", get_pos(type_val));
+                }
+                std::string type_name = sv->value;
+
+                if (count <= 0) {
+                    throw RTError("QC-B002: calloc count must be positive", get_pos(count_val));
+                }
+
+                size_t sz = this->get_sizeof_type(type_name);
+                if (sz == 0) {
+                    throw RTError("QC-B002: Unknown or unsupported type in calloc: " + type_name, get_pos(type_val));
+                }
+
+                std::vector<NumberVariant> elems;
+                elems.reserve(count);
+                for (int i = 0; i < count; ++i) {
+                    elems.push_back(def_value_for_type(type_name));
+                }
+
+                auto arr = std::make_shared<ArrayValue>(type_name, std::move(elems));
+                size_t heap_id = context->heap_alloc(arr);
+
+                return PointerValue::heap_ptr(type_name, heap_id).set_pos(get_pos(type_val));
+            }
+            if (func_name == "realloc") {
+                if (node->arg_nodes.size() != 2) {
+                    throw RTError("QC-B001: realloc expects 2 arguments (ptr, new_size)", Position());
+                }
+
+                auto it = node->arg_nodes.begin();
+                NumberVariant ptr_val = this->process(*it);
+                ++it;
+                NumberVariant size_val = this->process(*it);
+
+                auto ptr = std::get_if<PointerValue>(&ptr_val);
+                if (!ptr) {
+                    throw RTError("QC-B002: realloc expects a pointer as first argument", get_pos(ptr_val));
+                }
+
+                int new_size = std::visit([&](auto&& arg) -> int {
+                    using T = std::decay_t<decltype(arg)>;
+                    if constexpr (std::is_same_v<T, Number<int>>  ||
+                                std::is_same_v<T, Number<long long>> ||
+                                std::is_same_v<T, Number<short>>) {
+                        return (int)arg.value;
+                    }
+                    throw RTError("QC-B002: realloc size must be an integer", get_pos(size_val));
+                }, size_val);
+
+                if (new_size < 0) {
+                    throw RTError("QC-B002: realloc size must be non-negative", get_pos(size_val));
+                }
+
+                if (ptr->is_null) {
+                    if (new_size == 0) {
+                        return PointerValue::heap_ptr("void", 0).set_pos(get_pos(ptr_val));
+                    }
+                    NumberVariant def_val = VoidValue();
+                    size_t heap_id = context->heap_alloc(def_val);
+                    return PointerValue::heap_ptr("void", heap_id).set_pos(get_pos(ptr_val));
+                }
+
+                if (!ptr->is_heap) {
+                    throw RTError("QC-B002: Cannot realloc stack-allocated memory", ptr->pos);
+                }
+
+                if (!context->heap_valid(ptr->heap_id)) {
+                    throw RTError("QC-B002: Cannot realloc freed memory", ptr->pos);
+                }
+                NumberVariant& block = context->heap_get(ptr->heap_id);
+                if (std::holds_alternative<std::shared_ptr<ArrayValue>>(block)) {
+                    throw RTError("QC-B002: realloc not allowed on array blocks (use calloc for arrays)", ptr->pos);
+                }
+
+                if (new_size == 0) {
+                    context->heap_free(ptr->heap_id);
+                    return PointerValue::heap_ptr(ptr->pointee_type, 0).set_pos(get_pos(ptr_val));
+                }
+                return *ptr;
+            }
             auto ut_it = context->user_types.find(func_name);
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
@@ -6834,19 +7440,35 @@ namespace tkz {
                         if (!ctor) {
                             return VoidValue();
                         }
-                        std::vector<NumberVariant> final_args;
+                        final_args.clear();
+                        final_lvalues.clear();
+
                         for (auto& arg : node->arg_nodes) {
                             if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
                                 NumberVariant sv = this->process((*spread)->expr);
                                 if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
-                                    for (auto& e : (*arr)->elements) final_args.push_back(e);
+                                    for (auto& e : (*arr)->elements) {
+                                        final_args.push_back(e);
+                                        final_lvalues.push_back("");
+                                    }
                                 } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
-                                    for (auto& e : (*lst)->elements) final_args.push_back(e);
+                                    for (auto& e : (*lst)->elements) {
+                                        final_args.push_back(e);
+                                        final_lvalues.push_back("");
+                                    }
                                 } else {
                                     this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(sv)), "Error"});
                                 }
                             } else {
-                                final_args.push_back(this->process(arg));
+                                if (auto varacc_ptr = std::get_if<std::unique_ptr<VarAccessNode>>(&arg)) {
+                                    std::string var_name = (*varacc_ptr)->var_name_tok.value;
+                                    NumberVariant v      = this->process(arg);
+                                    final_args.push_back(v);
+                                    final_lvalues.push_back(var_name);
+                                } else {
+                                    final_args.push_back(this->process(arg));
+                                    final_lvalues.push_back("");
+                                }
                             }
                         }
                         context->push_scope();
@@ -6904,18 +7526,34 @@ namespace tkz {
                 }
 
                 final_args.clear();
+                final_lvalues.clear();
+
                 for (auto& arg : node->arg_nodes) {
                     if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
                         NumberVariant sv = this->process((*spread)->expr);
                         if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
-                            for (auto& e : (*arr)->elements) final_args.push_back(e);
+                            for (auto& e : (*arr)->elements) {
+                                final_args.push_back(e);
+                                final_lvalues.push_back("");
+                            }
                         } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
-                            for (auto& e : (*lst)->elements) final_args.push_back(e);
+                            for (auto& e : (*lst)->elements) {
+                                final_args.push_back(e);
+                                final_lvalues.push_back("");
+                            }
                         } else {
                             this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(sv)), "Error"});
                         }
                     } else {
-                        final_args.push_back(this->process(arg));
+                        if (auto varacc_ptr = std::get_if<std::unique_ptr<VarAccessNode>>(&arg)) {
+                            std::string var_name = (*varacc_ptr)->var_name_tok.value;
+                            NumberVariant v      = this->process(arg);
+                            final_args.push_back(v);
+                            final_lvalues.push_back(var_name);
+                        } else {
+                            final_args.push_back(this->process(arg));
+                            final_lvalues.push_back("");
+                        }
                     }
                 }
 
@@ -6985,26 +7623,34 @@ namespace tkz {
 
         auto func = fval.func;
         final_args.clear();
+        final_lvalues.clear();
 
         for (auto& arg : node->arg_nodes) {
-
             if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
-                NumberVariant spread_val = this->process((*spread)->expr);
-
-                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
-                    for (auto& elem : (*arr)->elements)
-                        final_args.push_back(elem);
+                NumberVariant sv = this->process((*spread)->expr);
+                if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
+                    for (auto& e : (*arr)->elements) {
+                        final_args.push_back(e);
+                        final_lvalues.push_back("");
+                    }
+                } else if (auto lst = std::get_if<std::shared_ptr<ListValue>>(&sv)) {
+                    for (auto& e : (*lst)->elements) {
+                        final_args.push_back(e);
+                        final_lvalues.push_back("");
+                    }
+                } else {
+                    this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(sv)), "Error"});
                 }
-                else if (auto list = std::get_if<std::shared_ptr<ListValue>>(&spread_val)) {
-                    for (auto& elem : (*list)->elements)
-                        final_args.push_back(elem);
+            } else {
+                if (auto varacc_ptr = std::get_if<std::unique_ptr<VarAccessNode>>(&arg)) {
+                    std::string var_name = (*varacc_ptr)->var_name_tok.value;
+                    NumberVariant v      = this->process(arg);
+                    final_args.push_back(v);
+                    final_lvalues.push_back(var_name);
+                } else {
+                    final_args.push_back(this->process(arg));
+                    final_lvalues.push_back("");
                 }
-                else {
-                    this->errors.push_back({RTError("QC-I005: Spread target must be array or list", get_pos(spread_val)), "Error"});
-                }
-            }
-            else {
-                final_args.push_back(this->process(arg));
             }
         }
         std::vector<std::string> saved_namespace_stack = context->namespaceStack;
@@ -7039,23 +7685,58 @@ namespace tkz {
                 this->errors.push_back({RTError("QC-C001: Too many arguments", Position()), "Error"});
             }
             for (size_t i = 0; i < func->params.size(); i++) {
-                NumberVariant value;
                 auto it_param = func->params.begin();
                 std::advance(it_param, i);
 
+                NumberVariant value;
                 if (i < final_args.size()) {
                     value = final_args[i];
-                }
-                else if (it_param->default_value.has_value()) {
+                } else if (it_param->default_value.has_value()) {
                     value = this->process(it_param->default_value.value());
+                } else {
+                    this->errors.push_back({RTError("QC-C003: Missing argument", Position()), "Error"});
+                    continue;
                 }
-                else this->errors.push_back({RTError("QC-C003: Missing argument", Position()), "Error"});
 
-                
                 std::string expected_type = it_param->type.value;
-                std::string actual_type = context->get_type_name(value);
+                std::string actual_type   = context->get_type_name(value);
+                bool is_ref_param = false;
+                std::string base_expected = expected_type;
+                if (!expected_type.empty() && expected_type.back() == '&') {
+                    is_ref_param = true;
+                    base_expected.pop_back();
+                }
 
+                std::string lvalue_name;
+                if (i < final_lvalues.size()) {
+                    lvalue_name = final_lvalues[i];
+                }
 
+                if (is_ref_param && !lvalue_name.empty()) {
+                    auto norm = [](std::string t) {
+                        size_t pos = t.rfind("::");
+                        if (pos != std::string::npos) t = t.substr(pos + 2);
+                        if (t == "long int" || t == "short int") t = "int";
+                        if (t == "long double") t = "double";
+                        return t;
+                    };
+
+                    if (norm(base_expected) != norm(actual_type)) {
+                        this->errors.push_back({RTError(
+                            "QC-R003: Cannot bind ref parameter '" + it_param->name.value +
+                            "' of type " + base_expected + "& to '" + lvalue_name +
+                            "' of type " + actual_type,
+                            it_param->name.pos),
+                            "Error"});
+                        continue;
+                    }
+
+                    context->define_reference(it_param->name.value, lvalue_name, base_expected + "&", it_param->name.pos);
+                    continue;
+                }
+                if (is_ref_param && lvalue_name.empty()) {
+                    expected_type = base_expected;
+                }
                 if (expected_type == "auto") {
                     context->define(it_param->name.value, actual_type, value);
                 } else {
@@ -7404,7 +8085,8 @@ namespace tkz {
                     "Error"});
                 return VoidValue{};
             }
-            const std::string& ptype = it_param->type.value;
+
+            std::string ptype = it_param->type.value;
             if (ptype.rfind("list<", 0) == 0 && ptype.back() == '>') {
                 if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&value)) {
                     std::string elem_type = ptype.substr(5, ptype.size() - 6);
@@ -7419,7 +8101,11 @@ namespace tkz {
                     value = arr;
                 }
             }
-
+            bool is_ref_param = false;
+            if (!ptype.empty() && ptype.back() == '&') {
+                is_ref_param = true;
+                ptype.pop_back();
+            }
             context->define(it_param->name.value, ptype, value);
         }
 
@@ -7925,6 +8611,10 @@ namespace tkz {
                             std::is_same_v<T2, std::shared_ptr<InstanceValue>>) {
                 this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic on classes", node->op_tok.pos), "Error"});
             }
+            else if constexpr (std::is_same_v<T1, PointerValue> || 
+                            std::is_same_v<T2, PointerValue>) {
+                this->errors.push_back({RTError("QC-T006: Cannot perform arithmetic on pointers", node->op_tok.pos), "Error"});
+            }
             else{ 
                 return std::move(handle_binop(L, R, node->op_tok.type, this->error));
             }
@@ -7980,168 +8670,200 @@ namespace tkz {
         auto qb = QBoolValue(node.tok.value);
         return std::move(qb.set_pos(node.tok.pos));
     }
+    NumberVariant apply_numeric_binop(
+        const NumberVariant& left,
+        const NumberVariant& right,
+        TokenType op,
+        const Position& pos
+    ) {
+        return std::visit(
+            [&](auto const& L, auto const& R) -> NumberVariant {
+                using TL = std::decay_t<decltype(L)>;
+                using TR = std::decay_t<decltype(R)>;
+                if constexpr (
+                    std::is_same_v<TL, Number<short>>      ||
+                    std::is_same_v<TL, Number<int>>        ||
+                    std::is_same_v<TL, Number<long long>>  ||
+                    std::is_same_v<TL, Number<float>>      ||
+                    std::is_same_v<TL, Number<double>>     ||
+                    std::is_same_v<TL, Number<long double>>
+                ) {
+                    if constexpr (
+                        std::is_same_v<TR, Number<short>>      ||
+                        std::is_same_v<TR, Number<int>>        ||
+                        std::is_same_v<TR, Number<long long>>  ||
+                        std::is_same_v<TR, Number<float>>      ||
+                        std::is_same_v<TR, Number<double>>     ||
+                        std::is_same_v<TR, Number<long double>>
+                    ) {
+                        InterpEer dummyErr;
+                        return handle_binop(L, R, op, dummyErr);
+                    } else {
+                        throw RTError("QC-T002: Right side of compound assignment must be numeric", pos);
+                    }
+                } else {
+                    throw RTError("QC-T002: Left side of compound assignment must be numeric", pos);
+                }
+            },
+            left,
+            right
+        );
+    }
     NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
         if (!node) return Number<int>(0);
-        
-        
-        NumberVariant value = std::move(this->process(node->value));
-        std::string name = node->var_name.value;
-        
-        if (name.find("::") != std::string::npos) {
-            for (auto it = context->frames.rbegin(); it != context->frames.rend(); ++it) {
-                auto sym_it = it->find(name);
-                if (sym_it != it->end()) {
-                    if (sym_it->second.is_const) {
-                        throw RTError("QC-T001: Cannot assign to const variable '" + name + "'", node->var_name.pos);
-                    }
-                    if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&sym_it->second.value)) {
-                        std::string class_name = (*inst_ptr)->class_name;
-                        auto ut_it = context->user_types.find(class_name);
-                        
-                        if (ut_it != context->user_types.end() && 
-                            ut_it->second.kind == UserTypeKind::Class) {
-                            
-                            std::vector<NumberVariant> args = {value};
-                            ClassMethodInfo* op_assign = find_method_with_args(
-                                class_name,
-                                "operator=",
-                                args
-                            );
-                            
-                            if (op_assign) {
-                                NumberVariant result = call_instance_method(
-                                    *inst_ptr,
-                                    op_assign,
-                                    std::vector<NumberVariant>{ std::move(value) },
-                                    node->var_name.pos
-                                );
-                                return result;
-                            }
-                        }
-                    }
-                    std::string declared_type = sym_it->second.declared_type;
-                    std::string actual_type = context->get_type_name(value);
-                    
-                    std::string lookup_type = declared_type;
-                    auto ut_it = context->user_types.find(lookup_type);
-                    
-                    if (ut_it == context->user_types.end()) {
-                        size_t last_colon = lookup_type.rfind("::");
-                        if (last_colon == std::string::npos && !context->namespaceStack.empty()) {
-                            std::string qualified = "";
-                            for (auto& ns : context->namespaceStack) {
-                                if (!qualified.empty()) qualified += "::";
-                                qualified += ns;
-                            }
-                            lookup_type = qualified + "::" + declared_type;
-                            ut_it = context->user_types.find(lookup_type);
-                        }
-                    }
-                    
-                    if (ut_it == context->user_types.end()) {
-                        for (auto& [type_name, info] : context->user_types) {
-                            if (type_name == declared_type || 
-                                type_name.find("::" + declared_type) != std::string::npos) {
-                                ut_it = context->user_types.find(type_name);
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (ut_it != context->user_types.end() && 
-                        ut_it->second.kind == UserTypeKind::Union) {
-                        
-                        auto& members = ut_it->second.members;
-                        bool ok = false;
-                        
-                        for (auto& m : members) {
-                            if (value_matches_union_member(m.type, actual_type, value)) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                        
-                        if (!ok) {
-                            throw RTError(
-                                "QC-T004: Type mismatch: value of type " + actual_type +
-                                " is not assignable to union type '" + declared_type + "'",
-                                node->var_name.pos
-                            );
-                        }
-                        
-                        sym_it->second.value = std::move(value);
-                        return value;
-                    }
-                    if (declared_type == "list<auto>") {
-                        if (actual_type.find("list<") != std::string::npos || actual_type.find("[]") != std::string::npos) {
-                            actual_type = declared_type;
-                        }
-                    }
-                    if (declared_type.find("list<") == 0) {
-                        std::string inner = strip(declared_type);
-                        if (strip(actual_type) == inner && actual_type != inner) {
-                            actual_type = declared_type;
-                        }
-                    }
-                    if (actual_type.find("list<") == 0) {
-                        std::string inner = strip(actual_type);
-                        
-                        if (strip(declared_type) == inner && declared_type != inner) {
-                            actual_type = declared_type;
-                        }
-                    }
-                    auto normalize_type = [](const std::string& t) {
-                        std::string type = t;
-                        size_t pos = type.rfind("::");
-                        type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
-                        if (type == "long int") type = "int";
-                        if (type == "short int") type = "int";
-                        if (type == "long double") type = "double";
 
-                        return type;
-                    };
-                    if (normalize_type(declared_type) != normalize_type(actual_type) && declared_type != actual_type) {
-                        throw RTError("QC-T003: Type mismatch: cannot assign " + actual_type + " to " + declared_type, node->var_name.pos);
-                    }
-                    sym_it->second.value = std::move(value);
-                    return value;
-                }
+        TokenType op = node->op_tok.type;
+        AnyNode& target = node->target;
+        auto get_symbol_for_var = [this](const std::string& name, const Position& pos) -> Symbol& {
+            auto loc_opt = context->find_any_symbol(name);
+            if (!loc_opt) {
+                throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
             }
-            throw RTError("QC-C001: Undefined variable: '" + name + "'", node->var_name.pos);
+            auto [fi, key] = *loc_opt;
+            auto [t_fi, t_key] = context->follow_ref_chain(fi, key, pos);
+
+            if (t_fi >= context->frames.size()) {
+                throw RTError("Dangling reference: invalid frame index", pos);
+            }
+            auto& frame = context->frames[t_fi];
+            auto sym_it = frame.find(t_key);
+            if (sym_it == frame.end()) {
+                throw RTError("Dangling reference: symbol '" + t_key + "' not found", pos);
+            }
+            return sym_it->second;
+        };
+        if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&target)) {
+            std::string name = (*var)->var_name_tok.value;
+            Position pos = (*var)->var_name_tok.pos;
+            NumberVariant current = context->get(name, pos);
+            NumberVariant rhs;
+            if (op == TokenType::EQ) {
+                rhs = this->process(node->value);
+            } else {
+                NumberVariant rightVal = this->process(node->value);
+
+                TokenType binop_type;
+                if (op == TokenType::PLUS_EQ)  binop_type = TokenType::PLUS;
+                else if (op == TokenType::MINUS_EQ) binop_type = TokenType::MINUS;
+                else if (op == TokenType::MUL_EQ)   binop_type = TokenType::MUL;
+                else if (op == TokenType::DIV_EQ)   binop_type = TokenType::DIV;
+                else if (op == TokenType::MOD_EQ)   binop_type = TokenType::MOD;
+                else throw RTError("Unsupported assignment operator", pos);
+                rhs = apply_numeric_binop(current, rightVal, binop_type, pos);
+            }
+            context->set(name, std::move(rhs), pos);
+            return context->get(name, pos);
         }
-        try {
-            NumberVariant existing = context->get(name, node->var_name.pos);
-            
-            if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&existing)) {
-                std::string class_name = (*inst_ptr)->class_name;
-                auto ut_it = context->user_types.find(class_name);
+        if (auto un = std::get_if<std::unique_ptr<UnaryOpNode>>(&target)) {
+            if ((*un)->op_tok.type == TokenType::MUL) {
+                NumberVariant inner = this->process((*un)->node);
+                auto pv = std::get_if<PointerValue>(&inner);
+                if (!pv) {
+                    throw RTError("Left-hand side '*...' is not a pointer", (*un)->op_tok.pos);
+                }
+
+                if (pv->is_null) {
+                    throw RTError("Dereference of null pointer in assignment", pv->pos);
+                }
                 
-                if (ut_it != context->user_types.end() && 
-                    ut_it->second.kind == UserTypeKind::Class) {
-                    std::vector<NumberVariant> args = {value};
-                    ClassMethodInfo* op_assign = find_method_with_args(
-                        class_name,
-                        "operator=",
-                        args
-                    );
-                    
-                    if (op_assign) {
-                        NumberVariant result = call_instance_method(
-                            *inst_ptr,
-                            op_assign,
-                            std::vector<NumberVariant>{ std::move(value) },
-                            node->var_name.pos
-                        );
-                        return result;
+                if (pv->is_heap) {
+                    if (!context->heap_valid(pv->heap_id)) {
+                        throw RTError("Assignment to freed memory", pv->pos);
                     }
-                }
-            }
-        } catch (...) {
+                    
+                    NumberVariant rhs;
+                    if (op == TokenType::EQ) {
+                        rhs = this->process(node->value);
+                    } else {
+                        NumberVariant current = context->heap_get(pv->heap_id);
+                        NumberVariant rightVal = this->process(node->value);
 
+                        TokenType binop_type;
+                        if (op == TokenType::PLUS_EQ)      binop_type = TokenType::PLUS;
+                        else if (op == TokenType::MINUS_EQ) binop_type = TokenType::MINUS;
+                        else if (op == TokenType::MUL_EQ)   binop_type = TokenType::MUL;
+                        else if (op == TokenType::DIV_EQ)   binop_type = TokenType::DIV;
+                        else if (op == TokenType::MOD_EQ)   binop_type = TokenType::MOD;
+                        else {
+                            throw RTError("Unsupported assignment operator for heap pointer", (*un)->op_tok.pos);
+                        }
+
+                        rhs = apply_numeric_binop(current, rightVal, binop_type, get_pos(rightVal));
+                    }
+                    
+                    context->heap_get(pv->heap_id) = std::move(rhs);
+                    return context->heap_get(pv->heap_id);
+                }
+                
+                if (pv->frame_index >= context->frames.size()) {
+                    throw RTError("Dangling pointer (invalid frame)", pv->pos);
+                }
+
+                auto& frame = context->frames[pv->frame_index];
+                auto it = frame.find(pv->symbol_key);
+                if (it == frame.end()) {
+                    throw RTError("Dangling pointer (symbol not found)", pv->pos);
+                }
+
+                Symbol& sym = it->second;
+                if (sym.is_const) {
+                    throw RTError(
+                        "QC-T001: Cannot assign through const pointer target '" +
+                        pv->symbol_key + "'",
+                        pv->pos
+                    );
+                }
+                
+                NumberVariant current = sym.value;
+                NumberVariant rhs;
+                if (op == TokenType::EQ) {
+                    rhs = this->process(node->value);
+                } else {
+                    NumberVariant rightVal = this->process(node->value);
+
+                    TokenType binop_type;
+                    if (op == TokenType::PLUS_EQ)      binop_type = TokenType::PLUS;
+                    else if (op == TokenType::MINUS_EQ) binop_type = TokenType::MINUS;
+                    else if (op == TokenType::MUL_EQ)   binop_type = TokenType::MUL;
+                    else if (op == TokenType::DIV_EQ)   binop_type = TokenType::DIV;
+                    else if (op == TokenType::MOD_EQ)   binop_type = TokenType::MOD;
+                    else {
+                        throw RTError("Unsupported assignment operator for *pointer", (*un)->op_tok.pos);
+                    }
+
+                    rhs = apply_numeric_binop(current, rightVal, binop_type, get_pos(rightVal));
+                }
+                
+                std::string expected = sym.declared_type;
+                std::string actual   = context->get_type_name(rhs);
+                if (expected.find("*") != std::string::npos && actual == "void*") {
+                    sym.value = std::move(rhs);
+                    return sym.value;
+                }
+
+                auto normalize_type = [](const std::string& t) {
+                    std::string type = t;
+                    size_t pos = type.rfind("::");
+                    type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
+                    if (type == "long int")    type = "int";
+                    if (type == "short int")   type = "int";
+                    if (type == "long double") type = "double";
+                    return type;
+                };
+
+                if (normalize_type(expected) != normalize_type(actual) && expected != actual) {
+                    throw RTError(
+                        "QC-T003: Type mismatch: cannot assign " + actual +
+                        " to " + expected,
+                        pv->pos
+                    );
+                }
+
+                sym.value = std::move(rhs);
+                return sym.value;
+            }
         }
-    
-        context->set(name, std::move(value), node->var_name.pos);
-        return std::move(value);
+        throw RTError("Invalid assignment target", get_pos(this->process(node->value)));
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
         if (!node) return Number<int>(0);
@@ -8240,6 +8962,7 @@ namespace tkz {
                     !std::is_same_v<T, QBoolValue> &&
                     !std::is_same_v<T, FunctionValue> &&
                     !std::is_same_v<T, VoidValue> &&
+                    !std::is_same_v<T, PointerValue> &&
                     !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                     !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
                     !std::is_same_v<T, std::shared_ptr<ListValue>>  &&
@@ -8259,7 +8982,73 @@ namespace tkz {
             context->set(name, std::move(new_val), pos);
             return std::move(node->is_postfix ? old_val : new_val);
         }
+        if (node->op_tok.type == TokenType::AMPERSAND) {
+            auto* var_ptr = std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
+            if (!var_ptr) {
+                throw RTError(
+                    "Address-of '&' must target a variable (for now)",
+                    node->op_tok.pos);
+                return VoidValue();
+            }
 
+            auto& var = *var_ptr;
+            std::string name = var->var_name_tok.value;
+            Position pos = var->var_name_tok.pos;
+            auto loc_opt = context->find_any_symbol(name);
+            if (!loc_opt) {
+                throw RTError(
+                    "Cannot take address of undefined variable '" + name + "'",
+                    pos);
+            }
+            auto [fi, key] = *loc_opt;
+            auto [t_fi, t_key] = context->follow_ref_chain(fi, key, pos);
+
+            if (t_fi >= context->frames.size()) {
+                throw RTError("Dangling symbol when taking address of '" + name + "'", pos);
+            }
+
+            auto& frame = context->frames[t_fi];
+            auto it = frame.find(t_key);
+            if (it == frame.end()) {
+                throw RTError("Dangling symbol when taking address of '" + name + "'", pos);
+            }
+            std::string base_type = it->second.declared_type;
+            auto ptr = PointerValue(base_type, t_fi, t_key);
+
+            return ptr.set_pos(pos);
+        }
+        if (node->op_tok.type == TokenType::MUL) {
+            NumberVariant value = this->process(node->node);
+
+            if (auto pv = std::get_if<PointerValue>(&value)) {
+                if (pv->is_null) {
+                    throw RTError("Dereference of null pointer", pv->pos);
+                }
+                if (pv->is_heap) {
+                    if (!context->heap_valid(pv->heap_id)) {
+                        throw RTError("Dereference of freed memory", pv->pos);
+                    }
+                    return context->heap_get(pv->heap_id);
+                }
+                if (pv->frame_index >= context->frames.size()) {
+                    throw RTError("Dangling pointer (invalid frame)", pv->pos);
+                }
+
+                auto& frame = context->frames[pv->frame_index];
+                auto it = frame.find(pv->symbol_key);
+                if (it == frame.end()) {
+                    throw RTError("Dangling pointer (symbol not found)", pv->pos);
+                }
+
+                return it->second.value;
+            }
+
+            this->errors.push_back({RTError(
+                "Unary '*' requires pointer value",
+                node->op_tok.pos),
+                "Error"});
+            return VoidValue();
+        }
         NumberVariant number = std::move(this->process(node->node));
 
         return std::move(std::visit([&node, this](const auto& n) -> NumberVariant {
@@ -8272,6 +9061,7 @@ namespace tkz {
                 !std::is_same_v<T, QBoolValue> &&
                 !std::is_same_v<T, FunctionValue> &&
                 !std::is_same_v<T, VoidValue> &&
+                !std::is_same_v<T, PointerValue> &&
                 !std::is_same_v<T, std::monostate> &&
                 !std::is_same_v<T, std::shared_ptr<MultiValue>> &&
                 !std::is_same_v<T, std::shared_ptr<ArrayValue>> &&
@@ -8286,7 +9076,7 @@ namespace tkz {
                 }
                 return std::move(n);
             } else {
-                this->errors.push_back({RTError("Unary operator not supported for this type",
+                this->errors.push_back({RTError("Unary operator '" + get_token_name(node->op_tok.type) + "'not supported for this type",
                             node->op_tok.pos), "Error"});
             }
             return VoidValue();
@@ -8563,12 +9353,44 @@ namespace tkz {
             
             return map->get(key_str);
         }
+        if (auto ptr = std::get_if<PointerValue>(&base_value)) {
+            if (!ptr->is_heap) {
+                this->errors.push_back({RTError("QC-I003: Cannot index non-heap pointer", ptr->pos), "Error"});
+                return Number<int>(0);
+            }
+            if (node->indices.size() != 1) {
+                this->errors.push_back({RTError("QC-I003: Pointer indexing supports exactly one index", Position()), "Error"});
+                return Number<int>(0);
+            }
+            NumberVariant index_val = this->process(node->indices[0]);
+            int index = std::visit([&](auto&& arg) -> int {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>>)    return arg.value;
+                if constexpr (std::is_same_v<T, Number<float>>)  return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<double>>) return (int)arg.value;
+                this->errors.push_back({RTError("Index must be a number", Position()), "Error"});
+                return 0;
+            }, index_val);
+
+            NumberVariant& block = context->heap_get(ptr->heap_id);
+            auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&block);
+            if (!arr) {
+                this->errors.push_back({RTError("QC-I003: Pointer does not reference an array block", ptr->pos), "Error"});
+                return Number<int>(0);
+            }
+
+            if (index < 0 || (size_t)index >= (*arr)->elements.size()) {
+                throw RTError("QC-I001: Array index out of bounds: " + std::to_string(index), Position());
+            }
+
+            return (*arr)->elements[index];
+        }
         bool is_array = std::holds_alternative<std::shared_ptr<ArrayValue>>(base_value);
         bool is_list  = std::holds_alternative<std::shared_ptr<ListValue>>(base_value);
-
-        if (!is_array && !is_list)
+        if (!is_array && !is_list) {
+            
             this->errors.push_back({RTError("QC-I003: Cannot index non-array/list type", Position()), "Error"});
-
+        }
         std::shared_ptr<ArrayValue> current_array;
         std::shared_ptr<ListValue>  current_list;
 
@@ -8918,29 +9740,31 @@ namespace tkz {
     }
     NumberVariant Interpreter::operator()(std::shared_ptr<PropertyAccessNode>& node) {
         if (!node) return Number<int>(0);
-        if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*node->base))) {
-            const std::string& baseName = (*varAcc)->var_name_tok.value;
-            const std::string& memberName = node->property_name.value;
+        if (!node->base_name_tok.value.empty()) {
+            if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*node->base))) {
+                const std::string& baseName = (*varAcc)->var_name_tok.value;
+                const std::string& memberName = node->property_name.value;
 
-            auto ut_it = context->user_types.find(baseName);
-            if (ut_it != context->user_types.end()) {
-                UserTypeInfo& ut = ut_it->second;
-                if (!ut.enumEntries.empty()) {
-                    for (auto& e : ut.enumEntries) {
-                        if (e.memberName == memberName) {
-                            return make_value_from_type_atom(e.typeAtom);
+                auto ut_it = context->user_types.find(baseName);
+                if (ut_it != context->user_types.end()) {
+                    UserTypeInfo& ut = ut_it->second;
+                    if (!ut.enumEntries.empty()) {
+                        for (auto& e : ut.enumEntries) {
+                            if (e.memberName == memberName) {
+                                return make_value_from_type_atom(e.typeAtom);
+                            }
                         }
+                        this->errors.push_back({RTError(
+                            "QC-F001: Enum '" + baseName + "' has no member '" + memberName + "'",
+                            node->property_name.pos
+                        ), "Error"});
                     }
-                    this->errors.push_back({RTError(
-                        "QC-F001: Enum '" + baseName + "' has no member '" + memberName + "'",
-                        node->property_name.pos
-                    ), "Error"});
                 }
             }
         }
         NumberVariant obj = this->process(*(node->base));
         const std::string& name = node->property_name.value;
-
+        
         while (true) {
             
             if (auto s = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
@@ -9098,7 +9922,44 @@ namespace tkz {
             map->set(key_str, std::move(val));
             return val;
         }
-        
+        if (auto ptr = std::get_if<PointerValue>(&base)) {
+            if (!ptr->is_heap) {
+                this->errors.push_back({RTError("QC-B002: cannot assign through non-heap pointer", ptr->pos), "Error"});
+                return VoidValue();
+            }
+
+            if (arr_access->indices.size() != 1) {
+                this->errors.push_back({RTError("QC-B002: pointer indexing supports exactly one index", Position()), "Error"});
+                return VoidValue();
+            }
+
+            NumberVariant idx_val = this->process(arr_access->indices[0]);
+            int index = std::visit([&](auto&& arg) -> int {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>>  ||
+                            std::is_same_v<T, Number<long long>> ||
+                            std::is_same_v<T, Number<short>>) {
+                    return (int)arg.value;
+                }
+                this->errors.push_back({RTError("Array index must be an integer", Position()), "Error"});
+                return 0;
+            }, idx_val);
+
+            NumberVariant& block = context->heap_get(ptr->heap_id);
+            auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&block);
+            if (!arr) {
+                this->errors.push_back({RTError("QC-B002: pointer does not reference an array block", ptr->pos), "Error"});
+                return VoidValue();
+            }
+
+            if (index < 0 || (size_t)index >= (*arr)->elements.size()) {
+                this->errors.push_back({RTError("QC-I001: Array index out of bounds", Position()), "Error"});
+                return VoidValue();
+            }
+
+            (*arr)->elements[index] = std::move(val);
+            return (*arr)->elements[index];
+        }
         if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&base)) {
             auto arr = *arr_ptr;
             
@@ -9204,14 +10065,12 @@ namespace tkz {
         return VoidValue();
     }
     NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode>& node) {
-        if (!node) return Number<int>(0);
+        if (!node) return VoidValue();
 
         NumberVariant base_val = this->process(node->base);
-
         NumberVariant rightVal = this->process(node->value);
-
         const std::string& fieldName = node->field_name.value;
-
+       
         if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&base_val)) {
             const std::string& className = (*inst)->class_name;
             const std::string  fieldName = node->field_name.value;
@@ -9278,11 +10137,11 @@ namespace tkz {
             (*inst)->fields[fieldName] = rightVal;
             return rightVal;
         }
-
         if (auto s = std::get_if<std::shared_ptr<StructValue>>(&base_val)) {
             (*s)->fields[fieldName] = rightVal;
             return rightVal;
         }
+        
         this->errors.push_back({
             RTError("Expected struct or class instance on left side of '.'",
                     node->field_name.pos),
@@ -9571,7 +10430,6 @@ namespace tkz {
         try {
             text = preprocess_includes(text, file);
         } catch (std::runtime_error& e) {
-            std::cerr << "Include error: " << e.what() << std::endl;
             return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>{}, std::make_unique<InvalidSyntaxError>("QC-IX01: Include Error", Position())}, ""};
         }
         // Lexer
@@ -9771,7 +10629,7 @@ namespace tkz {
             id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
             id == "map" || id == "type" || id == "public" || id == "protected" || id == "private" ||
             id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" ||
-            id == "final" ||id == "try" || id == "catch") {
+            id == "final" ||id == "try" || id == "catch" || id == "nullptr") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -9983,11 +10841,7 @@ namespace tkz {
                         break;
                     case '*':
                         this->advance();
-                        if (current_char == '*') {
-                            this->advance();
-                            tokens.push_back(Token(TokenType::POWER, "**", start_pos));
-                            break;
-                        } else if (current_char == '=') {
+                        if (current_char == '=') {
                             this->advance();
                             tokens.push_back(Token(TokenType::MUL_EQ, "*=", start_pos));
                         } else {
@@ -10133,7 +10987,7 @@ namespace tkz {
                                 tokens.push_back(Token(TokenType::COLLAPSE_AND, "&|&", start_pos));
                             }
                         } else {
-                            tokens.push_back(Token(TokenType::DEF, "&", start_pos));
+                            tokens.push_back(Token(TokenType::AMPERSAND, "&", start_pos));
                             break;
                         }
                         break;
@@ -10164,7 +11018,11 @@ namespace tkz {
                         break;
                     case '^':
                         this->advance();
-                        if (current_char == '^') {
+                        if (current_char == '*') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::POWER, "^*", start_pos));
+                            break;
+                        } else if (current_char == '^') {
                             this->advance();
                             tokens.push_back(Token(TokenType::QXOR, "^^", start_pos));
                         } else {

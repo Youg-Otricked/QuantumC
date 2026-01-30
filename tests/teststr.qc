@@ -1,5 +1,5 @@
 namespace Exported {
-    #include <Utils, ./stdlib.qc>
+    #include <Utils, ../stdlib.qc>
 }
 int main() {
     println(len("hello"));           // 5
@@ -17,20 +17,3 @@ int main() {
     Utils::sleep(3);
     println(time());
 }
-/*NEXT:
-Math library expansion
-
-Add:
-
-floor
-
-abs
-
-pow
-
-sin/cos/tan
-
-log
-
-rand
-*/

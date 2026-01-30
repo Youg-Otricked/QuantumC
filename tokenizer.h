@@ -90,6 +90,8 @@ namespace tkz {
     class FieldAssignNode;
     class MapLiteralNode;
     class TryCatchNode;
+    class RefVarDeclNode;
+    class NullptrNode;
     using AnyNode = std::variant<
         std::monostate, 
         NumberNode, 
@@ -99,6 +101,8 @@ namespace tkz {
         QOutNode,
         QInNode,
         QBoolNode,
+        RefVarDeclNode,
+        NullptrNode,
         std::unique_ptr<BinOpNode>, 
         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
@@ -152,7 +156,7 @@ namespace tkz {
     
     enum class TokenType {
         INT, STRING, FLOAT, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
-        ARROW, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
+        ARROW, AMPERSAND, STAR, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
@@ -341,7 +345,28 @@ namespace tkz {
         QBoolNode (Token tok);
         std::string print() const;
     };
-
+    class NullptrNode {
+    public:
+        Position pos;
+        NullptrNode(Position p) : pos(p) {}
+        std::string print() const { return "nullptr"; }
+    };
+    class RefVarDeclNode {
+    public:
+        Token type_tok;
+        Token var_name_tok;
+        Token target_tok;
+        Position pos;
+        
+        RefVarDeclNode(Token type, Token name, Token target, Position p)
+            : var_name_tok(name), target_tok(target), pos(p) {
+            type.value.erase(type.value.find_last_not_of('&') + 1);
+            this->type_tok = type;
+        }
+        std::string print() const {
+            return this->type_tok.value;
+        }
+    };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // StatementsNode ///////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -397,12 +422,15 @@ namespace tkz {
     };
     
     class AssignExprNode {
-        public:
-        Token var_name;
+    public:
+        AnyNode target;
         AnyNode value;
+        Token op_tok;
+        AssignExprNode(AnyNode t, Token op, AnyNode v)
+            : target(std::move(t)), op_tok(op), value(std::move(v)) {}
 
         std::string print() {
-            return "(" + var_name.print() + " = " + printAny(value) + ")";
+            return "(" + printAny(target) + " = " + printAny(value) + ")";
         }
     };
     
@@ -438,7 +466,7 @@ namespace tkz {
         QOutExprNode(std::vector<AnyNode> vals) 
             : values(std::move(vals)) {}
         
-        std::string print() {
+        std::string print() const {
             return "std::qout << (values)";
         }
     };
@@ -953,7 +981,9 @@ namespace tkz {
         std::unique_ptr<FieldAssignNode>,
         std::unique_ptr<MapLiteralNode>,
         std::unique_ptr<NamespaceNode>,
-        std::unique_ptr<TryCatchNode>
+        std::unique_ptr<TryCatchNode>,
+        RefVarDeclNode,
+        NullptrNode
     >;
         
     class ParseResult {
@@ -1254,7 +1284,32 @@ namespace tkz {
 
             std::string print() const { return value; }
     };
-    
+    class Context;
+    class PointerValue {
+    public:
+        std::string pointee_type;
+        size_t frame_index = 0;
+        std::string symbol_key;
+        bool is_heap = false;
+        size_t heap_id = 0;
+        
+        bool is_null = false;
+        Position pos;
+        PointerValue(std::string t, size_t fi, std::string key, bool n = false)
+            : pointee_type(t), frame_index(fi), symbol_key(key), 
+            is_heap(false), is_null(n), pos("", "", 0, 0, 0) {}
+        static PointerValue heap_ptr(std::string t, size_t hid) {
+            PointerValue p("", 0, "", false);
+            p.pointee_type = t;
+            p.is_heap = true;
+            p.heap_id = hid;
+            return p;
+        }
+        
+        PointerValue& set_pos(Position p) { pos = p; return *this; }
+        
+        std::string print(Context* ctx) const;
+    };
     class MultiValue;
     class ArrayValue;
     class ListValue;
@@ -1268,7 +1323,7 @@ namespace tkz {
         Number<long long>, Number<long double>,
         Number<short>,
         StringValue, CharValue, BoolValue, QBoolValue,
-        FunctionValue, VoidValue, std::shared_ptr<MultiValue>, 
+        FunctionValue, VoidValue, PointerValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
         std::shared_ptr<MapValue>, std::shared_ptr<StructValue>,
         std::shared_ptr<InstanceValue>
@@ -1333,6 +1388,7 @@ namespace tkz {
             }
         }
     };
+    
     class InstanceValue {
         public:
         std::string class_name;
@@ -1588,23 +1644,118 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // CONTEXT //////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+    struct SymbolRef {
+        size_t frame_index;
+        std::string key;
+    };
+
     struct Symbol {
         std::string declared_type;
         NumberVariant value;
-        bool is_const; 
+        bool is_const = false;
+        bool is_reference = false;
+        SymbolRef ref_target;
     };
-
     class Context {
         public:
         std::vector<std::string> namespaceStack;
         std::vector<std::unordered_map<std::string, Symbol>> frames;
         std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
+        std::unordered_map<size_t, NumberVariant> heap;
+        size_t next_heap_id = 1;
+        size_t heap_alloc(NumberVariant value) {
+            size_t id = next_heap_id++;
+            heap[id] = std::move(value);
+            return id;
+        }
+        void heap_free(size_t id) {
+            if (heap.find(id) == heap.end()) {
+                throw RTError("Double free or invalid free", Position("", "", 0, 0, 0));
+            }
+            heap.erase(id);
+        }
+        NumberVariant& heap_get(size_t id) {
+            if (heap.find(id) == heap.end()) {
+                throw RTError("Access to freed memory", Position("", "", 0, 0, 0));
+            }
+            return heap[id];
+        }
+        bool heap_valid(size_t id) {
+            return heap.find(id) != heap.end();
+        }
         void push_namespace(const std::string& name) {
             namespaceStack.push_back(name);
         }
 
         void pop_namespace() {
             namespaceStack.pop_back();
+        }
+        std::optional<std::pair<size_t, std::string>> find_any_symbol(const std::string& name) {
+            for (size_t fi = frames.size(); fi-- > 0; ) {
+                auto& frame = frames[fi];
+                auto it = frame.find(name);
+                if (it != frame.end()) {
+                    return std::make_optional(std::make_pair(fi, name));
+                }
+            }
+            if (name.find("::") == std::string::npos) {
+                std::string q = qualify(name);
+                for (size_t fi = frames.size(); fi-- > 0; ) {
+                    auto& frame = frames[fi];
+                    auto it = frame.find(q);
+                    if (it != frame.end()) {
+                        return std::make_optional(std::make_pair(fi, q));
+                    }
+                }
+            }
+            if (name.find("::") == std::string::npos && !namespaceStack.empty()) {
+                for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
+                    std::string partial_ns;
+                    for (int j = 0; j <= i; ++j) {
+                        if (j > 0) partial_ns += "::";
+                        partial_ns += namespaceStack[j];
+                    }
+                    std::string qualified_name = partial_ns + "::" + name;
+
+                    for (size_t fi = frames.size(); fi-- > 0; ) {
+                        auto& frame = frames[fi];
+                        auto it = frame.find(qualified_name);
+                        if (it != frame.end()) {
+                            return std::make_optional(std::make_pair(fi, qualified_name));
+                        }
+                    }
+                }
+            }
+
+            return std::nullopt;
+        }
+        std::pair<size_t, std::string> follow_ref_chain(size_t fi, const std::string& key, Position pos) {
+            std::unordered_set<std::string> seen;
+
+            size_t cur_fi = fi;
+            std::string cur_key = key;
+
+            while (true) {
+                std::string mark = std::to_string(cur_fi) + ":" + cur_key;
+                if (!seen.insert(mark).second) {
+                    throw RTError("QC-R999: Reference cycle detected at '" + cur_key + "'", pos);
+                }
+
+                if (cur_fi >= frames.size())
+                    throw RTError("Dangling reference: invalid frame index", pos);
+
+                auto& frame = frames[cur_fi];
+                auto it = frame.find(cur_key);
+                if (it == frame.end())
+                    throw RTError("Dangling reference: symbol '" + cur_key + "' not found", pos);
+
+                Symbol& sym = it->second;
+                if (!sym.is_reference) {
+                    return { cur_fi, cur_key };
+                }
+                cur_fi  = sym.ref_target.frame_index;
+                cur_key = sym.ref_target.key;
+            }
         }
         void define_user_type(UserTypeInfo info, std::string name) {
             std::string fq;
@@ -1617,7 +1768,7 @@ namespace tkz {
             if (user_types.count(fq)) {
                 throw RTError(
                     "Redefinition of type '" + fq + "'",
-                    Position{}
+                    Position("", "", 0, 0, 0)
                 );
             }
 
@@ -1648,44 +1799,44 @@ namespace tkz {
                     NumberVariant val, bool is_const = false) {
             frames.back()[qualify(name)] = { type, std::move(val), is_const };
         }
+        void define_reference(const std::string& name,
+                        const std::string& target_name,
+                        const std::string& type,
+                        Position pos) {
+            auto loc_opt = find_any_symbol(target_name);
+            if (!loc_opt.has_value()) {
+                throw RTError("Undefined variable: '" + target_name + "'", pos);
+            }
+
+            auto [fi, key] = *loc_opt;
+            auto [t_fi, t_key] = follow_ref_chain(fi, key, pos); 
+
+            Symbol sym;
+            sym.declared_type = type;
+            sym.value         = VoidValue();
+            sym.is_const      = false;
+            sym.is_reference  = true;
+            sym.ref_target    = SymbolRef{ t_fi, t_key };
+
+            frames.back()[qualify(name)] = std::move(sym);
+        }
         void set(const std::string& name, NumberVariant new_val, Position pos);
         NumberVariant get(const std::string& name, Position pos) {
-            for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                auto sym_it = it->find(qualify(name));
-                if (sym_it != it->end()) {
-                    return sym_it->second.value;
-                }
+            auto loc_opt = find_any_symbol(name);
+            if (!loc_opt.has_value()) {
+                throw RTError("Undefined variable: '" + name + "'", pos);
             }
-            
-            if (!namespaceStack.empty()) {
-                for (int i = namespaceStack.size() - 1; i >= 0; --i) {
-                    std::string partial_ns = "";
-                    for (int j = 0; j <= i; ++j) {
-                        if (j > 0) partial_ns += "::";
-                        partial_ns += namespaceStack[j];
-                    }
-                    
-                    std::string qualified_name = partial_ns + "::" + name;
-                    
-                    for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                        auto sym_it = it->find(qualified_name);
-                        if (sym_it != it->end()) {
-                            return sym_it->second.value;
-                        }
-                    }
-                }
+
+            auto [fi, key]      = *loc_opt;
+            auto [t_fi, t_key]  = follow_ref_chain(fi, key, pos);
+
+            auto& frame = frames[t_fi];
+            auto it = frame.find(t_key);
+            if (it == frame.end()) {
+                throw RTError("Dangling reference at '" + t_key + "'", pos);
             }
-            
-            if (name.find("::") != std::string::npos) {
-                for (auto it = frames.rbegin(); it != frames.rend(); ++it) {
-                    auto sym_it = it->find(name);
-                    if (sym_it != it->end()) {
-                        return sym_it->second.value;
-                    }
-                }
-            }
-            
-            throw RTError("Undefined variable: '" + name + "'", pos);
+
+            return it->second.value;
         }
         void define_function(const std::string& name, std::shared_ptr<FuncDefNode> func) {
             functions[qualify(name)] = std::move(func);
@@ -1733,6 +1884,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
                     return arg->class_name;
                 }
+                if constexpr (std::is_same_v<T, PointerValue>) {
+                    return arg.pointee_type + "*";
+                }
                 return "unknown";
             }, val);
         }
@@ -1760,7 +1914,7 @@ namespace tkz {
                 case TokenType::LESS: return "operator<";
                 case TokenType::MORE_EQ:  return "operator>=";
                 case TokenType::LESS_EQ: return "operator<=";
-                case TokenType::POWER:  return "operator**";
+                case TokenType::POWER:  return "operator^*";
                 case TokenType::MOD: return "operator%";
                 case TokenType::QNOT:  return "operator!!";
                 case TokenType::QAND: return "operator&&&";
@@ -1834,6 +1988,8 @@ namespace tkz {
             const std::string& struct_type, 
             Context* context
         );
+        NumberVariant operator()(RefVarDeclNode& node);
+        NumberVariant operator()(NullptrNode& node);
         ExecResult exec_stmt_in_loop_or_switch(QIfNode& ifn);
         ExecResult exec_stmt_in_loop_or_switch(QSwitchNode& qsw);
         ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
@@ -1847,6 +2003,7 @@ namespace tkz {
             const std::string& mname,
             const std::vector<NumberVariant>& args
         );
+        size_t get_sizeof_type(const std::string& type);
     };
     struct RunConfig {
         bool use_context = true;

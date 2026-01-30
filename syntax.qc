@@ -5,6 +5,9 @@ If you want to learn this language better, read along while actually codeing in 
 // Run this file to see all current features in action!
 ////////////////////////////////////////////////////////////////////////////////
 // @print-ast
+namespace Exported {
+    #include <UnitTest, std>
+}
 namespace Outer {
     int outerVar = 10;
 
@@ -59,18 +62,18 @@ int main() {
     //==============================================================================
     // POWER OPERATOR (C++'s missing feature!)
     //==============================================================================
-    2 ** 8;         // 256
-    2 ** 3 ** 2;    // 512 (right-associative!)
-    3 ** 3;         // 27
+    2 ^* 8;         // 256
+    2 ^* 3 ^* 2;    // 512 (right-associative!)
+    3 ^* 3;         // 27
 
     //==============================================================================
     // OPERATOR PRECEDENCE
     //==============================================================================
     2 + 3 * 4;          // 14
     (2 + 3) * 4;        // 20
-    2 ** 3 + 4 * 5;     // 28
-    -2 ** 4;            // -16
-    (-2) ** 4;          // 16
+    2 ^* 3 + 4 * 5;     // 28
+    -2 ^* 4;            // -16
+    (-2) ^* 4;          // 16
 
     //==============================================================================
     // VARIABLES & TYPES
@@ -159,7 +162,7 @@ int main() {
     z -= 5 * 2;     // 10
     z;
 
-    z /= 2 ** 2;    // 2.5 or 2 depending on int division
+    z /= 2 ^* 2;    // 2.5 or 2 depending on int division
     z;
 
     // With variables on right side
@@ -198,7 +201,7 @@ int main() {
     //==============================================================================
     // COMPLEX EXPRESSIONS
     //==============================================================================
-    int result = ((5 + 3) * 2 ** 2 - 10) / 3;
+    int result = ((5 + 3) * 2 ^* 2 - 10) / 3;
     result;         // 18
 
     //==============================================================================
@@ -223,16 +226,16 @@ int main() {
     //==============================================================================
     // EDGE CASES
     //==============================================================================
-    0 ** 0;         // 1
-    5 ** 0;         // 1
-    0 ** 5;         // 0
+    0 ^* 0;         // 1
+    5 ^* 0;         // 1
+    0 ^* 5;         // 0
     0 / 5;          // 0
 
     //==============================================================================
     // DEEP NESTING
     //==============================================================================
     ((((((1 + 1))))));                  // 2
-    2 ** (2 ** (2 ** 1));               // 16
+    2 ^* (2 ^* (2 ^* 1));               // 16
 
     //==============================================================================
     // LONG CHAINS
@@ -1264,8 +1267,130 @@ int main() {
     std::qout << a << '\n';
     std::qout << "c.x=" << c.x << " c.y=" << c.y << "\n";
     std::qout << "eq1=" << eq1 << " eq2=" << eq2 << "\n";
+    // =========================================================================
+    // MMM
+    // =========================================================================
+    class Pr {
+        int x;
+        int y;
+        Pr(int nx, int ny) {
+            this.x = nx;
+            this.y = ny;
+        }
+        void init() {
+            this.x = 0;
+            this.y = 0;
+        }
+    }
+    int x = 5;
+    int& ref = x;
+    ref = 10;
+    println(x);
+    UnitTest::Test t = UnitTest::Test(20);
+
+    // 1. & and * on int
+    int x = 5;
+    int* p = &x;
+    println(&x);
+    t.AssertEqual("int*", typeof(p), "typeof(p) should be int*", "typeof(p)");
+    t.AssertEqual(5, *p, "*p reads x", "*p");
+
+    *p = 10;
+    t.AssertEqual(10, x, "*p = 10 should change x", "*p = 10");
+
+    // 2. Multi-level pointers
+    int* pp_base = &x;
+    int** pp = &pp_base;
+    int** *ppp = &pp;
+
+    t.AssertEqual("int**", typeof(pp), "typeof(pp) should be int**", "typeof(pp)");
+    t.AssertEqual("int***", typeof(ppp), "typeof(ppp) should be int***", "typeof(ppp)");
+
+    **pp = 20;
+    t.AssertEqual(20, x, "**pp = 20 should change x", "**pp = 20");
+
+    ***ppp = 30;
+    t.AssertEqual(30, x, "***ppp = 30 should change x", "***ppp = 30");
+
+    // 3. nullptr and reassignment
+    int* q = nullptr;
+
+    q = &x;
+    *q = 40;
+    t.AssertEqual(40, x, "*q = 40 should change x", "*q = 40");
+
+    q = nullptr;
+
+    // 4. pointer reassignment between vars
+    int a = 1;
+    int b = 2;
+    int* r = &a;
+
+    *r = 100;
+    t.AssertEqual(100, a, "*r = 100 should change a", "*r = 100");
+
+    r = &b;
+    *r = 200;
+    t.AssertEqual(200, b, "*r = 200 should change b", "*r = 200");
+    t.AssertEqual(100, a, "a should remain 100", "a unchanged");
+    *r += 3;   // b = 203
+    *r -= 3;   // b = 200
+    *r *= 2;   // b = 400
+    *r /= 4;   // b = 100
+
+    t.AssertEqual(100, b, "compound ops on *r should work", "*r compound");
+    Pr pt = Pr(3, 4);
+
+    Pr* ppt = &pt;
+
+    t.AssertEqual(3, ppt->x, "ppt->x should read pt.x", "ppt->x");
+    t.AssertEqual(4, ppt->y, "ppt->y should read pt.y", "ppt->y");
+
+    ppt->x = 7;
+    ppt->y = 9;
+    t.AssertEqual(7, pt.x, "ppt->x = 7 should change pt.x", "ppt->x = 7");
+    t.AssertEqual(9, pt.y, "ppt->y = 9 should change pt.y", "ppt->y = 9");
+
+    (*ppt).x = 11;
+    (*ppt).y = 13;
+    t.AssertEqual(11, pt.x, "ppt->init should change pt.x", "ppt->init");
+    t.AssertEqual(13, pt.y, "ppt->init should change pt.y", "ppt->init");
+    try {
+        auto bad = &(x + a);
+        t.Fail("Expected &(x + a) to be rejected");
+    } catch (string e) {
+        t.Success("[SUCCESS] &(x + a) correctly rejected");
+    }
+
+    try {
+        int* np = nullptr;
+        *np = 5;
+        t.Fail("Expected *nullptr assignment to be rejected");
+    } catch (string e) {
+        t.Success("[SUCCESS] *nullptr correctly rejected");
+    }
+    println(sizeof("int"));        // 4
+    println(sizeof("double"));     // 8
+    println(sizeof("char"));       // 1
+    println(sizeof("int*"));       // 8
+    println(sizeof("int**"));      // 8
+    
+    int x = 5;
+    println(sizeof(typeof(x)));          // 4
+    
+    int* p = &x;
+    println(sizeof(typeof(p)));          // 8
+    
+    Pr pt = Pr(1, 2);
+    println(sizeof(typeof(pt)));
+    int* ptr = malloc(sizeof("int"));
+    *ptr = 42;
+    println(*ptr);
+    *ptr += 10;
+    println(*ptr);
+    free(ptr);
     // END OF DEMO
-    // All features shown above are working in Quantum C v10.0.0!
+    // All features shown above are working in Quantum C v12.0.0!
     //==============================================================================
     return res;
 }

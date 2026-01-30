@@ -13,7 +13,7 @@ C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Ru
 ##  Features
 
 -  **Modern Syntax** - Clean, intuitive, no boilerplate (other than main(obviously))
--  **Functions & Lambdas** - First-class functions with `fn` syntax
+-  **Functions & Lambdas** - First-class functions with `fn` syntax for lambdas and `type name(args-type args-name)` syntax for normal functions
 -  **Multi-Return Values** - Return multiple values without structs
 -  **Type Safety** - Strong typing with `auto` inference
 -  **Quantum Booleans** - Superposition of true/false
@@ -51,42 +51,33 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 
 # Development Status
 strikthrough = done
-Current Version: v7.1.0 = "Std lib"
+Current Version: v12.0.0 = "MMM"
 
-## Working:
+## Feature Roadmap
 
-Variables & Types (int, float, double, string, char, bool)
-Operators & Expressions (including ** power operator!)
-Control Flow (if/else, switch, while, for, foreach)
-Functions with default parameters
-Lambdas & higher-order functions
-Multi-return values
-F-strings
-Constants (const)
-Arrays
-Lists
-Spread syntax for arrays (@)
-Length memeber for arrays + lists
-Quantum Booleans (superposition!)
-Quantum Logical Operators
-Maps
-Random
-Long and Short
-Structs
-Union Types (TypeScript-style)
-Enums
-Class
-Namespace
-Advanced OOP stuff
-More Stdlib Pt1
-## Coming Soon:
-
-
- 
-More Stdlib Pt2
-Manual Mem Managment
-
----
+| Category | Feature | Status |
+| ---- | ---- | ---- |
+| **Core Logic** | Variables & Types (`int`, `float`, `double`, `string`, `char`, `bool`) | Done |
+| | Constants (`const`) & `auto` Inference | Done |
+| | Long and Short types | Done |
+| **Operators** | Standard Math & Expressions (includes `**` power operator) | Done |
+| | Control Flow (`if/else`, `switch`, `while`, `for`, `foreach`) | Done |
+| **Functions** | Functions with Default Parameters | Done |
+| | Lambdas & Higher-Order Functions | Done |
+| | **Native Multi-Return Values** | Done |
+| **Data Structures**| Arrays & Lists (with `.length` member) | Done |
+| | Spread Syntax for Arrays (`@`) | Done |
+| | Maps & Enums | Done |
+| **Quantum** | **Quantum Booleans (Superposition!)** | Done |
+| | **Quantum Logical Operators** (`&&&`, `|||`, `!!`, etc.) | Done |
+| **Advanced** | Structs, Classes, & Namespaces | Done |
+| | Union Types (TypeScript-style) | Done |
+| | Advanced OOP & Operator Overloading | Done |
+| | Manual Memory Management | Done |
+| **System** | F-Strings (Python-style interpolation) | Done |
+| | Random Number Generation | Done |
+| | Stdlib Part 1 & 2 | Done |
+| **Future** | Stdlib Part 3 | Coming Soon |
 
 # Contributing
 Found a bug? Have a feature request? Open an [Issue!](https://github.com/Youg-Otricked/QuantumC/issues)!
@@ -163,6 +154,40 @@ qif (qb) {
 
 ---
 
+## Multi Return
+```cpp
+int, string GetStatus() {
+    return 200, "Success";
+}
+int main() {
+    int code, string alias = GetStatus();
+    std::qout << f"Code: {code}, AKA: {alias}" << '\n';
+    return 0;
+}
+```
+## Manual Memory Managment
+```cpp
+int main() {
+    int* ptr = malloc(sizeof("int"));
+    *ptr = 42;
+    println(*ptr); 
+    free(ptr);
+}
+```
+## Type collections and aliases
+Define variables that can hold multiple types using a simple `|` syntax. The parser automatically distinguishes these from standard aliases:
+```cpp
+int main() {
+    // A Union Type (TypeScript-style)
+    type IdT = int | string;
+    IdT id = 101;
+    id = "A101"; // Perfectly valid
+
+    // A Standard Alias
+    type UserID = int;
+    UserID myId = 5;
+}
+```
 ## Known limitations:
 
 - You cannot use + style string concat on class instances if you arn't entending the + to call the operator+ method because it won't call repr, instead it will try and call operator+ on the class with a string argument. This limitation doesn't exist on fstrings though.

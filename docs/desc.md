@@ -37,7 +37,7 @@ Minus       | Number         | `-`    | Left - right           |
 Times       | Number         | `*`    | Left * right           |
 Divide      | Number         | `/`    | Left / right           |
 Modulo      | Number         | `%`    | Left % right           |
-Power       | Number         | `**`   | Left ^ right (power)   |
+Power       | Number         | `^*`   | Left ^ right (power)   |
 AND         | Bool           | `&&`   | Left && right          | Both sides are true
 OR          | Bool           | `\|\|` | Left \|\| right        | At least one side true
 NOT         | Bool           | `!`    | !expr                  | Opposite of expr

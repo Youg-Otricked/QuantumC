@@ -9,6 +9,7 @@
 1/15/2026: Current version: 5.2->8: Classes, other stuff
 NAMESPCACES!!!!!!!!!!
 1/27/26: Current version: 10.0.0(i missed a lot of changelogs). Multifile, more stdlib, typing, trycatch
+1/28/26: Changed power operator from ** to ^*
 # Features checklist (suitable for change(by adding more))
 
 - [x] User Types (
@@ -22,15 +23,14 @@ NAMESPCACES!!!!!!!!!!
     - [x] Better scope(\:\:)
 )
 - [ ] Manual Memory Managment (
-    - [ ] Pointers (\*)
-    - [ ] Address syntax (&)
-    - [ ] New
-    - [ ] Delete
+    - [x] Pointers (\*)
+    - [x] Address syntax (&)
     - [ ] Malloc
     - [ ] Free
     - [ ] Realloc
     - [ ] Calloc
     - [ ] ->
+    - [ ] Deref
 )
 - [x] Including other files (
     - [x] Include via namespace with syntax #include \<namespacename, path-to-file>

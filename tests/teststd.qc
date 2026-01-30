@@ -1,7 +1,7 @@
 namespace Exported {
     #include <AdvQBool, std>
     #include <Utils, std>
-    #include <UnitTest, ./stdlib.qc>
+    #include <UnitTest, std>
     #include <Math, std>
 }
 

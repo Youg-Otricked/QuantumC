@@ -1,0 +1,2052 @@
+Processing file: in.qc
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: mmmtest.qc
+Makes past here==============================
+[SUCCESS] on call inc_by_ref(x, 5): 15 was equal to 15: [1/8]
+==============================
+[SUCCESS] on call inc_by_ref(x, 5): 15 was equal to 15: [2/8]
+==============================
+[SUCCESS] on call swap_ints(a, b): 2 was equal to 2: [3/8]
+==============================
+[SUCCESS] on call swap_ints(a, b): 1 was equal to 1: [4/8]
+==============================
+[SUCCESS] on call ref_chain(x, y, z): 1 was equal to 1: [5/8]
+==============================
+[SUCCESS] on call ref_chain(x, y, z): 2 was equal to 2: [6/8]
+==============================
+[SUCCESS] on call ref_chain(x, y, z): 3 was equal to 3: [7/8]
+==============================
+[SUCCESS] on call inc_by_ref(r, 10): 15 was equal to 15: [8/8]
+==============================
+Failed: 0
+Passed: 8
+==============================
+[PASS]
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: stdlib.qc
+Quantum C Standerd Lib. Don't run this file. include from it
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: syntax.qc
+=== AST ===
+├─ namespace Outer
+├─ namespace Inner
+├─ int main(params) 
+│   ├─ 
+│   │   ├─ (int:9 +:+ int:10)
+│   │   ├─ (int:100 -:- int:42)
+│   │   ├─ (int:7 *:* int:8)
+│   │   ├─ (int:100 /:/ int:4)
+│   │   ├─ (int:10 %:% int:3)
+│   │   ├─ (int:2 **:** int:8)
+│   │   ├─ (int:2 **:** (int:3 **:** int:2))
+│   │   ├─ (int:3 **:** int:3)
+│   │   ├─ (int:2 +:+ (int:3 *:* int:4))
+│   │   ├─ ((int:2 +:+ int:3) *:* int:4)
+│   │   ├─ ((int:2 **:** int:3) +:+ (int:4 *:* int:5))
+│   │   ├─ (-:-
+│   │   ├─ (int:2 **:** int:4))
+│   │   ├─ ((-:-
+│   │   ├─ int:2) **:** int:4)
+│   │   ├─ (keyword:int identifier:age int:13)
+│   │   ├─ (keyword:float identifier:pi float:3.14)
+│   │   ├─ (keyword:double identifier:precise double:3.14159265359)
+│   │   ├─ (keyword:string identifier:name (string:Quantum C))
+│   │   ├─ (keyword:char identifier:initial char:Q)
+│   │   ├─ (keyword:bool identifier:cool (bool:true))
+│   │   ├─ (identifier:age)
+│   │   ├─ (identifier:pi)
+│   │   ├─ (identifier:name)
+│   │   ├─ (keyword:string identifier:first (string:Quantum))
+│   │   ├─ (keyword:string identifier:last (string:C))
+│   │   ├─ (keyword:string identifier:full (((identifier:first) +:+ (string: )) +:+ (identifier:last)))
+│   │   ├─ (identifier:full)
+│   │   ├─ (keyword:string identifier:greeting ((string:Hello
+│   │   ├─ ) +:+ (string:World!)))
+│   │   ├─ (identifier:greeting)
+│   │   ├─ (keyword:int identifier:counter int:0)
+│   │   ├─ (identifier:counter = ((identifier:counter) +:+ int:5))
+│   │   ├─ (identifier:counter)
+│   │   ├─ (identifier:counter = ((identifier:counter) *:* int:2))
+│   │   ├─ (identifier:counter)
+│   │   ├─ (keyword:int identifier:x int:5)
+│   │   ├─ (-:-
+│   │   ├─ (identifier:x))
+│   │   ├─ (++:++
+│   │   ├─ (identifier:x))
+│   │   ├─ (--:--
+│   │   ├─ (identifier:x))
+│   │   ├─ (keyword:int identifier:a int:0)
+│   │   ├─ (keyword:int identifier:b int:0)
+│   │   ├─ (identifier:a = (identifier:b = int:100))
+│   │   ├─ (identifier:a)
+│   │   ├─ (identifier:b)
+│   │   ├─ (keyword:int identifier:x int:10)
+│   │   ├─ (identifier:x = ((identifier:x) + int:5))
+│   │   ├─ (identifier:x)
+│   │   ├─ (identifier:x = ((identifier:x) - int:3))
+│   │   ├─ (identifier:x)
+│   │   ├─ (identifier:x = ((identifier:x) * int:2))
+│   │   ├─ (identifier:x)
+│   │   ├─ (identifier:x = ((identifier:x) / int:4))
+│   │   ├─ (identifier:x)
+│   │   ├─ (identifier:x = ((identifier:x) % int:4))
+│   │   ├─ (identifier:x)
+│   │   ├─ (keyword:int identifier:y int:100)
+│   │   ├─ (identifier:y = ((identifier:y) + int:10))
+│   │   ├─ (identifier:y = ((identifier:y) - int:5))
+│   │   ├─ (identifier:y = ((identifier:y) * int:2))
+│   │   ├─ (identifier:y = ((identifier:y) / int:3))
+│   │   ├─ (identifier:y = ((identifier:y) % int:9))
+│   │   ├─ (identifier:y)
+│   │   ├─ (keyword:int identifier:z int:5)
+│   │   ├─ (identifier:z = ((identifier:z) + (int:2 +:+ int:3)))
+│   │   ├─ (identifier:z)
+│   │   ├─ (identifier:z = ((identifier:z) * (int:1 +:+ int:1)))
+│   │   ├─ (identifier:z)
+│   │   ├─ (identifier:z = ((identifier:z) - (int:5 *:* int:2)))
+│   │   ├─ (identifier:z)
+│   │   ├─ (identifier:z = ((identifier:z) / (int:2 **:** int:2)))
+│   │   ├─ (identifier:z)
+│   │   ├─ (keyword:int identifier:a int:10)
+│   │   ├─ (keyword:int identifier:b int:5)
+│   │   ├─ (identifier:a = ((identifier:a) + (identifier:b)))
+│   │   ├─ (identifier:a)
+│   │   ├─ (identifier:a = ((identifier:a) - (identifier:b)))
+│   │   ├─ (identifier:a)
+│   │   ├─ (identifier:a = ((identifier:a) * (identifier:b)))
+│   │   ├─ (identifier:a)
+│   │   ├─ (identifier:a = ((identifier:a) / (identifier:b)))
+│   │   ├─ (identifier:a)
+│   │   ├─ (identifier:a = ((identifier:a) % (identifier:b)))
+│   │   ├─ (identifier:a)
+│   │   ├─ (keyword:int identifier:edge int:0)
+│   │   ├─ (identifier:edge = ((identifier:edge) + int:5))
+│   │   ├─ (identifier:edge)
+│   │   ├─ (identifier:edge = ((identifier:edge) % int:3))
+│   │   ├─ (identifier:edge)
+│   │   ├─ (keyword:int identifier:mod_test int:17)
+│   │   ├─ (identifier:mod_test = ((identifier:mod_test) % int:5))
+│   │   ├─ (identifier:mod_test)
+│   │   ├─ (identifier:mod_test = ((identifier:mod_test) % int:2))
+│   │   ├─ (identifier:mod_test)
+│   │   ├─ (keyword:int identifier:result ((((int:5 +:+ int:3) *:* (int:2 **:** int:2)) -:- int:10) /:/ int:3))
+│   │   ├─ (identifier:result)
+│   │   ├─ (keyword:string identifier:quote (string:He said: "Hello!"))
+│   │   ├─ (keyword:string identifier:path (string:C:\Users\Dev))
+│   │   ├─ (keyword:string identifier:newline (string:Line 1
+Line 2))
+│   │   ├─ (identifier:quote)
+│   │   ├─ (identifier:path)
+│   │   ├─ (keyword:int identifier:unset int:0)
+│   │   ├─ (identifier:unset)
+│   │   ├─ (keyword:string identifier:empty (string))
+│   │   ├─ (identifier:empty)
+│   │   ├─ (int:0 **:** int:0)
+│   │   ├─ (int:5 **:** int:0)
+│   │   ├─ (int:0 **:** int:5)
+│   │   ├─ (int:0 /:/ int:5)
+│   │   ├─ (int:1 +:+ int:1)
+│   │   ├─ (int:2 **:** (int:2 **:** (int:2 **:** int:1)))
+│   │   ├─ (((((((((int:1 +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1) +:+ int:1)
+│   │   ├─ (keyword:int identifier:whole int:10)
+│   │   ├─ (keyword:double identifier:decimal double:3.14)
+│   │   ├─ (keyword:float identifier:precise_f float:2.5)
+│   │   ├─ (identifier:whole)
+│   │   ├─ (identifier:decimal)
+│   │   ├─ (identifier:precise_f)
+│   │   ├─ (int:5 ==:== int:5)
+│   │   ├─ (int:5 !=:!= int:3)
+│   │   ├─ (int:10 >:> int:5)
+│   │   ├─ (int:5 <:< int:10)
+│   │   ├─ (int:5 >=:>= int:5)
+│   │   ├─ (int:5 <=:<= int:5)
+│   │   ├─ (keyword:int identifier:age int:18)
+│   │   ├─ ((identifier:age) >=:>= int:18)
+│   │   ├─ ((identifier:age) <:< int:21)
+│   │   ├─ (keyword:bool identifier:is_adult ((identifier:age) >=:>= int:18))
+│   │   ├─ (keyword:bool identifier:has_license (bool:true))
+│   │   ├─ (keyword:bool identifier:can_drive ((identifier:is_adult) &&&:&& (identifier:has_license)))
+│   │   ├─ (keyword:bool identifier:work_to_do ((!:!
+│   │   ├─ (identifier:can_drive)) ^:^ (identifier:is_adult)))
+│   │   ├─ (keyword:bool identifier:is_weekend (bool:false))
+│   │   ├─ (keyword:bool identifier:is_holiday (bool:true))
+│   │   ├─ (keyword:bool identifier:day_off ((identifier:is_weekend) ||:|| (identifier:is_holiday)))
+│   │   ├─ (keyword:bool identifier:is_working (!:!
+│   │   ├─ (identifier:day_off)))
+│   │   ├─ (keyword:int identifier:score int:85)
+│   │   ├─ (keyword:bool identifier:passed ((identifier:score) >=:>= int:60))
+│   │   ├─ (keyword:bool identifier:honor_roll ((identifier:score) >=:>= int:90))
+│   │   ├─ (keyword:bool identifier:needs_improvement ((identifier:score) <:< int:70))
+│   │   ├─ (identifier:passed)
+│   │   ├─ (identifier:honor_roll)
+│   │   ├─ (identifier:needs_improvement)
+│   │   ├─ (keyword:bool identifier:eligible (((identifier:age) >=:>= int:18) &&&:&& ((identifier:score) >=:>= int:70)))
+│   │   ├─ (identifier:eligible)
+│   │   ├─ (keyword:double identifier:pi double:3.14159)
+│   │   ├─ (keyword:string identifier:name (string:Quantum C))
+│   │   ├─ (keyword:int identifier:v int:5)
+│   │   ├─ (if ((identifier:v) >:> int:10) 
+│   │   │   ├─ (identifier:v = int:100)
+│   │   ├─ elif ((identifier:v) >:> int:3) 
+│   │   │   ├─ (identifier:v = ((identifier:v) +:+ int:1))
+│   │   ├─ else 
+│   │   │   ├─ (identifier:v = int:0)
+│   │   ├─ )
+│   │   ├─ (identifier:v)
+│   │   ├─ (keyword:int identifier:s int:0)
+│   │   ├─ (if ((identifier:v) ==:== int:6) 
+│   │   │   ├─ (identifier:s = int:1)
+│   │   ├─ )
+│   │   ├─ (identifier:s)
+│   │   ├─ (if ((identifier:v) >:> int:0) 
+│   │   │   ├─ (if (((identifier:v) %:% int:2) ==:== int:0) 
+│   │   │   │   ├─ (identifier:v = ((identifier:v) /:/ int:2))
+│   │   │   ├─ else 
+│   │   │   │   ├─ (identifier:v = ((identifier:v) *:* int:2))
+│   │   │   ├─ )
+│   │   ├─ )
+│   │   ├─ (identifier:v)
+│   │   ├─ (keyword:int identifier:score_if int:85)
+│   │   ├─ (keyword:string identifier:grade (string))
+│   │   ├─ (if ((identifier:score_if) >=:>= int:90) 
+│   │   │   ├─ (identifier:grade = (string:A))
+│   │   ├─ elif ((identifier:score_if) >=:>= int:80) 
+│   │   │   ├─ (identifier:grade = (string:B))
+│   │   ├─ elif ((identifier:score_if) >=:>= int:70) 
+│   │   │   ├─ (identifier:grade = (string:C))
+│   │   ├─ else 
+│   │   │   ├─ (identifier:grade = (string:F))
+│   │   ├─ )
+│   │   ├─ (identifier:grade)
+│   │   ├─ (keyword:string identifier:maybe (string))
+│   │   ├─ (keyword:int identifier:flag int:0)
+│   │   ├─ (if (identifier:maybe) 
+│   │   │   ├─ (identifier:flag = int:1)
+│   │   ├─ else 
+│   │   │   ├─ (identifier:flag = int:2)
+│   │   ├─ )
+│   │   ├─ (identifier:flag)
+│   │   ├─ (keyword:int identifier:x_if int:2)
+│   │   ├─ (if ((identifier:x_if) >:> int:10) 
+│   │   │   ├─ (identifier:x_if = int:10)
+│   │   ├─ else 
+│   │   │   ├─ (identifier:x_if = ((identifier:x_if) +:+ int:3))
+│   │   ├─ )
+│   │   ├─ (identifier:x_if)
+│   │   ├─ (keyword:bool identifier:b_if (bool:true))
+│   │   ├─ (if (identifier:b_if) 
+│   │   │   ├─ (identifier:b_if = (bool:false))
+│   │   ├─ else 
+│   │   │   ├─ (identifier:b_if = (bool:true))
+│   │   ├─ )
+│   │   ├─ (identifier:b_if)
+│   │   ├─ (keyword:int identifier:nested int:0)
+│   │   ├─ (if ((identifier:v) >:> int:10) 
+│   │   │   ├─ (identifier:nested = int:100)
+│   │   ├─ elif ((identifier:v) >:> int:2) 
+│   │   │   ├─ (if (((identifier:v) %:% int:3) ==:== int:0) 
+│   │   │   │   ├─ (identifier:nested = int:30)
+│   │   │   ├─ else 
+│   │   │   │   ├─ (identifier:nested = int:20)
+│   │   │   ├─ )
+│   │   ├─ else 
+│   │   │   ├─ (identifier:nested = int:5)
+│   │   ├─ )
+│   │   ├─ (identifier:nested)
+│   │   ├─ (if init=(keyword:int identifier:thngy int:21); ((identifier:thngy) <:< int:22) 
+│   │   │   ├─ (identifier:thngy = int:1)
+│   │   ├─ )
+│   │   ├─ (keyword:int identifier:x int:2)
+│   │   ├─ (identifier:x)
+│   │   ├─ (keyword:int identifier:i int:0)
+│   │   ├─ (while ((identifier:i) <:< int:10) 
+│   │   │   ├─ (identifier:i = ((identifier:i) +:+ int:1))
+│   │   │   ├─ (if ((identifier:i) ==:== int:3) 
+│   │   │   │   ├─ (continue)
+│   │   │   ├─ )
+│   │   │   ├─ (if ((identifier:i) ==:== int:5) 
+│   │   │   │   ├─ (break)
+│   │   │   ├─ )
+│   │   ├─ )
+│   │   ├─ (identifier:i)
+│   │   ├─ (for init=(keyword:int identifier:j int:0); ((identifier:j) <:< int:5); (identifier:j = ((identifier:j) +:+ int:1)))
+│   │   ├─ (keyword:int identifier:w2 int:0)
+│   │   ├─ (keyword:int identifier:guard int:0)
+│   │   ├─ (while ((identifier:guard) <:< int:10) 
+│   │   │   ├─ (identifier:guard = ((identifier:guard) +:+ int:1))
+│   │   │   ├─ (identifier:w2 = ((identifier:w2) +:+ int:1))
+│   │   │   ├─ (if ((identifier:w2) ==:== int:3) 
+│   │   │   │   ├─ (break)
+│   │   │   ├─ )
+│   │   ├─ )
+│   │   ├─ (identifier:w2)
+│   │   ├─ (identifier:guard)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:print)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int add(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return ((identifier:a) +:+ (identifier:b))
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ void greet(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (keyword:int identifier:i int:0)
+│   │   │   │   ├─ (while ((identifier:i) <:< (identifier:times)) 
+│   │   │   │   │   ├─ (identifier:print)(args)
+│   │   │   │   │   ├─ (identifier:i = ((identifier:i) +:+ int:1))
+│   │   │   │   ├─ )
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (keyword:auto identifier:make_adder int lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return ((identifier:x) +:+ (identifier:y))
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (keyword:auto identifier:immediate_result int lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return ((identifier:a) *:* (identifier:b))
+│   │   │   ├─ 
+│   │   ├─ (args))
+│   │   ├─ void twice(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:f)(args)
+│   │   │   │   ├─ (identifier:f)(args)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (keyword:auto identifier:hello_lambda void lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:greet)(args)
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (keyword:auto identifier:factorial int lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (if ((identifier:n) <=:<= int:1) 
+│   │   │   │   │   ├─ return int:1
+│   │   │   │   ├─ )
+│   │   │   │   ├─ return ((identifier:n) *:* (identifier:factorial)(args))
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (keyword:int identifier:r1 (identifier:add)(args))
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:greet)(args)
+│   │   ├─ (identifier:greet)(args)
+│   │   ├─ (identifier:greet)(args)
+│   │   ├─ (keyword:auto identifier:sum (identifier:make_adder))
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:auto identifier:printer auto lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (identifier:twice)(args)
+│   │   ├─ (identifier:hello_lambda)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:string identifier:this ((((string:Hello
+│   │   ├─ ) +:+ (identifier:add)(args)) +:+ (string:
+│   │   ├─ )) +:+ (identifier:w2)))
+│   │   ├─ std::qout << (values)
+│   │   ├─ int add(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return ((identifier:a) +:+ (identifier:b))
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int
+│   │   ├─ string get_user(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ <unknown>
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int
+│   │   ├─ float
+│   │   ├─ bool get_data(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ <unknown>
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ <unknown>
+│   │   ├─ (identifier:id)
+│   │   ├─ (identifier:name)
+│   │   ├─ <unknown>
+│   │   ├─ (identifier:code)
+│   │   ├─ (identifier:pi)
+│   │   ├─ (identifier:flag)
+│   │   ├─ int
+│   │   ├─ string greet(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ <unknown>
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ <unknown>
+│   │   ├─ (identifier:status1)
+│   │   ├─ (identifier:msg1)
+│   │   ├─ <unknown>
+│   │   ├─ (identifier:status2)
+│   │   ├─ (identifier:msg2)
+│   │   ├─ <unknown>
+│   │   ├─ int numbers[] = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:2
+│   │   │   ├─ int:3
+│   │   │   ├─ int:4
+│   │   │   ├─ int:5
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ string names[] = 
+│   │   │   ├─ (string:Alice)
+│   │   │   ├─ (string:Bob)
+│   │   │   ├─ (string:Charlie)
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ float prices[] = 
+│   │   │   ├─ double:9.99
+│   │   │   ├─ double:19.99
+│   │   │   ├─ double:29.99
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int grid[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:1
+│   │   │   │   ├─ int:2
+│   │   │   │   ├─ int:3
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:4
+│   │   │   │   ├─ int:5
+│   │   │   │   ├─ int:6
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:7
+│   │   │   │   ├─ int:8
+│   │   │   │   ├─ int:9
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ string board[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:X)
+│   │   │   │   ├─ (string:O)
+│   │   │   │   ├─ (string:X)
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:O)
+│   │   │   │   ├─ (string:X)
+│   │   │   │   ├─ (string:O)
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:X)
+│   │   │   │   ├─ (string:O)
+│   │   │   │   ├─ (string:X)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int jagged[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:1
+│   │   │   │   ├─ int:2
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:3
+│   │   │   │   ├─ int:4
+│   │   │   │   ├─ int:5
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:6
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:7
+│   │   │   │   ├─ int:8
+│   │   │   │   ├─ int:9
+│   │   │   │   ├─ int:10
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ string paragraph[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:The)
+│   │   │   │   ├─ (string:quick)
+│   │   │   │   ├─ (string:brown)
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:fox)
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ (string:jumps)
+│   │   │   │   ├─ (string:over)
+│   │   │   │   ├─ (string:the)
+│   │   │   │   ├─ (string:lazy)
+│   │   │   │   ├─ (string:dog)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int cube[][][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:1
+│   │   │   │   │   ├─ int:2
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:3
+│   │   │   │   │   ├─ int:4
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:5
+│   │   │   │   │   ├─ int:6
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:7
+│   │   │   │   │   ├─ int:8
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int image[][][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:0
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:0
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:255
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:0
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:255
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:255
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:128
+│   │   │   │   │   ├─ int:128
+│   │   │   │   │   ├─ int:128
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ int:0
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ int:255
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int jagged3d[][][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:1
+│   │   │   │   │   ├─ int:2
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:3
+│   │   │   │   │   ├─ int:4
+│   │   │   │   │   ├─ int:5
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:6
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:7
+│   │   │   │   │   ├─ int:8
+│   │   │   │   │   ├─ int:9
+│   │   │   │   │   ├─ int:10
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int tesseract[][][][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:1
+│   │   │   │   │   │   ├─ int:2
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:3
+│   │   │   │   │   │   ├─ int:4
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:5
+│   │   │   │   │   │   ├─ int:6
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:7
+│   │   │   │   │   │   ├─ int:8
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:9
+│   │   │   │   │   │   ├─ int:10
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:11
+│   │   │   │   │   │   ├─ int:12
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:13
+│   │   │   │   │   │   ├─ int:14
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:15
+│   │   │   │   │   │   ├─ int:16
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int video[][][][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   │   ├─ int:255
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:128
+│   │   │   │   │   │   ├─ int:128
+│   │   │   │   │   │   ├─ int:128
+│   │   │   │   │   ├─ 
+│   │   │   │   │   ├─ 
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   │   ├─ int:0
+│   │   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ double matrix[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ double:1.1
+│   │   │   │   ├─ double:2.2
+│   │   │   │   ├─ double:3.3
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ double:4.4
+│   │   │   │   ├─ double:5.5
+│   │   │   │   ├─ double:6.6
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ char letters[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ char:a
+│   │   │   │   ├─ char:b
+│   │   │   │   ├─ char:c
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ char:x
+│   │   │   │   ├─ char:y
+│   │   │   │   ├─ char:z
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ std::qout << (values)
+│   │   ├─ int[] plswork = 
+│   │   │   ├─ int:1
+│   │   ├─ 
+│   │   ├─ (identifier:plswork).push(...)
+│   │   ├─ (identifier:plswork).push(...)
+│   │   ├─ char[] works = 
+│   │   │   ├─ char:c
+│   │   │   ├─ char:d
+│   │   ├─ 
+│   │   ├─ int[] migthtwotk = 
+│   │   │   ├─ int:2
+│   │   ├─ 
+│   │   ├─ (identifier:plswork).push(...)
+│   │   ├─ (identifier:plswork).push(...)
+│   │   ├─ (identifier:plswork).push(...)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:plswork).pop(...)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:plswork).pop(...)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:migthtwotk).push(...)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ int[] make_array(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return 
+│   │   │   │   │   ├─ int:1
+│   │   │   │   │   ├─ int:2
+│   │   │   │   │   ├─ int:3
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ void print_any(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int[] bbb = (identifier:make_array)(args)
+│   │   ├─ int bb[] = (identifier:make_array)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:print_any)(args)
+│   │   ├─ void print_int_list(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int[] a = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:2
+│   │   │   ├─ int:3
+│   │   ├─ 
+│   │   ├─ (identifier:print_int_list)(args)
+│   │   ├─ int[] copyInt(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return (identifier:x)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int[] copyIntArr(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return (identifier:z)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int[] cpl = 
+│   │   │   ├─ int:9
+│   │   │   ├─ int:9
+│   │   │   ├─ int:1
+│   │   │   ├─ int:4
+│   │   ├─ 
+│   │   ├─ int cpa[] = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:99999
+│   │   │   ├─ int:34234
+│   │   ├─ 
+│   │   ├─ int[] copyed = (identifier:copyInt)(args)
+│   │   ├─ int copyedArr[] = (identifier:copyIntArr)(args)
+│   │   ├─ std::qout << (values)
+│   │   ├─ int[] id_list(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return (identifier:xs)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ void print_int_list(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int[] base = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:2
+│   │   │   ├─ int:3
+│   │   │   ├─ int:4
+│   │   ├─ 
+│   │   ├─ int[] copy = (identifier:id_list)(args)
+│   │   ├─ (identifier:print_int_list)(args)
+│   │   ├─ int grid[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:1
+│   │   │   │   ├─ int:2
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:3
+│   │   │   │   ├─ int:4
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int[] l1 = 
+│   │   │   ├─ int:5
+│   │   │   ├─ int:6
+│   │   │   ├─ int:7
+│   │   ├─ 
+│   │   ├─ int[] l2 = (identifier:l1)
+│   │   ├─ (identifier:l2).push(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ string example[] = 
+│   │   │   ├─ (string:This is an example)
+│   │   ├─ 
+│   │   ├─ string[] listexample = 
+│   │   │   ├─ (string:This is a list)
+│   │   ├─ 
+│   │   ├─ (identifier:listexample).push(...)
+│   │   ├─ (identifier:listexample).pop(...)
+│   │   ├─ foreach (int x in ...)
+│   │   ├─ int grid[][] = 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:1
+│   │   │   │   ├─ int:2
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ int:3
+│   │   │   │   ├─ int:4
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int flat[] = 
+│   │   │   ├─ @(identifier:grid)
+│   │   │   │   ├─ int:0
+│   │   │   ├─ 
+│   │   │   ├─ @(identifier:grid)
+│   │   │   │   ├─ int:1
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int arr1[] = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:2
+│   │   │   ├─ int:3
+│   │   ├─ 
+│   │   ├─ int arr2[] = 
+│   │   │   ├─ int:4
+│   │   │   ├─ int:5
+│   │   │   ├─ int:6
+│   │   ├─ 
+│   │   ├─ int combined[] = 
+│   │   │   ├─ @(identifier:arr1)
+│   │   │   ├─ @(identifier:arr2)
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int[] list1 = 
+│   │   │   ├─ int:10
+│   │   │   ├─ int:20
+│   │   ├─ 
+│   │   ├─ int[] list2 = 
+│   │   │   ├─ int:30
+│   │   │   ├─ int:40
+│   │   ├─ 
+│   │   ├─ int[] merged = 
+│   │   │   ├─ @(identifier:list1)
+│   │   │   ├─ @(identifier:list2)
+│   │   │   ├─ int:50
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int[] a = 
+│   │   │   ├─ int:1
+│   │   │   ├─ int:2
+│   │   ├─ 
+│   │   ├─ int[] b = 
+│   │   │   ├─ int:3
+│   │   │   ├─ int:4
+│   │   ├─ 
+│   │   ├─ int[] c = 
+│   │   │   ├─ int:5
+│   │   │   ├─ int:6
+│   │   ├─ 
+│   │   ├─ int[] all = 
+│   │   │   ├─ int:0
+│   │   │   ├─ @(identifier:a)
+│   │   │   ├─ @(identifier:b)
+│   │   │   ├─ @(identifier:c)
+│   │   │   ├─ int:7
+│   │   ├─ 
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ void print_three(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   │   ├─ (identifier:println)(args)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ int args[] = 
+│   │   │   ├─ int:100
+│   │   │   ├─ int:200
+│   │   │   ├─ int:300
+│   │   ├─ 
+│   │   ├─ (identifier:print_three)(args)
+│   │   ├─ (keyword:auto identifier:sum_lambda int lambda(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ return (((identifier:a) +:+ (identifier:b)) +:+ (identifier:c))
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (keyword:int identifier:result (identifier:sum_lambda)(args))
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ int args_list[] = 
+│   │   │   ├─ int:4
+│   │   │   ├─ int:5
+│   │   │   ├─ int:6
+│   │   ├─ 
+│   │   ├─ (keyword:int identifier:result2 (identifier:sum_lambda)(args))
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:qbool identifier:qb (qbool:none))
+│   │   ├─ (identifier:qb = (qbool:qtrue))
+│   │   ├─ (identifier:qb = (qbool:qfalse))
+│   │   ├─ (identifier:qb = (qbool:both))
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:qbool identifier:q1 (qbool:qtrue))
+│   │   ├─ qif (...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:qbool identifier:q2 (qbool:qfalse))
+│   │   ├─ qif (...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:qbool identifier:q3 (qbool:both))
+│   │   ├─ qif (...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:qbool identifier:q4 (qbool:none))
+│   │   ├─ qif (...)
+│   │   ├─ (identifier:qb = (qbool:both))
+│   │   ├─ qswitch (...)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (keyword:qbool identifier:z (qbool:qtrue))
+│   │   ├─ (keyword:qbool identifier:n (qbool:both))
+│   │   ├─ (std::qin >>:>> (identifier:z))
+│   │   ├─ std::qout << (values)
+│   │   ├─ (std::qin >>:>> (identifier:n))
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ map<string
+│   │   ├─ int> ages
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ array_assign
+│   │   ├─ (identifier:ages).set(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:ages).remove(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ foreach (string key in ...)
+│   │   ├─ (identifier:seed)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (keyword:int identifier:a int:0)
+│   │   ├─ (keyword:int identifier:b int:0)
+│   │   ├─ (keyword:int identifier:c int:0)
+│   │   ├─ (keyword:int identifier:d int:0)
+│   │   ├─ std::qout << (values)
+│   │   ├─ ((std::qin >>:>> (identifier:a)) >>:>> (identifier:b))
+│   │   ├─ std::qout << (values)
+│   │   ├─ ((std::qin >>:>> (identifier:c)) >>:>> (identifier:d))
+│   │   ├─ (if ((((identifier:a) <:< (identifier:c)) &&&:&& ((identifier:b) <:< (identifier:c))) ||:|| (((identifier:c) <:< (identifier:a)) &&&:&& ((identifier:d) <:< (identifier:a)))) 
+│   │   │   ├─ std::qout << (values)
+│   │   ├─ elif ((identifier:a) <:< (identifier:c)) 
+│   │   │   ├─ (if ((identifier:b) <:< (identifier:d)) 
+│   │   │   │   ├─ std::qout << (values)
+│   │   │   ├─ else 
+│   │   │   │   ├─ std::qout << (values)
+│   │   │   ├─ )
+│   │   ├─ else 
+│   │   │   ├─ (if ((identifier:b) <:< (identifier:d)) 
+│   │   │   │   ├─ std::qout << (values)
+│   │   │   ├─ else 
+│   │   │   │   ├─ std::qout << (values)
+│   │   │   ├─ )
+│   │   ├─ )
+│   │   ├─ (keyword:short int identifier:x int:100)
+│   │   ├─ (keyword:int identifier:y int:50000)
+│   │   ├─ (keyword:long int identifier:z int:9999999999)
+│   │   ├─ (keyword:float identifier:f float:3.14)
+│   │   ├─ (keyword:double identifier:d double:3.14159)
+│   │   ├─ (keyword:long double identifier:ld double:3.14159265358979323846)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:Player identifier:p 
+│   │   │   ├─ (string:Alice)
+│   │   │   ├─ int:100
+│   │   │   ├─ 
+│   │   │   │   ├─ float:1.0
+│   │   │   │   ├─ float:2.0
+│   │   │   ├─ 
+│   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ int:1
+│   │   │   │   │   ├─ int:2
+│   │   │   │   │   ├─ int:3
+│   │   │   │   ├─ 
+│   │   │   │   ├─ 
+│   │   │   │   │   ├─ (string:head)
+│   │   │   │   ├─ 
+│   │   │   ├─ 
+│   │   ├─ )
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:Player identifier:q (identifier:p))
+│   │   ├─ (identifier:q).name = (string:Bob)
+│   │   ├─ (identifier:q).hp = int:50
+│   │   ├─ (identifier:q).x = float:9.0
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:p).inv.bag.push(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ map<string
+│   │   ├─ int> ages
+│   │   ├─ array_assign
+│   │   ├─ (identifier:ages).remove(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ foreach (string k in ...)
+│   │   ├─ int getRateLimitForTier(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:tier)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:ApiTier identifier:tier (string:Pro))
+│   │   ├─ std::qout << (values)
+│   │   ├─ (identifier:Weird identifier:a int:1)
+│   │   ├─ (identifier:Weird identifier:b (string:ok))
+│   │   ├─ (identifier:Weird identifier:c char:x)
+│   │   ├─ (identifier:Weird identifier:d (bool:true))
+│   │   ├─ (identifier:Weird identifier:e (qbool:qtrue))
+│   │   ├─ (identifier:Weird identifier:f int:42)
+│   │   ├─ ApiTier GetTierFromRate(params) 
+│   │   │   ├─ 
+│   │   │   │   ├─ (identifier:rate)
+│   │   │   ├─ 
+│   │   ├─ 
+│   │   ├─ (identifier:ApiTier identifier:thingy (identifier:GetTierFromRate)(args))
+│   │   ├─ std::qout << (values)
+│   │   ├─ (if ((identifier:typeof)(args) !=:!= (string:string)) 
+│   │   │   ├─ (identifier:throw)(args)
+│   │   ├─ )
+│   │   ├─ (identifier:Api identifier:t (identifier:Api).Pro)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:Boss identifier:b (identifier:Boss)(args))
+│   │   ├─ (identifier:b).damage(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ (identifier:b).enrage(...)
+│   │   ├─ (identifier:FinalBoss identifier:fb (identifier:FinalBoss)(args))
+│   │   ├─ (identifier:fb).pnt(...)
+│   │   ├─ (identifier:fb).enrage(...)
+│   │   ├─ (identifier:println)(args)
+│   │   ├─ std::qout << (values)
+│   │   ├─ (keyword:int identifier:globalVar int:1)
+│   │   ├─ (identifier:globalVar = int:2)
+│   │   ├─ (identifier:Outer::outerVar = int:100)
+│   │   ├─ (identifier:Outer::Inner::innerVar = int:200)
+│   │   ├─ (keyword:int identifier:a (identifier:Outer::getOuter)(args))
+│   │   ├─ (keyword:int identifier:b (identifier:Outer::Inner::getInner)(args))
+│   │   ├─ (identifier:Outer::Color identifier:col (identifier:Outer::Color).Red)
+│   │   ├─ (identifier:Outer::MyUnion identifier:u )
+│   │   ├─ (identifier:u = int:42)
+│   │   ├─ (identifier:Inner::InnerClass identifier:ic (identifier:Inner::InnerClass)(args))
+│   │   ├─ (keyword:int identifier:iy (identifier:ic).getY(...))
+│   │   ├─ (keyword:int identifier:res (((((identifier:a) +:+ (identifier:b)) +:+ (identifier:col)) +:+ (identifier:u)) +:+ (identifier:Outer::Inner::getoi)(args)))
+│   │   ├─ (identifier:Vec2 identifier:a (identifier:Vec2)(args))
+│   │   ├─ (identifier:Vec2 identifier:b (identifier:Vec2)(args))
+│   │   ├─ (identifier:Vec2 identifier:c ((identifier:a) +:+ (identifier:b)))
+│   │   ├─ (identifier:Vec2 identifier:d (identifier:Vec2)(args))
+│   │   ├─ (keyword:bool identifier:eq1 ((identifier:c) ==:== (identifier:d)))
+│   │   ├─ (keyword:bool identifier:eq2 ((identifier:a) ==:== (identifier:b)))
+│   │   ├─ (keyword:int identifier:result int:0)
+│   │   ├─ (if (identifier:eq1) 
+│   │   │   ├─ (identifier:result = ((identifier:result) + int:10))
+│   │   ├─ )
+│   │   ├─ (if (identifier:eq2) 
+│   │   │   ├─ (identifier:result = ((identifier:result) + int:1))
+│   │   ├─ )
+│   │   ├─ (if (identifier:a) 
+│   │   │   ├─ std::qout << (values)
+│   │   ├─ )
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ std::qout << (values)
+│   │   ├─ return (identifier:res)
+│   ├─ 
+
+===========
+
+Hello, World!
+Hello, World!
+Hello, World!
+
+5
+Hello, world!Hello, Alice!Hello, Bob!Hello, Bob!Hello, Bob!30
+12
+7
+7
+Hello, Lambda!120
+Hello, 3, 31
+5
+Bob
+29.990000
+1
+5
+9
+O
+1
+5
+6
+10
+quick
+dog
+1
+4
+6
+8
+255
+255
+5
+10
+1
+8
+11
+16
+255
+0
+6.600000
+c
+[[1.100000, 2.200000, 3.300000], [4.400000, 5.500000, 6.600000]]
+[1, 123, [1, 2, 4], [2], 1, 2121212121]
+[1, 123, [1, 2, 4], [2], 1]
+[1, 123, [1, 2, 4], [2]]
+[1, 123, [1, 2, 4], [2, 123]]
+1
+2
+[1, 2, 3]
+[1, 2, 3]
+[1, 2, 3]
+[9, 9, 1, 4][1, 99999, 34234][9, 9, 1, 4][1, 99999, 34234]
+[1, 2, 3, 4]
+[[1, 2], [3, 4]]
+2
+[5, 6, 7, 8]
+[5, 6, 7, 8]
+1
+2
+3
+4
+5
+[1, 2, 3, 4]
+[1, 2, 3, 4, 5, 6]
+[10, 20, 30, 40, 50]
+[0, 1, 2, 3, 4, 5, 6, 7]
+100
+200
+300
+6
+15
+QBool: both
+=== QTRUE ===
+True
+
+=== QFALSE ===
+False
+
+=== BOTH ===
+True
+False
+
+=== NONE ===
+Both case!
+Type qtrue qfalse none or both
+
+Type qtrue qfalse none or both
+nonenonenonenonebothnonebothtruetruefalse25
+4
+true
+false
+Dave: 40
+Charlie: 35
+Alice: 25
+0.884855
+6
+9
+Type two numbers seperated by a spaceType two numbers seperated by a space0100
+50000
+9999999999
+3.140000
+3.141590
+3.141593
+Alice
+100
+1.000000
+2.000000
+3
+head
+Alice
+100
+1.000000
+Bob
+50
+1.000000
+4
+true
+Charlie: 35
+Alice: 25
+1000stringPro
+string
+970
+1000
+30
+trueEval works
+Dimentions: 1 x 2
+c.x=4 c.y=6
+eq1=true eq2=false
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 442
+[0m[1m==============
+[0mProcessing file: test_multi.qc
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: test_tryc.qc
+Error message
+404
+Fatal: QC-I002: List index out of bounds: 100
+Error: Division by zero
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: testcol.qc
+==============================
+[SUCCESS] on call has(l, "b"): Condition was true: [1/8]
+==============================
+[SUCCESS] on call has(l, "x"): Condition was false: [2/8]
+==============================
+[SUCCESS] on call index_of(l, "b"): 1 was equal to 1: [3/8]
+==============================
+[SUCCESS] on call index_of(l, "x"): -1 was equal to -1: [4/8]
+==============================
+[SUCCESS] on call sort(l): [1, 2, 3, 4] was equal to [1, 2, 3, 4]: [5/8]
+==============================
+[SUCCESS] on call remove(l, 3): [1, 2, 4, 5] was equal to [1, 2, 4, 5]: [6/8]
+==============================
+[SUCCESS] on call reverse([1,2,3,4]): [4, 3, 2, 1] was equal to [4, 3, 2, 1]: [7/8]
+==============================
+[SUCCESS] on call reverse([1,2,3]): [3, 2, 1] was equal to [3, 2, 1]: [8/8]
+==============================
+Failed: 0
+Passed: 8
+==============================
+[PASS]
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: testmath.qc
+==============================
+[SUCCESS] on call max(5, 3): 5 was equal to 5: [1/22]
+==============================
+[SUCCESS] on call max(-5, -3): -3 was equal to -3: [2/22]
+==============================
+[SUCCESS] on call max(0, 0): 0 was equal to 0: [3/22]
+==============================
+[SUCCESS] on call min(5, 3): 3 was equal to 3: [4/22]
+==============================
+[SUCCESS] on call min(-5, -3): -5 was equal to -5: [5/22]
+==============================
+[SUCCESS] on call min(0, 0): 0 was equal to 0: [6/22]
+==============================
+[SUCCESS] on call sqrt(4): 2.000000 was equal to 2.000000: [7/22]
+==============================
+[SUCCESS] on call sqrt(9): 3.000000 was equal to 3.000000: [8/22]
+==============================
+[SUCCESS] on call sqrt(2): Condition was true: [9/22]
+==============================
+[SUCCESS] on call root(8, 3) - cube root: 2.000000 was equal to 2.000000: [10/22]
+==============================
+[SUCCESS] on call root(16, 4) - 4th root: 2.000000 was equal to 2.000000: [11/22]
+==============================
+[SUCCESS] on call ceil(3.1): 4 was equal to 4: [12/22]
+==============================
+[SUCCESS] on call ceil(3.9): 4 was equal to 4: [13/22]
+==============================
+[SUCCESS] on call ceil(-3.1): -3 was equal to -3: [14/22]
+==============================
+[SUCCESS] on call ceil(5.0): 5 was equal to 5: [15/22]
+==============================
+[SUCCESS] on call floor(3.1): 3 was equal to 3: [16/22]
+==============================
+[SUCCESS] on call floor(3.9): 3 was equal to 3: [17/22]
+==============================
+[SUCCESS] on call floor(-3.1): -4 was equal to -4: [18/22]
+==============================
+[SUCCESS] on call floor(5.0): 5 was equal to 5: [19/22]
+==============================
+[SUCCESS] on call abs(5): 5 was equal to 5: [20/22]
+==============================
+[SUCCESS] on call abs(-5): 5 was equal to 5: [21/22]
+==============================
+[SUCCESS] on call abs(0): 0 was equal to 0: [22/22]
+==============================
+Failed: 0
+Passed: 22
+==============================
+[PASS]
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: testmethod.qc
+=== METHOD OVERLOAD TESTS ===
+
+calc.add(5) = 15
+calc.add(3.14) = 13.140000
+calc.add(" items") = 10 items
+calc.add(2, 3) = 15
+Vec2(1,2) + Vec2(3,4) = (4, 6)
+Vec2(1,2) + 10 = (11, 12)
+Vec2(1,2) + 5.5 = (6, 7)
+
+=== ALL TESTS PASSED ===
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: testsed.qc
+15
+15
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: teststd.qc
+Advanced QBool is 70 true and 30 false.
+Advanced QBool is 70 true and 30 false.
+Advanced QBool is 70 true and 30 false.
+Advanced QBool is 50 true and 50 false.
+Advanced QBool is 50 true and 50 false.
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+2.000000
+3.000000
+100
+1
+==============================
+[SUCCESS] on call max(1,2): 2 was equal to 2: [1/2]
+==============================
+[SUCCESS] on call min(1,2): 1 was equal to 1: [2/2]
+==============================
+Failed: 0
+Passed: 2
+==============================
+[PASS]
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: teststr.qc
+5
+hello
+HELLO
+Quantum
+[hello, world]
+a-b-c
+true
+true
+true
+hi
+heLLo
+1769626192
+1769626195
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: testtrig.qc
+==============================
+[SUCCESS] on call sin(0) ≈ 0: Condition was true: [1/13]
+==============================
+[SUCCESS] on call sin(π/2) ≈ 1: Condition was true: [2/13]
+==============================
+[SUCCESS] on call sin(π) ≈ 0: Condition was true: [3/13]
+==============================
+[SUCCESS] on call cos(0) ≈ 1: Condition was true: [4/13]
+==============================
+[SUCCESS] on call cos(π/2) ≈ 0: Condition was true: [5/13]
+==============================
+[SUCCESS] on call cos(π) ≈ -1: Condition was true: [6/13]
+==============================
+[SUCCESS] on call tan(0) ≈ 0: Condition was true: [7/13]
+==============================
+[SUCCESS] on call tan(π/4) ≈ 1: Condition was true: [8/13]
+==============================
+[SUCCESS] on call log(e) ≈ 1: Condition was true: [9/13]
+==============================
+[SUCCESS] on call log(1) ≈ 0: Condition was true: [10/13]
+==============================
+[SUCCESS] on call log(10) ≈ 2.3: Condition was true: [11/13]
+==============================
+[SUCCESS] on call rand() in [0, 1]: Condition was true: [12/13]
+==============================
+[SUCCESS] on call rand(1, 10) in range: Condition was true: [13/13]
+==============================
+Failed: 0
+Passed: 13
+==============================
+[PASS]
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/advanced.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:1018088288)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/base.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 32767:-976141471)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/classTest.qc
+970
+1000
+30
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/cstourture.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 32767:-1245157000)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/demo.qc
+Teen
+Not perfect
+1
+2
+3
+5
+Hello, world
+Hello, Alice
+30
+12
+120
+2
+[1, 2, 3, 5, 6]
+Alice
+1
+4
+Bob
+QTrue branch
+QFalse branch
+Both
+true
+Charlie: 35
+Alice: 25
+0.313071
+4
+7
+123
+Alice
+User Alice has id 123
+[1, 2, 3, 4]
+[1, 2, 3, 4]
+8
+16
+Alice
+100
+3
+5
+2
+elixir: 2
+gold: 50
+potion: 5
+All features demonstrated!
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/errortest.qc
+=== Mega Runtime Hell Test ===
+=== Mega Runtime Hell Test Complete ===
+[1m=== Diagnostics ===
+[0m[35mRuntime Error: QC-T006: Cannot perform operations on string and number
+File ./tests/errortest.qc, line 11, col 15
+
+
+    int y = s + 42;            // string + int
+              ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected int, got void
+File ./tests/errortest.qc, line 11, col 9
+
+
+    int y = s + 42;            // string + int
+        ^
+
+[0m[35mRuntime Error: QC-T006: Cannot perform operations on string and number
+File ./tests/errortest.qc, line 12, col 20
+
+
+    string z = 123 + s;        // int + string
+                   ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected string, got void
+File ./tests/errortest.qc, line 12, col 12
+
+
+    string z = 123 + s;        // int + string
+           ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected qbool, got bool
+File ./tests/errortest.qc, line 14, col 11
+
+
+    qbool r = !qb;             // invalid unary
+          ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 23, col 9
+
+
+    arr.push("oops");          // type mismatch
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 24, col 9
+
+
+    arr.push([4,5]);           // type mismatch array -> list<int>
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 25, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 26, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 27, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 28, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 29, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 30, col 9
+
+
+    arr.pop();
+        ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 31, col 9
+
+
+    arr.pop();              // fatal: pop empty list
+        ^
+
+[0m[35mRuntime Error: Argument type mismatch: expected int, got string
+File , line 858796593, col 892351537
+
+
+
+[0m[35mRuntime Error: QC-T006: Cannot perform operations on string and number
+File ./tests/errortest.qc, line 49, col 44
+
+
+    auto fn1 = fn(int x) -> int { return x + 1; };
+                                           ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected int, got void
+File ./tests/errortest.qc, line 50, col 9
+
+
+    int bad = fn1("oops");         // type mismatch: string -> int
+        ^
+
+[0m[35mRuntime Error: Argument type mismatch: expected string, got int
+File , line 858796593, col 892351537
+
+
+
+[0m[35mRuntime Error: QC-T006: Cannot perform operations on string and number
+File ./tests/errortest.qc, line 52, col 50
+
+
+    auto fn2 = fn(string s) -> string { return s + "!"; };
+                                                 ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected string, got void
+File ./tests/errortest.qc, line 53, col 12
+
+
+    string bad2 = fn2(123);        // type mismatch: int -> string
+           ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 66, col 7
+
+
+    n.someMethod();                   // cannot call method on int
+      ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 68, col 7
+
+
+    t.uppercase();                    // cannot call method on string (if not implemented)
+      ^
+
+[0m[35mRuntime Error: QC-T006: Cannot perform arithmetic operations on arrays
+File ./tests/errortest.qc, line 74, col 20
+
+
+    int sum = nums + 4;               // cannot add array + int
+                   ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected int, got void
+File ./tests/errortest.qc, line 74, col 9
+
+
+    int sum = nums + 4;               // cannot add array + int
+        ^
+
+[0m[35mRuntime Error: QC-T006: Cannot perform arithmetic operations on arrays
+File ./tests/errortest.qc, line 75, col 18
+
+
+    int prod = 4 * nums;              // cannot multiply int * array
+                 ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected int, got void
+File ./tests/errortest.qc, line 75, col 9
+
+
+    int prod = 4 * nums;              // cannot multiply int * array
+        ^
+
+[0m[35mRuntime Error: QC-T003: Type mismatch: expected qbool, got bool
+File ./tests/errortest.qc, line 84, col 11
+
+
+    qbool q5 = q1 &|& q2;             // invalid QBool logic
+          ^
+
+[0m[35mRuntime Error: QC-BM05: Object does not support methods
+File ./tests/errortest.qc, line 92, col 10
+
+
+    arr3.push(arr2d);                  // type mismatch: push array to list<int>
+         ^
+
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/game.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:841732544)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/geometry.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:-1593627872)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/main.qc
+Base value: 42
+Utils double: 84
+UtilsExtra triple: 126
+Math calc: 126
+Advanced: 210
+MultiUse: 210
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/math.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:-797757552)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/multi_include.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:749990432)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/namespacetest.qc
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/qif.qc
+[1m=== Diagnostics ===
+[0m[31mInvalid Syntax: Unexpected end of file in function body
+File ./tests/qif.qc, line 15, col 26
+
+
+    std::qout << z &|& n;
+                         ^
+
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/stdlib.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:4)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/stlamb.qc
+8
+15
+Hello, Quantum
+true
+Superposition!
+Nothing
+4
+5
+8
+1.000000
+2.000000
+30
+11
+0
+1
+2
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/test.qc
+=== to_qbool / to_bool ===
+qtrue
+both
+qfalse
+true
+true
+=== to_int ===
+3
+42
+0
+2
+1
+3
+1
+0
+=== to_float / to_double ===
+10.000000
+2.500000
+5.000000
+3.141590
+=== to_char ===
+H
+H
+=== to_string ===
+123
+3.500000
+2.000000
+hi
+qtrue
+false
+[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/token_demo.qc
+=== TOKENS ===
+Type: keyword | Value: 'int'
+Type: identifier | Value: 'main'
+Type: ( | Value: '('
+Type: ) | Value: ')'
+Type: { | Value: '{'
+Type: keyword | Value: 'int'
+Type: identifier | Value: 'CommonError'
+Type: = | Value: '='
+Type: int | Value: '404'
+Type: ; | Value: ';'
+Type: keyword | Value: 'int'
+Type: [ | Value: '['
+Type: ] | Value: ']'
+Type: identifier | Value: 'GoodCodes'
+Type: = | Value: '='
+Type: [ | Value: '['
+Type: ] | Value: ']'
+Type: ; | Value: ';'
+Type: keyword | Value: 'int'
+Type: identifier | Value: 'Test'
+Type: [ | Value: '['
+Type: ] | Value: ']'
+Type: = | Value: '='
+Type: [ | Value: '['
+Type: ] | Value: ']'
+Type: ; | Value: ';'
+Type: keyword | Value: 'for'
+Type: ( | Value: '('
+Type: keyword | Value: 'int'
+Type: identifier | Value: 'i'
+Type: = | Value: '='
+Type: int | Value: '200'
+Type: ; | Value: ';'
+Type: identifier | Value: 'i'
+Type: < | Value: '<'
+Type: int | Value: '300'
+Type: ; | Value: ';'
+Type: identifier | Value: 'i'
+Type: ++ | Value: '++'
+Type: ) | Value: ')'
+Type: { | Value: '{'
+Type: identifier | Value: 'GoodCodes'
+Type: . | Value: '.'
+Type: identifier | Value: 'push'
+Type: ( | Value: '('
+Type: identifier | Value: 'i'
+Type: ) | Value: ')'
+Type: ; | Value: ';'
+Type: } | Value: '}'
+Type: identifier | Value: 'std'
+Type: :: | Value: '::'
+Type: identifier | Value: 'qout'
+Type: << | Value: '<<'
+Type: identifier | Value: 'GoodCodes'
+Type: ; | Value: ';'
+Type: } | Value: '}'
+Type: <eof> | Value: '<eof>'
+==============
+
+=== AST ===
+├─ int main(params) 
+│   ├─ 
+│   │   ├─ (keyword:int identifier:CommonError int:404)
+│   │   ├─ int[] GoodCodes = []
+│   │   ├─ int Test[] = []
+│   │   ├─ (for init=(keyword:int identifier:i int:200); ((identifier:i) <:< int:300); (identifier:i = (++:++
+│   │   ├─ (identifier:i))))
+│   │   ├─ std::qout << (values)
+│   ├─ 
+
+===========
+
+[200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299][1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/torture.qc
+79
+-2
+1
+-2147483648
+-2.750000
+9
+0false 0.000000
+9
+123abc
+[[[1], [2, 3]], [[4, 5], [6]]][[1, 2], [3, 4, 5]]
+[1, 2, 3][1, 2, 3]
+[]
+1
+3
+20
+C
+240
+123Alice
+9
+9
+12
+Value 10, squared 100
+Superposed True
+Superposed False
+b
+bothbothnone[1, 2, 3, 4, 5]
+102030
+123Alice
+[1, 2, 3]
+1
+2
+3
+4
+5
+22
+both[1m=== Diagnostics ===
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[32mProgram exited with code: 0
+[0m[1m==============
+[0mProcessing file: ./tests/utils.qc
+[1m=== Diagnostics ===
+[0m[31mMissing main function: Program must have an 'int main()' function (File , Line 0:-651446640)
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0mProcessing file: ./tests/warnings.qc
+[1m=== Diagnostics ===
+[0m[33mRuntime Error: QC-SW01: Unexpected 'break' outside loop or switch
+File ./tests/warnings.qc, line 2, col 5
+
+
+    break;
+    ^
+
+[0m[33mRuntime Error: QC-SW01: Unexpected 'break' outside loop or switch
+File ./tests/warnings.qc, line 3, col 5
+
+
+    break;
+    ^
+
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[33mProgram exited with code: 0
+[0m[1m==============
+[0m
