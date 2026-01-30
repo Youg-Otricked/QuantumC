@@ -22,15 +22,15 @@ NAMESPCACES!!!!!!!!!!
     - [x] Namespace
     - [x] Better scope(\:\:)
 )
-- [ ] Manual Memory Managment (
+- [x] Manual Memory Managment (
     - [x] Pointers (\*)
     - [x] Address syntax (&)
-    - [ ] Malloc
-    - [ ] Free
-    - [ ] Realloc
-    - [ ] Calloc
-    - [ ] ->
-    - [ ] Deref
+    - [x] Malloc
+    - [x] Free
+    - [x] Realloc
+    - [x] Calloc
+    - [x] ->
+    - [x] Deref
 )
 - [x] Including other files (
     - [x] Include via namespace with syntax #include \<namespacename, path-to-file>

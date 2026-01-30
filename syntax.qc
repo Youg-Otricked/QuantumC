@@ -1374,21 +1374,43 @@ int main() {
     println(sizeof("char"));       // 1
     println(sizeof("int*"));       // 8
     println(sizeof("int**"));      // 8
-    
-    int x = 5;
-    println(sizeof(typeof(x)));          // 4
-    
-    int* p = &x;
-    println(sizeof(typeof(p)));          // 8
-    
-    Pr pt = Pr(1, 2);
-    println(sizeof(typeof(pt)));
-    int* ptr = malloc(sizeof("int"));
-    *ptr = 42;
-    println(*ptr);
-    *ptr += 10;
-    println(*ptr);
-    free(ptr);
+
+    int y = 5;
+    println(sizeof(typeof(y)));    // 4
+
+    int* py = &y;
+    println(sizeof(typeof(py)));   // 8
+
+    Pr pt2 = Pr(1, 2);
+    println(sizeof(typeof(pt2)));  // sum of field sizes
+
+    // 8. heap malloc/calloc tests (using type names, not sizeof yet)
+
+    // malloc one int, default 0
+    int* hp = malloc("int");
+    t.AssertEqual(0, *hp, "malloc(\"int\") should init to 0", "*hp after malloc");
+
+    *hp = 42;
+    t.AssertEqual(42, *hp, "write through hp should change heap value", "*hp after write");
+    free(hp);
+
+    // calloc 5 ints
+    int* harr = calloc(5, "int");
+    t.AssertEqual(0, harr[0], "harr[0] default 0", "harr[0]");
+    t.AssertEqual(0, harr[4], "harr[4] default 0", "harr[4]");
+
+    harr[0] = 10;
+    harr[1] = 20;
+    harr[4] = 50;
+    t.AssertEqual(10, harr[0], "harr[0] write/read", "harr[0] = 10");
+    t.AssertEqual(20, harr[1], "harr[1] write/read", "harr[1] = 20");
+    t.AssertEqual(50, harr[4], "harr[4] write/read", "harr[4] = 50");
+
+    // realloc on scalar malloc block
+    int* rq = malloc("int");
+    *rq = 7;
+    rq = realloc(rq, sizeof("int"));   // or just some positive size
+    t.AssertEqual(7, *rq, "realloc on scalar keeps value", "*rq after realloc");
     // END OF DEMO
     // All features shown above are working in Quantum C v12.0.0!
     //==============================================================================
