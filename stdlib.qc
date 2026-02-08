@@ -221,7 +221,7 @@ namespace UnitTest {
         int Ran;
         int Passed;
         int Failed;
-        string[] Messages;
+        list<string> Messages;
         Test(int Ttl) {
             this.Total = Ttl;
             this.Ran = 0;

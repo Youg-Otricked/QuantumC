@@ -1,0 +1,3 @@
+/home/lucar/C^4/build/CMakeFiles/qc.dir
+/home/lucar/C^4/build/CMakeFiles/edit_cache.dir
+/home/lucar/C^4/build/CMakeFiles/rebuild_cache.dir

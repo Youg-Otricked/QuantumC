@@ -1,0 +1,11 @@
+src/x86/win64.lo: ../src/x86/win64.S /usr/include/stdc-predef.h \
+ fficonfig.h include/ffi.h include/ffitarget.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/cet.h ../include/ffi_cfi.h \
+ ../src/x86/asmnames.h
+/usr/include/stdc-predef.h:
+fficonfig.h:
+include/ffi.h:
+include/ffitarget.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/cet.h:
+../include/ffi_cfi.h:
+../src/x86/asmnames.h:

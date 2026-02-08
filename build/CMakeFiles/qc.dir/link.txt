@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/qc.dir/link.d CMakeFiles/qc.dir/compiler.cpp.o CMakeFiles/qc.dir/compiler_run.cpp.o -o qc

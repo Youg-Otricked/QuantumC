@@ -753,14 +753,14 @@ int main() {
     println(letters[0][2]);  // c
     std::qout << matrix << '\n';
     // you make a list with type[] name and a array with type name[]
-    int[] plswork = [1];
+    list<int> plswork = [1];
     //you can push values to an list like this
     plswork.push(123);
     // pushing a array to a list
     plswork.push([1, 2, 4]);
     // defining a second list
-    char[] works = ['c', 'd'];
-    int[] migthtwotk = [2];
+    list<char> works = ['c', 'd'];
+    list<int> migthtwotk = [2];
     // pushing an list on a list
     // plswork.push(works); - Runtime Error: cannot push a list<char> to a list of type int
     plswork.push(migthtwotk);
@@ -789,7 +789,7 @@ int main() {
         println(v);
     }
 
-    int[] bbb = make_array();
+    list<int> bbb = make_array();
     int bb[] = make_array();
     println(bbb);           // should print [1, 2, 3]
     print_any(bbb);         // should also print [1, 2, 3]
@@ -797,7 +797,7 @@ int main() {
         println(xs);
     }
 
-    int[] a = [1, 2, 3];
+    list<int> a = [1, 2, 3];
     print_int_list(a); 
     int[] copyInt(list<int> x) {
         return x;
@@ -805,9 +805,9 @@ int main() {
     int[] copyIntArr(int[] z) {
         return z;
     }
-    int[] cpl = [9, 9, 1, 4];
+    list<int> cpl = [9, 9, 1, 4];
     int cpa[] = [1, 99999, 34234];
-    int[] copyed = copyInt(cpl);
+    list<int> copyed = copyInt(cpl);
     int copyedArr[] = copyIntArr(cpa);
     std::qout << cpl << cpa << copyed << copyedArr << '\n';
     // --- list<int> params, return, and multi-return ---
@@ -821,8 +821,8 @@ int main() {
         println(xs);
     }
 
-    int[] base = [1, 2, 3, 4];
-    int[] copy = id_list(base);        // base is list<int> internally
+    list<int> base = [1, 2, 3, 4];
+    list<int> copy = id_list(base);        // base is list<int> internally
     print_int_list(copy);                  // [1, 2, 3, 4]
 
 
@@ -835,8 +835,8 @@ int main() {
     println(grid);         // [[1, 2], [3, 4]]
     println(grid[0][1]);   // 2
 
-    int[] l1 = [5, 6, 7];
-    int[] l2 = l1;
+    list<int> l1 = [5, 6, 7];
+    list<int> l2 = l1;
     l2.push(8);
     println(l1);           // [5, 6, 7, 8] if aliasing, or [5,6,7] if copied
     println(l2);           // [5, 6, 7, 8]
@@ -845,7 +845,7 @@ int main() {
     // define a array with type name[] = value
     string example[] = ["This is an example"];
     // define a list with type[] name = value
-    string[] listexample = ["This is a list"];
+    list<string> listexample = ["This is a list"];
     // add to list with .push and subtract with .pop
     listexample.push("This");
     listexample.pop();
@@ -866,14 +866,14 @@ int main() {
     int arr2[] = [4, 5, 6];
     int combined[] = [@arr1, @arr2];
     println(combined);
-    int[] list1 = [10, 20];
-    int[] list2 = [30, 40];
-    int[] merged = [@list1, @list2, 50];
+    list<int> list1 = [10, 20];
+    list<int> list2 = [30, 40];
+    list<int> merged = [@list1, @list2, 50];
     println(merged);
-    int[] a = [1, 2];
-    int[] b = [3, 4];
-    int[] c = [5, 6];
-    int[] all = [0, @a, @b, @c, 7];
+    list<int> a = [1, 2];
+    list<int> b = [3, 4];
+    list<int> c = [5, 6];
+    list<int> all = [0, @a, @b, @c, 7];
     println(all);
     void print_three(int x, int y, int z) {
         println(x);

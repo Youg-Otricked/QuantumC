@@ -213,7 +213,20 @@ namespace tkz {
         RTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
         std::string as_string() override;
     };
-    
+    class CTError : public Error {
+    public:
+        CTError(std::string d, Position pos) : Error("Error: ", std::move(d), pos) {}
+
+        std::string as_string() override {
+            std::string result;
+            result += "Compile-time Error: " + this->details + "\n";
+            result += "File " + this->pos.Filename +
+                    ", line " + std::to_string(this->pos.line + 1) +
+                    ", col " + std::to_string(this->pos.column + 1) + "\n\n";
+            result += this->pos.arrow_string();
+            return result;
+        }
+    };
     struct Ler {
         std::vector<Token> Tkns;
         std::unique_ptr<Error> error;
@@ -2014,6 +2027,8 @@ namespace tkz {
         bool quiet_mode = false;
         bool raw = false;
         bool bst = false;
+        bool compile_mode = false;
+        bool interpret_mode = true;
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////
