@@ -1,68 +1,26 @@
-int main() {
+class Calculator {
+    auto add(auto a, auto b) {
+        return a + b;
+    }
     
+    auto multiply(auto x, auto y) {
+        return x * y;
+    }
+}
+
+int main() {
+    Calculator calc = Calculator();
+    
+    int sum1 = calc.add(5, 3);           // Generates add_int_int
+    float sum2 = calc.add(2.5f, 3.7f);   // Generates add_float_float
+    
+    int prod1 = calc.multiply(4, 5);     // Generates multiply_int_int
+    float prod2 = calc.multiply(2.0f, 3.0f);  // Generates multiply_float_float
+    
+    println(to_string(sum1));   // 8
+    println(to_string(sum2));   // 6.2
+    println(to_string(prod1));  // 20
+    println(to_string(prod2));  // 6.0
     
     return 0;
 }
-// ✅ Should work - basic types
-    int x = 40;
-    x += 2;
-    int age = 13;
-    float pi = 3.14f;
-    double precise = 3.14159265359;
-    short int s = 10;
-    long int l = 1000000;
-    long double ld = 3.141592653589793238;
-    
-    // ✅ Should work - arithmetic
-    int a = 10 + 5;
-    int b = 20 - 3;
-    int c = 4 * 7;
-    int d = 100 / 10;
-    int e = 17 % 5;
-    int f = 2 ^* 8;  // 2^8 = 256
-    
-    // ✅ Should work - compound assignment
-    a += 5;
-    b -= 2;
-    c *= 3;
-    d /= 2;
-    e %= 3;
-    
-    // ❌ ERROR: String not supported yet
-    string name = "Lucas";
-    
-    // ❌ ERROR: Char not supported yet
-    char letter = 'A';
-    
-    // ❌ ERROR: Bool not supported yet
-    bool flag = true;
-    
-    // ❌ ERROR: qbool not supported yet
-    qbool quantum = qtrue;
-    
-    // ❌ ERROR: Arrays not supported yet
-    int[] arr = {1, 2, 3};
-    
-    // ❌ ERROR: Pointers not supported yet
-    int* ptr = &x;
-    
-    // ❌ ERROR: Functions not supported yet
-    void test() {
-        println("hello");
-    }
-    
-    // ❌ ERROR: If statements not supported yet
-    if (x > 10) {
-        x = 5;
-    }
-    
-    // ❌ ERROR: Loops not supported yet
-    for (int i = 0; i < 10; i++) {
-        x += i;
-    }
-    
-    // ❌ ERROR: Classes not supported yet
-    class Point {
-        int x;
-        int y;
-    }

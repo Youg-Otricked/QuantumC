@@ -1,0 +1,699 @@
+DEBUG: About to call createUserTypes()
+DEBUG: createUserTypes() called!
+DEBUG: userTypes.size() = 16
+DEBUG: Processing user type 'ConfigValue', kind = Union
+DEBUG: Processing user type 'TierLevel', kind = Union
+DEBUG: Processing user type 'Point', kind = Struct
+DEBUG: Processing user type 'Pair', kind = Union
+DEBUG: Processing user type 'Rectangle', kind = Struct
+DEBUG: Processing user type 'HttpStatus', kind = Union
+DEBUG: Processing user type 'Result', kind = Union
+DEBUG: Processing user type 'Multi', kind = Union
+DEBUG: Processing user type 'Value', kind = Union
+DEBUG: Processing user type 'Status', kind = Union
+DEBUG: Processing user type 'Mixed', kind = Union
+DEBUG: Processing user type 'Response', kind = Union
+DEBUG: Processing user type 'MyFloat', kind = Union
+DEBUG: Processing user type 'MyString', kind = Union
+DEBUG: Processing user type 'Code', kind = Union
+DEBUG: Processing user type 'MyInt', kind = Union
+DEBUG: After createUserTypes(), enumTypes.size() = 0
+DEBUG: baseName = 'nums'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('nums') = NOT FOUND
+DEBUG: baseName = 'arr'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('arr') = NOT FOUND
+DEBUG: baseName = 'myList'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('myList') = NOT FOUND
+DEBUG: baseName = 'myList'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('myList') = NOT FOUND
+DEBUG: baseName = 'myList'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('myList') = NOT FOUND
+DEBUG: baseName = 'listy'
+DEBUG: propName = 'length'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('listy') = NOT FOUND
+DEBUG: baseName = 'ages'
+DEBUG: propName = 'size'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('ages') = NOT FOUND
+DEBUG: baseName = 'ages'
+DEBUG: propName = 'size'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('ages') = NOT FOUND
+DEBUG: baseName = 'empty_map'
+DEBUG: propName = 'size'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('empty_map') = NOT FOUND
+DEBUG: baseName = 'empty_map'
+DEBUG: propName = 'size'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('empty_map') = NOT FOUND
+DEBUG: baseName = 'm'
+DEBUG: propName = 'size'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('m') = NOT FOUND
+DEBUG: baseName = 'p'
+DEBUG: propName = 'x'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('p') = NOT FOUND
+DEBUG: baseName = 'p'
+DEBUG: propName = 'y'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('p') = NOT FOUND
+DEBUG: baseName = 'p'
+DEBUG: propName = 'x'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('p') = NOT FOUND
+DEBUG: baseName = 'p'
+DEBUG: propName = 'y'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('p') = NOT FOUND
+DEBUG: baseName = 'pt'
+DEBUG: propName = 'x'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('pt') = NOT FOUND
+DEBUG: baseName = 'pt'
+DEBUG: propName = 'y'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('pt') = NOT FOUND
+DEBUG: baseName = 'rect'
+DEBUG: propName = 'topLeft'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('rect') = NOT FOUND
+DEBUG: baseName = 'rect'
+DEBUG: propName = 'topLeft'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('rect') = NOT FOUND
+DEBUG: baseName = 'rect'
+DEBUG: propName = 'bottomRight'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('rect') = NOT FOUND
+DEBUG: baseName = 'rect'
+DEBUG: propName = 'bottomRight'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('rect') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Basic'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'ConfigValue'
+DEBUG: propName = 'MaxRetries'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('ConfigValue') = NOT FOUND
+DEBUG: baseName = 'ConfigValue'
+DEBUG: propName = 'TimeoutMsg'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('ConfigValue') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'NotFound'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Basic'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'NotFound'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Premium'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'ServerError'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Enterprise'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'NotFound'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'ServerError'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'NotFound'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Premium'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'OK'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'HttpStatus'
+DEBUG: propName = 'ServerError'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('HttpStatus') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Basic'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Basic'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+DEBUG: baseName = 'TierLevel'
+DEBUG: propName = 'Premium'
+DEBUG: enumTypes.size() = 0
+DEBUG: enumTypes contains:
+DEBUG: enumTypes.find('TierLevel') = NOT FOUND
+[1m=== Diagnostics ===
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 892, col 29
+
+
+    HttpStatus statusCode = HttpStatus.OK;
+                            ^
+
+[0m[35mCompile or Runtime Error: Assigning to undeclared variable 'statusCode' in compiled mode
+File ./test.qc, line 895, col 5
+
+
+    statusCode = HttpStatus.NotFound;
+    ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 906, col 26
+
+
+    TierLevel userTier = TierLevel.Basic;
+                         ^
+
+[0m[35mCompile or Runtime Error: Assigning to undeclared variable 'userTier' in compiled mode
+File ./test.qc, line 909, col 5
+
+
+    userTier = TierLevel.Premium;
+    ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'ConfigValue' in compiled mode
+File ./test.qc, line 920, col 27
+
+
+    ConfigValue retries = ConfigValue.MaxRetries;
+                          ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'ConfigValue' in compiled mode
+File ./test.qc, line 923, col 23
+
+
+    ConfigValue msg = ConfigValue.TimeoutMsg;
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 928, col 26
+
+
+    HttpStatus status1 = HttpStatus.OK;
+                         ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 929, col 26
+
+
+    HttpStatus status2 = HttpStatus.OK;
+                         ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'status1' in compiled mode
+File ./test.qc, line 931, col 9
+
+
+    if (status1 == HttpStatus.OK) {
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 931, col 20
+
+
+    if (status1 == HttpStatus.OK) {
+                   ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'status1' in compiled mode
+File ./test.qc, line 935, col 9
+
+
+    if (status1 == status2) {
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'status2' in compiled mode
+File ./test.qc, line 935, col 20
+
+
+    if (status1 == status2) {
+                   ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'status1' in compiled mode
+File ./test.qc, line 939, col 9
+
+
+    if (status1 != HttpStatus.NotFound) {
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 939, col 20
+
+
+    if (status1 != HttpStatus.NotFound) {
+                   ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 945, col 29
+
+
+    TierLevel currentTier = TierLevel.Basic;
+                            ^
+
+[0m[35mCompile or Runtime Error: Assigning to undeclared variable 'currentTier' in compiled mode
+File ./test.qc, line 948, col 5
+
+
+    currentTier = TierLevel.Enterprise;
+    ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 953, col 31
+
+
+    HttpStatus responseCode = HttpStatus.NotFound;
+                              ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'responseCode' in compiled mode
+File ./test.qc, line 955, col 9
+
+
+    if (responseCode == HttpStatus.OK) {
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 955, col 25
+
+
+    if (responseCode == HttpStatus.OK) {
+                        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 965, col 26
+
+
+    TierLevel planType = TierLevel.Premium;
+                         ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'planType' in compiled mode
+File ./test.qc, line 967, col 13
+
+
+    switch (planType) {
+            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 981, col 23
+
+
+    HttpStatus code = HttpStatus.ServerError;
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'code' in compiled mode
+File ./test.qc, line 982, col 19
+
+
+    int numCode = code;
+                  ^
+
+[0m[35mCompile or Runtime Error: Failed to compile initializer for 'numCode'
+File ./test.qc, line 982, col 9
+
+
+    int numCode = code;
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 985, col 22
+
+
+    TierLevel plan = TierLevel.Enterprise;
+                     ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'plan' in compiled mode
+File ./test.qc, line 986, col 23
+
+
+    string planName = plan;
+                      ^
+
+[0m[35mCompile or Runtime Error: Failed to compile initializer for 'planName'
+File ./test.qc, line 986, col 12
+
+
+    string planName = plan;
+           ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 993, col 20
+
+
+            return HttpStatus.OK;
+                   ^
+
+[0m[35mCompile or Runtime Error: Return without value in non-void function
+File ./test.qc, line 993, col 13
+
+
+            return HttpStatus.OK;
+            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 995, col 20
+
+
+            return HttpStatus.NotFound;
+                   ^
+
+[0m[35mCompile or Runtime Error: Return without value in non-void function
+File ./test.qc, line 995, col 13
+
+
+            return HttpStatus.NotFound;
+            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 997, col 20
+
+
+            return HttpStatus.ServerError;
+                   ^
+
+[0m[35mCompile or Runtime Error: Return without value in non-void function
+File ./test.qc, line 997, col 13
+
+
+            return HttpStatus.ServerError;
+            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1002, col 20
+
+
+    if (result1 == HttpStatus.OK) println("getStatus(0) = OK ✓");
+                   ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1005, col 20
+
+
+    if (result2 == HttpStatus.NotFound) println("getStatus(1) = NotFound ✓");
+                   ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1010, col 16
+
+
+        return HttpStatus.OK, "Success";
+               ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1014, col 23
+
+
+    if (respStatus == HttpStatus.OK) {
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 1021, col 24
+
+
+    TierLevel myPlan = TierLevel.Premium;
+                       ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'myPlan' in compiled mode
+File ./test.qc, line 1022, col 30
+
+
+    string planType = typeof(myPlan);
+                             ^
+
+[0m[35mCompile or Runtime Error: Failed to compile initializer for 'planType'
+File ./test.qc, line 1022, col 12
+
+
+    string planType = typeof(myPlan);
+           ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1025, col 27
+
+
+    HttpStatus myStatus = HttpStatus.OK;
+                          ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'myStatus' in compiled mode
+File ./test.qc, line 1026, col 32
+
+
+    string statusType = typeof(myStatus);
+                               ^
+
+[0m[35mCompile or Runtime Error: Failed to compile initializer for 'statusType'
+File ./test.qc, line 1026, col 12
+
+
+    string statusType = typeof(myStatus);
+           ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1031, col 29
+
+
+    HttpStatus loopStatus = HttpStatus.OK;
+                            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'loopStatus' in compiled mode
+File ./test.qc, line 1034, col 12
+
+
+    while (loopStatus == HttpStatus.OK && counter < 3) {
+           ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1034, col 26
+
+
+    while (loopStatus == HttpStatus.OK && counter < 3) {
+                         ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1043, col 33
+
+
+        HttpStatus iterStatus = HttpStatus.OK;
+                                ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'iterStatus' in compiled mode
+File ./test.qc, line 1044, col 13
+
+
+        if (iterStatus == HttpStatus.OK) {
+            ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1044, col 27
+
+
+        if (iterStatus == HttpStatus.OK) {
+                          ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'HttpStatus' in compiled mode
+File ./test.qc, line 1051, col 28
+
+
+    HttpStatus negStatus = HttpStatus.ServerError;
+                           ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'negStatus' in compiled mode
+File ./test.qc, line 1052, col 21
+
+
+    int negValue = -negStatus;
+                    ^
+
+[0m[35mCompile or Runtime Error: Failed to compile initializer for 'negValue'
+File ./test.qc, line 1052, col 9
+
+
+    int negValue = -negStatus;
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 1057, col 23
+
+
+    TierLevel tier1 = TierLevel.Basic;
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 1058, col 23
+
+
+    TierLevel tier2 = TierLevel.Basic;
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'TierLevel' in compiled mode
+File ./test.qc, line 1059, col 23
+
+
+    TierLevel tier3 = TierLevel.Premium;
+                      ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'tier1' in compiled mode
+File ./test.qc, line 1061, col 9
+
+
+    if (tier1 == tier2 && tier2 != tier3) {
+        ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'tier2' in compiled mode
+File ./test.qc, line 1061, col 18
+
+
+    if (tier1 == tier2 && tier2 != tier3) {
+                 ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'tier2' in compiled mode
+File ./test.qc, line 1061, col 27
+
+
+    if (tier1 == tier2 && tier2 != tier3) {
+                          ^
+
+[0m[35mCompile or Runtime Error: Use of undeclared variable 'tier3' in compiled mode
+File ./test.qc, line 1061, col 36
+
+
+    if (tier1 == tier2 && tier2 != tier3) {
+                                   ^
+
+[0m[1m==============
+[0m[1m= Error Code =
+[0m[31mProgram exited with code 1
+[0m[1m==============
+[0m

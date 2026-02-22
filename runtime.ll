@@ -19,19 +19,22 @@ target triple = "x86_64-pc-linux-gnu"
 @.str.7 = private unnamed_addr constant [6 x i8] c"qtrue\00", align 1
 @.str.8 = private unnamed_addr constant [5 x i8] c"both\00", align 1
 @stdout = external global ptr, align 8
-@.str.9 = private unnamed_addr constant [3 x i8] c"%s\00", align 1
-@.str.10 = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
-@.str.11 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
-@.str.12 = private unnamed_addr constant [2 x i8] c"[\00", align 1
-@.str.13 = private unnamed_addr constant [3 x i8] c", \00", align 1
-@.str.14 = private unnamed_addr constant [2 x i8] c"]\00", align 1
-@.str.15 = private unnamed_addr constant [5 x i8] c"\22%s\22\00", align 1
-@.str.16 = private unnamed_addr constant [5 x i8] c"'%c'\00", align 1
-@.str.17 = private unnamed_addr constant [6 x i8] c"ERROR\00", align 1
-@.str.18 = private unnamed_addr constant [8 x i8] c" (\22%s\22)\00", align 1
-@.str.19 = private unnamed_addr constant [2 x i8] c"{\00", align 1
-@.str.20 = private unnamed_addr constant [3 x i8] c": \00", align 1
-@.str.21 = private unnamed_addr constant [2 x i8] c"}\00", align 1
+@.str.9 = private unnamed_addr constant [2 x i8] c"1\00", align 1
+@stderr = external global ptr, align 8
+@stdin = external global ptr, align 8
+@.str.10 = private unnamed_addr constant [3 x i8] c"%s\00", align 1
+@.str.11 = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
+@.str.12 = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@.str.13 = private unnamed_addr constant [2 x i8] c"[\00", align 1
+@.str.14 = private unnamed_addr constant [3 x i8] c", \00", align 1
+@.str.15 = private unnamed_addr constant [2 x i8] c"]\00", align 1
+@.str.16 = private unnamed_addr constant [5 x i8] c"\22%s\22\00", align 1
+@.str.17 = private unnamed_addr constant [5 x i8] c"'%c'\00", align 1
+@.str.18 = private unnamed_addr constant [6 x i8] c"ERROR\00", align 1
+@.str.19 = private unnamed_addr constant [8 x i8] c" (\22%s\22)\00", align 1
+@.str.20 = private unnamed_addr constant [2 x i8] c"{\00", align 1
+@.str.21 = private unnamed_addr constant [3 x i8] c": \00", align 1
+@.str.22 = private unnamed_addr constant [2 x i8] c"}\00", align 1
 @ffi_type_sint32 = external global %struct._ffi_type, align 8
 @ffi_type_float = external global %struct._ffi_type, align 8
 @ffi_type_double = external global %struct._ffi_type, align 8
@@ -182,8 +185,8 @@ declare noalias ptr @malloc(i64 noundef) #2
 declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #3
 
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
-define dso_local i32 @qc_string_eq(ptr noundef %0, ptr noundef %1) #0 {
-  %3 = alloca i32, align 4
+define dso_local zeroext i1 @qc_string_eq(ptr noundef %0, ptr noundef %1) #0 {
+  %3 = alloca i1, align 1
   %4 = alloca ptr, align 8
   %5 = alloca ptr, align 8
   store ptr %0, ptr %4, align 8
@@ -198,8 +201,8 @@ define dso_local i32 @qc_string_eq(ptr noundef %0, ptr noundef %1) #0 {
   br i1 %10, label %12, label %11
 
 11:                                               ; preds = %8, %2
-  store i32 0, ptr %3, align 4
-  br label %19
+  store i1 false, ptr %3, align 1
+  br label %20
 
 12:                                               ; preds = %8
   %13 = load ptr, ptr %4, align 8
@@ -208,12 +211,13 @@ define dso_local i32 @qc_string_eq(ptr noundef %0, ptr noundef %1) #0 {
   %16 = icmp eq i32 %15, 0
   %17 = zext i1 %16 to i64
   %18 = select i1 %16, i32 1, i32 0
-  store i32 %18, ptr %3, align 4
-  br label %19
+  %19 = icmp ne i32 %18, 0
+  store i1 %19, ptr %3, align 1
+  br label %20
 
-19:                                               ; preds = %12, %11
-  %20 = load i32, ptr %3, align 4
-  ret i32 %20
+20:                                               ; preds = %12, %11
+  %21 = load i1, ptr %3, align 1
+  ret i1 %21
 }
 
 ; Function Attrs: nounwind willreturn memory(read)
@@ -677,6 +681,111 @@ define dso_local ptr @qc_to_string_float(float noundef %0) #0 {
 29:                                               ; preds = %22, %21, %13
   %30 = load ptr, ptr %2, align 8
   ret ptr %30
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local i32 @qc_to_int_from_float(float noundef %0) #0 {
+  %2 = alloca float, align 4
+  store float %0, ptr %2, align 4
+  %3 = load float, ptr %2, align 4
+  %4 = fptosi float %3 to i32
+  ret i32 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local i32 @qc_to_int_from_double(double noundef %0) #0 {
+  %2 = alloca double, align 8
+  store double %0, ptr %2, align 8
+  %3 = load double, ptr %2, align 8
+  %4 = fptosi double %3 to i32
+  ret i32 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local i32 @qc_to_int_from_char(i8 noundef signext %0) #0 {
+  %2 = alloca i8, align 1
+  store i8 %0, ptr %2, align 1
+  %3 = load i8, ptr %2, align 1
+  %4 = sext i8 %3 to i32
+  ret i32 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local float @qc_to_float_from_double(double noundef %0) #0 {
+  %2 = alloca double, align 8
+  store double %0, ptr %2, align 8
+  %3 = load double, ptr %2, align 8
+  %4 = fptrunc double %3 to float
+  ret float %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local float @qc_to_float_from_bool(i1 noundef zeroext %0) #0 {
+  %2 = alloca i8, align 1
+  %3 = zext i1 %0 to i8
+  store i8 %3, ptr %2, align 1
+  %4 = load i8, ptr %2, align 1
+  %5 = trunc i8 %4 to i1
+  %6 = zext i1 %5 to i64
+  %7 = select i1 %5, float 1.000000e+00, float 0.000000e+00
+  ret float %7
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local double @qc_to_double_from_float(float noundef %0) #0 {
+  %2 = alloca float, align 4
+  store float %0, ptr %2, align 4
+  %3 = load float, ptr %2, align 4
+  %4 = fpext float %3 to double
+  ret double %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local double @qc_to_double_from_bool(i1 noundef zeroext %0) #0 {
+  %2 = alloca i8, align 1
+  %3 = zext i1 %0 to i8
+  store i8 %3, ptr %2, align 1
+  %4 = load i8, ptr %2, align 1
+  %5 = trunc i8 %4 to i1
+  %6 = zext i1 %5 to i64
+  %7 = select i1 %5, double 1.000000e+00, double 0.000000e+00
+  ret double %7
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local zeroext i1 @qc_to_bool_from_int(i32 noundef %0) #0 {
+  %2 = alloca i32, align 4
+  store i32 %0, ptr %2, align 4
+  %3 = load i32, ptr %2, align 4
+  %4 = icmp ne i32 %3, 0
+  ret i1 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local zeroext i1 @qc_to_bool_from_float(float noundef %0) #0 {
+  %2 = alloca float, align 4
+  store float %0, ptr %2, align 4
+  %3 = load float, ptr %2, align 4
+  %4 = fcmp une float %3, 0.000000e+00
+  ret i1 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local zeroext i1 @qc_to_bool_from_double(double noundef %0) #0 {
+  %2 = alloca double, align 8
+  store double %0, ptr %2, align 8
+  %3 = load double, ptr %2, align 8
+  %4 = fcmp une double %3, 0.000000e+00
+  ret i1 %4
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local signext i8 @qc_to_char_from_int(i32 noundef %0) #0 {
+  %2 = alloca i32, align 4
+  store i32 %0, ptr %2, align 4
+  %3 = load i32, ptr %2, align 4
+  %4 = trunc i32 %3 to i8
+  ret i8 %4
 }
 
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
@@ -1393,6 +1502,161 @@ define dso_local i32 @qc_endswith(ptr noundef %0, ptr noundef %1) #0 {
   ret i32 %36
 }
 
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local void @qc_print_float(float noundef %0) #5 {
+  %2 = alloca float, align 4
+  store float %0, ptr %2, align 4
+  %3 = load float, ptr %2, align 4
+  %4 = fpext float %3 to double
+  %5 = call i32 (ptr, ...) @printf(ptr noundef @.str.2, double noundef %4)
+  ret void
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local zeroext i1 @qc_to_bool_from_string(ptr noundef %0) #0 {
+  %2 = alloca i1, align 1
+  %3 = alloca ptr, align 8
+  store ptr %0, ptr %3, align 8
+  %4 = load ptr, ptr %3, align 8
+  %5 = icmp ne ptr %4, null
+  br i1 %5, label %7, label %6
+
+6:                                                ; preds = %1
+  store i1 false, ptr %2, align 1
+  br label %17
+
+7:                                                ; preds = %1
+  %8 = load ptr, ptr %3, align 8
+  %9 = call i32 @strcmp(ptr noundef %8, ptr noundef @.str.3) #8
+  %10 = icmp eq i32 %9, 0
+  br i1 %10, label %15, label %11
+
+11:                                               ; preds = %7
+  %12 = load ptr, ptr %3, align 8
+  %13 = call i32 @strcmp(ptr noundef %12, ptr noundef @.str.9) #8
+  %14 = icmp eq i32 %13, 0
+  br label %15
+
+15:                                               ; preds = %11, %7
+  %16 = phi i1 [ true, %7 ], [ %14, %11 ]
+  store i1 %16, ptr %2, align 1
+  br label %17
+
+17:                                               ; preds = %15, %6
+  %18 = load i1, ptr %2, align 1
+  ret i1 %18
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local zeroext i8 @qc_to_qbool_from_string(ptr noundef %0) #0 {
+  %2 = alloca i8, align 1
+  %3 = alloca ptr, align 8
+  store ptr %0, ptr %3, align 8
+  %4 = load ptr, ptr %3, align 8
+  %5 = icmp ne ptr %4, null
+  br i1 %5, label %7, label %6
+
+6:                                                ; preds = %1
+  store i8 0, ptr %2, align 1
+  br label %23
+
+7:                                                ; preds = %1
+  %8 = load ptr, ptr %3, align 8
+  %9 = call i32 @strcmp(ptr noundef %8, ptr noundef @.str.7) #8
+  %10 = icmp eq i32 %9, 0
+  br i1 %10, label %11, label %12
+
+11:                                               ; preds = %7
+  store i8 2, ptr %2, align 1
+  br label %23
+
+12:                                               ; preds = %7
+  %13 = load ptr, ptr %3, align 8
+  %14 = call i32 @strcmp(ptr noundef %13, ptr noundef @.str.6) #8
+  %15 = icmp eq i32 %14, 0
+  br i1 %15, label %16, label %17
+
+16:                                               ; preds = %12
+  store i8 1, ptr %2, align 1
+  br label %23
+
+17:                                               ; preds = %12
+  %18 = load ptr, ptr %3, align 8
+  %19 = call i32 @strcmp(ptr noundef %18, ptr noundef @.str.8) #8
+  %20 = icmp eq i32 %19, 0
+  br i1 %20, label %21, label %22
+
+21:                                               ; preds = %17
+  store i8 3, ptr %2, align 1
+  br label %23
+
+22:                                               ; preds = %17
+  store i8 0, ptr %2, align 1
+  br label %23
+
+23:                                               ; preds = %22, %21, %16, %11, %6
+  %24 = load i8, ptr %2, align 1
+  ret i8 %24
+}
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local ptr @qc_qin() #5 {
+  %1 = alloca ptr, align 8
+  %2 = alloca [1024 x i8], align 16
+  %3 = alloca i32, align 4
+  %4 = load ptr, ptr @stdout, align 8
+  %5 = call i32 @fflush(ptr noundef %4)
+  %6 = load ptr, ptr @stderr, align 8
+  %7 = call i32 @fflush(ptr noundef %6)
+  %8 = load ptr, ptr @stdin, align 8
+  %9 = call i32 @fflush(ptr noundef %8)
+  %10 = getelementptr inbounds [1024 x i8], ptr %2, i64 0, i64 0
+  %11 = call i32 (ptr, ...) @__isoc23_scanf(ptr noundef @.str.10, ptr noundef %10)
+  store i32 %11, ptr %3, align 4
+  %12 = load ptr, ptr @stderr, align 8
+  %13 = call i32 @fflush(ptr noundef %12)
+  %14 = load ptr, ptr @stdin, align 8
+  %15 = call i32 @fflush(ptr noundef %14)
+  %16 = load i32, ptr %3, align 4
+  %17 = icmp eq i32 %16, 1
+  br i1 %17, label %18, label %21
+
+18:                                               ; preds = %0
+  %19 = getelementptr inbounds [1024 x i8], ptr %2, i64 0, i64 0
+  %20 = call noalias ptr @strdup(ptr noundef %19) #10
+  store ptr %20, ptr %1, align 8
+  br label %23
+
+21:                                               ; preds = %0
+  %22 = call noalias ptr @strdup(ptr noundef @.str) #10
+  store ptr %22, ptr %1, align 8
+  br label %23
+
+23:                                               ; preds = %21, %18
+  %24 = load ptr, ptr %1, align 8
+  ret ptr %24
+}
+
+declare i32 @fflush(ptr noundef) #6
+
+declare i32 @__isoc23_scanf(ptr noundef, ...) #6
+
+; Function Attrs: nounwind
+declare noalias ptr @strdup(ptr noundef) #4
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local void @qc_print_bool(i1 noundef zeroext %0) #5 {
+  %2 = alloca i8, align 1
+  %3 = zext i1 %0 to i8
+  store i8 %3, ptr %2, align 1
+  %4 = load i8, ptr %2, align 1
+  %5 = trunc i8 %4 to i1
+  %6 = zext i1 %5 to i64
+  %7 = select i1 %5, ptr @.str.3, ptr @.str.4
+  %8 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %7)
+  ret void
+}
+
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
 define dso_local ptr @qc_trim(ptr noundef %0) #0 {
   %2 = alloca ptr, align 8
@@ -1863,7 +2127,7 @@ define dso_local void @qc_print(ptr noundef %0) #5 {
 
 5:                                                ; preds = %1
   %6 = load ptr, ptr %2, align 8
-  %7 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %6)
+  %7 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %6)
   br label %8
 
 8:                                                ; preds = %5, %1
@@ -1880,11 +2144,11 @@ define dso_local void @qc_println(ptr noundef %0) #5 {
 
 5:                                                ; preds = %1
   %6 = load ptr, ptr %2, align 8
-  %7 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %6)
+  %7 = call i32 (ptr, ...) @printf(ptr noundef @.str.11, ptr noundef %6)
   br label %10
 
 8:                                                ; preds = %1
-  %9 = call i32 (ptr, ...) @printf(ptr noundef @.str.11)
+  %9 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
   br label %10
 
 10:                                               ; preds = %8, %5
@@ -1898,7 +2162,7 @@ define dso_local void @qc_print_array_int(ptr noundef %0, i32 noundef %1) #5 {
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -1922,7 +2186,7 @@ define dso_local void @qc_print_array_int(ptr noundef %0, i32 noundef %1) #5 {
   br i1 %21, label %22, label %24
 
 22:                                               ; preds = %11
-  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %24
 
 24:                                               ; preds = %22, %11
@@ -1935,7 +2199,7 @@ define dso_local void @qc_print_array_int(ptr noundef %0, i32 noundef %1) #5 {
   br label %7, !llvm.loop !14
 
 28:                                               ; preds = %7
-  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -1946,7 +2210,7 @@ define dso_local void @qc_print_array_float(ptr noundef %0, i32 noundef %1) #5 {
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -1971,7 +2235,7 @@ define dso_local void @qc_print_array_float(ptr noundef %0, i32 noundef %1) #5 {
   br i1 %22, label %23, label %25
 
 23:                                               ; preds = %11
-  %24 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %24 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %25
 
 25:                                               ; preds = %23, %11
@@ -1984,7 +2248,7 @@ define dso_local void @qc_print_array_float(ptr noundef %0, i32 noundef %1) #5 {
   br label %7, !llvm.loop !15
 
 29:                                               ; preds = %7
-  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -1995,7 +2259,7 @@ define dso_local void @qc_print_array_double(ptr noundef %0, i32 noundef %1) #5 
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -2019,7 +2283,7 @@ define dso_local void @qc_print_array_double(ptr noundef %0, i32 noundef %1) #5 
   br i1 %21, label %22, label %24
 
 22:                                               ; preds = %11
-  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %24
 
 24:                                               ; preds = %22, %11
@@ -2032,7 +2296,7 @@ define dso_local void @qc_print_array_double(ptr noundef %0, i32 noundef %1) #5 
   br label %7, !llvm.loop !16
 
 28:                                               ; preds = %7
-  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -2043,7 +2307,7 @@ define dso_local void @qc_print_array_string(ptr noundef %0, i32 noundef %1) #5 
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -2059,7 +2323,7 @@ define dso_local void @qc_print_array_string(ptr noundef %0, i32 noundef %1) #5 
   %14 = sext i32 %13 to i64
   %15 = getelementptr inbounds ptr, ptr %12, i64 %14
   %16 = load ptr, ptr %15, align 8
-  %17 = call i32 (ptr, ...) @printf(ptr noundef @.str.15, ptr noundef %16)
+  %17 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, ptr noundef %16)
   %18 = load i32, ptr %5, align 4
   %19 = load i32, ptr %4, align 4
   %20 = sub nsw i32 %19, 1
@@ -2067,7 +2331,7 @@ define dso_local void @qc_print_array_string(ptr noundef %0, i32 noundef %1) #5 
   br i1 %21, label %22, label %24
 
 22:                                               ; preds = %11
-  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %23 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %24
 
 24:                                               ; preds = %22, %11
@@ -2080,7 +2344,7 @@ define dso_local void @qc_print_array_string(ptr noundef %0, i32 noundef %1) #5 
   br label %7, !llvm.loop !17
 
 28:                                               ; preds = %7
-  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %29 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -2091,7 +2355,7 @@ define dso_local void @qc_print_array_char(ptr noundef %0, i32 noundef %1) #5 {
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -2108,7 +2372,7 @@ define dso_local void @qc_print_array_char(ptr noundef %0, i32 noundef %1) #5 {
   %15 = getelementptr inbounds i8, ptr %12, i64 %14
   %16 = load i8, ptr %15, align 1
   %17 = sext i8 %16 to i32
-  %18 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, i32 noundef %17)
+  %18 = call i32 (ptr, ...) @printf(ptr noundef @.str.17, i32 noundef %17)
   %19 = load i32, ptr %5, align 4
   %20 = load i32, ptr %4, align 4
   %21 = sub nsw i32 %20, 1
@@ -2116,7 +2380,7 @@ define dso_local void @qc_print_array_char(ptr noundef %0, i32 noundef %1) #5 {
   br i1 %22, label %23, label %25
 
 23:                                               ; preds = %11
-  %24 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %24 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %25
 
 25:                                               ; preds = %23, %11
@@ -2129,7 +2393,7 @@ define dso_local void @qc_print_array_char(ptr noundef %0, i32 noundef %1) #5 {
   br label %7, !llvm.loop !18
 
 29:                                               ; preds = %7
-  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -2140,7 +2404,7 @@ define dso_local void @qc_print_array_bool(ptr noundef %0, i32 noundef %1) #5 {
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -2159,7 +2423,7 @@ define dso_local void @qc_print_array_bool(ptr noundef %0, i32 noundef %1) #5 {
   %17 = trunc i8 %16 to i1
   %18 = zext i1 %17 to i64
   %19 = select i1 %17, ptr @.str.3, ptr @.str.4
-  %20 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %19)
+  %20 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %19)
   %21 = load i32, ptr %5, align 4
   %22 = load i32, ptr %4, align 4
   %23 = sub nsw i32 %22, 1
@@ -2167,7 +2431,7 @@ define dso_local void @qc_print_array_bool(ptr noundef %0, i32 noundef %1) #5 {
   br i1 %24, label %25, label %27
 
 25:                                               ; preds = %11
-  %26 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %26 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %27
 
 27:                                               ; preds = %25, %11
@@ -2180,7 +2444,7 @@ define dso_local void @qc_print_array_bool(ptr noundef %0, i32 noundef %1) #5 {
   br label %7, !llvm.loop !19
 
 31:                                               ; preds = %7
-  %32 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %32 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -2191,7 +2455,7 @@ define dso_local void @qc_print_array_qbool(ptr noundef %0, i32 noundef %1) #5 {
   %5 = alloca i32, align 4
   store ptr %0, ptr %3, align 8
   store i32 %1, ptr %4, align 4
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %7
 
@@ -2240,7 +2504,7 @@ define dso_local void @qc_print_array_qbool(ptr noundef %0, i32 noundef %1) #5 {
   br i1 %31, label %32, label %34
 
 32:                                               ; preds = %27
-  %33 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %33 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %34
 
 34:                                               ; preds = %32, %27
@@ -2253,7 +2517,7 @@ define dso_local void @qc_print_array_qbool(ptr noundef %0, i32 noundef %1) #5 {
   br label %7, !llvm.loop !20
 
 38:                                               ; preds = %7
-  %39 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %39 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -2377,7 +2641,7 @@ define dso_local ptr @qc_array_to_string_recursive(ptr noundef %0, i32 noundef %
   %45 = load ptr, ptr %6, align 8
   %46 = load i8, ptr %45, align 1
   %47 = sext i8 %46 to i32
-  %48 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %44, i64 noundef 256, ptr noundef @.str.16, i32 noundef %47) #10
+  %48 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %44, i64 noundef 256, ptr noundef @.str.17, i32 noundef %47) #10
   br label %90
 
 49:                                               ; preds = %25
@@ -2387,7 +2651,7 @@ define dso_local ptr @qc_array_to_string_recursive(ptr noundef %0, i32 noundef %
   %53 = trunc i8 %52 to i1
   %54 = zext i1 %53 to i64
   %55 = select i1 %53, ptr @.str.3, ptr @.str.4
-  %56 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %50, i64 noundef 256, ptr noundef @.str.9, ptr noundef %55) #10
+  %56 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %50, i64 noundef 256, ptr noundef @.str.10, ptr noundef %55) #10
   br label %90
 
 57:                                               ; preds = %25
@@ -2431,14 +2695,14 @@ define dso_local ptr @qc_array_to_string_recursive(ptr noundef %0, i32 noundef %
   store ptr %81, ptr %12, align 8
   %82 = getelementptr inbounds [256 x i8], ptr %10, i64 0, i64 0
   %83 = load ptr, ptr %12, align 8
-  %84 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %82, i64 noundef 256, ptr noundef @.str.9, ptr noundef %83) #10
+  %84 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %82, i64 noundef 256, ptr noundef @.str.10, ptr noundef %83) #10
   br label %90
 
 85:                                               ; preds = %25
   %86 = getelementptr inbounds [256 x i8], ptr %10, i64 0, i64 0
   %87 = load ptr, ptr %6, align 8
   %88 = load ptr, ptr %87, align 8
-  %89 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %86, i64 noundef 256, ptr noundef @.str.15, ptr noundef %88) #10
+  %89 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %86, i64 noundef 256, ptr noundef @.str.16, ptr noundef %88) #10
   br label %90
 
 90:                                               ; preds = %25, %85, %80, %49, %43, %38, %32, %27
@@ -2707,7 +2971,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef %0, i32 noundef %1, 
   %32 = load ptr, ptr %5, align 8
   %33 = load i8, ptr %32, align 1
   %34 = sext i8 %33 to i32
-  %35 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, i32 noundef %34)
+  %35 = call i32 (ptr, ...) @printf(ptr noundef @.str.17, i32 noundef %34)
   br label %64
 
 36:                                               ; preds = %16
@@ -2716,7 +2980,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef %0, i32 noundef %1, 
   %39 = trunc i8 %38 to i1
   %40 = zext i1 %39 to i64
   %41 = select i1 %39, ptr @.str.3, ptr @.str.4
-  %42 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %41)
+  %42 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %41)
   br label %64
 
 43:                                               ; preds = %16
@@ -2757,14 +3021,14 @@ define dso_local void @qc_print_array_recursive(ptr noundef %0, i32 noundef %1, 
 60:                                               ; preds = %16
   %61 = load ptr, ptr %5, align 8
   %62 = load ptr, ptr %61, align 8
-  %63 = call i32 (ptr, ...) @printf(ptr noundef @.str.15, ptr noundef %62)
+  %63 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, ptr noundef %62)
   br label %64
 
 64:                                               ; preds = %16, %60, %59, %36, %31, %27, %22, %18
   br label %118
 
 65:                                               ; preds = %4
-  %66 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %66 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   %67 = load i32, ptr %6, align 4
   %68 = call i32 @sizeof_type(i32 noundef %67)
   store i32 %68, ptr %10, align 4
@@ -2830,7 +3094,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef %0, i32 noundef %1, 
   br i1 %109, label %110, label %112
 
 110:                                              ; preds = %91
-  %111 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %111 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %112
 
 112:                                              ; preds = %110, %91
@@ -2843,7 +3107,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef %0, i32 noundef %1, 
   br label %85, !llvm.loop !25
 
 116:                                              ; preds = %85
-  %117 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %117 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   br label %118
 
 118:                                              ; preds = %116, %64
@@ -3019,7 +3283,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   %6 = alloca ptr, align 8
   %7 = alloca i8, align 1
   store ptr %0, ptr %2, align 8
-  %8 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %8 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %3, align 4
   br label %9
 
@@ -3065,7 +3329,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   %39 = getelementptr inbounds ptr, ptr %36, i64 %38
   %40 = load ptr, ptr %39, align 8
   store ptr %40, ptr %4, align 8
-  %41 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
+  %41 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
   store i32 0, ptr %5, align 4
   br label %42
 
@@ -3128,7 +3392,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   %79 = load ptr, ptr %6, align 8
   %80 = load i8, ptr %79, align 1
   %81 = sext i8 %80 to i32
-  %82 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, i32 noundef %81)
+  %82 = call i32 (ptr, ...) @printf(ptr noundef @.str.17, i32 noundef %81)
   br label %120
 
 83:                                               ; preds = %52
@@ -3137,7 +3401,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   %86 = trunc i8 %85 to i1
   %87 = zext i1 %86 to i64
   %88 = select i1 %86, ptr @.str.3, ptr @.str.4
-  %89 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %88)
+  %89 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %88)
   br label %120
 
 90:                                               ; preds = %52
@@ -3178,13 +3442,13 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
 
 113:                                              ; preds = %111, %99
   %114 = phi ptr [ @.str.5, %99 ], [ %112, %111 ]
-  %115 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %114)
+  %115 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %114)
   br label %120
 
 116:                                              ; preds = %52
   %117 = load ptr, ptr %6, align 8
   %118 = load ptr, ptr %117, align 8
-  %119 = call i32 (ptr, ...) @printf(ptr noundef @.str.15, ptr noundef %118)
+  %119 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, ptr noundef %118)
   br label %120
 
 120:                                              ; preds = %52, %116, %113, %83, %78, %74, %69, %65
@@ -3201,7 +3465,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   br i1 %130, label %131, label %133
 
 131:                                              ; preds = %120
-  %132 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %132 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %133
 
 133:                                              ; preds = %131, %120
@@ -3214,11 +3478,11 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   br label %42, !llvm.loop !28
 
 137:                                              ; preds = %42
-  %138 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %138 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   br label %141
 
 139:                                              ; preds = %28
-  %140 = call i32 (ptr, ...) @printf(ptr noundef @.str.17)
+  %140 = call i32 (ptr, ...) @printf(ptr noundef @.str.18)
   br label %141
 
 141:                                              ; preds = %139, %137
@@ -3234,7 +3498,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   br i1 %148, label %149, label %151
 
 149:                                              ; preds = %142
-  %150 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %150 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %151
 
 151:                                              ; preds = %149, %142
@@ -3247,7 +3511,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef %0) #5 {
   br label %9, !llvm.loop !29
 
 155:                                              ; preds = %9
-  %156 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
+  %156 = call i32 (ptr, ...) @printf(ptr noundef @.str.15)
   ret void
 }
 
@@ -3691,7 +3955,7 @@ define internal void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(
   %107 = load ptr, ptr %14, align 8
   %108 = load i8, ptr %107, align 1
   %109 = sext i8 %108 to i32
-  %110 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %106, i64 noundef 64, ptr noundef @.str.16, i32 noundef %109) #10
+  %110 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %106, i64 noundef 64, ptr noundef @.str.17, i32 noundef %109) #10
   br label %151
 
 111:                                              ; preds = %76
@@ -3701,7 +3965,7 @@ define internal void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(
   %115 = trunc i8 %114 to i1
   %116 = zext i1 %115 to i64
   %117 = select i1 %115, ptr @.str.3, ptr @.str.4
-  %118 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %112, i64 noundef 64, ptr noundef @.str.9, ptr noundef %117) #10
+  %118 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %112, i64 noundef 64, ptr noundef @.str.10, ptr noundef %117) #10
   br label %151
 
 119:                                              ; preds = %76
@@ -3743,14 +4007,14 @@ define internal void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(
 
 143:                                              ; preds = %141, %129
   %144 = phi ptr [ @.str.5, %129 ], [ %142, %141 ]
-  %145 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %125, i64 noundef 64, ptr noundef @.str.9, ptr noundef %144) #10
+  %145 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %125, i64 noundef 64, ptr noundef @.str.10, ptr noundef %144) #10
   br label %151
 
 146:                                              ; preds = %76
   %147 = getelementptr inbounds [64 x i8], ptr %15, i64 0, i64 0
   %148 = load ptr, ptr %14, align 8
   %149 = load ptr, ptr %148, align 8
-  %150 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %147, i64 noundef 64, ptr noundef @.str.15, ptr noundef %149) #10
+  %150 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %147, i64 noundef 64, ptr noundef @.str.16, ptr noundef %149) #10
   br label %151
 
 151:                                              ; preds = %76, %146, %143, %111, %105, %100, %94, %89
@@ -4089,11 +4353,11 @@ define dso_local ptr @qc_list_get(ptr noundef %0, i32 noundef %1) #5 {
   %25 = sext i32 %24 to i64
   %26 = getelementptr inbounds ptr, ptr %23, i64 %25
   %27 = load ptr, ptr %26, align 8
-  %28 = call i32 (ptr, ...) @printf(ptr noundef @.str.18, ptr noundef %27)
+  %28 = call i32 (ptr, ...) @printf(ptr noundef @.str.19, ptr noundef %27)
   br label %29
 
 29:                                               ; preds = %20, %15
-  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.11)
+  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
   %31 = load ptr, ptr @stdout, align 8
   %32 = call i32 @fflush(ptr noundef %31)
   %33 = load ptr, ptr %4, align 8
@@ -4110,8 +4374,6 @@ define dso_local ptr @qc_list_get(ptr noundef %0, i32 noundef %1) #5 {
   %41 = load ptr, ptr %3, align 8
   ret ptr %41
 }
-
-declare i32 @fflush(ptr noundef) #6
 
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
 define dso_local ptr @qc_list_pop(ptr noundef %0) #0 {
@@ -4658,9 +4920,6 @@ define dso_local void @qc_map_set(ptr noundef %0, ptr noundef %1, ptr noundef %2
   ret void
 }
 
-; Function Attrs: nounwind
-declare noalias ptr @strdup(ptr noundef) #4
-
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
 define dso_local ptr @qc_map_get(ptr noundef %0, ptr noundef %1) #0 {
   %3 = alloca ptr, align 8
@@ -4895,7 +5154,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %4 = alloca i8, align 1
   %5 = alloca i8, align 1
   store ptr %0, ptr %2, align 8
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.19)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.20)
   store i32 0, ptr %3, align 4
   br label %7
 
@@ -4968,7 +5227,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %55 = load ptr, ptr %54, align 8
   %56 = load i8, ptr %55, align 1
   %57 = sext i8 %56 to i32
-  %58 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, i32 noundef %57)
+  %58 = call i32 (ptr, ...) @printf(ptr noundef @.str.17, i32 noundef %57)
   br label %113
 
 59:                                               ; preds = %13
@@ -4983,7 +5242,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %68 = trunc i8 %67 to i1
   %69 = zext i1 %68 to i64
   %70 = select i1 %68, ptr @.str.3, ptr @.str.4
-  %71 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %70)
+  %71 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %70)
   br label %113
 
 72:                                               ; preds = %13
@@ -5030,7 +5289,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
 
 101:                                              ; preds = %99, %87
   %102 = phi ptr [ @.str.5, %87 ], [ %100, %99 ]
-  %103 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %102)
+  %103 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %102)
   br label %113
 
 104:                                              ; preds = %13
@@ -5041,11 +5300,11 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %109 = sext i32 %108 to i64
   %110 = getelementptr inbounds ptr, ptr %107, i64 %109
   %111 = load ptr, ptr %110, align 8
-  %112 = call i32 (ptr, ...) @printf(ptr noundef @.str.15, ptr noundef %111)
+  %112 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, ptr noundef %111)
   br label %113
 
 113:                                              ; preds = %13, %104, %101, %59, %48, %38, %27, %17
-  %114 = call i32 (ptr, ...) @printf(ptr noundef @.str.20)
+  %114 = call i32 (ptr, ...) @printf(ptr noundef @.str.21)
   %115 = load ptr, ptr %2, align 8
   %116 = getelementptr inbounds %struct.qc_map, ptr %115, i32 0, i32 5
   %117 = load i32, ptr %116, align 4
@@ -5106,7 +5365,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %156 = load ptr, ptr %155, align 8
   %157 = load i8, ptr %156, align 1
   %158 = sext i8 %157 to i32
-  %159 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, i32 noundef %158)
+  %159 = call i32 (ptr, ...) @printf(ptr noundef @.str.17, i32 noundef %158)
   br label %214
 
 160:                                              ; preds = %113
@@ -5121,7 +5380,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %169 = trunc i8 %168 to i1
   %170 = zext i1 %169 to i64
   %171 = select i1 %169, ptr @.str.3, ptr @.str.4
-  %172 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %171)
+  %172 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %171)
   br label %214
 
 173:                                              ; preds = %113
@@ -5168,7 +5427,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
 
 202:                                              ; preds = %200, %188
   %203 = phi ptr [ @.str.5, %188 ], [ %201, %200 ]
-  %204 = call i32 (ptr, ...) @printf(ptr noundef @.str.9, ptr noundef %203)
+  %204 = call i32 (ptr, ...) @printf(ptr noundef @.str.10, ptr noundef %203)
   br label %214
 
 205:                                              ; preds = %113
@@ -5179,7 +5438,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %210 = sext i32 %209 to i64
   %211 = getelementptr inbounds ptr, ptr %208, i64 %210
   %212 = load ptr, ptr %211, align 8
-  %213 = call i32 (ptr, ...) @printf(ptr noundef @.str.15, ptr noundef %212)
+  %213 = call i32 (ptr, ...) @printf(ptr noundef @.str.16, ptr noundef %212)
   br label %214
 
 214:                                              ; preds = %113, %205, %202, %160, %149, %139, %128, %118
@@ -5192,7 +5451,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   br i1 %220, label %221, label %223
 
 221:                                              ; preds = %214
-  %222 = call i32 (ptr, ...) @printf(ptr noundef @.str.13)
+  %222 = call i32 (ptr, ...) @printf(ptr noundef @.str.14)
   br label %223
 
 223:                                              ; preds = %221, %214
@@ -5205,7 +5464,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   br label %7, !llvm.loop !37
 
 227:                                              ; preds = %7
-  %228 = call i32 (ptr, ...) @printf(ptr noundef @.str.21)
+  %228 = call i32 (ptr, ...) @printf(ptr noundef @.str.22)
   ret void
 }
 
@@ -5316,7 +5575,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %75 = load ptr, ptr %74, align 8
   %76 = load i8, ptr %75, align 1
   %77 = sext i8 %76 to i32
-  %78 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %68, i64 noundef 128, ptr noundef @.str.16, i32 noundef %77) #10
+  %78 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %68, i64 noundef 128, ptr noundef @.str.17, i32 noundef %77) #10
   br label %136
 
 79:                                               ; preds = %29
@@ -5332,7 +5591,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %89 = trunc i8 %88 to i1
   %90 = zext i1 %89 to i64
   %91 = select i1 %89, ptr @.str.3, ptr @.str.4
-  %92 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %80, i64 noundef 128, ptr noundef @.str.9, ptr noundef %91) #10
+  %92 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %80, i64 noundef 128, ptr noundef @.str.10, ptr noundef %91) #10
   br label %136
 
 93:                                               ; preds = %29
@@ -5380,7 +5639,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
 
 123:                                              ; preds = %121, %109
   %124 = phi ptr [ @.str.5, %109 ], [ %122, %121 ]
-  %125 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %105, i64 noundef 128, ptr noundef @.str.9, ptr noundef %124) #10
+  %125 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %105, i64 noundef 128, ptr noundef @.str.10, ptr noundef %124) #10
   br label %136
 
 126:                                              ; preds = %29
@@ -5392,7 +5651,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %132 = sext i32 %131 to i64
   %133 = getelementptr inbounds ptr, ptr %130, i64 %132
   %134 = load ptr, ptr %133, align 8
-  %135 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %127, i64 noundef 128, ptr noundef @.str.15, ptr noundef %134) #10
+  %135 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %127, i64 noundef 128, ptr noundef @.str.16, ptr noundef %134) #10
   br label %136
 
 136:                                              ; preds = %29, %126, %123, %79, %67, %56, %44, %33
@@ -5521,7 +5780,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %226 = load ptr, ptr %225, align 8
   %227 = load i8, ptr %226, align 1
   %228 = sext i8 %227 to i32
-  %229 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %219, i64 noundef 128, ptr noundef @.str.16, i32 noundef %228) #10
+  %229 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %219, i64 noundef 128, ptr noundef @.str.17, i32 noundef %228) #10
   br label %287
 
 230:                                              ; preds = %164
@@ -5537,7 +5796,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %240 = trunc i8 %239 to i1
   %241 = zext i1 %240 to i64
   %242 = select i1 %240, ptr @.str.3, ptr @.str.4
-  %243 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %231, i64 noundef 128, ptr noundef @.str.9, ptr noundef %242) #10
+  %243 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %231, i64 noundef 128, ptr noundef @.str.10, ptr noundef %242) #10
   br label %287
 
 244:                                              ; preds = %164
@@ -5585,7 +5844,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
 
 274:                                              ; preds = %272, %260
   %275 = phi ptr [ @.str.5, %260 ], [ %273, %272 ]
-  %276 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %256, i64 noundef 128, ptr noundef @.str.9, ptr noundef %275) #10
+  %276 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %256, i64 noundef 128, ptr noundef @.str.10, ptr noundef %275) #10
   br label %287
 
 277:                                              ; preds = %164
@@ -5597,7 +5856,7 @@ define dso_local ptr @qc_map_to_string(ptr noundef %0) #0 {
   %283 = sext i32 %282 to i64
   %284 = getelementptr inbounds ptr, ptr %281, i64 %283
   %285 = load ptr, ptr %284, align 8
-  %286 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %278, i64 noundef 128, ptr noundef @.str.15, ptr noundef %285) #10
+  %286 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %278, i64 noundef 128, ptr noundef @.str.16, ptr noundef %285) #10
   br label %287
 
 287:                                              ; preds = %164, %277, %274, %230, %218, %207, %195, %184
@@ -6057,6 +6316,413 @@ declare i32 @ffi_prep_cif(ptr noundef, i32 noundef, i32 noundef, ptr noundef, pt
 
 declare void @ffi_call(ptr noundef, ptr noundef, ptr noundef, ptr noundef) #6
 
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local ptr @qc_list_to_string(ptr noundef %0) #0 {
+  %2 = alloca ptr, align 8
+  %3 = alloca i32, align 4
+  %4 = alloca ptr, align 8
+  %5 = alloca ptr, align 8
+  %6 = alloca i32, align 4
+  %7 = alloca i32, align 4
+  %8 = alloca [128 x i8], align 16
+  %9 = alloca i8, align 1
+  %10 = alloca i32, align 4
+  %11 = alloca i32, align 4
+  store ptr %0, ptr %2, align 8
+  store i32 256, ptr %3, align 4
+  %12 = load i32, ptr %3, align 4
+  %13 = sext i32 %12 to i64
+  %14 = call noalias ptr @malloc(i64 noundef %13) #9
+  store ptr %14, ptr %4, align 8
+  %15 = load ptr, ptr %4, align 8
+  store ptr %15, ptr %5, align 8
+  %16 = load i32, ptr %3, align 4
+  store i32 %16, ptr %6, align 4
+  %17 = load ptr, ptr %5, align 8
+  %18 = getelementptr inbounds i8, ptr %17, i32 1
+  store ptr %18, ptr %5, align 8
+  store i8 91, ptr %17, align 1
+  %19 = load i32, ptr %6, align 4
+  %20 = add nsw i32 %19, -1
+  store i32 %20, ptr %6, align 4
+  store i32 0, ptr %7, align 4
+  br label %21
+
+21:                                               ; preds = %187, %1
+  %22 = load i32, ptr %7, align 4
+  %23 = load ptr, ptr %2, align 8
+  %24 = getelementptr inbounds %struct.qc_list, ptr %23, i32 0, i32 1
+  %25 = load i32, ptr %24, align 8
+  %26 = icmp slt i32 %22, %25
+  br i1 %26, label %27, label %190
+
+27:                                               ; preds = %21
+  %28 = load ptr, ptr %2, align 8
+  %29 = getelementptr inbounds %struct.qc_list, ptr %28, i32 0, i32 3
+  %30 = load i32, ptr %29, align 8
+  switch i32 %30, label %134 [
+    i32 0, label %31
+    i32 1, label %42
+    i32 2, label %54
+    i32 3, label %65
+    i32 4, label %77
+    i32 5, label %91
+    i32 6, label %124
+  ]
+
+31:                                               ; preds = %27
+  %32 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %33 = load ptr, ptr %2, align 8
+  %34 = getelementptr inbounds %struct.qc_list, ptr %33, i32 0, i32 0
+  %35 = load ptr, ptr %34, align 8
+  %36 = load i32, ptr %7, align 4
+  %37 = sext i32 %36 to i64
+  %38 = getelementptr inbounds ptr, ptr %35, i64 %37
+  %39 = load ptr, ptr %38, align 8
+  %40 = load i32, ptr %39, align 4
+  %41 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %32, i64 noundef 128, ptr noundef @.str.1, i32 noundef %40) #10
+  br label %134
+
+42:                                               ; preds = %27
+  %43 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %44 = load ptr, ptr %2, align 8
+  %45 = getelementptr inbounds %struct.qc_list, ptr %44, i32 0, i32 0
+  %46 = load ptr, ptr %45, align 8
+  %47 = load i32, ptr %7, align 4
+  %48 = sext i32 %47 to i64
+  %49 = getelementptr inbounds ptr, ptr %46, i64 %48
+  %50 = load ptr, ptr %49, align 8
+  %51 = load float, ptr %50, align 4
+  %52 = fpext float %51 to double
+  %53 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %43, i64 noundef 128, ptr noundef @.str.2, double noundef %52) #10
+  br label %134
+
+54:                                               ; preds = %27
+  %55 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %56 = load ptr, ptr %2, align 8
+  %57 = getelementptr inbounds %struct.qc_list, ptr %56, i32 0, i32 0
+  %58 = load ptr, ptr %57, align 8
+  %59 = load i32, ptr %7, align 4
+  %60 = sext i32 %59 to i64
+  %61 = getelementptr inbounds ptr, ptr %58, i64 %60
+  %62 = load ptr, ptr %61, align 8
+  %63 = load double, ptr %62, align 8
+  %64 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %55, i64 noundef 128, ptr noundef @.str.2, double noundef %63) #10
+  br label %134
+
+65:                                               ; preds = %27
+  %66 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %67 = load ptr, ptr %2, align 8
+  %68 = getelementptr inbounds %struct.qc_list, ptr %67, i32 0, i32 0
+  %69 = load ptr, ptr %68, align 8
+  %70 = load i32, ptr %7, align 4
+  %71 = sext i32 %70 to i64
+  %72 = getelementptr inbounds ptr, ptr %69, i64 %71
+  %73 = load ptr, ptr %72, align 8
+  %74 = load i8, ptr %73, align 1
+  %75 = sext i8 %74 to i32
+  %76 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %66, i64 noundef 128, ptr noundef @.str.17, i32 noundef %75) #10
+  br label %134
+
+77:                                               ; preds = %27
+  %78 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %79 = load ptr, ptr %2, align 8
+  %80 = getelementptr inbounds %struct.qc_list, ptr %79, i32 0, i32 0
+  %81 = load ptr, ptr %80, align 8
+  %82 = load i32, ptr %7, align 4
+  %83 = sext i32 %82 to i64
+  %84 = getelementptr inbounds ptr, ptr %81, i64 %83
+  %85 = load ptr, ptr %84, align 8
+  %86 = load i8, ptr %85, align 1
+  %87 = trunc i8 %86 to i1
+  %88 = zext i1 %87 to i64
+  %89 = select i1 %87, ptr @.str.3, ptr @.str.4
+  %90 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %78, i64 noundef 128, ptr noundef @.str.10, ptr noundef %89) #10
+  br label %134
+
+91:                                               ; preds = %27
+  %92 = load ptr, ptr %2, align 8
+  %93 = getelementptr inbounds %struct.qc_list, ptr %92, i32 0, i32 0
+  %94 = load ptr, ptr %93, align 8
+  %95 = load i32, ptr %7, align 4
+  %96 = sext i32 %95 to i64
+  %97 = getelementptr inbounds ptr, ptr %94, i64 %96
+  %98 = load ptr, ptr %97, align 8
+  %99 = load i8, ptr %98, align 1
+  %100 = zext i8 %99 to i32
+  %101 = and i32 %100, 3
+  %102 = trunc i32 %101 to i8
+  store i8 %102, ptr %9, align 1
+  %103 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %104 = load i8, ptr %9, align 1
+  %105 = zext i8 %104 to i32
+  %106 = icmp eq i32 %105, 0
+  br i1 %106, label %107, label %108
+
+107:                                              ; preds = %91
+  br label %121
+
+108:                                              ; preds = %91
+  %109 = load i8, ptr %9, align 1
+  %110 = zext i8 %109 to i32
+  %111 = icmp eq i32 %110, 1
+  br i1 %111, label %112, label %113
+
+112:                                              ; preds = %108
+  br label %119
+
+113:                                              ; preds = %108
+  %114 = load i8, ptr %9, align 1
+  %115 = zext i8 %114 to i32
+  %116 = icmp eq i32 %115, 2
+  %117 = zext i1 %116 to i64
+  %118 = select i1 %116, ptr @.str.7, ptr @.str.8
+  br label %119
+
+119:                                              ; preds = %113, %112
+  %120 = phi ptr [ @.str.6, %112 ], [ %118, %113 ]
+  br label %121
+
+121:                                              ; preds = %119, %107
+  %122 = phi ptr [ @.str.5, %107 ], [ %120, %119 ]
+  %123 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %103, i64 noundef 128, ptr noundef @.str.10, ptr noundef %122) #10
+  br label %134
+
+124:                                              ; preds = %27
+  %125 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %126 = load ptr, ptr %2, align 8
+  %127 = getelementptr inbounds %struct.qc_list, ptr %126, i32 0, i32 0
+  %128 = load ptr, ptr %127, align 8
+  %129 = load i32, ptr %7, align 4
+  %130 = sext i32 %129 to i64
+  %131 = getelementptr inbounds ptr, ptr %128, i64 %130
+  %132 = load ptr, ptr %131, align 8
+  %133 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef %125, i64 noundef 128, ptr noundef @.str.16, ptr noundef %132) #10
+  br label %134
+
+134:                                              ; preds = %27, %124, %121, %77, %65, %54, %42, %31
+  %135 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %136 = call i64 @strlen(ptr noundef %135) #8
+  %137 = trunc i64 %136 to i32
+  store i32 %137, ptr %10, align 4
+  %138 = load i32, ptr %6, align 4
+  %139 = load i32, ptr %10, align 4
+  %140 = add nsw i32 %139, 10
+  %141 = icmp slt i32 %138, %140
+  br i1 %141, label %142, label %162
+
+142:                                              ; preds = %134
+  %143 = load ptr, ptr %5, align 8
+  %144 = load ptr, ptr %4, align 8
+  %145 = ptrtoint ptr %143 to i64
+  %146 = ptrtoint ptr %144 to i64
+  %147 = sub i64 %145, %146
+  %148 = trunc i64 %147 to i32
+  store i32 %148, ptr %11, align 4
+  %149 = load i32, ptr %3, align 4
+  %150 = mul nsw i32 %149, 2
+  store i32 %150, ptr %3, align 4
+  %151 = load ptr, ptr %4, align 8
+  %152 = load i32, ptr %3, align 4
+  %153 = sext i32 %152 to i64
+  %154 = call ptr @realloc(ptr noundef %151, i64 noundef %153) #11
+  store ptr %154, ptr %4, align 8
+  %155 = load ptr, ptr %4, align 8
+  %156 = load i32, ptr %11, align 4
+  %157 = sext i32 %156 to i64
+  %158 = getelementptr inbounds i8, ptr %155, i64 %157
+  store ptr %158, ptr %5, align 8
+  %159 = load i32, ptr %3, align 4
+  %160 = load i32, ptr %11, align 4
+  %161 = sub nsw i32 %159, %160
+  store i32 %161, ptr %6, align 4
+  br label %162
+
+162:                                              ; preds = %142, %134
+  %163 = load ptr, ptr %5, align 8
+  %164 = getelementptr inbounds [128 x i8], ptr %8, i64 0, i64 0
+  %165 = call ptr @strcpy(ptr noundef %163, ptr noundef %164) #10
+  %166 = load i32, ptr %10, align 4
+  %167 = load ptr, ptr %5, align 8
+  %168 = sext i32 %166 to i64
+  %169 = getelementptr inbounds i8, ptr %167, i64 %168
+  store ptr %169, ptr %5, align 8
+  %170 = load i32, ptr %10, align 4
+  %171 = load i32, ptr %6, align 4
+  %172 = sub nsw i32 %171, %170
+  store i32 %172, ptr %6, align 4
+  %173 = load i32, ptr %7, align 4
+  %174 = load ptr, ptr %2, align 8
+  %175 = getelementptr inbounds %struct.qc_list, ptr %174, i32 0, i32 1
+  %176 = load i32, ptr %175, align 8
+  %177 = sub nsw i32 %176, 1
+  %178 = icmp slt i32 %173, %177
+  br i1 %178, label %179, label %186
+
+179:                                              ; preds = %162
+  %180 = load ptr, ptr %5, align 8
+  %181 = getelementptr inbounds i8, ptr %180, i32 1
+  store ptr %181, ptr %5, align 8
+  store i8 44, ptr %180, align 1
+  %182 = load ptr, ptr %5, align 8
+  %183 = getelementptr inbounds i8, ptr %182, i32 1
+  store ptr %183, ptr %5, align 8
+  store i8 32, ptr %182, align 1
+  %184 = load i32, ptr %6, align 4
+  %185 = sub nsw i32 %184, 2
+  store i32 %185, ptr %6, align 4
+  br label %186
+
+186:                                              ; preds = %179, %162
+  br label %187
+
+187:                                              ; preds = %186
+  %188 = load i32, ptr %7, align 4
+  %189 = add nsw i32 %188, 1
+  store i32 %189, ptr %7, align 4
+  br label %21, !llvm.loop !41
+
+190:                                              ; preds = %21
+  %191 = load ptr, ptr %5, align 8
+  %192 = getelementptr inbounds i8, ptr %191, i32 1
+  store ptr %192, ptr %5, align 8
+  store i8 93, ptr %191, align 1
+  %193 = load ptr, ptr %5, align 8
+  store i8 0, ptr %193, align 1
+  %194 = load ptr, ptr %4, align 8
+  ret ptr %194
+}
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local ptr @qc_fopen(ptr noundef %0, ptr noundef %1) #5 {
+  %3 = alloca ptr, align 8
+  %4 = alloca ptr, align 8
+  %5 = alloca ptr, align 8
+  store ptr %0, ptr %3, align 8
+  store ptr %1, ptr %4, align 8
+  %6 = load ptr, ptr %3, align 8
+  %7 = load ptr, ptr %4, align 8
+  %8 = call noalias ptr @fopen(ptr noundef %6, ptr noundef %7)
+  store ptr %8, ptr %5, align 8
+  %9 = load ptr, ptr %5, align 8
+  ret ptr %9
+}
+
+declare noalias ptr @fopen(ptr noundef, ptr noundef) #6
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local void @qc_fclose(ptr noundef %0) #5 {
+  %2 = alloca ptr, align 8
+  store ptr %0, ptr %2, align 8
+  %3 = load ptr, ptr %2, align 8
+  %4 = icmp ne ptr %3, null
+  br i1 %4, label %5, label %8
+
+5:                                                ; preds = %1
+  %6 = load ptr, ptr %2, align 8
+  %7 = call i32 @fclose(ptr noundef %6)
+  br label %8
+
+8:                                                ; preds = %5, %1
+  ret void
+}
+
+declare i32 @fclose(ptr noundef) #6
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local ptr @qc_fread(ptr noundef %0) #5 {
+  %2 = alloca ptr, align 8
+  %3 = alloca ptr, align 8
+  %4 = alloca [1024 x i8], align 16
+  %5 = alloca i64, align 8
+  store ptr %0, ptr %3, align 8
+  %6 = load ptr, ptr %3, align 8
+  %7 = icmp ne ptr %6, null
+  br i1 %7, label %10, label %8
+
+8:                                                ; preds = %1
+  %9 = call noalias ptr @strdup(ptr noundef @.str) #10
+  store ptr %9, ptr %2, align 8
+  br label %36
+
+10:                                               ; preds = %1
+  %11 = getelementptr inbounds [1024 x i8], ptr %4, i64 0, i64 0
+  %12 = load ptr, ptr %3, align 8
+  %13 = call ptr @fgets(ptr noundef %11, i32 noundef 1024, ptr noundef %12)
+  %14 = icmp ne ptr %13, null
+  br i1 %14, label %15, label %34
+
+15:                                               ; preds = %10
+  %16 = getelementptr inbounds [1024 x i8], ptr %4, i64 0, i64 0
+  %17 = call i64 @strlen(ptr noundef %16) #8
+  store i64 %17, ptr %5, align 8
+  %18 = load i64, ptr %5, align 8
+  %19 = icmp ugt i64 %18, 0
+  br i1 %19, label %20, label %31
+
+20:                                               ; preds = %15
+  %21 = load i64, ptr %5, align 8
+  %22 = sub i64 %21, 1
+  %23 = getelementptr inbounds [1024 x i8], ptr %4, i64 0, i64 %22
+  %24 = load i8, ptr %23, align 1
+  %25 = sext i8 %24 to i32
+  %26 = icmp eq i32 %25, 10
+  br i1 %26, label %27, label %31
+
+27:                                               ; preds = %20
+  %28 = load i64, ptr %5, align 8
+  %29 = sub i64 %28, 1
+  %30 = getelementptr inbounds [1024 x i8], ptr %4, i64 0, i64 %29
+  store i8 0, ptr %30, align 1
+  br label %31
+
+31:                                               ; preds = %27, %20, %15
+  %32 = getelementptr inbounds [1024 x i8], ptr %4, i64 0, i64 0
+  %33 = call noalias ptr @strdup(ptr noundef %32) #10
+  store ptr %33, ptr %2, align 8
+  br label %36
+
+34:                                               ; preds = %10
+  %35 = call noalias ptr @strdup(ptr noundef @.str) #10
+  store ptr %35, ptr %2, align 8
+  br label %36
+
+36:                                               ; preds = %34, %31, %8
+  %37 = load ptr, ptr %2, align 8
+  ret ptr %37
+}
+
+declare ptr @fgets(ptr noundef, i32 noundef, ptr noundef) #6
+
+; Function Attrs: mustprogress noinline optnone uwtable
+define dso_local void @qc_fwrite(ptr noundef %0, ptr noundef %1) #5 {
+  %3 = alloca ptr, align 8
+  %4 = alloca ptr, align 8
+  store ptr %0, ptr %3, align 8
+  store ptr %1, ptr %4, align 8
+  %5 = load ptr, ptr %3, align 8
+  %6 = icmp ne ptr %5, null
+  br i1 %6, label %7, label %16
+
+7:                                                ; preds = %2
+  %8 = load ptr, ptr %4, align 8
+  %9 = icmp ne ptr %8, null
+  br i1 %9, label %10, label %16
+
+10:                                               ; preds = %7
+  %11 = load ptr, ptr %4, align 8
+  %12 = load ptr, ptr %3, align 8
+  %13 = call i32 @fputs(ptr noundef %11, ptr noundef %12)
+  %14 = load ptr, ptr %3, align 8
+  %15 = call i32 @fputc(i32 noundef 10, ptr noundef %14)
+  br label %16
+
+16:                                               ; preds = %10, %7, %2
+  ret void
+}
+
+declare i32 @fputc(i32 noundef, ptr noundef) #6
+
 attributes #0 = { mustprogress noinline nounwind optnone uwtable "frame-pointer"="all" "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #1 = { nounwind willreturn memory(read) "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #2 = { nounwind allocsize(0) "frame-pointer"="all" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
@@ -6114,3 +6780,4 @@ attributes #11 = { nounwind allocsize(1) }
 !38 = distinct !{!38, !7}
 !39 = distinct !{!39, !7}
 !40 = distinct !{!40, !7}
+!41 = distinct !{!41, !7}

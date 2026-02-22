@@ -1036,6 +1036,7 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
+        bool parsing_construct = false;
         AnyNode default_value_for_type(const Token& type_tok, const Position& pos);
         std::vector<std::string> namespaceStack;
         size_t index = 0;
@@ -1102,7 +1103,42 @@ namespace tkz {
 
             return Token(TokenType::IDENTIFIER, qualified, start_pos);
         }
-        
+        UserTypeInfo* find_type(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                if (user_types.count(name)) {
+                    return &user_types[name];
+                }
+                return nullptr;
+            }
+            
+            // Try current namespace
+            if (!currentNamespace.empty()) {
+                std::string key = currentNamespace + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            
+            // Try parent namespaces
+            for (int i = namespaceStack.size() - 1; i >= 0; --i) {
+                std::string ns;
+                for (int j = 0; j <= i; ++j) {
+                    if (j > 0) ns += "::";
+                    ns += namespaceStack[j];
+                }
+                std::string key = ns + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            
+            // Try global
+            if (user_types.count(name)) {
+                return &user_types[name];
+            }
+            
+            return nullptr;
+        }
         bool is_known_qualified_type(const std::string& full) const {
             auto pos = full.rfind("::");
             if (pos == std::string::npos) return false;
@@ -1787,20 +1823,16 @@ namespace tkz {
             }
         }
         void define_user_type(UserTypeInfo info, std::string name) {
-            std::string fq;
-
-            if (info.namespace_path.empty())
-                fq = name;
-            else
-                fq = info.namespace_path + "::" + name;
-
+            std::string fq = name;
             if (user_types.count(fq)) {
                 throw RTError(
                     "Redefinition of type '" + fq + "'",
                     Position("", "", 0, 0, 0)
                 );
             }
-
+            if (info.kind == UserTypeKind::Enum) {
+                info.kind = UserTypeKind::Union;
+            }
             user_types[fq] = std::move(info);
         }
 
@@ -1902,7 +1934,7 @@ namespace tkz {
                     return arg->element_type + "[]";  
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<ListValue>>) {
-                    return "list<" + arg->element_type + ">";
+                    return arg->element_type;
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
                     return "map<" + arg->key_type + ", " + arg->value_type + ">";
@@ -2056,20 +2088,116 @@ namespace tkz {
 
     class LLVMCompiler {
     public:
+        void generateStructReprFunctions();
+        llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
+        void createUserTypes();
         llvm::Value* convertToString(llvm::Value* val, AnyNode& expr);
-        LLVMCompiler();
+        LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types);
         std::vector<CTError> compile(StatementsNode* root, const std::string& outPath);
         void cg_error(const Position& pos, const std::string& msg);
         std::vector<CTError> errors;
         llvm::BasicBlock* currentBreakBB = nullptr;
         llvm::BasicBlock* currentContinueBB = nullptr;
+        std::unordered_map<std::string, std::vector<size_t>> autoMethodIndices;
         std::unordered_map<std::string, llvm::FunctionType*> lambdaTypes;
         struct FunctionSignature {
             llvm::FunctionType* type;
             std::vector<llvm::Value*> defaultValues;
         };
+        
+        bool isUnionType(llvm::Type* ty, std::string* outName = nullptr) {
+            auto* st = llvm::dyn_cast<llvm::StructType>(ty);
+            if (!st) return false;
+
+            std::string name = st->getName().str();
+            auto it = unionTypes.find(name);
+            if (it == unionTypes.end()) return false;
+
+            if (outName) *outName = name;
+            return true;
+        }
+        bool isEnumType(llvm::Type* ty, std::string* outName = nullptr) {
+            auto* st = llvm::dyn_cast<llvm::StructType>(ty);
+            if (!st) return false;
+
+            std::string name = st->getName().str();
+            auto it = enumTypes.find(name);
+            if (it == enumTypes.end()) return false;
+
+            if (outName) *outName = name;
+            return true;
+        }
+        std::string resolveType(const std::string& typeName);
         std::unordered_map<std::string, UserTypeInfo>& userTypes;
+        struct EnumMemberValue {
+            int tag;
+            std::string type;
+            std::string value;
+        };
+        llvm::Value* createEnumData(const std::string& type, const std::string& value) {
+            if (type == "string") {
+                std::string str = value.substr(1, value.length() - 2);
+                return builder->CreateGlobalStringPtr(str);
+            }
+            else if (type == "int") {
+                int i = std::stoi(value);
+                llvm::AllocaInst* temp = createEntryAlloca("enum_int", builder->getInt32Ty());
+                builder->CreateStore(builder->getInt32(i), temp);
+                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            }
+            else if (type == "float") {
+                float f = std::stof(value);
+                llvm::AllocaInst* temp = createEntryAlloca("enum_float", builder->getFloatTy());
+                builder->CreateStore(llvm::ConstantFP::get(builder->getFloatTy(), f), temp);
+                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            }
+            else if (type == "double") {
+                double d = std::stod(value);
+                llvm::AllocaInst* temp = createEntryAlloca("enum_double", builder->getDoubleTy());
+                builder->CreateStore(llvm::ConstantFP::get(builder->getDoubleTy(), d), temp);
+                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            }
+            else if (type == "bool") {
+                bool b = (value == "true");
+                llvm::AllocaInst* temp = createEntryAlloca("enum_bool", builder->getInt1Ty());
+                builder->CreateStore(builder->getInt1(b), temp);
+                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            }
+            else if (type == "char") {
+                std::string charStr = value.substr(1, value.length() - 2);
+                
+                char c;
+                if (charStr.length() == 1) {
+                    c = charStr[0];
+                } else if (charStr[0] == '\\') {
+                    switch (charStr[1]) {
+                        case 'n': c = '\n'; break;
+                        case 't': c = '\t'; break;
+                        case 'r': c = '\r'; break;
+                        case '\\': c = '\\'; break;
+                        case '\'': c = '\''; break;
+                        default: c = charStr[1]; break;
+                    }
+                } else {
+                    c = charStr[0];
+                }
+                
+                llvm::AllocaInst* temp = createEntryAlloca("enum_char", builder->getInt8Ty());
+                builder->CreateStore(builder->getInt8(c), temp);
+                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            }
+            
+            return nullptr;
+        }
+        std::unordered_map<std::string, EnumMemberValue> enumMemberInfo;
+        std::unordered_map<std::string, llvm::StructType*> enumTypes;
+        std::unordered_map<std::string, std::string> typeAliases;
         std::unordered_map<std::string, llvm::StructType*> structTypes;
+        std::unordered_map<std::string, llvm::StructType*> unionTypes;
+        std::unordered_map<std::string, llvm::StructType*> classTypes;
+        std::unordered_map<std::string, std::unordered_map<std::string, std::vector<llvm::Function*>>> classMethods;
+        llvm::Value* currentThis = nullptr;
+        std::string currentClassName = "";
         llvm::Value* copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex, llvm::Type* elemTy, int elemTypeCode);
         llvm::Value* createRuntimeSizedArray(std::vector<AnyNode>& elements, llvm::Value* totalSize);
         void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
@@ -2083,20 +2211,9 @@ namespace tkz {
         std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
         std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
         std::unordered_map<std::string, llvm::AllocaInst*> runtimeArraySizes;
-        template<typename MapType>
-        auto findInStack(std::vector<MapType>& stack, const std::string& key) {
-            if (stack.empty()) {
-                cg_error(Position("", "", 0, 0, 0), "Stack is empty");
-                return stack.back().end();
-            }
-            for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
-                auto found = it->find(key);
-                if (found != it->end()) {
-                    return found;
-                }
-            }
-            return stack.back().end();
-        }
+        int findUnionVariantTag(const std::string& unionName,  AnyNode& valueNode, llvm::Value* val);
+        llvm::Value* storeAndGetPointer(llvm::Value* val);
+        std::map<std::string, std::map<std::string, llvm::Function*>> specializedFunctions;
         template<typename MapType>
         bool foundInStack(const std::vector<MapType>& stack, const std::string& key) {
             if (stack.empty()) return false;
@@ -2140,6 +2257,1023 @@ namespace tkz {
         }
         llvm::Value* getCollectionLength(llvm::Value* collVal, AnyNode& collExpr);
         llvm::Value* expandSpreadIntoArrays(llvm::Value* collVal, AnyNode& collExpr, llvm::AllocaInst* argsArray, llvm::AllocaInst* typesArray, llvm::Value* startIndex);
+        template<typename MapType>
+        auto findInStack(std::vector<MapType>& stack, const std::string& key) {
+            if (stack.empty()) {
+                cg_error(Position("", "", 0, 0, 0), "Stack is empty");
+                return stack.back().end();
+            }
+            for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+                auto found = it->find(key);
+                if (found != it->end()) {
+                    return found;
+                }
+            }
+            return stack.back().end();
+        }
+        std::string makeTypeSignature(const std::vector<std::string>& types) {
+            std::string sig;
+            for (auto& t : types) {
+                if (!sig.empty()) sig += "_";
+                sig += t;
+            }
+            return sig;
+        }
+        bool funcHasAutoParams(FuncDefNode* funcDef) {
+            if (!funcDef) return false;
+            
+            for (auto& param : funcDef->params) {
+                if (param.type.value == "auto") {
+                    return true;
+                }
+            }
+            return false;
+        }
+        std::string getExpressionType(AnyNode& node) {
+            std::cerr << "getExpressionType called, node index: " << node.index() << std::endl;
+            if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
+                if (!(*arrLit)->elements.empty()) {
+                    std::string elemType = getExpressionType((*arrLit)->elements[0]);
+                    return elemType + "[]";
+                }
+                return "int[]";
+            }
+            else if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+                return getExpressionType((*unaryOp)->node);
+            }
+            else if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+                std::string leftType = getExpressionType((*binOp)->left_node);
+                std::string rightType = getExpressionType((*binOp)->right_node);
+                if (leftType == rightType) return leftType;
+                if (leftType == "double" || rightType == "double") return "double";
+                if (leftType == "float" || rightType == "float") return "float";
+                return leftType;
+            }
+            else if (auto listDecl = std::get_if<std::unique_ptr<ListDeclNode>>(&node)) {
+                return "list<" + (*listDecl)->type_tok.value + ">";
+            }
+            else if (auto mapDecl = std::get_if<std::unique_ptr<MapDeclNode>>(&node)) {
+                return "map<" + (*mapDecl)->key_type.value + "," + (*mapDecl)->value_type.value + ">";
+            }
+            else if (auto strNode = std::get_if<StringNode>(&node)) {
+                return "string";
+            }
+            else if (auto numNode = std::get_if<NumberNode>(&node)) {
+                std::cerr << "  NumberNode: " << numNode->tok.value << std::endl;
+                switch(numNode->tok.type) {
+                    case TokenType::INT:
+                        return "int";
+                    case TokenType::FLOAT:
+                        return "float";
+                    case TokenType::DOUBLE:
+                        return "double";
+                }
+            }
+            else if (auto boolNode = std::get_if<BoolNode>(&node)) {
+                return "bool";
+            }
+            else if (auto charNode = std::get_if<CharNode>(&node)) {
+                return "char";
+            }
+            else if (auto qboolNode = std::get_if<QBoolNode>(&node)) {
+                return "qbool";
+            }
+            else if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+                std::string varName = (*varAccess)->var_name_tok.value;
+                std::cerr << "  VarAccess: " << varName << std::endl;
+                if (hasArrayType(varName)) {
+                    return arrayTypeStrings[varName] + "[]";
+                }
+                if (hasList(varName)) {
+                    int code = lists[varName];
+                    std::string elemType;
+                    if (code == 0) elemType = "int";
+                    else if (code == 1) elemType = "float";
+                    else if (code == 2) elemType = "double";
+                    else if (code == 3) elemType = "char";
+                    else if (code == 4) elemType = "bool";
+                    else if (code == 5) elemType = "qbool";
+                    else if (code == 6) elemType = "string";
+                    else elemType = "auto";
+                    return "list<" + elemType + ">";
+                }
+                std::cerr << "    -> NOT FOUND! Returning unknown!" << std::endl;
+            }
+            std::cerr << "  -> UNKNOWN (node index " << node.index() << ")" << std::endl;
+            return "unknown";
+        }
+        std::string getTypeName(llvm::Type* ty) {
+            if (ty->isIntegerTy(32)) return "int";
+            if (ty->isIntegerTy(16)) return "short";
+            if (ty->isIntegerTy(64)) return "long";
+            if (ty->isFloatTy()) return "float";
+            if (ty->isDoubleTy()) return "double";
+            if (ty->isPointerTy()) {
+                return "ptr";
+            }
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
+                return structTy->getName().str();
+            }
+            
+            return "unknown";
+        }
+        std::pair<llvm::Function*, std::string> findMethodInHierarchy(const std::string& className, const std::string& methodName) {
+            std::string resolvedClassName = className;
+            if (className.find("::") == std::string::npos && !getCurrentNamespace().empty()) {
+                std::string qualifiedName = getCurrentNamespace() + "::" + className;
+                if (classMethods.find(qualifiedName) != classMethods.end()) {
+                    resolvedClassName = qualifiedName;
+                }
+            }
+            
+            std::string currentClass = resolvedClassName;
+            
+            while (!currentClass.empty()) {
+                auto classIt = classMethods.find(currentClass);
+                if (classIt != classMethods.end()) {
+                    auto methodIt = classIt->second.find(methodName);
+                    if (methodIt != classIt->second.end()) {
+                        if (!methodIt->second.empty()) {
+                            return {methodIt->second[0], currentClass};
+                        }
+                    }
+                }
+                
+                auto typeIt = userTypes.find(currentClass);
+                if (typeIt != userTypes.end()) {
+                    std::string baseClass = typeIt->second.baseClassName;
+                    if (!baseClass.empty() && baseClass.find("::") == std::string::npos) {
+                        size_t lastColon = currentClass.rfind("::");
+                        if (lastColon != std::string::npos) {
+                            std::string ns = currentClass.substr(0, lastColon);
+                            std::string qualifiedBase = ns + "::" + baseClass;
+                            if (userTypes.find(qualifiedBase) != userTypes.end()) {
+                                baseClass = qualifiedBase;
+                            }
+                        }
+                    }
+                    currentClass = baseClass;
+                } else {
+                    break;
+                }
+            }
+            
+            return {nullptr, ""};
+        }
+        int getFlattenedFieldIndex(const std::string& className, const std::string& fieldName) {
+            int index = 0;
+            
+            std::function<bool(const std::string&)> searchFields = [&](const std::string& currentClass) -> bool {
+                auto& classInfo = userTypes[currentClass];
+                
+                if (!classInfo.baseClassName.empty()) {
+                    std::string baseClass = classInfo.baseClassName;
+                    if (baseClass.find("::") == std::string::npos) {
+                        size_t pos = currentClass.rfind("::");
+                        if (pos != std::string::npos) {
+                            std::string ns = currentClass.substr(0, pos);
+                            std::string qualified = ns + "::" + baseClass;
+                            if (userTypes.find(qualified) != userTypes.end()) {
+                                baseClass = qualified;
+                            }
+                        }
+                    }
+                    
+                    if (searchFields(baseClass)) {
+                        return true;
+                    }
+                }
+                
+                for (auto& field : classInfo.classFields) {
+                    if (field.name == fieldName) {
+                        return true;
+                    }
+                    index++;
+                }
+                
+                return false;
+            };
+            std::string resolvedClass = className;
+            if (className.find("::") == std::string::npos && !getCurrentNamespace().empty()) {
+                std::string qualified = getCurrentNamespace() + "::" + className;
+                if (userTypes.find(qualified) != userTypes.end()) {
+                    resolvedClass = qualified;
+                }
+            }
+            
+            if (searchFields(resolvedClass)) {
+                return index;
+            }
+            
+            return -1;
+        }
+        bool canAccessMethod(const std::string& callerClass, 
+                            const std::string& methodClass, 
+                            const std::string& methodName) {
+            auto& classInfo = userTypes[methodClass];
+            for (auto& method : classInfo.classMethods) {
+                if (method.name_tok.value == methodName) {
+                    std::string access = method.access;
+                    
+                    if (access == "public") return true;
+                    if (access == "private") return callerClass == methodClass;
+                    if (access == "protected") {
+                        if (callerClass == methodClass) return true;
+                        std::string current = callerClass;
+                        while (!current.empty()) {
+                            if (current == methodClass) return true;
+                            current = userTypes[current].baseClassName;
+                        }
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+        std::pair<std::string, std::string> getFieldOwner(const std::string& className, const std::string& fieldName) {
+            std::string currentClass = className;
+            
+            while (!currentClass.empty()) {
+                auto& classInfo = userTypes[currentClass];
+                
+                for (auto& field : classInfo.classFields) {
+                    if (field.name == fieldName) {
+                        return {currentClass, field.access};
+                    }
+                }
+                currentClass = classInfo.baseClassName;
+            }
+            
+            return {"", "public"};
+        }
+        bool canAccessField(const std::string& callerClass, const std::string& fieldOwnerClass, const std::string& access) {
+            if (access == "public") return true;
+            
+            if (access == "private") {
+                return callerClass == fieldOwnerClass;
+            }
+            
+            if (access == "protected") {
+                if (callerClass == fieldOwnerClass) return true;
+                std::string current = callerClass;
+                while (!current.empty()) {
+                    if (current == fieldOwnerClass) return true;
+                    current = userTypes[current].baseClassName;
+                }
+                return false;
+            }
+            
+            return true;
+        }
+        std::vector<std::string> namespaceStack;
+        std::string getCurrentNamespace() {
+            if (namespaceStack.empty()) return "";
+            
+            std::string result = namespaceStack[0];
+            for (size_t i = 1; i < namespaceStack.size(); i++) {
+                result += "::" + namespaceStack[i];
+            }
+            return result;
+        }
+        std::vector<std::string> getAccessibleNamespaces() {
+            std::vector<std::string> accessible;
+            accessible.push_back("");
+            std::string current = "";
+            for (auto& ns : namespaceStack) {
+                if (!current.empty()) current += "::";
+                current += ns;
+                accessible.push_back(current);
+            }
+            
+            return accessible;
+        }
+        llvm::Function* findMethodOverload(const std::string& className, const std::string& methodName, const std::vector<llvm::Value*>& args) {
+            std::string resolvedClassName = className;
+            if (className.find("::") == std::string::npos && !getCurrentNamespace().empty()) {
+                std::string qualifiedName = getCurrentNamespace() + "::" + className;
+                if (classMethods.find(qualifiedName) != classMethods.end()) {
+                    resolvedClassName = qualifiedName;
+                }
+            }
+            
+            std::string currentClass = resolvedClassName;
+            
+            while (!currentClass.empty()) {
+                auto classIt = classMethods.find(currentClass);
+                if (classIt != classMethods.end()) {
+                    auto methodIt = classIt->second.find(methodName);
+                    if (methodIt != classIt->second.end()) {
+                        for (auto* fn : methodIt->second) {
+                            if (fn->arg_size() - 1 != args.size()) continue;
+                            bool matches = true;
+                            for (size_t i = 0; i < args.size(); i++) {
+                                llvm::Type* expectedType = fn->getFunctionType()->getParamType(i + 1);
+                                llvm::Type* actualType = args[i]->getType();
+                                
+                                if (expectedType != actualType) {
+                                    matches = false;
+                                    break;
+                                }
+                            }
+                            
+                            if (matches) {
+                                return fn;
+                            }
+                        }
+                    }
+                }
+                auto typeIt = userTypes.find(currentClass);
+                if (typeIt != userTypes.end()) {
+                    currentClass = typeIt->second.baseClassName;
+                    if (!currentClass.empty() && currentClass.find("::") == std::string::npos) {
+                        size_t lastColon = resolvedClassName.rfind("::");
+                        if (lastColon != std::string::npos) {
+                            std::string ns = resolvedClassName.substr(0, lastColon);
+                            std::string qualifiedBase = ns + "::" + currentClass;
+                            if (userTypes.find(qualifiedBase) != userTypes.end()) {
+                                currentClass = qualifiedBase;
+                            }
+                        }
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            return nullptr;
+        }
+        llvm::Function* generateSpecializedMethod(
+            const std::string& className,
+            size_t methodIdx,
+            const std::vector<std::string>& concreteTypes,
+            const std::string& specializedName
+        ) {
+            llvm::Function* savedFunction = currentFunction;
+            llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
+            auto savedLocals = locals;
+            auto savedGlobals = globals;
+            auto savedThis = currentThis;
+            auto savedClassName = currentClassName;
+            
+            auto& method = userTypes[className].classMethods[methodIdx];
+            std::vector<llvm::Type*> paramTypes;
+            paramTypes.push_back(llvm::PointerType::get(classTypes[className], 0));
+            
+            for (size_t i = 0; i < method.params.size(); i++) {
+                std::string paramType = (method.params[i].type.value == "auto")
+                    ? concreteTypes[i]
+                    : method.params[i].type.value;
+                paramTypes.push_back(llvmTypeFor(paramType));
+            }
+            llvm::Type* retTy = builder->getVoidTy();
+            
+            if (!method.return_types.empty() && method.return_types[0].value == "auto") {
+                std::function<std::string(AnyNode&)> inferTypeFromAST = [&](AnyNode& node) -> std::string {
+                    if (auto retNode = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
+                        if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*retNode)->value)) {
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                                std::string varName = (*varAccess)->var_name_tok.value;
+                                for (size_t i = 0; i < method.params.size(); i++) {
+                                    if (method.params[i].name.value == varName) {
+                                        std::string paramType = (method.params[i].type.value == "auto")
+                                            ? concreteTypes[i]
+                                            : method.params[i].type.value;
+                                        
+                                        if (paramType.ends_with("[]")) {
+                                            return paramType.substr(0, paramType.size() - 2);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*retNode)->value)) {
+                            std::string varName = (*varAccess)->var_name_tok.value;
+                            for (size_t i = 0; i < method.params.size(); i++) {
+                                if (method.params[i].name.value == varName) {
+                                    return (method.params[i].type.value == "auto")
+                                        ? concreteTypes[i]
+                                        : method.params[i].type.value;
+                                }
+                            }
+                        }
+                        if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&(*retNode)->value)) {
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unaryOp)->node)) {
+                                std::string varName = (*varAccess)->var_name_tok.value;
+                                for (size_t i = 0; i < method.params.size(); i++) {
+                                    if (method.params[i].name.value == varName) {
+                                        return (method.params[i].type.value == "auto")
+                                            ? concreteTypes[i]
+                                            : method.params[i].type.value;
+                                    }
+                                }
+                            }
+                        }
+                        if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&(*retNode)->value)) {
+                            std::string leftType = "unknown";
+                            std::string rightType = "unknown";
+                            
+                            if (auto leftVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->left_node)) {
+                                std::string varName = (*leftVar)->var_name_tok.value;
+                                for (size_t i = 0; i < method.params.size(); i++) {
+                                    if (method.params[i].name.value == varName) {
+                                        leftType = (method.params[i].type.value == "auto")
+                                            ? concreteTypes[i]
+                                            : method.params[i].type.value;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (auto rightVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->right_node)) {
+                                std::string varName = (*rightVar)->var_name_tok.value;
+                                for (size_t i = 0; i < method.params.size(); i++) {
+                                    if (method.params[i].name.value == varName) {
+                                        rightType = (method.params[i].type.value == "auto") ? concreteTypes[i] : method.params[i].type.value;
+                                        break;
+                                    }
+                                }
+                            }
+                                    
+                            if (leftType == rightType && leftType != "unknown") {
+                                return leftType;
+                            }
+                            if (leftType == "double" || rightType == "double") return "double";
+                            if (leftType == "float" || rightType == "float") return "float";
+                            if (leftType != "unknown") return leftType;
+                            if (rightType != "unknown") return rightType;
+                        }
+                        
+                        return getExpressionType((*retNode)->value);
+                    }
+                    if (auto ifNode = std::get_if<std::unique_ptr<IfNode>>(&node)) {
+                        for (auto& stmt : (*ifNode)->then_branch->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                        if ((*ifNode)->else_branch) {
+                            for (auto& stmt : (*ifNode)->else_branch->statements) {
+                                std::string ty = inferTypeFromAST(stmt);
+                                if (ty != "unknown") return ty;
+                            }
+                        }
+                    }
+                    
+                    return "unknown";
+                };
+                
+                std::string inferredTypeStr = "unknown";
+                if (method.body) {
+                    for (auto& stmt : method.body->statements) {
+                        inferredTypeStr = inferTypeFromAST(stmt);
+                        if (inferredTypeStr != "unknown") break;
+                    }
+                }
+                
+                retTy = llvmTypeFor(inferredTypeStr);
+            } else if (!method.return_types.empty()) {
+                retTy = llvmTypeFor(method.return_types[0].value);
+            }
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
+            llvm::Function* fn = llvm::Function::Create(
+                fnTy, 
+                llvm::Function::ExternalLinkage, 
+                specializedName, 
+                module.get()
+            );
+            currentFunction = fn;
+            currentClassName = className;
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+            builder->SetInsertPoint(entry);
+            auto argIt = fn->arg_begin();
+            currentThis = &*argIt;
+            ++argIt;
+            for (size_t i = 0; i < method.params.size(); i++) {
+                std::string paramName = method.params[i].name.value;
+                std::string paramType = (method.params[i].type.value == "auto")
+                    ? concreteTypes[i]
+                    : method.params[i].type.value;
+                
+                llvm::Type* paramTy = llvmTypeFor(paramType);
+                llvm::AllocaInst* alloc = createEntryAlloca(paramName, paramTy);
+                builder->CreateStore(&*argIt, alloc);
+                locals[paramName] = alloc;
+                
+                if (paramType.ends_with("[]")) {
+                    std::string elemType = paramType.substr(0, paramType.size() - 2);
+                    arrayTypeStrings[paramName] = elemType;
+                } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                    std::string elemType = paramType.substr(5, paramType.size() - 6);
+                    int typeCode = getTypeCode(elemType);
+                    lists[paramName] = typeCode;
+                }
+                
+                argIt->setName(paramName);
+                ++argIt;
+            }
+            if (method.body) {
+                for (auto& stmt : method.body->statements) {
+                    emitStmt(stmt);
+                }
+            }
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                if (retTy->isVoidTy()) {
+                    builder->CreateRetVoid();
+                } else {
+                    builder->CreateRet(llvm::Constant::getNullValue(retTy));
+                }
+            }
+            
+            currentFunction = savedFunction;
+            locals = savedLocals;
+            globals = savedGlobals;
+            currentThis = savedThis;
+            currentClassName = savedClassName;
+            if (savedBlock) {
+                builder->SetInsertPoint(savedBlock);
+            }
+            
+            return fn;
+        }
+        llvm::Function* generateSpecializedFunction(
+            FuncDefNode* funcDef,
+            const std::vector<std::string>& concreteTypes,
+            const std::string& specializedName
+        ) {
+            llvm::Function* savedFunction = currentFunction;
+            llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
+            auto savedLocals = locals;
+            auto savedGlobals = globals;
+            
+            std::vector<llvm::Type*> paramTypes;
+            size_t paramIdx = 0;
+            for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
+                std::string paramType = it->type.value;
+                
+                if (paramType == "auto") {
+                    paramTypes.push_back(llvmTypeFor(concreteTypes[paramIdx]));
+                } else {
+                    paramTypes.push_back(llvmTypeFor(paramType));
+                }
+            }
+            
+            llvm::Type* retTy = builder->getVoidTy();
+            
+            if (!funcDef->return_types.empty() && funcDef->return_types[0].value == "auto") {
+                std::function<std::string(AnyNode&)> inferTypeFromAST = [&](AnyNode& node) -> std::string {
+                    if (auto retNode = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
+                        if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*retNode)->value)) {
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                                std::string varName = (*varAccess)->var_name_tok.value;
+                                auto paramIt = funcDef->params.begin();
+                                for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                    if (paramIt->name.value == varName) {
+                                        std::string paramType = (paramIt->type.value == "auto")
+                                            ? concreteTypes[i]
+                                            : paramIt->type.value;
+                                        
+                                        if (paramType.ends_with("[]")) {
+                                            return paramType.substr(0, paramType.size() - 2);
+                                        }
+                                        if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                                            return paramType.substr(5, paramType.size() - 6);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*retNode)->value)) {
+                            std::string varName = (*varAccess)->var_name_tok.value;
+                            auto paramIt = funcDef->params.begin();
+                            for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                if (paramIt->name.value == varName) {
+                                    std::string paramType = (paramIt->type.value == "auto")
+                                        ? concreteTypes[i]
+                                        : paramIt->type.value;
+                                    return paramType;
+                                }
+                            }
+                        }
+                        if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&(*retNode)->value)) {
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unaryOp)->node)) {
+                                std::string varName = (*varAccess)->var_name_tok.value;
+                                auto paramIt = funcDef->params.begin();
+                                for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                    if (paramIt->name.value == varName) {
+                                        std::string paramType = (paramIt->type.value == "auto")
+                                            ? concreteTypes[i]
+                                            : paramIt->type.value;
+                                        return paramType;
+                                    }
+                                }
+                            }
+                        }
+                        if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&(*retNode)->value)) {
+                            std::string leftType = "unknown";
+                            std::string rightType = "unknown";
+                            if (auto leftVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->left_node)) {
+                                std::string varName = (*leftVar)->var_name_tok.value;
+                                auto paramIt = funcDef->params.begin();
+                                for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                    if (paramIt->name.value == varName) {
+                                        leftType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (auto rightVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->right_node)) {
+                                std::string varName = (*rightVar)->var_name_tok.value;
+                                auto paramIt = funcDef->params.begin();
+                                for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                    if (paramIt->name.value == varName) {
+                                        rightType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (leftType == rightType && leftType != "unknown") {
+                                return leftType;
+                            }
+                            if (leftType == "double" || rightType == "double") return "double";
+                            if (leftType == "float" || rightType == "float") return "float";
+                            if (leftType != "unknown") return leftType;
+                            if (rightType != "unknown") return rightType;
+                        }
+                        return getExpressionType((*retNode)->value);
+                    }
+                    
+                    if (auto multiRet = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
+                        std::vector<std::string> types;
+                        for (auto& val : (*multiRet)->values) {
+                            if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&val)) {
+                                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                                    std::string varName = (*varAccess)->var_name_tok.value;
+                                    
+                                    auto paramIt = funcDef->params.begin();
+                                    for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
+                                        if (paramIt->name.value == varName) {
+                                            std::string paramType = (paramIt->type.value == "auto")
+                                                ? concreteTypes[i]
+                                                : paramIt->type.value;
+                                            
+                                            if (paramType.ends_with("[]")) {
+                                                types.push_back(paramType.substr(0, paramType.size() - 2));
+                                                goto next_val;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            types.push_back(getExpressionType(val));
+                            next_val:;
+                        }
+                        
+                        std::string result;
+                        for (auto& t : types) {
+                            if (!result.empty()) result += ",";
+                            result += t;
+                        }
+                        return result;
+                    }
+                    
+                    if (auto ifNode = std::get_if<std::unique_ptr<IfNode>>(&node)) {
+                        for (auto& stmt : (*ifNode)->then_branch->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                        for (auto& [cond, body] : (*ifNode)->elif_branches) {
+                            for (auto& stmt : body->statements) {
+                                std::string ty = inferTypeFromAST(stmt);
+                                if (ty != "unknown") return ty;
+                            }
+                        }
+                        if ((*ifNode)->else_branch) {
+                            for (auto& stmt : (*ifNode)->else_branch->statements) {
+                                std::string ty = inferTypeFromAST(stmt);
+                                if (ty != "unknown") return ty;
+                            }
+                        }
+                    }
+                    
+                    if (auto qifNode = std::get_if<std::unique_ptr<QIfNode>>(&node)) {
+                        for (auto& stmt : (*qifNode)->then_branch->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                    }
+                    
+                    if (auto whileNode = std::get_if<std::unique_ptr<WhileNode>>(&node)) {
+                        for (auto& stmt : (*whileNode)->body->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                    }
+                    
+                    if (auto forNode = std::get_if<std::unique_ptr<ForNode>>(&node)) {
+                        for (auto& stmt : (*forNode)->body->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                    }
+                    
+                    if (auto switchNode = std::get_if<std::unique_ptr<SwitchNode>>(&node)) {
+                        for (auto& section : (*switchNode)->sections) {
+                            if (section.body) {
+                                for (auto& stmt : section.body->statements) {
+                                    std::string ty = inferTypeFromAST(stmt);
+                                    if (ty != "unknown") return ty;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (auto stmtsNode = std::get_if<std::unique_ptr<StatementsNode>>(&node)) {
+                        for (auto& stmt : (*stmtsNode)->statements) {
+                            std::string ty = inferTypeFromAST(stmt);
+                            if (ty != "unknown") return ty;
+                        }
+                    }
+                    
+                    return "unknown";
+                };
+                
+                std::string inferredTypeStr = "unknown";
+                for (auto& stmt : funcDef->body->statements) {
+                    inferredTypeStr = inferTypeFromAST(stmt);
+                    if (inferredTypeStr != "unknown") break;
+                }
+
+                std::cerr << "INFERRED RETURN TYPE: " << inferredTypeStr << std::endl;
+
+                
+                if (inferredTypeStr.find(',') != std::string::npos) {
+                    std::vector<llvm::Type*> types;
+                    size_t pos = 0;
+                    std::string remaining = inferredTypeStr;
+                    while ((pos = remaining.find(',')) != std::string::npos) {
+                        types.push_back(llvmTypeFor(remaining.substr(0, pos)));
+                        remaining.erase(0, pos + 1);
+                    }
+                    types.push_back(llvmTypeFor(remaining));
+                    retTy = llvm::StructType::get(context, types);
+                } else {
+                    retTy = llvmTypeFor(inferredTypeStr);
+                }
+            }
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
+            llvm::Function* fn = llvm::Function::Create(
+                fnTy, 
+                llvm::Function::ExternalLinkage, 
+                specializedName, 
+                module.get()
+            );
+            
+            currentFunction = fn;
+            enterScope();
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+            builder->SetInsertPoint(entry);
+            auto argIt = fn->arg_begin();
+            paramIdx = 0;
+            for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
+                std::string paramName = it->name.value;
+                std::string paramType = (it->type.value == "auto") 
+                    ? concreteTypes[paramIdx] 
+                    : it->type.value;
+                
+                llvm::Value* alloca = createEntryAlloca(paramName, llvmTypeFor(paramType));
+                builder->CreateStore(&*argIt, alloca);
+                locals[paramName] = llvm::cast<llvm::AllocaInst>(alloca);
+                
+                if (paramType.ends_with("[]")) {
+                    std::string elemType = paramType.substr(0, paramType.size() - 2);
+                    arrayTypeStrings[paramName] = elemType;
+                        } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                    std::string elemType = paramType.substr(5, paramType.size() - 6);
+                    int typeCode = getTypeCode(elemType);
+                    lists[paramName] = typeCode;
+                }
+                
+                argIt->setName(paramName);
+                ++argIt;
+            }
+            for (auto& stmt : funcDef->body->statements) {
+                emitStmt(stmt);
+            }
+            
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                if (retTy->isVoidTy()) {
+                    builder->CreateRetVoid();
+                } else {
+                    builder->CreateRet(llvm::Constant::getNullValue(retTy));
+                }
+            }
+            
+            exitScope();
+            currentFunction = savedFunction;
+            locals = savedLocals;
+            globals = savedGlobals;
+            if (savedBlock) {
+                builder->SetInsertPoint(savedBlock);
+            }
+            
+            return fn;
+        }
+        std::string resolveTypeName(const std::string& name) {
+            if (name == "int" || name == "float" || name == "double" || 
+                name == "char" || name == "bool" || name == "qbool" || 
+                name == "string" || name == "void" || name == "auto" ||
+                name == "short int" || name == "long int" || name == "long double") {
+                return name;
+            }
+            if (name.ends_with("[]") || name.starts_with("list<") || name.starts_with("map<")) {
+                return name;
+            }
+            if (name.find("::") != std::string::npos) {
+                if (classTypes.find(name) != classTypes.end()) return name;
+                if (structTypes.find(name) != structTypes.end()) return name;
+                if (enumTypes.find(name) != enumTypes.end()) return name;
+                if (unionTypes.find(name) != unionTypes.end()) return name;
+            }
+            std::string current = getCurrentNamespace();
+            
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                if (classTypes.find(fullName) != classTypes.end()) return fullName;
+                if (structTypes.find(fullName) != structTypes.end()) return fullName;
+                if (enumTypes.find(fullName) != enumTypes.end()) return fullName;
+                if (unionTypes.find(fullName) != unionTypes.end()) return fullName;
+                if (current.empty()) break;
+                
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            return name;
+        }
+        llvm::Type* getPointeeType(llvm::Value* ptr) {
+            if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr)) {
+                return alloca->getAllocatedType();
+            }
+            if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) {
+                return gv->getValueType();
+            }
+            return nullptr;
+        }
+        llvm::Value* resolveVariable(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                auto it = locals.find(name);
+                if (it != locals.end()) return it->second;
+                auto git = globals.find(name);
+                if (git != globals.end()) return git->second;
+                return nullptr;
+            }
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                auto it = locals.find(fullName);
+                if (it != locals.end()) return it->second;
+                auto git = globals.find(fullName);
+                if (git != globals.end()) return git->second;
+                
+                if (current.empty()) break;
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            auto it = locals.find(name);
+            if (it != locals.end()) return it->second;
+            auto git = globals.find(name);
+            if (git != globals.end()) return git->second;
+            return nullptr;
+        }
+        llvm::Function* resolveFunction(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                return module->getFunction(name);
+            }
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                
+                llvm::Function* fn = module->getFunction(fullName);
+                if (fn) return fn;
+                
+                if (current.empty()) break;
+                
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            
+            return nullptr;
+        }
+        
+        llvm::Value* toTruthiness(llvm::Value* v, const Position& pos) {
+            llvm::Type* ty = v->getType();
+
+            if (ty->isIntegerTy(1)) {
+                return v;
+            }
+
+            if (ty->isIntegerTy(2)) {
+                llvm::Value* zero = builder->getIntN(2, 0);
+                return builder->CreateICmpNE(v, zero, "qbool_truthy");
+            }
+
+            if (ty->isIntegerTy()) {
+                llvm::Value* zero = llvm::ConstantInt::get(ty, 0);
+                return builder->CreateICmpNE(v, zero, "int_truthy");
+            }
+
+            if (ty->isFloatingPointTy()) {
+                llvm::Value* zero = llvm::ConstantFP::get(ty, 0.0);
+                return builder->CreateFCmpONE(v, zero, "float_truthy");
+            }
+
+            if (ty->isPointerTy()) {
+                llvm::Value* nullPtr = llvm::ConstantPointerNull::get(
+                    llvm::cast<llvm::PointerType>(ty)
+                );
+                return builder->CreateICmpNE(v, nullPtr, "ptr_truthy");
+            }
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
+                std::string className = structTy->getName().str();
+                
+                auto evalMethod = findMethodInHierarchy(className, "eval");
+                if (evalMethod.first) {
+                    std::vector<llvm::Value*> args;
+                    
+                    llvm::AllocaInst* temp = createEntryAlloca("temp_eval", ty);
+                    builder->CreateStore(v, temp);
+                    args.push_back(temp);
+                    
+                    return builder->CreateCall(evalMethod.first, args);
+                }
+            }
+            return builder->getInt1(1);
+        }
+        std::string getOperatorMethodName(TokenType op) {
+            switch (op) {
+                case TokenType::PLUS:   return "operator+";
+                case TokenType::MINUS:  return "operator-";
+                case TokenType::MUL:    return "operator*";
+                case TokenType::DIV:    return "operator/";
+                case TokenType::EQ_TO:  return "operator==";
+                case TokenType::NOT_EQ: return "operator!=";
+                case TokenType::OR:  return "operator||";
+                case TokenType::AND: return "operator&&";
+                case TokenType::NOT:  return "operator!";
+                case TokenType::MORE:  return "operator>";
+                case TokenType::LESS: return "operator<";
+                case TokenType::MORE_EQ:  return "operator>=";
+                case TokenType::LESS_EQ: return "operator<=";
+                case TokenType::POWER:  return "operator^*";
+                case TokenType::MOD: return "operator%";
+                case TokenType::QNOT:  return "operator!!";
+                case TokenType::QAND: return "operator&&&";
+                case TokenType::QOR:  return "operator|||";
+                case TokenType::QXOR: return "operator^^";
+                case TokenType::COLLAPSE_OR:  return "operator|&|";
+                case TokenType::COLLAPSE_AND: return "operator&|&";
+                case TokenType::XOR: return "operator^";
+                default:                return "";
+            }
+        }
+        std::string getUnaryOperatorMethodName(TokenType op) {
+            switch (op) {
+                case TokenType::QNOT:      return "operator!!";
+                case TokenType::NOT:        return "operator!";
+                default: return "";
+            }
+        }
+        struct UnionMatchInfo {
+            int tagIndex = -1;
+            std::string memberTypeStr;
+        };
+
+        std::optional<UnionMatchInfo> matchValueToUnionVariant(
+            const std::string& unionName,
+            AnyNode& valueNode,
+            llvm::Value* val
+        ) {
+            auto typeIt = userTypes.find(unionName);
+            if (typeIt == userTypes.end()) return std::nullopt;
+
+            auto& members = typeIt->second.members;
+
+            int tag = findUnionVariantTag(unionName, valueNode, val);
+
+            if (tag < 0 || (size_t)tag >= members.size()) {
+                return std::nullopt;
+            }
+            UnionMatchInfo info;
+            info.tagIndex = tag;
+
+            const std::string& spec = members[tag].type;
+            if (spec.find(':') == std::string::npos) {
+                info.memberTypeStr = spec;
+            } else {
+                info.memberTypeStr.clear();
+            }
+
+            return info;
+        }
     private:
         llvm::Type* getTypeFromCode(int code) {
             switch (code) {
@@ -2186,10 +3320,259 @@ namespace tkz {
         std::string lambdaName();
         std::string mangleName(const FuncDefNode& fn);
         std::unordered_map<std::string, llvm::AllocaInst*> locals;
+        std::unordered_map<std::string, llvm::GlobalVariable*> globals;
         std::unordered_map<std::string, llvm::Function*> functions;
         llvm::Function* currentFunction = nullptr;
         llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);
         llvm::Value* emitExpr(AnyNode& node);
+        llvm::Value* extractUnionToBestGuess(llvm::Value* unionVal) {
+            std::string unionName;
+            if (!isUnionType(unionVal->getType(), &unionName)) {
+                return unionVal;
+            }
+
+            auto utIt = userTypes.find(unionName);
+            if (utIt == userTypes.end()) {
+                return nullptr;
+            }
+
+            auto& info    = utIt->second;
+            auto& members = info.members;
+            if (members.empty()) return nullptr;
+            std::string targetTypeStr;
+            for (auto& m : members) {
+                const std::string& t = m.type;
+                if (t.empty()) continue;
+                if (t.starts_with("\"") || t.starts_with("'") || std::isdigit(t[0]) ||
+                    t == "true" || t == "false" ||
+                    t == "qtrue" || t == "qfalse" || t == "none" || t == "both") {
+                    continue;
+                }
+                targetTypeStr = t;
+                break;
+            }
+
+            if (targetTypeStr.empty()) {
+                targetTypeStr = "int";
+            }
+
+            llvm::Type* targetTy = llvmTypeFor(targetTypeStr);
+            llvm::Value* dataPtr  = builder->CreateExtractValue(unionVal, 1, "union_data");
+            llvm::Value* typedPtr = builder->CreateBitCast(
+                dataPtr,
+                llvm::PointerType::get(targetTy, 0)
+            );
+            return builder->CreateLoad(targetTy, typedPtr, "union_unwrapped");
+        }
+        llvm::Value* normalizeValue(llvm::Value* v, AnyNode& expr) {
+            llvm::Type* ty = v->getType();
+            
+            std::string unionName, enumName;
+            bool isUnion = isUnionType(ty, &unionName);
+            bool isEnum = isEnumType(ty, &enumName);
+            
+            if (!isUnion && !isEnum) {
+                return v;
+            }
+            
+            std::string typeName = isUnion ? unionName : enumName;
+            auto utIt = userTypes.find(typeName);
+            if (utIt == userTypes.end()) return v;
+            
+            llvm::Value* tag = builder->CreateExtractValue(v, 0, "tag");
+            llvm::Value* payload = builder->CreateExtractValue(v, 1, "payload");
+            
+            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "norm_end", currentFunction);
+            llvm::AllocaInst* tmp = nullptr;
+            bool tmpInitialized = false;
+            
+            size_t memberCount = isUnion ? utIt->second.members.size() : utIt->second.enumEntries.size();
+            
+            llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, memberCount);
+            
+            for (size_t i = 0; i < memberCount; ++i) {
+                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
+                    context, "norm_case_" + std::to_string(i), currentFunction
+                );
+                sw->addCase(builder->getInt32(i), caseBB);
+                builder->SetInsertPoint(caseBB);
+                
+                std::string typeStr;
+                if (isUnion) {
+                    typeStr = utIt->second.members[i].type;
+                    size_t colonPos = typeStr.find(':');
+                    if (colonPos != std::string::npos) {
+                        typeStr = typeStr.substr(0, colonPos);
+                    }
+                } else {
+                    typeStr = utIt->second.enumEntries[i].typeAtom;
+                    size_t colonPos = typeStr.find(':');
+                    if (colonPos != std::string::npos) {
+                        typeStr = typeStr.substr(0, colonPos);
+                    }
+                }
+                
+                llvm::Type* memberTy = llvmTypeFor(typeStr);
+                
+                if (!tmpInitialized) {
+                    tmp = createEntryAlloca("norm_tmp", memberTy);
+                    tmpInitialized = true;
+                } else if (tmp->getAllocatedType() != memberTy) {
+                    cg_error(Position(), "Union/Enum with incompatible member types for auto-use");
+                    builder->CreateBr(endBB);
+                    continue;
+                }
+                
+                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "member");
+                builder->CreateStore(loaded, tmp);
+                builder->CreateBr(endBB);
+            }
+            
+            builder->SetInsertPoint(endBB);
+            if (!tmp) {
+                cg_error(Position(), "Cannot normalize union/enum (no members?)");
+                return v;
+            }
+            
+            return builder->CreateLoad(tmp->getAllocatedType(), tmp, "normalized");
+        }
+        struct EnumMatchInfo {
+            int tagIndex;
+            std::string memberTypeStr;
+            std::string memberValue;
+        };
+        int findEnumVariantTag(const std::string& enumName, AnyNode& valueNode, llvm::Value* val) {
+            auto match = matchValueToEnumMember(enumName, valueNode, val);
+            if (match) {
+                return match->tagIndex;
+            }
+            return -1;
+        }
+        std::optional<EnumMatchInfo> matchValueToEnumMember(
+            const std::string& enumName,
+            AnyNode& valueNode,
+            llvm::Value* val
+        ) {
+            auto typeIt = userTypes.find(enumName);
+            if (typeIt == userTypes.end() || typeIt->second.kind != UserTypeKind::Enum) {
+                return std::nullopt;
+            }
+            
+            auto& entries = typeIt->second.enumEntries;
+            
+            for (size_t i = 0; i < entries.size(); i++) {
+                auto& entry = entries[i];
+                
+                size_t colonPos = entry.typeAtom.find(':');
+                if (colonPos == std::string::npos) continue;
+                
+                std::string type = entry.typeAtom.substr(0, colonPos);
+                std::string value = entry.typeAtom.substr(colonPos + 1);
+                
+                bool matches = false;
+                
+                if (type == "int") {
+                    if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
+                        if (numNode->tok.value == value) {
+                            matches = true;
+                        }
+                    }
+                }
+                else if (type == "string") {
+                    if (auto strNode = std::get_if<StringNode>(&valueNode)) {
+                        std::string strValue = value.substr(1, value.length() - 2);
+                        if (strNode->tok.value == strValue) {
+                            matches = true;
+                        }
+                    }
+                }
+                else if (type == "float" || type == "double") {
+                    if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
+                        if (numNode->tok.value == value) {
+                            matches = true;
+                        }
+                    }
+                }
+                else if (type == "char") {
+                    if (auto charNode = std::get_if<CharNode>(&valueNode)) {
+                        char c = value[1];
+                        if (charNode->tok.value[0] == c) {
+                            matches = true;
+                        }
+                    }
+                }
+                else if (type == "bool") {
+                    if (auto boolNode = std::get_if<BoolNode>(&valueNode)) {
+                        if (boolNode->tok.value == value) {
+                            matches = true;
+                        }
+                    }
+                }
+                
+                if (matches) {
+                    return EnumMatchInfo{
+                        (int)i,
+                        type,
+                        value
+                    };
+                }
+            }
+            
+            return std::nullopt;
+        }
+        struct FieldPath {
+            std::string rootVar;
+            std::vector<std::pair<std::string, int>> path;
+        };
+
+        FieldPath buildFieldPath(AnyNode& base, const std::string& finalField) {
+            FieldPath result;
+            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&base)) {
+                result.rootVar = (*varAccess)->var_name_tok.value;
+                
+                auto locIt = locals.find(result.rootVar);
+                if (locIt != locals.end()) {
+                    llvm::Type* allocTy = locIt->second->getAllocatedType();
+                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+                        std::string structName = structTy->getName().str();
+                        
+                        auto typeIt = userTypes.find(structName);
+                        if (typeIt != userTypes.end()) {
+                            for (size_t i = 0; i < typeIt->second.fields.size(); i++) {
+                                if (typeIt->second.fields[i].name == finalField) {
+                                    result.path.push_back({structName, (int)i});
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                return result;
+            }
+            if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(&base)) {
+                result = buildFieldPath(*(*propAccess)->base, (*propAccess)->property_name.value);
+                if (!result.path.empty()) {
+                    std::string parentStruct = result.path.back().first;
+                    auto typeIt = userTypes.find(parentStruct);
+                    
+                    if (typeIt != userTypes.end()) {
+                        int parentFieldIdx = result.path.back().second;
+                        std::string fieldType = typeIt->second.fields[parentFieldIdx].type;
+                        auto fieldTypeIt = userTypes.find(fieldType);
+                        if (fieldTypeIt != userTypes.end()) {
+                            for (size_t i = 0; i < fieldTypeIt->second.fields.size(); i++) {
+                                if (fieldTypeIt->second.fields[i].name == finalField) {
+                                    result.path.push_back({fieldType, (int)i});
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }     
+            return result;
+        }
         void emitStmt(AnyNode& node);
     };
     #endif

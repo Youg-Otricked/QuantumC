@@ -33,7 +33,7 @@ extern "C" {
         
         return result;
     }
-    int qc_string_eq(const char* a, const char* b) {
+    bool qc_string_eq(const char* a, const char* b) {
         if (!a || !b) return 0;
         return strcmp(a, b) == 0 ? 1 : 0;
     }
@@ -250,7 +250,37 @@ extern "C" {
         if (suf_len > str_len) return 0;
         return strcmp(str + str_len - suf_len, suffix) == 0 ? 1 : 0;
     }
-    
+    void qc_print_float(float x) { 
+        printf("%g", x); 
+    }
+    bool qc_to_bool_from_string(const char* str) {
+        if (!str) return false;
+        return strcmp(str, "true") == 0 || strcmp(str, "1") == 0;
+    }
+
+    uint8_t qc_to_qbool_from_string(const char* str) {
+        if (!str) return 0;
+        if (strcmp(str, "qtrue") == 0) return 2;
+        if (strcmp(str, "qfalse") == 0) return 1;
+        if (strcmp(str, "both") == 0) return 3;
+        return 0;  // none
+    }
+    char* qc_qin() {
+        fflush(stdout);
+        fflush(stderr);
+        fflush(stdin);
+        char buffer[1024];
+        int result = scanf("%s", buffer);
+        fflush(stderr);
+        fflush(stdin);
+        if (result == 1) {
+            return strdup(buffer);
+        }
+        return strdup("");
+    }
+    void qc_print_bool(bool b) { 
+        printf("%s", b ? "true" : "false"); 
+    }
     char* qc_trim(const char* str) {
         if (!str) return nullptr;
         
@@ -1115,5 +1145,34 @@ extern "C" {
         *p = '\0';
         
         return result;
+    }
+    void* qc_fopen(const char* path, const char* mode) {
+        FILE* f = fopen(path, mode);
+        return (void*)f;
+    }
+    
+    void qc_fclose(void* file) {
+        if (file) fclose((FILE*)file);
+    }
+    
+    char* qc_fread(void* file) {
+        if (!file) return strdup("");
+        
+        char buffer[1024];
+        if (fgets(buffer, sizeof(buffer), (FILE*)file)) {
+            size_t len = strlen(buffer);
+            if (len > 0 && buffer[len-1] == '\n') {
+                buffer[len-1] = '\0';
+            }
+            return strdup(buffer);
+        }
+        return strdup("");
+    }
+    
+    void qc_fwrite(void* file, const char* data) {
+        if (file && data) {
+            fputs(data, (FILE*)file);
+            fputc('\n', (FILE*)file);
+        }
     }
 }

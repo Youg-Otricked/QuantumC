@@ -1,0 +1,4 @@
+Line 1: Hello from QC!
+Line 2: File I/O works!
+Line 3: Amazing!
+Line 4: Appended!

@@ -1,30 +1,35 @@
 #include <iostream>
+#include <vector>
+#include <cmath>
+using namespace std;
+
+// Function to do some math work
+int compute(int x, int y) {
+    int sum = 0;
+    for (int i = 0; i < 100; i++) {
+        sum += (x * y + i) % (i + 1);
+    }
+    return sum;
+}
 
 int main() {
-    long long sum = 0;
-    long long prod = 1;
-    long long max_outer = 1000;
-    long long max_inner = 1000;
+    const int N = 1000000; // 1 million iterations
+    int total = 0;
 
-    for (long long i = 0; i < max_outer; ++i) {
-        for (long long j = 1; j < max_inner; ++j) {
-            if ((i * j) % 7 == 0 && (i + j) % 3 != 0) {
-                sum += i*i + j*j*j;
-            } else if ((i - j) % 5 == 0 || (i + j) % 11 == 0) {
-                prod *= (i + 1);
-                if (prod > 1'000'000'000) prod %= 1'000'000'000;
-            } else {
-                sum -= j*j;
-            }
+    vector<int> nums(N, 1);
 
-            // Simulate quantum boolean
-            bool qb = true;  // always true for testing
-            if (qb) sum += 1;
-            else sum -= 1;
+    for (int i = 0; i < N; i++) {
+        nums[i] = compute(i, i % 100 + 1);
+        total += nums[i];
+    }
+
+    // Nested loop to really stress CPU
+    for (int i = 0; i < 1000; i++) {
+        for (int j = 0; j < 1000; j++) {
+            total += (i * j) % 7;
         }
     }
 
-    std::cout << "Sum: " << sum << std::endl;
-    std::cout << "Prod: " << prod << std::endl;
+    cout << "Final total: " << total << endl;
     return 0;
 }

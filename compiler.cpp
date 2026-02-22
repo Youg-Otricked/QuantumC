@@ -74,6 +74,7 @@ std::string strip(const std::string& s) {
     return r;
 }
 bool loose;
+std::string entrypointName = "main";
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
@@ -1800,7 +1801,6 @@ namespace tkz {
         return res.success(std::make_unique<ArrayLiteralNode>(std::move(elements), start_pos));
     }
     Prs Parser::atom() {
-        
         ParseResult res;
         Token tok = this->current_tok;
         if (tok.type == TokenType::LBRACE) {
@@ -1958,7 +1958,7 @@ namespace tkz {
 
             AnyNode base = std::make_unique<VarAccessNode>(ident);
 
-            if (this->current_tok.type == TokenType::LPAREN) {
+            if (this->current_tok.type == TokenType::LPAREN && !parsing_construct) {
                 return this->call(std::move(base));
             }
 
@@ -2300,7 +2300,7 @@ namespace tkz {
             if (this->current_tok.type == TokenType::ARROW) {
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
+                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S052: Expected return type after '->'", this->current_tok.pos));
                     return res.to_prs();
@@ -2792,7 +2792,7 @@ namespace tkz {
             if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
 
-                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
+                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S060: Expected element type in list<T>", this->current_tok.pos));
                     return res.to_prs();
@@ -2828,7 +2828,7 @@ namespace tkz {
             if (param_type.value == "map" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
+                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S067: Expected key type in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
@@ -2843,7 +2843,7 @@ namespace tkz {
                 }
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
+                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S069: Expected value type in map<K, V>", this->current_tok.pos));
                     return res.to_prs();
@@ -2936,7 +2936,7 @@ namespace tkz {
                 if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
                     this->advance(); 
 
-                    if (this->current_tok.type != TokenType::KEYWORD && this->user_types.count(this->current_tok.value) <= 0) {
+                    if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "QC-S060: Expected element type in list<T>", this->current_tok.pos));
                         return res.to_prs();
@@ -3025,6 +3025,7 @@ namespace tkz {
                 }
             }
         }
+        parsing_construct = false;
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(std::make_unique<InvalidSyntaxError>(
                 "QC-S003: Expected '{' to start function body", this->current_tok.pos));
@@ -3314,10 +3315,11 @@ namespace tkz {
                 advance();
             }
             if (!baseName.empty()) {
-                auto base_it = user_types.find(baseName);
-                if (base_it != user_types.end() &&
-                    base_it->second.kind == UserTypeKind::Class &&
-                    base_it->second.is_final_class) {
+                auto* base_ptr = find_type(baseName);
+                if (base_ptr &&
+                    base_ptr->kind == UserTypeKind::Class &&
+                    base_ptr->is_final_class) {
+                    auto& baseInfo = *base_ptr;
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "Cannot inherit from final class '" + baseName + "'",
                         class_name.pos));
@@ -3348,7 +3350,10 @@ namespace tkz {
             }
             dummy.namespace_path = currentNamespace;
             info.namespace_path = currentNamespace;
-            user_types[class_name.value] = std::move(dummy);
+            std::string full_key = currentNamespace.empty() 
+                ? class_name.value 
+                : currentNamespace + "::" + class_name.value;
+            user_types[full_key] = std::move(dummy);
 
             while (this->current_tok.type != TokenType::RBRACE &&
                 this->current_tok.type != TokenType::EOFT) {
@@ -3373,6 +3378,7 @@ namespace tkz {
                     is_final_method = true;
                     this->advance();
                 }
+
                 if (this->current_tok.type == TokenType::IDENTIFIER &&
                     this->current_tok.value == class_name.value) {
 
@@ -3393,7 +3399,7 @@ namespace tkz {
                     if (next_tok.type == TokenType::LPAREN) {
                         Token ctor_name = this->current_tok;
                         this->advance();
-
+                        this->parsing_construct = true;
                         if (this->current_tok.type != TokenType::LPAREN) {
                             res.failure(std::make_unique<InvalidSyntaxError>(
                                 "Expected '(' after constructor name", this->current_tok.pos));
@@ -3405,7 +3411,7 @@ namespace tkz {
                             return ctor_pr;
 
                         auto fn = std::get<std::shared_ptr<FuncDefNode>>(std::move(ctor_pr));
-
+                        parsing_construct = false;
                         ClassMethodInfo mi;
                         mi.name_tok = ctor_name;
                         mi.params.clear();
@@ -3643,11 +3649,11 @@ namespace tkz {
                     ClassMethodInfo mi;
                     mi.name_tok = name_tok;
                     if (!info.baseClassName.empty()) {
-                        auto base_it = user_types.find(info.baseClassName);
-                        if (base_it != user_types.end() &&
-                            base_it->second.kind == UserTypeKind::Class) {
-
-                            auto& baseInfo = base_it->second;
+                        auto* base_ptr = find_type(baseName);
+                        if (base_ptr &&
+                            base_ptr->kind == UserTypeKind::Class &&
+                            base_ptr->is_final_class) {
+                            auto& baseInfo = *base_ptr;
                             for (auto& bm : baseInfo.classMethods) {
                                 if (bm.name_tok.value == mi.name_tok.value && bm.is_final) {
                                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -3722,7 +3728,10 @@ namespace tkz {
                 return res.to_prs();
             }
             this->advance();
-            user_types[class_name.value] = std::move(info);
+         full_key = currentNamespace.empty() 
+                ? class_name.value 
+                : currentNamespace + "::" + class_name.value;
+            user_types[full_key] = std::move(info);
             return res.success(std::monostate{});
         }
         
@@ -3972,7 +3981,10 @@ namespace tkz {
             info.kind   = UserTypeKind::Struct;
             info.fields = std::move(fields);
             info.namespace_path = currentNamespace;
-            user_types[struct_name.value] = std::move(info);
+            std::string full_key = currentNamespace.empty() 
+                ? struct_name.value 
+                : currentNamespace + "::" + struct_name.value;
+            user_types[full_key] = std::move(info);
             return res.success(std::monostate{});
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "type") {
@@ -4092,7 +4104,10 @@ namespace tkz {
                 info.members = std::move(members);
             }
             info.namespace_path = currentNamespace;
-            user_types[type_name.value] = std::move(info);
+            std::string full_key = currentNamespace.empty() 
+                ? type_name.value 
+                : currentNamespace + "::" + type_name.value;
+            user_types[full_key] = std::move(info);
             return res.success(std::monostate{});
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "enum") {
@@ -4177,11 +4192,14 @@ namespace tkz {
             }
 
             UserTypeInfo info;
-            info.kind = UserTypeKind::Union;
+            info.kind = UserTypeKind::Enum;
             info.members = std::move(members);
             info.enumEntries = std::move(entries);
             info.namespace_path = currentNamespace;
-            user_types[enum_name.value] = std::move(info);
+            std::string full_key = currentNamespace.empty() 
+                ? enum_name.value 
+                : currentNamespace + "::" + enum_name.value;
+            user_types[full_key] = std::move(info);
 
             return res.success(std::monostate{});
         }
@@ -4438,7 +4456,7 @@ namespace tkz {
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
                     
-                    if (this->current_tok.type != TokenType::KEYWORD && !(this->user_types.count(this->current_tok.value) > 0)) {
+                    if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Expected type", this->current_tok.pos));
                         return res.to_prs();
@@ -4719,25 +4737,11 @@ namespace tkz {
             auto maybe_qualified = this->try_parse_qualified_name();
             if (maybe_qualified.has_value()) {
                 std::string qualified_name = *maybe_qualified;
-                std::string ns_part = "";
                 std::string type_name = qualified_name;
-
-                size_t last_colon = qualified_name.rfind("::");
-                if (last_colon != std::string::npos) {
-                    ns_part = qualified_name.substr(0, last_colon);
-                    type_name = qualified_name.substr(last_colon + 2);
-                }
-
                 bool is_type = false;
-                if (user_types.count(type_name) > 0) {
-                    auto& info = user_types[type_name];
-
-                    if (ns_part.empty()) {
-                        is_type = (info.namespace_path == currentNamespace);
-                    }
-                    else {
-                        is_type = (info.namespace_path == ns_part);
-                    }
+                auto* type_ptr = find_type(qualified_name);
+                if (type_ptr) {
+                    is_type = true;
                 }
                 if (is_type) {
                     Token next_tok;
@@ -4746,6 +4750,7 @@ namespace tkz {
                     } else {
                         next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
                     }
+                    
                     if (next_tok.type == TokenType::LPAREN) {
                         AnyNode expr = res.reg(this->qout_expr());
                         if (res.error) return res.to_prs();
@@ -4770,30 +4775,73 @@ namespace tkz {
                     std::vector<Token> return_types;
                     return_types.push_back(first_type);
                     if (this->current_tok.type == TokenType::COMMA) {
-                        while (this->current_tok.type == TokenType::COMMA) {
-                            this->advance();
-
-                            if (this->current_tok.type == TokenType::KEYWORD) {
-                                Token t = this->current_tok;
+                        size_t peek_idx = this->index + 1;
+                        bool is_multi_return = false;
+                        
+                        if (peek_idx < tokens.size()) {
+                            Token peek = tokens[peek_idx];
+                            if (peek.type == TokenType::KEYWORD) {
+                                is_multi_return = true;
+                            }
+                            else if (peek.type == TokenType::IDENTIFIER) {
+                                size_t saved = this->index;
+                                Token saved_tok = this->current_tok;
+                                
                                 this->advance();
-                                if (this->current_tok.type == TokenType::AMPERSAND) {
-                                    this->advance();
-                                    t.value += "&";
+                                auto peek_qual = this->try_parse_qualified_name();
+                                
+                                if (peek_qual.has_value()) {
+                                    std::string base_name = *peek_qual;
+                                    size_t last_colon = peek_qual->rfind("::");
+                                    if (last_colon != std::string::npos) {
+                                        base_name = peek_qual->substr(last_colon + 2);
+                                    }
+                                    is_multi_return = (find_type(base_name) != nullptr || is_known_type(*peek_qual));
                                 }
-                                while (this->current_tok.type == TokenType::MUL) {
+                                
+                                this->index = saved;
+                                this->current_tok = saved_tok;
+                            }
+                        }
+                        
+                        if (is_multi_return) {
+                            while (this->current_tok.type == TokenType::COMMA) {
+                                this->advance();
+
+                                if (this->current_tok.type == TokenType::IDENTIFIER) {
+                                    auto next_qual = this->try_parse_qualified_name();
+                                    if (next_qual.has_value()) {
+                                        std::string base_name = *next_qual;
+                                        size_t last_colon = next_qual->rfind("::");
+                                        if (last_colon != std::string::npos) {
+                                            base_name = next_qual->substr(last_colon + 2);
+                                        }
+                                        
+                                        if (is_known_type(*next_qual) || is_known_qualified_type(*next_qual) || find_type(base_name) != nullptr) {
+                                            Token t = this->consume_qualified_name();
+                                            if (this->current_tok.type == TokenType::AMPERSAND) {
+                                                this->advance();
+                                                t.value += "&";
+                                            }
+                                            while (this->current_tok.type == TokenType::MUL) {
+                                                this->advance();
+                                                t.value += "*";
+                                            }
+
+                                            return_types.push_back(t);
+                                        } else {
+                                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                                "Expected return type after ','", this->current_tok.pos));
+                                            return res.to_prs();
+                                        }
+                                    } else {
+                                        res.failure(std::make_unique<InvalidSyntaxError>(
+                                            "Expected return type after ','", this->current_tok.pos));
+                                        return res.to_prs();
+                                    }
+                                } else if (this->current_tok.type == TokenType::KEYWORD) {
+                                    Token t = this->current_tok;
                                     this->advance();
-                                    t.value += "*";
-                                }
-
-                                return_types.push_back(t);
-                            } else if (this->current_tok.type == TokenType::IDENTIFIER) {
-                                auto next_qual = this->try_parse_qualified_name();
-                                if (next_qual.has_value() && 
-                                    (is_known_type(*next_qual) || 
-                                    is_known_qualified_type(*next_qual) ||
-                                    user_types.count(*next_qual) > 0)) {
-
-                                    Token t = this->consume_qualified_name();
                                     if (this->current_tok.type == TokenType::AMPERSAND) {
                                         this->advance();
                                         t.value += "&";
@@ -4809,10 +4857,6 @@ namespace tkz {
                                         "Expected return type after ','", this->current_tok.pos));
                                     return res.to_prs();
                                 }
-                            } else {
-                                res.failure(std::make_unique<InvalidSyntaxError>(
-                                    "Expected return type after ','", this->current_tok.pos));
-                                return res.to_prs();
                             }
                         }
                     }
@@ -4825,7 +4869,84 @@ namespace tkz {
 
                     Token name_tok = this->current_tok;
                     this->advance();
-
+                    if (this->current_tok.type == TokenType::COMMA) {
+                        std::vector<Token> var_names;
+                        std::vector<Token> var_types;
+                        
+                        var_names.push_back(name_tok);
+                        var_types.push_back(first_type);
+                        
+                        while (this->current_tok.type == TokenType::COMMA) {
+                            this->advance();
+                            Token next_type;
+                            
+                            if (this->current_tok.type == TokenType::KEYWORD) {
+                                next_type = this->current_tok;
+                                this->advance();
+                            } 
+                            else if (this->current_tok.type == TokenType::IDENTIFIER) {
+                                auto qual_name = this->try_parse_qualified_name();
+                                if (qual_name.has_value()) {
+                                    std::string ns_part = "";
+                                    std::string base_name = *qual_name;
+                                    size_t last_colon = qual_name->rfind("::");
+                                    if (last_colon != std::string::npos) {
+                                        ns_part = qual_name->substr(0, last_colon);
+                                        base_name = qual_name->substr(last_colon + 2);
+                                    }
+                                    if (find_type(base_name) != nullptr || is_known_type(*qual_name)) {
+                                        next_type = this->consume_qualified_name();
+                                    } else {
+                                        res.failure(std::make_unique<InvalidSyntaxError>(
+                                            "Expected type after ','", this->current_tok.pos));
+                                        return res.to_prs();
+                                    }
+                                } else {
+                                    res.failure(std::make_unique<InvalidSyntaxError>(
+                                        "Expected type after ','", this->current_tok.pos));
+                                    return res.to_prs();
+                                }
+                            }
+                            if (this->current_tok.type == TokenType::AMPERSAND) {
+                                this->advance();
+                                next_type.value += "&";
+                            }
+                            while (this->current_tok.type == TokenType::MUL) {
+                                this->advance();
+                                next_type.value += "*";
+                            }
+                            
+                            var_types.push_back(next_type);
+                            
+                            if (this->current_tok.type != TokenType::IDENTIFIER) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected variable name", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            
+                            var_names.push_back(this->current_tok);
+                            this->advance();
+                        }
+                        
+                        // Now expect = and the value
+                        if (this->current_tok.type != TokenType::EQ) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected '=' in multi-var declaration", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        AnyNode value = res.reg(this->qout_expr());
+                        if (res.error) return res.to_prs();
+                        
+                        if (this->current_tok.type != TokenType::SEMICOLON) {
+                            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        return res.success(std::make_unique<MultiVarDeclNode>(false, var_types, var_names, std::move(value)));
+                    }
                     if (this->current_tok.type == TokenType::LPAREN) {
                         auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
                         if (res.error) return res.to_prs();
@@ -4908,14 +5029,14 @@ namespace tkz {
             AnyNode stmt = std::visit([&has_main, &main_func_ptr](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<FuncDefNode>>) {
-                    if (arg->name_tok.has_value() && arg->name_tok->value == "main") {
+                    if (arg->name_tok.has_value() && arg->name_tok->value == entrypointName) {
                         if (arg->return_types.empty() || arg->return_types[0].value != "int") {
                             std::string actual = arg->return_types.empty() ? "void" : arg->return_types[0].value;
-                            throw InvalidSyntaxError("main() must return int, not " + actual, 
+                            throw InvalidSyntaxError("the entrypoint must return int, not " + actual, 
                                                     arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
                         if (!arg->params.empty()) {
-                            throw InvalidSyntaxError("main() must have no parameters", 
+                            throw InvalidSyntaxError("the entrypoint must have no parameters", 
                                 arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
                         has_main = true;
@@ -4934,15 +5055,37 @@ namespace tkz {
         
         if (!has_main) {
             return Aer{nullptr, std::make_unique<Error>(
-                "Missing main function", 
-                "Program must have an 'int main()' function", 
+                "Missing the entrypoint function", 
+                "Program must have an 'int entrypointname()' function", 
                 Position())};
         }
         for (auto& [name, ut] : user_types) {
-        if (ut.kind == UserTypeKind::Class && !ut.baseClassName.empty()) {
-            auto it = user_types.find(ut.baseClassName);
+            if (ut.kind == UserTypeKind::Class && !ut.baseClassName.empty()) {
+                std::string baseKey = ut.baseClassName;
+                if (baseKey.find("::") == std::string::npos) {
+                    bool found = false;
+                    for (auto& [key, info] : user_types) {
+                        if (key.find(baseKey) != std::string::npos && 
+                            info.kind == UserTypeKind::Class) {
+                            baseKey = key;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        throw InvalidSyntaxError(
+                            "Base class '" + ut.baseClassName + "' not found", 
+                            Position()
+                        );
+                    }
+                }
+                
+                auto it = user_types.find(baseKey);
                 if (it == user_types.end() || it->second.kind != UserTypeKind::Class) {
-                    throw InvalidSyntaxError("class inherates from a non class or non-existant object", Position()); 
+                    throw InvalidSyntaxError(
+                        "class inherits from non-class or non-existent object", 
+                        Position()
+                    ); 
                 }
             }
         }
@@ -7535,6 +7678,111 @@ namespace tkz {
                 }
                 return *ptr;
             }
+            if (func_name == "fopen") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: fopen() requires exactly 2 arguments (path, mode)", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant path_val = this->process(node->arg_nodes.front());
+                NumberVariant mode_val = this->process(node->arg_nodes.back());
+                
+                auto path_str = std::get_if<StringValue>(&path_val);
+                auto mode_str = std::get_if<StringValue>(&mode_val);
+                
+                if (!path_str || !mode_str) {
+                    this->errors.push_back({RTError("QC-B002: fopen() requires string arguments", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                FILE* file = fopen(path_str->value.c_str(), mode_str->value.c_str());
+                if (!file) {
+                    this->errors.push_back({RTError("QC-B003: Failed to open file: " + path_str->value, Position()), "Error"});
+                    return StringValue("");
+                }
+                
+                std::ostringstream oss;
+                oss << (void*)file;
+                return StringValue(oss.str()).set_pos(path_str->pos);
+            }
+
+            if (func_name == "fclose") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: fclose() requires exactly 1 argument", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    if (file) fclose(file);
+                    return VoidValue();
+                }
+                this->errors.push_back({RTError("QC-B002: fclose() requires file handle", Position()), "Error"});
+                return VoidValue();
+            }
+
+            if (func_name == "fread") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: fread() requires exactly 1 argument", Position()), "Error"});
+                    return StringValue("");
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    
+                    if (!file) return StringValue("");
+                    
+                    char buffer[1024];
+                    if (fgets(buffer, sizeof(buffer), file)) {
+                        std::string line(buffer);
+                        if (!line.empty() && line.back() == '\n') {
+                            line.pop_back();
+                        }
+                        return StringValue(line);
+                    }
+                    return StringValue("");
+                }
+                
+                this->errors.push_back({RTError("QC-B002: fread() requires file handle", Position()), "Error"});
+                return StringValue("");
+            }
+
+            if (func_name == "fwrite") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: fwrite() requires exactly 2 arguments (file, data)", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                NumberVariant data_val = this->process(node->arg_nodes.back());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    
+                    if (!file) return VoidValue();
+                    
+                    std::string data = value_to_string(data_val);
+                    fputs(data.c_str(), file);
+                    fputc('\n', file);
+                    return VoidValue();
+                }
+                
+                this->errors.push_back({RTError("QC-B002: fwrite() requires file handle", Position()), "Error"});
+                return VoidValue();
+            }
             auto ut_it = context->user_types.find(func_name);
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
@@ -7560,6 +7808,22 @@ namespace tkz {
                     
                     if (child_ut != context->user_types.end() && 
                         child_ut->second.baseClassName == func_name) {
+                        std::vector<std::string> saved_namespace = context->namespaceStack;
+                        
+                        if (!info.namespace_path.empty()) {
+                            context->namespaceStack.clear();
+                            std::string ns_path = info.namespace_path;
+                            
+                            size_t pos = 0;
+                            while ((pos = ns_path.find("::")) != std::string::npos) {
+                                context->namespaceStack.push_back(ns_path.substr(0, pos));
+                                ns_path.erase(0, pos + 2);
+                            }
+                            if (!ns_path.empty()) {
+                                context->namespaceStack.push_back(ns_path);
+                            }
+                        }
+                        
                         ClassMethodInfo* ctor = nullptr;
                         for (auto& m : info.classMethods) {
                             if (m.is_constructor) {
@@ -7569,8 +7833,10 @@ namespace tkz {
                         }
 
                         if (!ctor) {
+                            context->namespaceStack = saved_namespace;
                             return VoidValue();
                         }
+                        
                         final_args.clear();
                         final_lvalues.clear();
 
@@ -7606,6 +7872,7 @@ namespace tkz {
 
                         if (final_args.size() > ctor->params.size()) {
                             context->pop_scope();
+                            context->namespaceStack = saved_namespace;
                             this->errors.push_back({RTError("QC-C002: Too many arguments to parent constructor '" + func_name + "'", Position()), "Error"});
                             return VoidValue();
                         }
@@ -7621,6 +7888,7 @@ namespace tkz {
                                 value = this->process(it_param->default_value.value());
                             } else {
                                 context->pop_scope();
+                                context->namespaceStack = saved_namespace;  // Restore!
                                 this->errors.push_back({RTError("QC-C004: Missing argument to parent constructor '" + func_name + "'", get_pos(value)), "Error"});
                                 return VoidValue();
                             }
@@ -7635,6 +7903,7 @@ namespace tkz {
                             
                         }
                         context->pop_scope();
+                        context->namespaceStack = saved_namespace;
 
                         return VoidValue();
                     }
@@ -7687,12 +7956,28 @@ namespace tkz {
                         }
                     }
                 }
+                std::vector<std::string> saved_namespace = context->namespaceStack;
+                    
+                if (!info.namespace_path.empty()) {
+                    context->namespaceStack.clear();
+                    std::string ns_path = info.namespace_path;
+                    
+                    size_t pos = 0;
+                    while ((pos = ns_path.find("::")) != std::string::npos) {
+                        context->namespaceStack.push_back(ns_path.substr(0, pos));
+                        ns_path.erase(0, pos + 2);
+                    }
+                    if (!ns_path.empty()) {
+                        context->namespaceStack.push_back(ns_path);
+                    }
+                }
 
                 context->push_scope();
                 context->define("this", func_name, inst, true);
 
                 if (final_args.size() > ctor->params.size()) {
                     context->pop_scope();
+                    context->namespaceStack = saved_namespace;
                     this->errors.push_back({RTError("QC-C002: Too many arguments to constructor '" + func_name + "'", Position()), "Error"});
                     return inst;
                 }
@@ -7708,11 +7993,12 @@ namespace tkz {
                         value = this->process(it_param->default_value.value());
                     } else {
                         context->pop_scope();
+                        context->namespaceStack = saved_namespace;
                         this->errors.push_back({RTError("QC-C004: Missing argument to constructor '" + func_name + "'", get_pos(value)), "Error"});
                         return inst;
                     }
                     context->define(it_param->name.value, it_param->type.value, value);
-                }// need do this for methods
+                }
 
                 try {
                     for (auto& stmt : ctor->body->statements) {
@@ -7722,6 +8008,7 @@ namespace tkz {
                     
                 }
                 context->pop_scope();
+                context->namespaceStack = saved_namespace;
 
                 return inst;
             }
@@ -8169,6 +8456,7 @@ namespace tkz {
     ) {
         const std::string& className = inst->class_name;
         const std::string& mname = method->name_tok.value;
+        
         if (method->access == "private" && !in_class_context(className)) {
             this->errors.push_back({RTError(
                 "Method '" + mname + "' of class '" + className +
@@ -8185,12 +8473,28 @@ namespace tkz {
                 "Error"});
             return VoidValue();
         }
+        std::vector<std::string> saved_namespace = context->namespaceStack;
+        
+        auto ut_it = context->user_types.find(className);
+        if (ut_it != context->user_types.end() && !ut_it->second.namespace_path.empty()) {
+            context->namespaceStack.clear();
+            std::string ns_path = ut_it->second.namespace_path;
+            size_t pos_ns = 0;
+            while ((pos_ns = ns_path.find("::")) != std::string::npos) {
+                context->namespaceStack.push_back(ns_path.substr(0, pos_ns));
+                ns_path.erase(0, pos_ns + 2);
+            }
+            if (!ns_path.empty()) {
+                context->namespaceStack.push_back(ns_path);
+            }
+        }
 
         context->push_scope();
         context->define("this", className, inst, true);
 
         if (args.size() > method->params.size()) {
             context->pop_scope();
+            context->namespaceStack = saved_namespace;
             this->errors.push_back({RTError(
                 "QC-C002: Too many arguments to method '" + mname + "'",
                 pos),
@@ -8209,6 +8513,7 @@ namespace tkz {
                 value = this->process(it_param->default_value.value());
             } else {
                 context->pop_scope();
+                context->namespaceStack = saved_namespace;
                 this->errors.push_back({RTError(
                     "QC-C004: Missing argument " + it_param->name.value +
                     " for method '" + mname + "'",
@@ -8249,26 +8554,32 @@ namespace tkz {
             if (!method->return_types.empty()) {
                 if (method->return_types.size() == 1) {
                     context->pop_scope();
+                    context->namespaceStack = saved_namespace;
                     return def_value_for_type(method->return_types[0].value);
                 } else {
                     std::vector<NumberVariant> defaults;
                     for (auto& rt : method->return_types)
                         defaults.push_back(def_value_for_type(rt.value));
                     context->pop_scope();
+                    context->namespaceStack = saved_namespace;
                     return std::make_shared<MultiValue>(std::move(defaults));
                 }
             }
 
             context->pop_scope();
+            context->namespaceStack = saved_namespace;
             return last;
         } catch (ReturnException& re) {
             context->pop_scope();
+            context->namespaceStack = saved_namespace;
             return std::move(re.value);
         } catch (MultiReturnException& mre) {
             context->pop_scope();
+            context->namespaceStack = saved_namespace;
             return std::make_shared<MultiValue>(std::move(mre.values));
         } catch (...) {
             context->pop_scope();
+            context->namespaceStack = saved_namespace;
             throw;
         }
     }
@@ -10285,34 +10596,201 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////
 #ifdef ENABLE_LLVM
     llvm::Type* LLVMCompiler::llvmTypeFor(const std::string& qcType) {
-        if (qcType.ends_with("[]")) {
-            std::string baseType = qcType.substr(0, qcType.length() - 2);
+        std::string type = resolveType(qcType);
+        if (type.ends_with("[]")) {
+            std::string baseType = type.substr(0, type.length() - 2);
             llvm::Type* elemTy = llvmTypeFor(baseType);
             return llvm::PointerType::get(elemTy, 0);
         }
-        if (qcType.starts_with("list<") && qcType.ends_with(">")) {
+        if (type.starts_with("list<") && type.ends_with(">")) {
             size_t start = 5;
             size_t end = qcType.length() - 1;
-            std::string elemType = qcType.substr(start, end - start);
+            std::string elemType = type.substr(start, end - start);
             return llvm::PointerType::get(builder->getInt8Ty(), 0);
         }
-        if (qcType.starts_with("map<") && qcType.ends_with(">")) {
+        if (type.starts_with("map<") && type.ends_with(">")) {
             return llvm::PointerType::get(builder->getInt8Ty(), 0);
         }
-        if (qcType == "int")        return builder->getInt32Ty();
-        if (qcType == "short int")  return builder->getInt16Ty();
-        if (qcType == "long int")   return builder->getInt64Ty();
-        if (qcType == "float")        return builder->getFloatTy();
-        if (qcType == "double")  return builder->getDoubleTy();
-        if (qcType == "long double")   return builder->getDoubleTy();
-        if (qcType == "char")        return builder->getInt8Ty();
-        if (qcType == "bool")        return builder->getInt1Ty();
-        if (qcType == "qbool")       return builder->getIntNTy(2);
-        if (qcType == "string")      return llvm::PointerType::get(builder->getInt8Ty(), 0);
+        if (type == "int")        return builder->getInt32Ty();
+        if (type == "short int")  return builder->getInt16Ty();
+        if (type == "long int")   return builder->getInt64Ty();
+        if (type == "float")        return builder->getFloatTy();
+        if (type == "double")  return builder->getDoubleTy();
+        if (type == "long double")   return builder->getDoubleTy();
+        if (type == "char")        return builder->getInt8Ty();
+        if (type == "bool")        return builder->getInt1Ty();
+        if (type == "qbool")       return builder->getIntNTy(2);
+        if (type == "string")      return llvm::PointerType::get(builder->getInt8Ty(), 0);
+    
+        if (classTypes.find(type) != classTypes.end()) {
+            return classTypes[type];
+        }
+        if (structTypes.find(type) != structTypes.end()) {
+            return structTypes[type];
+        }
+        if (enumTypes.find(type) != enumTypes.end()) {
+            return enumTypes[type];
+        }
+        if (unionTypes.find(type) != unionTypes.end()) {
+            return unionTypes[type];
+        }
         return builder->getInt32Ty();
     }
-    void LLVMCompiler::createStructTypes() {
-        for (auto& [name, info] : userTypes) {
+    std::string LLVMCompiler::resolveType(const std::string& typeName) {
+        auto it = typeAliases.find(typeName);
+        if (it != typeAliases.end()) {
+            return resolveType(it->second);
+        }
+        return typeName;
+    }
+    void LLVMCompiler::createUserTypes() {
+        auto getFullName = [](const std::string& name, const UserTypeInfo& info) {
+            if (info.namespace_path.empty()) {
+                return name;
+            }
+            return info.namespace_path + "::" + name;
+        };
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Enum) {
+                size_t lastColon = mapKey.rfind("::");
+                std::string actualName = (lastColon == std::string::npos) 
+                    ? mapKey 
+                    : mapKey.substr(lastColon + 2);
+                
+                std::vector<llvm::Type*> fields = {
+                    builder->getInt32Ty(),
+                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                };
+                
+                llvm::StructType* enumTy = llvm::StructType::create(context, fields, mapKey);
+                enumTypes[mapKey] = enumTy;
+                for (size_t i = 0; i < info.enumEntries.size(); i++) {
+                    auto& entry = info.enumEntries[i];
+                    std::string fullName = mapKey + "." + entry.memberName;
+                    
+                    size_t colonPos = entry.typeAtom.find(':');
+                    std::string type = entry.typeAtom.substr(0, colonPos);
+                    std::string value = entry.typeAtom.substr(colonPos + 1);
+                    
+                    enumMemberInfo[fullName] = {(int)i, type, value};
+                }
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Struct) {
+                llvm::StructType* structTy = llvm::StructType::create(context, mapKey);
+                structTypes[mapKey] = structTy;
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Class) {
+                llvm::StructType* classTy = llvm::StructType::create(context, mapKey);
+                classTypes[mapKey] = classTy;
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Class) {
+                if (!info.baseClassName.empty()) {
+                    auto base_it = userTypes.find(info.baseClassName);
+                    if (base_it != userTypes.end() && base_it->second.is_final_class) {
+                        cg_error(Position(), 
+                            "Cannot inherit from final class '" + info.baseClassName + "'");
+                        continue;
+                    }
+                }
+                std::vector<llvm::Type*> fieldTypes;
+                
+                std::function<void(const std::string&)> collectFields = [&](const std::string& className) {
+                    auto it = userTypes.find(className);
+                    if (it == userTypes.end()) {
+                        throw std::runtime_error("Class not found: " + className);
+                    }
+                    auto& classInfo = it->second;
+                    
+                    if (!classInfo.baseClassName.empty()) {
+                        std::string baseFullName = classInfo.baseClassName;
+                        if (baseFullName.find("::") == std::string::npos) {
+                            for (auto& [key, info] : userTypes) {
+                                if (key.find(baseFullName) != std::string::npos && 
+                                    info.kind == UserTypeKind::Class) {
+                                    baseFullName = key;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        collectFields(baseFullName);
+                    }
+                    
+                    for (auto& field : classInfo.classFields) {
+                        fieldTypes.push_back(llvmTypeFor(field.type));
+                    }
+                };
+                
+                collectFields(mapKey);
+                
+                if (fieldTypes.empty()) {
+                    fieldTypes.push_back(builder->getInt8Ty());
+                }
+                
+                classTypes[mapKey]->setBody(fieldTypes);
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind != UserTypeKind::Class) continue;
+            if (!info.baseClassName.empty()) {
+                auto base_it = userTypes.find(info.baseClassName);
+                if (base_it != userTypes.end()) {
+                    auto& baseInfo = base_it->second;
+                    for (auto& method : info.classMethods) {
+                        for (auto& baseMethod : baseInfo.classMethods) {
+                            if (baseMethod.name_tok.value == method.name_tok.value && 
+                                baseMethod.is_final) {
+                                cg_error(method.name_tok.pos,
+                                    "Cannot override final method '" + 
+                                    baseMethod.name_tok.value + 
+                                    "' from base class '" + info.baseClassName + "'");
+                            }
+                        }
+                    }
+                }
+            }
+            llvm::StructType* classTy = classTypes[mapKey];
+            
+            for (auto& method : info.classMethods) {
+                if (method.is_constructor && info.is_abstract_class) {
+                    cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
+                    continue;
+                }
+                std::string methodName = mapKey + "_" + method.name_tok.value;
+                
+                std::vector<llvm::Type*> paramTypes;
+                paramTypes.push_back(llvm::PointerType::get(classTy, 0));
+                
+                for (auto& param : method.params) {
+                    paramTypes.push_back(llvmTypeFor(param.type.value));
+                }
+                
+                llvm::Type* retTy = builder->getVoidTy();
+                if (!method.return_types.empty()) {
+                    if (method.return_types.size() == 1) {
+                        retTy = llvmTypeFor(method.return_types[0].value);
+                    } else {
+                        std::vector<llvm::Type*> retTypes;
+                        for (auto& rt : method.return_types) {
+                            retTypes.push_back(llvmTypeFor(rt.value));
+                        }
+                        retTy = llvm::StructType::get(context, retTypes);
+                    }
+                }
+                
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
+                llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module.get());
+                
+                classMethods[mapKey][method.name_tok.value].push_back(fn);
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
             if (info.kind == UserTypeKind::Struct) {
                 std::vector<llvm::Type*> fieldTypes;
                 
@@ -10321,10 +10799,27 @@ namespace tkz {
                     fieldTypes.push_back(ty);
                 }
                 
-                llvm::StructType* structTy = llvm::StructType::create(context, fieldTypes, name);
-                structTypes[name] = structTy;
+                structTypes[mapKey]->setBody(fieldTypes);
             }
         }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Union) {
+                std::vector<llvm::Type*> fields = {
+                    builder->getInt32Ty(),
+                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                };
+                
+                llvm::StructType* unionTy = llvm::StructType::create(context, fields, mapKey);
+                unionTypes[mapKey] = unionTy;
+            }
+        }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind == UserTypeKind::Alias) {
+                typeAliases[mapKey] = info.aliasTarget;
+            }
+        }
+        
+        generateStructReprFunctions();
     }
     llvm::FunctionType* LLVMCompiler::llvmFuncTypeFor(
         const std::vector<Token>& returnTypes,
@@ -10471,7 +10966,7 @@ namespace tkz {
         
         return jaggedArr;
     }
-    LLVMCompiler::LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types) {
+    LLVMCompiler::LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types) : userTypes(types) {
         module  = std::make_unique<llvm::Module>("qc_module", context);
         builder = std::make_unique<llvm::IRBuilder<>>(context);
         jaggedArraysStack.push_back({});
@@ -10479,7 +10974,6 @@ namespace tkz {
         listsStack.push_back({});
         arrayLengthsStack.push_back({});
         mapsStack.push_back({});
-        userTypes = types;
         addRuntimeToModule();
     }
     void LLVMCompiler::addRuntimeToModule() {
@@ -10531,15 +11025,15 @@ namespace tkz {
                 return builder->getInt32(v);
             }
         }
-        if (auto chr = std::get_if<CharNode>(&node)) {
+        else if (auto chr = std::get_if<CharNode>(&node)) {
             char c = chr->tok.value.empty() ? '\0' : chr->tok.value[0];
             return builder->getInt8((uint8_t)c);
         }
-        if (auto boolNode = std::get_if<BoolNode>(&node)) {
+        else if (auto boolNode = std::get_if<BoolNode>(&node)) {
             bool value = (boolNode->tok.value == "true");
             return builder->getInt1(value ? 1 : 0);
         }
-        if (auto qbool = std::get_if<QBoolNode>(&node)) {
+        else if (auto qbool = std::get_if<QBoolNode>(&node)) {
             uint8_t value;
             if (qbool->tok.value == "none") {
                 value = 0b00;
@@ -10559,7 +11053,7 @@ namespace tkz {
             }
             return llvm::ConstantInt::get(builder->getIntNTy(2), value);
         }
-        if (auto str = std::get_if<StringNode>(&node)) {
+        else if (auto str = std::get_if<StringNode>(&node)) {
             llvm::Constant* strConstant = llvm::ConstantDataArray::getString(
                 context, 
                 str->tok.value,
@@ -10585,14 +11079,616 @@ namespace tkz {
                 "str"
             );
         }
-        if (auto bin = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+        else if (auto bin = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+            TokenType op = (*bin)->op_tok.type;
+            if (op == TokenType::RSHIFT) {
+                llvm::Value* leftResult = nullptr;
+                
+                if (auto leftBin = std::get_if<std::unique_ptr<BinOpNode>>(&(*bin)->left_node)) {
+                    if ((*leftBin)->op_tok.type == TokenType::RSHIFT) {
+                        leftResult = emitExpr((*bin)->left_node);
+                    }
+                }
+                llvm::Function* qinFn = module->getFunction("qc_qin");
+                if (!qinFn) {
+                    auto* fnTy = llvm::FunctionType::get(
+                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        {},
+                        false
+                    );
+                    qinFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_qin", module.get());
+                }
+                
+                llvm::Value* input = builder->CreateCall(qinFn, {}, "qin_input");
+                
+                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->right_node)) {
+                    std::string varName = (*varAccess)->var_name_tok.value;
+                    llvm::Value* alloc = resolveVariable(varName);
+                    if (!alloc) {
+                        cg_error(Position(), "qin: variable not declared: " + varName);
+                        return nullptr;
+                    }
+                    
+                    llvm::Type* varTy = getPointeeType(alloc);
+                    llvm::Value* converted = input;
+                    
+                    if (varTy->isIntegerTy(32)) {
+                        llvm::Function* fn = module->getFunction("qc_to_int_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_int_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isFloatTy()) {
+                        llvm::Function* fn = module->getFunction("qc_to_float_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getFloatTy(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_float_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isDoubleTy()) {
+                        llvm::Function* fn = module->getFunction("qc_to_double_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getDoubleTy(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_double_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(8)) {
+                        llvm::Function* fn = module->getFunction("qc_to_char_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt8Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_char_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(1)) {
+                        llvm::Function* fn = module->getFunction("qc_to_bool_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_bool_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(2)) {
+                        llvm::Function* fn = module->getFunction("qc_to_qbool_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(2), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_qbool_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    }
+                    
+                    builder->CreateStore(converted, alloc);
+                    
+                    return builder->getInt32(0);
+                }
+                
+                cg_error(Position(), "qin: right side must be a variable");
+                return nullptr;
+            }
             llvm::Value* L = emitExpr((*bin)->left_node);
             llvm::Value* R = emitExpr((*bin)->right_node);
             if (!L || !R) return nullptr;
-            
             llvm::Type* lty = L->getType();
             llvm::Type* rty = R->getType();
-            TokenType op = (*bin)->op_tok.type;
+            if (lty->isPointerTy()) {
+                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->left_node)) {
+                    std::string varName = (*varAccess)->var_name_tok.value;
+                    llvm::Value* alloc = resolveVariable(varName);
+                    if (alloc) {
+                        llvm::Type* allocTy = getPointeeType(alloc);
+                        
+                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+                            if (structTy->hasName()) {
+                                std::string className = structTy->getName().str();
+                                
+                                if (classTypes.find(className) != classTypes.end()) {
+                                    std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                                    
+                                    if (!opMethodName.empty()) {
+                                        std::vector<llvm::Value*> args = {R};
+                                        llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                                        
+                                        if (opMethod) {
+                                            std::vector<llvm::Value*> allArgs = {L, R};
+                                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            bool isEq = (*bin)->op_tok.type == TokenType::EQ_TO;
+            bool isNe = (*bin)->op_tok.type == TokenType::NOT_EQ;
+
+            if (isEq || isNe) {
+                llvm::Type* lTy = L->getType();
+                llvm::Type* rTy = R->getType();
+
+                std::string lUnionName, rUnionName;
+                bool lIsUnion = isUnionType(lTy, &lUnionName);
+                bool rIsUnion = isUnionType(rTy, &rUnionName);
+                std::string lEnumName, rEnumName;
+                bool lIsEnum = isEnumType(lTy, &lEnumName);
+                bool rIsEnum = isEnumType(rTy, &rEnumName);
+                if (lIsUnion && !rIsUnion) {
+                    auto match = matchValueToUnionVariant(lUnionName, (*bin)->right_node, R);
+                    
+                    if (!match) {
+                        llvm::Value* res = builder->getFalse();
+                        if (isNe) res = builder->CreateNot(res);
+                        return res;
+                    }
+
+                    auto info = *match;
+                    llvm::Value* tag = builder->CreateExtractValue(L, 0, "union_tag");
+                    llvm::Value* dataPtr = builder->CreateExtractValue(L, 1, "union_data");
+
+                    llvm::Value* tagMatch = builder->CreateICmpEQ(
+                        tag, builder->getInt32(info.tagIndex), "union_tag_match"
+                    );
+                    llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
+                    llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
+
+                    builder->SetInsertPoint(matchBB);
+                    llvm::Value* payloadMatch = nullptr;
+                    
+                    if (!info.memberTypeStr.empty()) {
+                        llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
+                        
+                        if (memberTy->isPointerTy()) {
+                            llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
+                            
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            if (!strcmp_fn) {
+                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
+                                strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
+                            }
+                            payloadMatch = builder->CreateCall(strcmp_fn, {payload, R}, "payload_str_eq");
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
+
+                            if (memberTy->isIntegerTy()) {
+                                payloadMatch = builder->CreateICmpEQ(payload, R, "union_int_eq");
+                            } else if (memberTy->isFloatingPointTy()) {
+                                payloadMatch = builder->CreateFCmpOEQ(payload, R, "union_fp_eq");
+                            }
+                        }
+                    }
+
+                    llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
+                    if (fullMatch->getType() != builder->getInt1Ty()) {
+                        fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty());
+                    }
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(mismatchBB);
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
+                    phi->addIncoming(fullMatch, matchBB);
+                    phi->addIncoming(builder->getFalse(), mismatchBB);
+
+                    llvm::Value* result = phi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+                if (!lIsUnion && rIsUnion) {
+                    auto match = matchValueToUnionVariant(rUnionName, (*bin)->left_node, L);
+                    if (!match) {
+                        llvm::Value* res = builder->getFalse();
+                        if (isNe) res = builder->CreateNot(res);
+                        return res;
+                    }
+
+                    auto info = *match;
+                    llvm::Value* tag = builder->CreateExtractValue(R, 0, "union_tag");
+                    llvm::Value* dataPtr = builder->CreateExtractValue(R, 1, "union_data");
+
+                    llvm::Value* tagMatch = builder->CreateICmpEQ(
+                        tag, builder->getInt32(info.tagIndex), "union_tag_match"
+                    );
+
+                    llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
+                    llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
+
+                    builder->SetInsertPoint(matchBB);
+                    llvm::Value* payloadMatch = nullptr;
+                    
+                    if (!info.memberTypeStr.empty()) {
+                        llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
+                        
+                        if (memberTy->isPointerTy()) {
+                            llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
+                            
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            if (!strcmp_fn) {
+                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
+                                strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
+                            }
+                            payloadMatch = builder->CreateCall(strcmp_fn, {L, payload}, "payload_str_eq");
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
+
+                            if (memberTy->isIntegerTy()) {
+                                payloadMatch = builder->CreateICmpEQ(L, payload, "union_int_eq");
+                            } else if (memberTy->isFloatingPointTy()) {
+                                payloadMatch = builder->CreateFCmpOEQ(L, payload, "union_fp_eq");
+                            }
+                        }
+                    }
+
+                    llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
+                    if (fullMatch->getType() != builder->getInt1Ty()) {
+                        fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty());
+                    }
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(mismatchBB);
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
+                    phi->addIncoming(fullMatch, matchBB);
+                    phi->addIncoming(builder->getFalse(), mismatchBB);
+
+                    llvm::Value* result = phi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+                if (lIsUnion && rIsUnion) {
+                    llvm::Value* lhsTag = builder->CreateExtractValue(L, 0, "lhs_tag");
+                    llvm::Value* rhsTag = builder->CreateExtractValue(R, 0, "rhs_tag");
+                    llvm::Value* tagsEqual = builder->CreateICmpEQ(lhsTag, rhsTag, "tags_equal");
+
+                    llvm::BasicBlock* tagMatchBB = llvm::BasicBlock::Create(context, "tags_match", currentFunction);
+                    llvm::BasicBlock* tagMismatchBB = llvm::BasicBlock::Create(context, "tags_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "union_cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagsEqual, tagMatchBB, tagMismatchBB);
+                    builder->SetInsertPoint(tagMatchBB);
+                    
+                    llvm::Value* lhsPayload = builder->CreateExtractValue(L, 1, "lhs_payload");
+                    llvm::Value* rhsPayload = builder->CreateExtractValue(R, 1, "rhs_payload");
+                    
+                    auto& members = userTypes[lUnionName].members;
+                    llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(context, "payload_cmp_end", currentFunction);
+                    llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(context, "cmp_default", currentFunction);
+                    llvm::SwitchInst* sw = builder->CreateSwitch(lhsTag, defaultBB, members.size());
+                    std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> caseResults;
+                    
+                    for (size_t i = 0; i < members.size(); i++) {
+                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "cmp_case_" + std::to_string(i), currentFunction);
+                        sw->addCase(builder->getInt32(i), caseBB);
+                        builder->SetInsertPoint(caseBB);
+                        
+                        std::string typeStr = members[i].type;
+                        size_t colonPos = typeStr.find(':');
+                        if (colonPos != std::string::npos) {
+                            typeStr = typeStr.substr(0, colonPos);
+                        }
+                        
+                        llvm::Type* memberTy = llvmTypeFor(typeStr);
+                        
+                        llvm::Value* lhsVal, *rhsVal;
+                        
+                        if (memberTy->isPointerTy()) {
+                            lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
+                            rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
+                        } else {
+                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(memberTy, 0));
+                            lhsVal = builder->CreateLoad(memberTy, lhsTyped);
+                            rhsVal = builder->CreateLoad(memberTy, rhsTyped);
+                        }
+                        llvm::Value* cmp;
+                        if (memberTy->isIntegerTy()) {
+                            cmp = builder->CreateICmpEQ(lhsVal, rhsVal);
+                        } else if (memberTy->isFloatingPointTy()) {
+                            cmp = builder->CreateFCmpOEQ(lhsVal, rhsVal);
+                        } else if (memberTy->isPointerTy()) {
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            cmp = builder->CreateCall(strcmp_fn, {lhsVal, rhsVal});
+                            cmp = builder->CreateTrunc(cmp, builder->getInt1Ty());
+                        } else {
+                            cmp = builder->getTrue();
+                        }
+                        
+                        caseResults.push_back({caseBB, cmp});
+                        builder->CreateBr(payloadEndBB);
+                    }
+                    builder->SetInsertPoint(defaultBB);
+                    builder->CreateBr(payloadEndBB);
+                    builder->SetInsertPoint(payloadEndBB);
+                    llvm::PHINode* payloadPhi = builder->CreatePHI(builder->getInt1Ty(), caseResults.size());
+                    for (auto& [bb, val] : caseResults) {
+                        payloadPhi->addIncoming(val, bb);
+                    }
+                    payloadPhi->addIncoming(builder->getFalse(), defaultBB);
+                    builder->CreateBr(endBB);
+                    
+                    builder->SetInsertPoint(tagMismatchBB);
+                    builder->CreateBr(endBB);
+                    
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* finalPhi = builder->CreatePHI(builder->getInt1Ty(), 2);
+                    finalPhi->addIncoming(payloadPhi, payloadEndBB);
+                    finalPhi->addIncoming(builder->getFalse(), tagMismatchBB);
+                    
+                    llvm::Value* result = finalPhi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+                else if (lIsEnum && !rIsEnum && !rIsUnion) {
+                    auto match = matchValueToEnumMember(lEnumName, (*bin)->right_node, R);
+                    if (!match) {
+                        llvm::Value* res = builder->getFalse();
+                        if (isNe) res = builder->CreateNot(res);
+                        return res;
+                    }
+
+                    auto info = *match;
+                    llvm::Value* tag = builder->CreateExtractValue(L, 0, "union_tag");
+                    llvm::Value* dataPtr = builder->CreateExtractValue(L, 1, "union_data");
+
+                    llvm::Value* tagMatch = builder->CreateICmpEQ(
+                        tag, builder->getInt32(info.tagIndex), "union_tag_match"
+                    );
+                    llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
+                    llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
+
+                    builder->SetInsertPoint(matchBB);
+                    llvm::Value* payloadMatch = nullptr;
+                    
+                    if (!info.memberTypeStr.empty()) {
+                        llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
+                        
+                        if (memberTy->isPointerTy()) {
+                            llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
+                            
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            if (!strcmp_fn) {
+                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
+                                strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
+                            }
+                            payloadMatch = builder->CreateCall(strcmp_fn, {payload, R}, "payload_str_eq");
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
+
+                            if (memberTy->isIntegerTy()) {
+                                payloadMatch = builder->CreateICmpEQ(payload, R, "union_int_eq");
+                            } else if (memberTy->isFloatingPointTy()) {
+                                payloadMatch = builder->CreateFCmpOEQ(payload, R, "union_fp_eq");
+                            }
+                        }
+                    }
+
+                    llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
+                    if (fullMatch->getType() != builder->getInt1Ty()) {
+                        fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty());
+                    }
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(mismatchBB);
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
+                    phi->addIncoming(fullMatch, matchBB);
+                    phi->addIncoming(builder->getFalse(), mismatchBB);
+
+                    llvm::Value* result = phi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+
+                else if (!lIsUnion && !lIsEnum && rIsEnum) {
+                    auto match = matchValueToEnumMember(rEnumName, (*bin)->left_node, L);
+                    if (!match) {
+                        llvm::Value* res = builder->getFalse();
+                        if (isNe) res = builder->CreateNot(res);
+                        return res;
+                    }
+
+                    auto info = *match;
+                    llvm::Value* tag = builder->CreateExtractValue(R, 0, "union_tag");
+                    llvm::Value* dataPtr = builder->CreateExtractValue(R, 1, "union_data");
+
+                    llvm::Value* tagMatch = builder->CreateICmpEQ(
+                        tag, builder->getInt32(info.tagIndex), "union_tag_match"
+                    );
+
+                    llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
+                    llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
+
+                    builder->SetInsertPoint(matchBB);
+                    llvm::Value* payloadMatch = nullptr;
+                    
+                    if (!info.memberTypeStr.empty()) {
+                        llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
+                        
+                        if (memberTy->isPointerTy()) {
+                            llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
+                            
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            if (!strcmp_fn) {
+                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
+                                strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
+                            }
+                            payloadMatch = builder->CreateCall(strcmp_fn, {L, payload}, "payload_str_eq");
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
+
+                            if (memberTy->isIntegerTy()) {
+                                payloadMatch = builder->CreateICmpEQ(L, payload, "union_int_eq");
+                            } else if (memberTy->isFloatingPointTy()) {
+                                payloadMatch = builder->CreateFCmpOEQ(L, payload, "union_fp_eq");
+                            }
+                        }
+                    }
+
+                    llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
+                    if (fullMatch->getType() != builder->getInt1Ty()) {
+                        fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty());
+                    }
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(mismatchBB);
+                    builder->CreateBr(endBB);
+
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
+                    phi->addIncoming(fullMatch, matchBB);
+                    phi->addIncoming(builder->getFalse(), mismatchBB);
+
+                    llvm::Value* result = phi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+                else if (lIsEnum && rIsEnum) {
+                    llvm::Value* lhsTag = builder->CreateExtractValue(L, 0, "lhs_tag");
+                    llvm::Value* rhsTag = builder->CreateExtractValue(R, 0, "rhs_tag");
+                    llvm::Value* tagsEqual = builder->CreateICmpEQ(lhsTag, rhsTag, "tags_equal");
+
+                    llvm::BasicBlock* tagMatchBB = llvm::BasicBlock::Create(context, "tags_match", currentFunction);
+                    llvm::BasicBlock* tagMismatchBB = llvm::BasicBlock::Create(context, "tags_mismatch", currentFunction);
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "union_cmp_end", currentFunction);
+
+                    builder->CreateCondBr(tagsEqual, tagMatchBB, tagMismatchBB);
+                    builder->SetInsertPoint(tagMatchBB);
+                    
+                    llvm::Value* lhsPayload = builder->CreateExtractValue(L, 1, "lhs_payload");
+                    llvm::Value* rhsPayload = builder->CreateExtractValue(R, 1, "rhs_payload");
+                    
+                    auto& entries = userTypes[lEnumName].enumEntries;
+                    llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(context, "payload_cmp_end", currentFunction);
+                    llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(context, "cmp_default", currentFunction);
+                    llvm::SwitchInst* sw = builder->CreateSwitch(lhsTag, defaultBB, entries.size());
+                    std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> caseResults;
+                    
+                    for (size_t i = 0; i < entries.size(); i++) {
+                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "cmp_case_" + std::to_string(i), currentFunction);
+                        sw->addCase(builder->getInt32(i), caseBB);
+                        builder->SetInsertPoint(caseBB);
+                        
+                        std::string typeStr = entries[i].typeAtom;
+                        size_t colonPos = typeStr.find(':');
+                        if (colonPos != std::string::npos) {
+                            typeStr = typeStr.substr(0, colonPos);
+                        }
+                        
+                        llvm::Type* memberTy = llvmTypeFor(typeStr);
+                        
+                        llvm::Value* lhsVal, *rhsVal;
+                        
+                        if (memberTy->isPointerTy()) {
+                            lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
+                            rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
+                        } else {
+                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(memberTy, 0));
+                            lhsVal = builder->CreateLoad(memberTy, lhsTyped);
+                            rhsVal = builder->CreateLoad(memberTy, rhsTyped);
+                        }
+                        llvm::Value* cmp;
+                        if (memberTy->isIntegerTy()) {
+                            cmp = builder->CreateICmpEQ(lhsVal, rhsVal);
+                        } else if (memberTy->isFloatingPointTy()) {
+                            cmp = builder->CreateFCmpOEQ(lhsVal, rhsVal);
+                        } else if (memberTy->isPointerTy()) {
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            cmp = builder->CreateCall(strcmp_fn, {lhsVal, rhsVal});
+                            cmp = builder->CreateTrunc(cmp, builder->getInt1Ty());
+                        } else {
+                            cmp = builder->getTrue();
+                        }
+                        
+                        caseResults.push_back({caseBB, cmp});
+                        builder->CreateBr(payloadEndBB);
+                    }
+                    builder->SetInsertPoint(defaultBB);
+                    builder->CreateBr(payloadEndBB);
+                    builder->SetInsertPoint(payloadEndBB);
+                    llvm::PHINode* payloadPhi = builder->CreatePHI(builder->getInt1Ty(), caseResults.size());
+                    for (auto& [bb, val] : caseResults) {
+                        payloadPhi->addIncoming(val, bb);
+                    }
+                    payloadPhi->addIncoming(builder->getFalse(), defaultBB);
+                    builder->CreateBr(endBB);
+                    
+                    builder->SetInsertPoint(tagMismatchBB);
+                    builder->CreateBr(endBB);
+                    
+                    builder->SetInsertPoint(endBB);
+                    llvm::PHINode* finalPhi = builder->CreatePHI(builder->getInt1Ty(), 2);
+                    finalPhi->addIncoming(payloadPhi, payloadEndBB);
+                    finalPhi->addIncoming(builder->getFalse(), tagMismatchBB);
+                    
+                    llvm::Value* result = finalPhi;
+                    if (isNe) {
+                        result = builder->CreateNot(result);
+                    }
+                    return result;
+                }
+            }
+            
+            L = normalizeValue(L, (*bin)->left_node);
+            R = normalizeValue(R, (*bin)->right_node);
+            lty = L->getType();
+            rty = R->getType();
+            if (auto lStructTy = llvm::dyn_cast<llvm::StructType>(lty)) {
+                if (lStructTy->hasName()) {
+                    std::string className = lStructTy->getName().str();
+                    
+                    if (classTypes.find(className) != classTypes.end()) {
+                        std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                        
+                        if (!opMethodName.empty()) {
+                            std::vector<llvm::Value*> args = {R};
+                            llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                            
+                            if (opMethod) {
+                                llvm::AllocaInst* temp = createEntryAlloca("temp_op_lhs", lty);
+                                builder->CreateStore(L, temp);
+                                
+                                std::vector<llvm::Value*> allArgs = {temp, R};
+                                return builder->CreateCall(opMethod, allArgs, "op_result");
+                            }
+                        }
+                    }
+                }
+            }
             if ((*bin)->is_f) {
                 auto toString = [&](llvm::Value* v, const Position& pos) -> llvm::Value* {
                     llvm::Type* ty = v->getType();
@@ -10709,7 +11805,39 @@ namespace tkz {
                             dimsPtr
                         }, "fstr_array");
                     }
-                    
+                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
+                        if (structTy->hasName()) {
+                            std::string className = structTy->getName().str();
+                            
+                            if (classTypes.find(className) != classTypes.end()) {
+                                auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
+                                
+                                if (reprMethod) {
+                                    std::vector<llvm::Value*> args;
+                                    
+                                    llvm::AllocaInst* temp = createEntryAlloca("temp_repr", ty);
+                                    builder->CreateStore(v, temp);
+                                    args.push_back(temp);
+                                    
+                                    return builder->CreateCall(reprMethod, args, "repr_result");
+                                }
+                            }
+                        }
+                    }
+
+                    for (auto& [enumName, enumTy] : enumTypes) {
+                        if (ty == enumTy) {
+                            llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
+                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        }
+                    }
+
+                    for (auto& [unionName, unionTy] : unionTypes) {
+                        if (ty == unionTy) {
+                            llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
+                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        }
+                    }
                     if (ty->isPointerTy()) {
                         return v;
                     }
@@ -11032,7 +12160,7 @@ namespace tkz {
                         llvm::Value* cmp = builder->CreateCall(strcmp_fn, {L, R});
                         
                         if (op == TokenType::QNEQ) {
-                            cmp = builder->CreateXor(cmp, builder->getInt32(1));
+                            cmp = builder->CreateNot(cmp);
                         }
                         
                         boolResult = builder->CreateTrunc(cmp, builder->getInt1Ty());
@@ -11085,28 +12213,17 @@ namespace tkz {
                     }
                 }
                 case TokenType::AND:
-                    if (lty == builder->getInt1Ty() && rty == builder->getInt1Ty()) {
-                        return builder->CreateAnd(L, R, "and");
-                    } else {
-                        cg_error((*bin)->op_tok.pos, "&& requires bool operands");
-                        return nullptr;
-                    }
-
+                    L = toTruthiness(L, Position("", "", 0, 0, 0));
+                    R = toTruthiness(R, Position("", "", 0, 0, 0));
+                    return builder->CreateAnd(L, R, "and");
                 case TokenType::OR:
-                    if (lty == builder->getInt1Ty() && rty == builder->getInt1Ty()) {
-                        return builder->CreateOr(L, R, "or");
-                    } else {
-                        cg_error((*bin)->op_tok.pos, "|| requires bool operands");
-                        return nullptr;
-                    }
-
+                    L = toTruthiness(L, Position("", "", 0, 0, 0));
+                    R = toTruthiness(R, Position("", "", 0, 0, 0));
+                    return builder->CreateOr(L, R, "or");
                 case TokenType::XOR:
-                    if (lty == builder->getInt1Ty() && rty == builder->getInt1Ty()) {
-                        return builder->CreateXor(L, R, "xor");
-                    } else {
-                        cg_error((*bin)->op_tok.pos, "^ requires bool operands");
-                        return nullptr;
-                    }
+                    L = toTruthiness(L, Position("", "", 0, 0, 0));
+                    R = toTruthiness(R, Position("", "", 0, 0, 0));
+                    return builder->CreateXor(L, R, "xor");
                 case TokenType::QAND:
                     if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
                         llvm::Function* fn = module->getFunction("qc_qand");
@@ -11200,27 +12317,286 @@ namespace tkz {
                     return nullptr;
             }
         }
-        if (auto va = std::get_if<std::unique_ptr<VarAssignNode>>(&node)) {
+        else if (auto va = std::get_if<std::unique_ptr<VarAssignNode>>(&node)) {
             std::string name = (*va)->var_name_tok.value;
             std::string qcType = (*va)->type_tok.value;
-            auto userTypeIt = userTypes.find(qcType);
-            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
-                if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&valueExpr)) {
-                    llvm::StructType* structTy = structTypes[varType];
-                    llvm::AllocaInst* structAlloc = createEntryAlloca(varName, structTy);
-                    
-                    auto& structInfo = userTypeIt->second;
-                    for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
-                        llvm::Value* val = emitExpr((*arrLit)->elements[i]);
-                        if (!val) return;
-                        llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, structAlloc, i, 
-                                                                        structInfo.fields[i].name);
-                        builder->CreateStore(val, fieldPtr);
+            if (qcType.starts_with("list<") && qcType.ends_with(">")) {
+                std::string elemType = qcType.substr(5, qcType.size() - 6);
+                int elemTypeCode = getTypeCode(elemType);
+                
+                if (elemTypeCode != -1) {
+                    llvm::Function* createFn = module->getFunction("qc_create_list");
+                    if (!createFn) {
+                        llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        llvm::FunctionType* fnTy = llvm::FunctionType::get(
+                            ptrTy,
+                            {builder->getInt32Ty()},
+                            false
+                        );
+                        createFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_create_list", module.get());
                     }
                     
-                    locals[varName] = structAlloc;
-                    return;
+                    llvm::Value* listPtr = builder->CreateCall(createFn, {builder->getInt32(elemTypeCode)}, "list_ptr");
+                    
+                    llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
+                    builder->CreateStore(listPtr, alloc);
+                    
+                    locals[name] = alloc;
+                    lists[name] = elemTypeCode;
+                    
+                    return nullptr;
                 }
+            }
+            if (qcType == "auto") {
+                llvm::Value* rhs = emitExpr((*va)->value_node);
+                if (!rhs) {
+                    cg_error((*va)->var_name_tok.pos, "Cannot infer type from invalid expression");
+                    return nullptr;
+                }
+                
+                llvm::Type* inferredTy = rhs->getType();
+                llvm::AllocaInst* alloc = createEntryAlloca(name, inferredTy);
+                builder->CreateStore(rhs, alloc);
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = alloc;
+                if (inferredTy->isArrayTy()) {
+                    llvm::Type* elemTy = inferredTy;
+                    while (elemTy->isArrayTy()) {
+                        elemTy = elemTy->getArrayElementType();
+                    }
+                    if (elemTy->isIntegerTy(32)) arrayTypeStrings[name] = "int";
+                    else if (elemTy->isFloatTy()) arrayTypeStrings[name] = "float";
+                    else if (elemTy->isDoubleTy()) arrayTypeStrings[name] = "double";
+                    else if (elemTy->isIntegerTy(8)) arrayTypeStrings[name] = "char";
+                    else if (elemTy->isIntegerTy(1)) arrayTypeStrings[name] = "bool";
+                    else if (elemTy->isIntegerTy(2)) arrayTypeStrings[name] = "qbool";
+                    else if (elemTy->isPointerTy()) arrayTypeStrings[name] = "string";
+                }
+                
+                return nullptr;
+            }
+            if (qcType == "auto[]" || qcType.starts_with("auto[")) {
+                llvm::Value* rhs = emitExpr((*va)->value_node);
+                if (!rhs) {
+                    cg_error((*va)->var_name_tok.pos, "Cannot infer array type");
+                    return nullptr;
+                }
+                
+                llvm::Type* rhsTy = rhs->getType();
+                
+                if (!rhsTy->isArrayTy()) {
+                    cg_error((*va)->var_name_tok.pos, "auto[] requires array literal");
+                    return nullptr;
+                }
+                
+                llvm::AllocaInst* alloc = createEntryAlloca(name, rhsTy);
+                builder->CreateStore(rhs, alloc);
+                name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[name] = alloc;
+                llvm::Type* elemTy = rhsTy->getArrayElementType();
+                if (elemTy->isIntegerTy(32)) arrayTypeStrings[name] = "int";
+                else if (elemTy->isFloatTy()) arrayTypeStrings[name] = "float";
+                else if (elemTy->isDoubleTy()) arrayTypeStrings[name] = "double";
+                else if (elemTy->isIntegerTy(8)) arrayTypeStrings[name] = "char";
+                else if (elemTy->isIntegerTy(1)) arrayTypeStrings[name] = "bool";
+                else if (elemTy->isIntegerTy(2)) arrayTypeStrings[name] = "qbool";
+                else if (elemTy->isPointerTy()) arrayTypeStrings[name] = "string";
+                
+                arrayLengths[name] = rhsTy->getArrayNumElements();
+                
+                return nullptr;
+            }
+
+            if (qcType == "list<auto>") {
+                llvm::Value* rhs = emitExpr((*va)->value_node);
+                if (!rhs) {
+                    cg_error((*va)->var_name_tok.pos, "Cannot infer list type");
+                    return nullptr;
+                }
+                
+                llvm::Type* rhsTy = rhs->getType();
+                
+                if (!rhsTy->isArrayTy()) {
+                    cg_error((*va)->var_name_tok.pos, "list<auto> requires array literal");
+                    return nullptr;
+                }
+                
+                llvm::AllocaInst* alloc = createEntryAlloca(name, rhsTy);
+                builder->CreateStore(rhs, alloc);
+                name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[name] = alloc;
+                llvm::Type* elemTy = rhsTy->getArrayElementType();
+                int elemTypeCode = -1;
+                if (elemTy->isIntegerTy(32)) elemTypeCode = 0;
+                else if (elemTy->isFloatTy()) elemTypeCode = 1;
+                else if (elemTy->isDoubleTy()) elemTypeCode = 2;
+                else if (elemTy->isIntegerTy(8)) elemTypeCode = 3;
+                else if (elemTy->isIntegerTy(1)) elemTypeCode = 4;
+                else if (elemTy->isIntegerTy(2)) elemTypeCode = 5;
+                else if (elemTy->isPointerTy()) elemTypeCode = 6;
+                
+                lists[name] = elemTypeCode;
+                
+                return nullptr;
+            }
+            qcType = resolveTypeName(qcType);
+            auto userTypeIt = userTypes.find(qcType);
+            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
+                if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*va)->value_node)) {
+                    llvm::StructType* structTy = structTypes[qcType];
+                    llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                    auto& structInfo = userTypeIt->second;
+                    for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
+                        std::string fieldType = structInfo.fields[i].type;
+                        auto fieldTypeIt = userTypes.find(fieldType);
+                        llvm::Value* val;
+                        
+                        if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
+                            if (auto nestedArrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*arrLit)->elements[i])) {
+                                llvm::StructType* nestedStructTy = structTypes[fieldType];
+                                llvm::Value* nestedStruct = llvm::UndefValue::get(nestedStructTy);
+                                for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
+                                    llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
+                                    if (!fieldVal) return nullptr;
+                                    nestedStruct = builder->CreateInsertValue(nestedStruct, fieldVal, j);
+                                }
+                                
+                                val = nestedStruct;
+                            } else {
+                                val = emitExpr((*arrLit)->elements[i]);
+                                if (!val) return nullptr;
+                            }
+                        } else {
+                            val = emitExpr((*arrLit)->elements[i]);
+                            if (!val) return nullptr;
+                        }
+                        structVal = builder->CreateInsertValue(structVal, val, i);
+                    }
+                    llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
+                    builder->CreateStore(structVal, structAlloc);
+                    
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = structAlloc;
+                    return nullptr;
+                }
+            }
+            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Class) {
+                llvm::StructType* classTy = classTypes[qcType];
+                llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
+                
+                if (auto call = std::get_if<std::unique_ptr<CallNode>>(&(*va)->value_node)) {
+                    if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*call)->node_to_call)) {
+                        std::string calledName = (*varAccess)->var_name_tok.value;
+                        
+                        if (calledName == qcType) {
+                            std::string ctorMethodName = "";
+                            for (auto& method : userTypeIt->second.classMethods) {
+                                if (method.is_constructor) {
+                                    ctorMethodName = method.name_tok.value;
+                                    break;
+                                }
+                            }
+                            
+                            if (!ctorMethodName.empty()) {
+                                std::vector<llvm::Value*> args;
+                                for (auto& argNode : (*call)->arg_nodes) {
+                                    llvm::Value* arg = emitExpr(argNode);
+                                    if (!arg) return nullptr;
+                                    args.push_back(arg);
+                                }
+                                llvm::Function* ctor = findMethodOverload(qcType, ctorMethodName, args);
+                                
+                                if (ctor) {
+                                    std::vector<llvm::Value*> allArgs = {instance};
+                                    allArgs.insert(allArgs.end(), args.begin(), args.end());
+                                    builder->CreateCall(ctor, allArgs);
+                                }
+                            } else {
+                                auto [initMethod, ownerClass] = findMethodInHierarchy(qcType, "init");
+                                
+                                if (initMethod) {
+                                    std::vector<llvm::Value*> args = {instance};
+                                    builder->CreateCall(initMethod, args);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    auto [initMethod, ownerClass] = findMethodInHierarchy(qcType, "init");
+                    
+                    if (initMethod) {
+                        std::vector<llvm::Value*> args;
+                        args.push_back(instance);
+                        builder->CreateCall(initMethod, args);
+                    } else {
+                        llvm::Value* rhs = emitExpr((*va)->value_node);
+                        if (rhs) {
+                            builder->CreateStore(rhs, instance);
+                        }
+                    }
+                }
+                
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = instance;
+                return nullptr;
+            }
+            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Union) {
+                llvm::StructType* unionTy = unionTypes[qcType];
+                llvm::AllocaInst* unionAlloc = createEntryAlloca(name, unionTy);
+                llvm::Value* rhs = emitExpr((*va)->value_node);
+                if (!rhs) return nullptr;
+                if (rhs->getType() == unionTy) {
+                    builder->CreateStore(rhs, unionAlloc);
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = unionAlloc;
+                    return nullptr;
+                }
+                int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
+                
+                if (tag == -1) {
+                    cg_error((*va)->var_name_tok.pos, 
+                            "Value does not match any variant of union " + qcType);
+                    return nullptr;
+                }
+                auto& member = userTypes[qcType].members[tag];
+                bool isLiteral = member.type.find(':') != std::string::npos;
+                llvm::Type* rhsTy = rhs->getType();
+                std::string baseType = isLiteral
+                    ? member.type.substr(0, member.type.find(':'))
+                    : member.type;
+
+                llvm::Type* memberTy = llvmTypeFor(baseType);
+
+                if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
+                    cg_error((*va)->var_name_tok.pos,
+                        "Union literal variant type mismatch");
+                    return nullptr;
+                }
+                llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+                
+                llvm::Value* dataPtr = storeAndGetPointer(rhs);
+                unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
+                
+                builder->CreateStore(unionVal, unionAlloc);
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = unionAlloc;
+                
+                return nullptr;
+            }
+            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Enum) {
+                llvm::StructType* enumTy = enumTypes[qcType];
+                llvm::AllocaInst* enumAlloc = createEntryAlloca(name, enumTy);
+                
+                llvm::Value* rhs = emitExpr((*va)->value_node);
+                if (!rhs) return nullptr;
+                builder->CreateStore(rhs, enumAlloc);
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = enumAlloc;
+                
+                return nullptr;
             }
             if (qcType.find("[]") != std::string::npos) {
                 std::string baseType = qcType;
@@ -11233,25 +12609,49 @@ namespace tkz {
             if ((*va)->type_tok.value == "function" || (*va)->type_tok.value == "auto" && std::holds_alternative<std::shared_ptr<FuncDefNode>>((*va)->value_node)) {
                 auto fnPtr = std::get<std::shared_ptr<FuncDefNode>>((*va)->value_node);
                 llvm::Function* f = emitFuncDef(*fnPtr);
+                name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 lambdaTypes[name] = f->getFunctionType();
                 llvm::Type* funcPtrTy = llvm::PointerType::get(context, 0);
                 alloc = createEntryAlloca(name, funcPtrTy);
+                
                 locals[name] = alloc;
                 
                 builder->CreateStore(f, alloc);
                 return nullptr;
             }
-            auto it = locals.find(name);
+            llvm::Value* existingAlloc = resolveVariable(name);
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
 
-            if (it == locals.end()) {
+            if (!existingAlloc) {
                 llvm::Type* ty = llvmTypeFor(qcType);
-                alloc = createEntryAlloca(name, ty);
-                locals[name] = alloc;
+                if (!ty) {
+                    cg_error((*va)->var_name_tok.pos, "Unknown type: " + qcType);
+                    return nullptr;
+                }
+                alloc = createEntryAlloca(fullName, ty);
+                locals[fullName] = alloc;
             } else {
-                alloc = it->second;
+                if (auto* existingLocal = llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
+                    llvm::Type* existingTy = existingLocal->getAllocatedType();
+                    llvm::Type* newTy = llvmTypeFor(qcType);
+                    
+                    if (existingTy != newTy) {
+                        static int shadowId = 0;
+                        std::string uniqueName = fullName + ".shadow." + std::to_string(shadowId++);
+                        alloc = createEntryAlloca(uniqueName, newTy);
+                        locals[fullName] = alloc;
+                    } else {
+                        alloc = existingLocal;
+                    }
+                } else if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(existingAlloc)) {
+                    llvm::Value* rhs = emitExpr((*va)->value_node);
+                    if (rhs) {
+                        builder->CreateStore(rhs, gv);
+                    }
+                    return nullptr;
+                }
             }
-
-            llvm::Type* destTy = alloc->getAllocatedType();
+            llvm::Type* destTy = getPointeeType(alloc);
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
                 cg_error((*va)->var_name_tok.pos,
@@ -11260,6 +12660,42 @@ namespace tkz {
             }
 
             llvm::Type* srcTy = rhs->getType();
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (srcTy == unionTy && !isUnionType(destTy)) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(rhs, 1, "union_data");
+
+                    if (destTy->isPointerTy()) {
+                        rhs = builder->CreateBitCast(dataPtr, destTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr, 
+                            llvm::PointerType::get(destTy, 0)
+                        );
+                        rhs = builder->CreateLoad(destTy, typedPtr);
+                    }
+
+                    srcTy = destTy;
+                    break;
+                }
+            }
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (srcTy == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(rhs, 1, "enum_data");
+                    
+                    if (destTy->isPointerTy()) {
+                        rhs = builder->CreateBitCast(dataPtr, destTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr, 
+                            llvm::PointerType::get(destTy, 0)
+                        );
+                        rhs = builder->CreateLoad(destTy, typedPtr);
+                    }
+                    
+                    srcTy = destTy;
+                    break;
+                }
+            }
             if (srcTy != destTy) {
                 if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
                     rhs = builder->CreateFPExt(rhs, destTy, "f2d");
@@ -11268,16 +12704,14 @@ namespace tkz {
                             "Cannot assign double to float in compiled mode");
                     return nullptr;
                 } else if (srcTy->isIntegerTy() && destTy->isIntegerTy()) {
-                    unsigned srcBits = srcTy->getIntegerBitWidth();
+                    unsigned srcBits  = srcTy->getIntegerBitWidth();
                     unsigned destBits = destTy->getIntegerBitWidth();
-                    
                     if (srcBits > destBits) {
                         rhs = builder->CreateTrunc(rhs, destTy, "trunc");
                     } else if (srcBits < destBits) {
                         rhs = builder->CreateSExt(rhs, destTy, "sext");
                     }
-                }
-                else if (srcTy->isIntegerTy() && destTy->isFloatingPointTy()) {
+                } else if (srcTy->isIntegerTy() && destTy->isFloatingPointTy()) {
                     rhs = builder->CreateSIToFP(rhs, destTy, "i2f");
                 } else {
                     cg_error((*va)->var_name_tok.pos,
@@ -11289,24 +12723,142 @@ namespace tkz {
             builder->CreateStore(rhs, alloc);
             return nullptr;
         }
-        if (auto acc = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+        else if (auto acc = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
             std::string name = (*acc)->var_name_tok.value;
-            auto it = locals.find(name);
-            if (it != locals.end()) {
-                llvm::AllocaInst* alloc = it->second;
-                llvm::Type* ty = alloc->getAllocatedType();
+            if (name == "this") {
+                if (currentThis) {
+                    return currentThis;
+                } else {
+                    cg_error((*acc)->var_name_tok.pos, "'this' used outside class method");
+                    return nullptr;
+                }
+            }
+            llvm::Value* alloc = resolveVariable(name);
+            if (alloc) {
+                llvm::Type* ty = getPointeeType(alloc);
                 return builder->CreateLoad(ty, alloc, name);
             }
-            auto fit = functions.find(name);
-            if (fit != functions.end()) {
-                return fit->second;
+            
+            llvm::Function* fn = resolveFunction(name);
+            if (fn) {
+                return fn;
             }
 
             cg_error((*acc)->var_name_tok.pos,
                     "Use of undeclared variable '" + name + "' in compiled mode");
             return nullptr;
         }
-        if (auto asn = std::get_if<std::unique_ptr<AssignExprNode>>(&node)) {
+        else if (auto asn = std::get_if<std::unique_ptr<AssignExprNode>>(&node)) {
+            if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(&(*asn)->target)) {
+                std::string fieldName = (*propAccess)->property_name.value;
+                
+                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
+                    std::string varName = (*varAccess)->var_name_tok.value;
+                    if (varName == "this" && currentThis && !currentClassName.empty()) {
+                        auto& classInfo = userTypes[currentClassName];
+                        llvm::StructType* classTy = classTypes[currentClassName];
+                        
+                        int fieldIdx = 0;
+                        if (!classInfo.baseClassName.empty()) fieldIdx++;
+                        
+                        for (size_t i = 0; i < classInfo.classFields.size(); i++) {
+                            if (classInfo.classFields[i].name == fieldName) {
+                                llvm::Type* fieldTy = llvmTypeFor(classInfo.classFields[i].type);
+                                llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx + i);
+                                
+                                llvm::Value* rhsVal = emitExpr((*asn)->value);
+                                if (!rhsVal) return nullptr;
+                                
+                                TokenType op = (*asn)->op_tok.type;
+                                
+                                if (op != TokenType::EQ) {
+                                    llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
+                                    bool isFloat = fieldTy->isFloatingPointTy();
+                                    
+                                    switch (op) {
+                                        case TokenType::PLUS_EQ:
+                                            rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal);
+                                            break;
+                                        case TokenType::MINUS_EQ:
+                                            rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal);
+                                            break;
+                                        case TokenType::MUL_EQ:
+                                            rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal);
+                                            break;
+                                        case TokenType::DIV_EQ:
+                                            rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal);
+                                            break;
+                                        case TokenType::MOD_EQ:
+                                            rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal);
+                                            break;
+                                    }
+                                }
+                                
+                                builder->CreateStore(rhsVal, fieldPtr);
+                                return nullptr;
+                            }
+                        }
+                        
+                        cg_error(Position(), "Field not found: " + fieldName);
+                        return nullptr;
+                    }
+                    llvm::Value* locAlloc = resolveVariable(varName);
+                    if (!locAlloc) {
+                        cg_error(Position(), "Unknown variable: " + varName);
+                        return nullptr;
+                    }
+                    
+                    llvm::Type* allocTy = getPointeeType(locAlloc);
+                    
+                    auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
+                    if (!structTy) {
+                        cg_error(Position(), "Not a struct");
+                        return nullptr;
+                    }
+                    
+                    std::string structName = structTy->getName().str();
+                    auto userTypeIt = userTypes.find(structName);
+                    int fieldIdx = -1;
+                    for (size_t i = 0; i < userTypeIt->second.fields.size(); i++) {
+                        if (userTypeIt->second.fields[i].name == fieldName) {
+                            fieldIdx = i;
+                            break;
+                        }
+                    }
+                    
+                    llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, locAlloc, fieldIdx);
+                    llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
+                    
+                    llvm::Value* rhsVal = emitExpr((*asn)->value);
+                    TokenType op = (*asn)->op_tok.type;
+                    
+                    if (op != TokenType::EQ) {
+                        llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
+                        bool isFloat = fieldTy->isFloatingPointTy();
+                        
+                        switch (op) {
+                            case TokenType::PLUS_EQ:
+                                rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal);
+                                break;
+                            case TokenType::MINUS_EQ:
+                                rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal);
+                                break;
+                            case TokenType::MUL_EQ:
+                                rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal);
+                                break;
+                            case TokenType::DIV_EQ:
+                                rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal);
+                                break;
+                            case TokenType::MOD_EQ:
+                                rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal);
+                                break;
+                        }
+                    }
+                    
+                    builder->CreateStore(rhsVal, fieldPtr);
+                    return nullptr;
+                }
+            }
             auto lhsVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*asn)->target);
             if (!lhsVar) {
                 cg_error((*asn)->op_tok.pos,
@@ -11315,16 +12867,61 @@ namespace tkz {
             }
 
             std::string name = (*lhsVar)->var_name_tok.value;
-            auto it = locals.find(name);
-            if (it == locals.end()) {
+            llvm::Value* alloc = resolveVariable(name);
+            if (!alloc) {
                 cg_error((*lhsVar)->var_name_tok.pos,
                         "Assigning to undeclared variable '" + name + "' in compiled mode");
                 return nullptr;
             }
+            llvm::Type* destTy = getPointeeType(alloc);
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (destTy == unionTy) {
+                    llvm::Value* rhs = emitExpr((*asn)->value);
+                    if (!rhs) return nullptr;
+                    if (rhs->getType() == unionTy) {
+                        builder->CreateStore(rhs, alloc);
+                        return nullptr;
+                    }
+                    int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
+                    
+                    if (tag == -1) {
+                        cg_error(Position(), 
+                                "Value does not match any variant of union " + unionName);
+                        return nullptr;
+                    }
+                    auto& member = userTypes[unionName].members[tag];
+                    bool isLiteral = member.type.find(':') != std::string::npos;
 
-            llvm::AllocaInst* alloc = it->second;
-            llvm::Type* destTy = alloc->getAllocatedType();
+                    std::string baseType = isLiteral
+                        ? member.type.substr(0, member.type.find(':'))
+                        : member.type;
 
+                    llvm::Type* rhsTy = rhs->getType();
+                    llvm::Type* memberTy = llvmTypeFor(baseType);
+
+                    if (rhsTy->getTypeID() != memberTy->getTypeID()) {
+                        cg_error((*asn)->op_tok.pos,
+                            "Union variant payload type mismatch");
+                        return nullptr;
+                    }
+                    llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                    unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+                    llvm::Value* dataPtr = storeAndGetPointer(rhs);
+                    unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
+                    
+                    builder->CreateStore(unionVal, alloc);
+                    return nullptr;
+                }
+            }
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (destTy == enumTy) {
+                    llvm::Value* rhs = emitExpr((*asn)->value);
+                    if (!rhs) return nullptr;
+                    
+                    builder->CreateStore(rhs, alloc);
+                    return nullptr;
+                }
+            }
             llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, name);
             llvm::Value* rhsVal = emitExpr((*asn)->value);
             if (!rhsVal) {
@@ -11333,6 +12930,24 @@ namespace tkz {
                 return nullptr;
             }
             llvm::Type* srcTy = rhsVal->getType();
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (srcTy == unionTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(rhsVal, 1);
+                    
+                    if (destTy->isPointerTy()) {
+                        rhsVal = builder->CreateBitCast(dataPtr, destTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr, 
+                            llvm::PointerType::get(destTy, 0)
+                        );
+                        rhsVal = builder->CreateLoad(destTy, typedPtr);
+                    }
+                    destTy = srcTy;
+                    break;
+                }
+            }
+            
             if ((*asn)->op_tok.type != TokenType::EQ) {
                 if (srcTy != destTy) {
                     if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
@@ -11449,14 +13064,106 @@ namespace tkz {
                             "Unsupported compound assignment in compiled mode");
                     return nullptr;
             }
-
+            if ((*asn)->op_tok.type == TokenType::EQ) {
+                if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
+                    if (structTy->hasName()) {
+                        std::string className = structTy->getName().str();
+                        
+                        if (classTypes.find(className) != classTypes.end()) {
+                            std::vector<llvm::Value*> args = {rhsVal};
+                            llvm::Function* opMethod = findMethodOverload(className, "operator=", args);
+                            
+                            if (opMethod) {
+                                std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
+                                builder->CreateCall(opMethod, allArgs);
+                                return nullptr;
+                            }
+                        }
+                    }
+                }
+            }
             builder->CreateStore(newVal, alloc);
             return nullptr;
         }
-        if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+        else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+            TokenType op = (*unary)->op_tok.type;
+
             llvm::Value* operand = emitExpr((*unary)->node);
             if (!operand) return nullptr;
-            
+            llvm::Type* operandTy = operand->getType();
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (operandTy == unionTy) {
+                    llvm::Type* targetTy = nullptr;
+                    
+                    if (op == TokenType::MINUS) {
+                        targetTy = builder->getInt32Ty();
+                    }
+                    else if (op == TokenType::NOT) {
+                        targetTy = builder->getInt1Ty();
+                    }
+                    else if (op == TokenType::QNOT) {
+                        targetTy = builder->getIntNTy(2);
+                    }
+                    
+                    if (targetTy) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr, 
+                            llvm::PointerType::get(targetTy, 0)
+                        );
+                        operand = builder->CreateLoad(targetTy, typedPtr);
+                        operandTy = targetTy;
+                    }
+                    break;
+                }
+            }
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (operandTy == enumTy) {
+                    llvm::Type* targetTy = nullptr;
+                    
+                    if (op == TokenType::MINUS) {
+                        targetTy = builder->getInt32Ty();
+                    }
+                    else if (op == TokenType::NOT) {
+                        targetTy = builder->getInt1Ty();
+                    }
+                    else if (op == TokenType::QNOT) {
+                        targetTy = builder->getIntNTy(2);
+                    }
+                    if (targetTy) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr, 
+                            llvm::PointerType::get(targetTy, 0)
+                        );
+                        operand = builder->CreateLoad(targetTy, typedPtr);
+                        operandTy = targetTy;
+                    }
+                    break;
+                }
+            }
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(operandTy)) {
+                if (structTy->hasName()) {
+                    std::string className = structTy->getName().str();
+                    
+                    if (classTypes.find(className) != classTypes.end()) {
+                        std::string opMethodName = getUnaryOperatorMethodName((*unary)->op_tok.type);
+                        
+                        if (!opMethodName.empty()) {
+                            std::vector<llvm::Value*> args = {};
+                            llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                            
+                            if (opMethod) {
+                                llvm::AllocaInst* temp = createEntryAlloca("temp_unary_this", operandTy);
+                                builder->CreateStore(operand, temp);
+                                
+                                std::vector<llvm::Value*> allArgs = {temp};
+                                return builder->CreateCall(opMethod, allArgs, "unary_op_result");
+                            }
+                        }
+                    }
+                }
+            }
             if ((*unary)->op_tok.type == TokenType::NOT) {
                 if (operand->getType() == builder->getInt1Ty()) {
                     return builder->CreateNot(operand, "not");
@@ -11483,6 +13190,18 @@ namespace tkz {
                 cg_error((*unary)->op_tok.pos, "!! requires qbool operand");
                 return nullptr;
             }
+            if ((*unary)->op_tok.type == TokenType::MINUS) {
+                if (operandTy->isIntegerTy()) {
+                    return builder->CreateNeg(operand, "neg");
+                }
+                else if (operandTy->isFloatingPointTy()) {
+                    return builder->CreateFNeg(operand, "fneg");
+                }
+                else {
+                    cg_error((*unary)->op_tok.pos, "- requires numeric operand");
+                    return nullptr;
+                }
+            }
             if ((*unary)->op_tok.type == TokenType::INCREMENT || (*unary)->op_tok.type == TokenType::DECREMENT) {
                 auto* varPtr = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node);
                 if (!varPtr) {
@@ -11491,14 +13210,12 @@ namespace tkz {
                 }
 
                 std::string name = (*varPtr)->var_name_tok.value;
-                auto it = locals.find(name);
-                if (it == locals.end()) {
+                llvm::Value* alloc = resolveVariable(name);
+                if (!alloc) {
                     cg_error((*varPtr)->var_name_tok.pos, "Use of undeclared variable '" + name + "'");
                     return nullptr;
                 }
-
-                llvm::AllocaInst* alloc = it->second;
-                llvm::Type* ty = alloc->getAllocatedType();
+                llvm::Type* ty = getPointeeType(alloc);
 
                 if (!ty->isIntegerTy() || ty->getIntegerBitWidth() <= 2) {
                     cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like (not bool/qbool)");
@@ -11586,9 +13303,32 @@ namespace tkz {
             
             return mapPtr;
         }
-        if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
+        else if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
             if ((*arrLit)->elements.empty()) {
-                cg_error((*arrLit)->pos, "Empty array literals not supported");
+                if (!currentFunction) {
+                    cg_error(Position(), "Empty array literals only supported in functions");
+                    return nullptr;
+                }
+                
+                llvm::Type* retTy = currentFunction->getReturnType();
+                if (retTy->isPointerTy()) {
+                    llvm::Type* elemType = builder->getInt32Ty();
+                    llvm::Function* mallocFn = module->getFunction("malloc");
+                    if (!mallocFn) {
+                        llvm::FunctionType* mallocTy = llvm::FunctionType::get(
+                            builder->getPtrTy(),
+                            {builder->getInt64Ty()},
+                            false
+                        );
+                        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::ExternalLinkage,
+                                                        "malloc", module.get());
+                    }
+                    llvm::Value* size = builder->getInt64(0);
+                    llvm::Value* ptr = builder->CreateCall(mallocFn, {size}, "empty_arr");
+                    return builder->CreateBitCast(ptr, retTy, "empty_arr_cast");
+                }
+                
+                cg_error(Position(), "Cannot determine element type for empty array");
                 return nullptr;
             }
             
@@ -11664,6 +13404,77 @@ namespace tkz {
             CallNode& call = *(*callPtr);
             if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
                 std::string funcName = (*varAccess)->var_name_tok.value;
+                std::string resolvedName = funcName; 
+                llvm::Function* resolved = resolveFunction(funcName);
+                if (resolved) {
+                    resolvedName = resolved->getName().str();
+                }
+                funcName = resolvedName;
+                auto funcDefIt = functionDefs.find(funcName);
+                if (funcDefIt != functionDefs.end()) {
+                    FuncDefNode* funcDef = funcDefIt->second.get();
+                    if (funcHasAutoParams(funcDef)) {
+                        std::vector<llvm::Value*> argValues;
+                        std::vector<std::string> argTypes;
+                        
+                        for (auto& argNode : call.arg_nodes) {
+                            std::string argType = getExpressionType(argNode);
+                            llvm::Value* argVal = emitExpr(argNode);
+                            if (!argVal) return nullptr;
+                            
+                            argValues.push_back(argVal);
+                            argTypes.push_back(argType);
+                        }
+                        std::string sig = makeTypeSignature(argTypes);
+                        std::string specializedName = funcName + "_" + sig;
+                        if (specializedFunctions[funcName].count(sig) == 0) {
+                            llvm::Function* specializedFn = generateSpecializedFunction(
+                                funcDef, 
+                                argTypes, 
+                                specializedName
+                            );
+                            
+                            if (!specializedFn) return nullptr;
+                            specializedFunctions[funcName][sig] = specializedFn;
+                        }
+                        llvm::Function* fn = specializedFunctions[funcName][sig];
+                        return builder->CreateCall(fn, argValues);
+                    }
+                }
+                auto classIt = userTypes.find(funcName);
+                if (classIt != userTypes.end() && classIt->second.kind == UserTypeKind::Class) {
+                    llvm::StructType* classTy = classTypes[funcName];
+                    
+                    llvm::AllocaInst* temp = createEntryAlloca("temp_" + funcName, classTy);
+                    std::string ctorName = "";
+                    for (auto& method : classIt->second.classMethods) {
+                        if (method.is_constructor) {
+                            ctorName = method.name_tok.value;
+                            break;
+                        }
+                    }
+                    
+                    if (!ctorName.empty()) {
+                        std::vector<llvm::Value*> ctorArgs;
+                        for (auto& argNode : call.arg_nodes) {
+                            llvm::Value* arg = emitExpr(argNode);
+                            if (!arg) return nullptr;
+                            ctorArgs.push_back(arg);
+                        }
+                        llvm::Function* ctor = findMethodOverload(funcName, ctorName, ctorArgs);
+                        if (!ctor) {
+                            cg_error((*varAccess)->var_name_tok.pos, "No matching constructor for " + funcName);
+                            return nullptr;
+                        }
+                        std::vector<llvm::Value*> allArgs = {temp};
+                        allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
+                        builder->CreateCall(ctor, allArgs);
+                    } else {
+                        builder->CreateStore(llvm::Constant::getNullValue(classTy), temp);
+                    }
+                    
+                    return builder->CreateLoad(classTy, temp, funcName + "_inst");
+                }
                 static const std::unordered_map<std::string, std::string> builtins = {
                     {"time", "qc_time"},
                     {"seed", "qc_seed"},
@@ -11684,13 +13495,222 @@ namespace tkz {
                     {"to_bool", "qc_to_bool_from_int"},
                     {"to_string", "qc_to_string_int"},
                     {"print", "qc_print"},
-                    {"println", "qc_println"}
+                    {"println", "qc_println"},
+                    {"typeof", ""},
+                    {"fopen", "qc_fopen"},
+                    {"fclose", "qc_fclose"},
+                    {"fread", "qc_fread"},
+                    {"fwrite", "qc_fwrite"},
                 };
                 
                 auto it = builtins.find(funcName);
                 
                 if (it != builtins.end()) {
                     std::string runtimeName = it->second;
+                    if (funcName == "typeof" && !call.arg_nodes.empty()) {
+                        AnyNode& argNode = call.arg_nodes.front();
+                        llvm::Value* arg = emitExpr(argNode);
+                        if (!arg) return nullptr;
+                        
+                        llvm::Type* argTy = arg->getType();
+                        
+                        for (auto& [unionName, unionTy] : unionTypes) {
+                            if (argTy == unionTy) {
+                                llvm::Value* tag = builder->CreateExtractValue(arg, 0, "typeof_tag");
+                                auto typeIt = userTypes.find(unionName);
+                                if (typeIt != userTypes.end()) {
+                                    auto& members = typeIt->second.members;
+                                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
+                                    
+                                    llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", 
+                                        llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                    
+                                    llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, members.size());
+                                    
+                                    for (size_t i = 0; i < members.size(); i++) {
+                                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
+                                            context, "typeof_case_" + std::to_string(i), currentFunction
+                                        );
+                                        
+                                        builder->SetInsertPoint(caseBB);
+                                        std::string baseType = members[i].type;
+                                        size_t colonPos = baseType.find(':');
+                                        if (colonPos != std::string::npos) {
+                                            baseType = baseType.substr(0, colonPos);
+                                        }
+                                        llvm::Value* variantName = builder->CreateGlobalStringPtr(baseType);
+                                        builder->CreateStore(variantName, resultAlloc);
+                                        builder->CreateBr(endBB);
+                                        
+                                        switchInst->addCase(builder->getInt32(i), caseBB);
+                                    }
+                                    
+                                    builder->SetInsertPoint(endBB);
+                                    return builder->CreateLoad(
+                                        llvm::PointerType::get(builder->getInt8Ty(), 0), 
+                                        resultAlloc, 
+                                        "typeof_result"
+                                    );
+                                }
+                            }
+                        }
+                        for (auto& [enumName, enumTy] : enumTypes) {
+                            if (argTy == enumTy) {
+                                llvm::Value* tag = builder->CreateExtractValue(arg, 0);
+                                
+                                auto& entries = userTypes[enumName].enumEntries;
+                                
+                                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
+                                llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", 
+                                    llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                
+                                llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, entries.size());
+                                
+                                for (size_t i = 0; i < entries.size(); i++) {
+                                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "case", currentFunction);
+                                    builder->SetInsertPoint(caseBB);
+                                    
+                                    size_t colonPos = entries[i].typeAtom.find(':');
+                                    std::string type = entries[i].typeAtom.substr(0, colonPos);
+                                    
+                                    llvm::Value* typeStr = builder->CreateGlobalStringPtr(type);
+                                    builder->CreateStore(typeStr, resultAlloc);
+                                    builder->CreateBr(endBB);
+                                    
+                                    switchInst->addCase(builder->getInt32(i), caseBB);
+                                }
+                                
+                                builder->SetInsertPoint(endBB);
+                                return builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), resultAlloc);
+                            }
+                        }
+                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
+                            std::string varName = (*varAccess)->var_name_tok.value;
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
+                                std::string varName = (*varAccess)->var_name_tok.value;
+                                
+                                if (hasArrayType(varName)) {
+                                    std::string elemType = arrayTypeStrings[varName];
+                                    std::string fullType = elemType + "[]";
+                                    return builder->CreateGlobalStringPtr(fullType);
+                                }
+                                
+                                if (hasList(varName)) {
+                                    std::cout << "DEBUG: varName = " << varName << std::endl;
+                                    std::cout << "DEBUG: lists.size() = " << lists.size() << std::endl;
+                                    
+                                    if (lists.find(varName) != lists.end()) {
+                                        int elemTypeCode = lists[varName];
+                                        std::cout << "DEBUG: elemTypeCode = " << elemTypeCode << std::endl;
+                                        
+                                        std::string elemType;
+                                        if (elemTypeCode == 0) elemType = "int";
+                                        else if (elemTypeCode == 1) elemType = "float";
+                                        else if (elemTypeCode == 2) elemType = "double";
+                                        else if (elemTypeCode == 3) elemType = "char";
+                                        else if (elemTypeCode == 4) elemType = "bool";
+                                        else if (elemTypeCode == 5) elemType = "qbool";
+                                        else if (elemTypeCode == 6) elemType = "string";
+                                        else elemType = "auto";
+                                        
+                                        std::string fullType = "list<" + elemType + ">";
+                                        return builder->CreateGlobalStringPtr(fullType);
+                                    }
+                                }
+                            }
+                        }
+                        std::string typeName = "unknown";
+                        
+                        if (argTy->isIntegerTy(32)) typeName = "int";
+                        else if (argTy->isFloatTy()) typeName = "float";
+                        else if (argTy->isDoubleTy()) typeName = "double";
+                        else if (argTy->isIntegerTy(8)) typeName = "char";
+                        else if (argTy->isIntegerTy(1)) typeName = "bool";
+                        else if (argTy->isIntegerTy(2)) typeName = "qbool";
+                        else if (argTy->isPointerTy()) {
+                            typeName = "string";
+                        }
+                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(argTy)) {
+                            typeName = structTy->getName().str();
+                        }
+                        
+                        return builder->CreateGlobalStringPtr(typeName);
+                    }
+                    if (funcName == "fopen") {
+                        std::vector<llvm::Value*> args;
+                        for (auto& argNode : call.arg_nodes) {
+                            llvm::Value* arg = emitExpr(argNode);
+                            if (!arg) return nullptr;
+                            args.push_back(arg);
+                        }
+                        
+                        llvm::Function* fn = module->getFunction("qc_fopen");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(
+                                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                {llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                false
+                            );
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fopen", module.get());
+                        }
+                        return builder->CreateCall(fn, args, "fopen_result");
+                    }
+
+                    if (funcName == "fclose") {
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        
+                        llvm::Function* fn = module->getFunction("qc_fclose");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(
+                                builder->getVoidTy(),
+                                {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                false
+                            );
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fclose", module.get());
+                        }
+                        builder->CreateCall(fn, {arg});
+                        return nullptr;
+                    }
+
+                    if (funcName == "fread") {
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        
+                        llvm::Function* fn = module->getFunction("qc_fread");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(
+                                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                false
+                            );
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fread", module.get());
+                        }
+                        return builder->CreateCall(fn, {arg}, "fread_result");
+                    }
+
+                    if (funcName == "fwrite") {
+                        std::vector<llvm::Value*> args;
+                        for (auto& argNode : call.arg_nodes) {
+                            llvm::Value* arg = emitExpr(argNode);
+                            if (!arg) return nullptr;
+                            args.push_back(arg);
+                        }
+                        
+                        llvm::Function* fn = module->getFunction("qc_fwrite");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(
+                                builder->getVoidTy(),
+                                {llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                false
+                            );
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fwrite", module.get());
+                        }
+                        builder->CreateCall(fn, args);
+                        return nullptr;
+                    }
                     if (funcName == "random" && !call.arg_nodes.empty()) {
                         if (call.arg_nodes.size() == 1) {
                             runtimeName = "qc_random_int";
@@ -11714,13 +13734,35 @@ namespace tkz {
                                 return nullptr;
                             }
                         }
-                        
                         AnyNode& argNode = call.arg_nodes.front();
                         llvm::Value* arg = emitExpr(argNode);
                         if (!arg) return nullptr;
-                        
-                        llvm::Value* strVal = convertToString(arg, argNode);
-                        
+
+                        llvm::Value* strVal = nullptr;
+                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(arg->getType())) {
+                            if (structTy->hasName()) {
+                                std::string className = structTy->getName().str();
+                                
+                                if (classTypes.find(className) != classTypes.end()) {
+                                    auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
+                                    
+                                    if (reprMethod) {
+                                        std::vector<llvm::Value*> args;
+                                        
+                                        llvm::AllocaInst* temp = createEntryAlloca("temp_repr", arg->getType());
+                                        builder->CreateStore(arg, temp);
+                                        args.push_back(temp);
+                                        
+                                        strVal = builder->CreateCall(reprMethod, args, "repr_result");
+                                    }
+                                }
+                            }
+                        }
+                        if (!strVal) {
+                            strVal = convertToString(arg, argNode);
+                        }
+
+                        if (!strVal) return nullptr;
                         std::string fnName = funcName == "print" ? "qc_print" : "qc_println";
                         llvm::Function* fn = module->getFunction(fnName);
                         if (!fn) {
@@ -11903,7 +13945,23 @@ namespace tkz {
                     return builder->CreateCall(fn, args, retTy->isVoidTy() ? "" : "builtin_call");
                 }
             }
-            llvm::Value* calleeVal = emitExpr(call.node_to_call);
+            llvm::Value* calleeVal = nullptr;
+            if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
+                std::string funcName = (*varAccess)->var_name_tok.value;
+                llvm::Function* resolved = resolveFunction(funcName);
+                if (resolved) {
+                    calleeVal = resolved;
+                } else {
+                    llvm::Function* direct = module->getFunction(funcName);
+                    if (direct) {
+                        calleeVal = direct;
+                    } else {
+                        calleeVal = emitExpr(call.node_to_call);
+                    }
+                }
+            } else {
+                calleeVal = emitExpr(call.node_to_call);
+            }
             if (!calleeVal) return nullptr;
 
             llvm::FunctionType* fnTy = nullptr;
@@ -11942,9 +14000,48 @@ namespace tkz {
             }
             
             std::vector<llvm::Value*> args;
-            for (auto& argNode : call.arg_nodes) {
+            size_t i = 0;
+            for (auto it = call.arg_nodes.begin(); it != call.arg_nodes.end(); ++it, ++i) {
+                AnyNode& argNode = *it;
                 llvm::Value* v = emitExpr(argNode);
                 if (!v) return nullptr;
+
+                llvm::Type* paramTy = fnTy->getParamType(i);
+                llvm::Type* srcTy   = v->getType();
+                for (auto& [unionName, unionTy] : unionTypes) {
+                    if (srcTy == unionTy && !isUnionType(paramTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
+                        if (paramTy->isPointerTy()) {
+                            v = builder->CreateBitCast(dataPtr, paramTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(paramTy, 0)
+                            );
+                            v = builder->CreateLoad(paramTy, typedPtr);
+                        }
+                        srcTy = paramTy;
+                        break;
+                    }
+                }
+                for (auto& [enumName, enumTy] : enumTypes) {
+                    if (srcTy == enumTy && !isEnumType(paramTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(v, 1);
+                        
+                        if (paramTy->isPointerTy()) {
+                            v = builder->CreateBitCast(dataPtr, paramTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(paramTy, 0)
+                            );
+                            v = builder->CreateLoad(paramTy, typedPtr);
+                        }
+                        
+                        srcTy = paramTy;
+                        break;
+                    }
+                }
                 args.push_back(v);
             }
             auto defIt = functionDefs.find(funcName);
@@ -11981,15 +14078,15 @@ namespace tkz {
                 std::string name = (*varAcc)->var_name_tok.value;
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
-                    auto it = locals.find(name);
-                    if (it == locals.end()) {
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (!alloc) {
                         cg_error(Position(), "Unknown jagged array: " + name);
                         return nullptr;
                     }
                     
                     llvm::Value* jaggedPtr = builder->CreateLoad(
                         llvm::PointerType::get(builder->getInt8Ty(), 0),
-                        it->second,
+                        alloc,
                         "jagged_ptr"
                     );
                     llvm::ArrayType* indicesArrTy = llvm::ArrayType::get(
@@ -12043,15 +14140,15 @@ namespace tkz {
                 }
                 if (hasList(name)) {
                     auto listIt = findList(name);
-                    auto it = locals.find(name);
-                    if (it == locals.end()) {
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (!alloc) {
                         cg_error(Position(), "Unknown list: " + name);
                         return nullptr;
                     }
                     
                     llvm::Value* listPtr = builder->CreateLoad(
                         llvm::PointerType::get(builder->getInt8Ty(), 0),
-                        it->second,
+                        alloc,
                         "list_ptr"
                     );
                     
@@ -12129,15 +14226,15 @@ namespace tkz {
                 }
                 if (hasMap(name)) {
                     auto mapIt = findMap(name);
-                    auto it = locals.find(name);
-                    if (it == locals.end()) {
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (!alloc) {
                         cg_error(Position(), "Unknown map: " + name);
                         return nullptr;
                     }
                     
                     llvm::Value* mapPtr = builder->CreateLoad(
                         llvm::PointerType::get(builder->getInt8Ty(), 0),
-                        it->second,
+                        alloc,
                         "map_ptr"
                     );
                     
@@ -12177,14 +14274,14 @@ namespace tkz {
                         return builder->CreateLoad(valueTy, typedPtr, "map_val");
                     }
                 }
-                auto it = locals.find(name);
-                if (it == locals.end()) {
+                llvm::Value* alloc = resolveVariable(name);
+                if (!alloc) {
                     cg_error(Position(), "Unknown array: " + name);
                     return nullptr;
                 }
 
-                llvm::AllocaInst* arrAlloc = it->second;
-                llvm::Type* arrTy = arrAlloc->getAllocatedType();
+                llvm::Value* arrAlloc = alloc;
+                llvm::Type* arrTy = getPointeeType(arrAlloc);
 
                 if (arrTy->isPointerTy()) {
                     llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
@@ -12225,11 +14322,65 @@ namespace tkz {
             cg_error(Position(), "Complex array access not yet supported");
             return nullptr;
         }
-        if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
+        else if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
             std::string propName = (*propAccess)->property_name.value;
             
+            std::string baseName = "";
+            bool isEnum = false;
+            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
+                baseName = (*varAccess)->var_name_tok.value;
+                if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
+                    int fieldIdx = getFlattenedFieldIndex(currentClassName, propName);
+                    
+                    if (fieldIdx == -1) {
+                        cg_error(Position(), "Unknown property: " + propName);
+                        return nullptr;
+                    }
+                    
+                    auto [fieldOwnerClass, fieldAccess] = getFieldOwner(currentClassName, propName);
+                    if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
+                        cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                        return nullptr;
+                    }
+                    
+                    llvm::StructType* classTy = classTypes[currentClassName];
+                    llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
+                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx);
+                    return builder->CreateLoad(fieldTy, fieldPtr, propName);
+                }
+                std::string resolved = resolveTypeName(baseName);
+                auto enumIt = enumTypes.find(resolved);
+                if (enumIt != enumTypes.end()) {
+                    isEnum = true;
+                    std::string fullName = resolved + "." + propName;
+                    auto memberIt = enumMemberInfo.find(fullName);
+                    
+                    if (memberIt != enumMemberInfo.end()) {
+                        int tag = memberIt->second.tag;
+                        std::string type = memberIt->second.type;
+                        std::string value = memberIt->second.value;
+                        
+                        llvm::StructType* enumTy = enumTypes[baseName];
+                        llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                        
+                        enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
+                        
+                        llvm::Value* dataPtr = createEnumData(type, value);
+                        enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
+                        
+                        return enumVal;
+                    } else {
+                        cg_error(Position(), "Enum " + baseName + " has no member " + propName);
+                        return nullptr;
+                    }
+                }
+            }
+            
+            if (isEnum) {
+                cg_error(Position(), "Enum member not found");
+                return nullptr;
+            }
             if (propName == "length") {
-                std::string baseName = (*propAccess)->base_name_tok.value;
                 if (hasArrayLength(baseName)) {
                     auto lenIt = findArrayLength(baseName);
                     return builder->getInt32(lenIt->second);
@@ -12240,8 +14391,8 @@ namespace tkz {
                 }
                 auto it = locals.find(baseName);
                 if (it != locals.end()) {
-                    llvm::AllocaInst* alloc = it->second;
-                    llvm::Type* allocTy = alloc->getAllocatedType();
+                    llvm::Value* alloc = it->second;
+                    llvm::Type* allocTy = getPointeeType(alloc);
                     if (allocTy->isArrayTy()) {
                         return builder->getInt32(allocTy->getArrayNumElements());
                     }
@@ -12287,14 +14438,313 @@ namespace tkz {
                 
                 return builder->CreateCall(sizeFn, { baseVal }, "map_size");
             }
+            llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
+            if (!baseVal) return nullptr;
+            
+            llvm::Type* baseTy = baseVal->getType();
+            if (baseTy->isPointerTy()) {
+                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
+                    std::string varName = (*varAccess)->var_name_tok.value;
+                    llvm::Value* locAlloc = resolveVariable(varName);
+                    if (locAlloc) {
+                        llvm::Type* allocTy = getPointeeType(locAlloc);
+                        
+                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+                            std::string structName = structTy->getName().str();
+                            
+                            auto userTypeIt = userTypes.find(structName);
+                            if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
+                                int fieldIdx = -1;
+                                for (size_t i = 0; i < userTypeIt->second.fields.size(); i++) {
+                                    if (userTypeIt->second.fields[i].name == propName) {
+                                        fieldIdx = i;
+                                        break;
+                                    }
+                                }
+                                
+                                if (fieldIdx == -1) {
+                                    cg_error(Position(), "Struct " + structName + " has no field " + propName);
+                                    return nullptr;
+                                }
+                                
+                                llvm::Value* fieldPtr = builder->CreateStructGEP(
+                                    structTy, 
+                                    locAlloc,
+                                    fieldIdx, 
+                                    propName + "_ptr"
+                                );
+                                llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
+                                return builder->CreateLoad(fieldTy, fieldPtr, propName);
+                            }
+                        }
+                    }
+                }
+            }
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
+                std::string structName = structTy->getName().str();
+                
+                auto userTypeIt = userTypes.find(structName);
+                if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
+                    int fieldIdx = -1;
+                    for (size_t i = 0; i < userTypeIt->second.fields.size(); i++) {
+                        if (userTypeIt->second.fields[i].name == propName) {
+                            fieldIdx = i;
+                            break;
+                        }
+                    }
+                    
+                    if (fieldIdx == -1) {
+                        cg_error(Position(), "Struct " + structName + " has no field " + propName);
+                        return nullptr;
+                    }
+                    llvm::Value* result = builder->CreateExtractValue(baseVal, fieldIdx, propName);
+                    return result;
+                }
+            }
+            for (auto& [className, classTy] : classTypes) {
+                if (baseTy == classTy) {
+                    int fieldIdx = getFlattenedFieldIndex(className, propName);
+                    
+                    if (fieldIdx == -1) {
+                        cg_error(Position(), "Field not found: " + propName);
+                        return nullptr;
+                    }
+                    auto [fieldOwnerClass, fieldAccess] = getFieldOwner(className, propName);
+                    if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
+                        cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                        return nullptr;
+                    }
+                    
+                    llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
+                    
+                    llvm::Value* ptr;
+                    if (baseTy->isPointerTy()) {
+                        ptr = baseVal;
+                    } else {
+                        llvm::AllocaInst* temp = createEntryAlloca("temp_obj", baseTy);
+                        builder->CreateStore(baseVal, temp);
+                        ptr = temp;
+                    }
+                    
+                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, ptr, fieldIdx);
+                    return builder->CreateLoad(fieldTy, fieldPtr, propName);
+                }
+            }
             cg_error((*propAccess)->property_name.pos, "Unknown property: " + propName);
             return nullptr;
         }
         else if (auto methodCall = std::get_if<std::unique_ptr<MethodCallNode>>(&node)) {
             std::string methodName = (*methodCall)->method_name.value;
+            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
+                if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
+                    bool isAutoMethod = false;
+                    if (autoMethodIndices.find(currentClassName) != autoMethodIndices.end()) {
+                        for (size_t methodIdx : autoMethodIndices[currentClassName]) {
+                            auto& autoMethod = userTypes[currentClassName].classMethods[methodIdx];
+                            if (autoMethod.name_tok.value == methodName && 
+                                autoMethod.params.size() == (*methodCall)->args.size()) {
+                                std::vector<std::string> argTypes;
+                                for (auto& argNode : (*methodCall)->args) {
+                                    argTypes.push_back(getExpressionType(argNode));
+                                }
+                                bool paramsMatch = true;
+                                size_t argIdx = 0;
+                                for (auto it = autoMethod.params.begin(); it != autoMethod.params.end(); ++it, ++argIdx) {
+                                    if (it->type.value != "auto") {
+                                        if (argTypes[argIdx] != it->type.value) {
+                                            paramsMatch = false;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                if (!paramsMatch) {
+                                    continue;
+                                }
+                                isAutoMethod = true;
+                                
+                                std::string specializedName = currentClassName + "_" + methodName;
+                                for (auto& ty : argTypes) {
+                                    specializedName += "_" + ty;
+                                }
+                                
+                                llvm::Function* specialized = module->getFunction(specializedName);
+                                if (!specialized) {
+                                    specialized = generateSpecializedMethod(currentClassName, methodIdx, argTypes, specializedName);
+                                }
+                                
+                                std::vector<llvm::Value*> allArgs = {currentThis};
+                                for (auto& argNode : (*methodCall)->args) {
+                                    allArgs.push_back(emitExpr(argNode));
+                                }
+                                
+                                return builder->CreateCall(specialized, allArgs, methodName + "_result");
+                            }
+                        }
+                    }
+                    if (!isAutoMethod) {
+                        std::vector<llvm::Value*> args;
+                        for (auto& argNode : (*methodCall)->args) {
+                            llvm::Value* arg = emitExpr(argNode);
+                            if (!arg) return nullptr;
+                            args.push_back(arg);
+                        }
+                        
+                        llvm::Function* method = findMethodOverload(currentClassName, methodName, args);
+                        if (!method) {
+                            cg_error(Position(), "No matching overload for " + methodName);
+                            return nullptr;
+                        }
+                        
+                        std::vector<llvm::Value*> allArgs = {currentThis};
+                        allArgs.insert(allArgs.end(), args.begin(), args.end());
+                        
+                        return builder->CreateCall(method, allArgs, methodName + "_result");
+                    }
+                }
+            }
+            llvm::Value* baseVal = emitExpr((*methodCall)->base);
+            if (!baseVal) return nullptr;
+
+            llvm::Type* baseTy = baseVal->getType();
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
+                if (structTy->hasName()) {
+                    std::string structName = structTy->getName().str();
+                    
+                    auto classIt = classTypes.find(structName);
+                    if (classIt != classTypes.end()) {
+                        bool isAutoMethod = false;
+                        llvm::Function* specialized = nullptr;
+                        if (autoMethodIndices.find(structName) != autoMethodIndices.end()) {
+                            for (size_t methodIdx : autoMethodIndices[structName]) {
+                                auto& autoMethod = userTypes[structName].classMethods[methodIdx];
+                                if (autoMethod.name_tok.value == methodName && 
+                                    autoMethod.params.size() == (*methodCall)->args.size()) {
+                                    std::vector<std::string> argTypes;
+                                    for (auto& argNode : (*methodCall)->args) {
+                                        std::string ty = getExpressionType(argNode);
+                                        argTypes.push_back(ty);
+                                    }
+                                    bool paramsMatch = true;
+                                    size_t argIdx = 0;
+                                    for (auto& param : autoMethod.params) {
+                                        if (param.type.value != "auto") {
+                                            if (argTypes[argIdx] != param.type.value) {
+                                                paramsMatch = false;
+                                                break;
+                                            }
+                                        }
+                                        argIdx++;
+                                    }
+                                    
+                                    if (!paramsMatch) {
+                                        continue;
+                                    }
+                                    isAutoMethod = true;
+                                    std::string methodOwnerClass = structName;
+                                    std::string currentClass = structName;
+                                    while (!currentClass.empty()) {
+                                        auto& classInfo = userTypes[currentClass];
+                                        bool found = false;
+                                        for (auto& m : classInfo.classMethods) {
+                                            if (m.name_tok.value == methodName) {
+                                                methodOwnerClass = currentClass;
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (found) break;
+                                        currentClass = classInfo.baseClassName;
+                                    }
+
+                                    if (!canAccessMethod(currentClassName, methodOwnerClass, methodName)) {
+                                        cg_error(Position(), "Cannot access private/protected method in this context");
+                                        return nullptr;
+                                    }
+                                    std::string specializedName = structName + "_" + methodName;
+                                    for (auto& ty : argTypes) {
+                                        specializedName += "_" + ty;
+                                    }
+                                    specialized = module->getFunction(specializedName);
+                                    if (!specialized) {
+                                        specialized = generateSpecializedMethod(structName, methodIdx, argTypes, specializedName);
+                                    }
+                                    
+                                    break;
+                                }
+                            }
+                        }
+                        if (isAutoMethod && specialized) {
+                            std::vector<llvm::Value*> allArgs;
+                            
+                            if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
+                                std::string varName = (*varAcc)->var_name_tok.value;
+                                llvm::Value* locAlloc = resolveVariable(varName);
+                                if (locAlloc) {
+                                    allArgs.push_back(locAlloc);
+                                }
+                            } else {
+                                llvm::AllocaInst* temp = createEntryAlloca("temp_this", baseTy);
+                                builder->CreateStore(baseVal, temp);
+                                allArgs.push_back(temp);
+                            }
+                            
+                            for (auto& argNode : (*methodCall)->args) {
+                                allArgs.push_back(emitExpr(argNode));
+                            }
+                            
+                            return builder->CreateCall(specialized, allArgs, methodName + "_result");
+                        }
+                        if (!isAutoMethod) {
+                            std::vector<llvm::Value*> methodArgs;
+                            for (auto& argNode : (*methodCall)->args) {
+                                llvm::Value* arg = emitExpr(argNode);
+                                if (!arg) return nullptr;
+                                methodArgs.push_back(arg);
+                            }
+                            
+                            llvm::Function* method = findMethodOverload(structName, methodName, methodArgs);
+                            if (!method) {
+                                cg_error(Position(), "No matching overload for " + methodName);
+                                return nullptr;
+                            }
+                            
+                            std::vector<llvm::Value*> allArgs;
+                            
+                            if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
+                                std::string varName = (*varAcc)->var_name_tok.value;
+                                llvm::Value* locAlloc = resolveVariable(varName);
+                                if (locAlloc) {
+                                    allArgs.push_back(locAlloc);
+                                } else {
+                                    cg_error(Position(), "Unknown variable: " + varName);
+                                    return nullptr;
+                                }
+                            } else {
+                                llvm::AllocaInst* temp = createEntryAlloca("temp_this", baseTy);
+                                builder->CreateStore(baseVal, temp);
+                                allArgs.push_back(temp);
+                            }
+                            
+                            allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
+                            
+                            return builder->CreateCall(method, allArgs, methodName + "_result");
+                        }
+                    }
+                }
+            }
             std::string baseName = "";
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
                 baseName = (*varAcc)->var_name_tok.value;
+                llvm::Value* resolved = resolveVariable(baseName);
+                if (resolved) {
+                    for (auto& [key, val] : locals) {
+                        if (val == resolved) {
+                            baseName = key;
+                            break;
+                        }
+                    }
+                }
             } else {
                 cg_error((*methodCall)->method_name.pos, "Method calls only supported on variables");
                 return nullptr;
@@ -12308,9 +14758,15 @@ namespace tkz {
                 return nullptr;
             }
             
-            llvm::Value* baseVal = emitExpr((*methodCall)->base);
             if (!baseVal) return nullptr;
             if (methodName == "push") {
+                std::cerr << "PUSH called on: " << baseName << std::endl;
+                std::cerr << "hasList: " << hasList(baseName) << std::endl;
+                std::cerr << "lists.size(): " << lists.size() << std::endl;
+                std::cerr << "Keys in lists map:" << std::endl;
+                for (auto& [key, val] : lists) {
+                    std::cerr << "  '" << key << "'" << std::endl;
+                }
                 if (!isList) {
                     cg_error((*methodCall)->method_name.pos, "push() only available on lists");
                     return nullptr;
@@ -12537,8 +14993,297 @@ namespace tkz {
             cg_error(Position(), "Spread operator can only be used in array/list literals or function calls");
             return nullptr;
         }
-        cg_error(Position("", "", 0, 0, 0), "Expression kind not supported in compiled mode");
+        else if (auto fieldAssign = std::get_if<std::unique_ptr<FieldAssignNode>>(&node)) {
+            std::string fieldName = (*fieldAssign)->field_name.value;
+            
+            llvm::Value* valueVal = emitExpr((*fieldAssign)->value);
+            if (!valueVal) return nullptr;
+            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*fieldAssign)->base)) {
+                if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
+                    int fieldIdx = getFlattenedFieldIndex(currentClassName, fieldName);
+                    
+                    if (fieldIdx == -1) {
+                        cg_error(Position(), "Field not found: " + fieldName);
+                        return nullptr;
+                    }
+                    
+                    auto [fieldOwnerClass, fieldAccess] = getFieldOwner(currentClassName, fieldName);
+                    if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
+                        cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                        return nullptr;
+                    }
+                    
+                    llvm::StructType* classTy = classTypes[currentClassName];
+                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx);
+                    builder->CreateStore(valueVal, fieldPtr);
+                    return builder->getInt32(0);
+                }
+            }
+            FieldPath path = buildFieldPath((*fieldAssign)->base, fieldName);
+            
+            if (path.rootVar.empty() || path.path.empty()) {
+                cg_error(Position(), "Invalid field assignment");
+                return nullptr;
+            }
+            
+            llvm::Value* locAlloc = resolveVariable(path.rootVar);
+            if (!locAlloc) {
+                cg_error(Position(), "Unknown variable: " + path.rootVar);
+                return nullptr;
+            }
+            
+            llvm::Type* allocTy = getPointeeType(locAlloc);
+            
+            for (auto& [className, classTy] : classTypes) {
+                if (allocTy == classTy) {
+                    int fieldIdx = getFlattenedFieldIndex(className, fieldName);
+                    
+                    if (fieldIdx == -1) {
+                        cg_error(Position(), "Field not found: " + fieldName);
+                        return nullptr;
+                    }
+                    auto [fieldOwnerClass, fieldAccess] = getFieldOwner(className, fieldName);
+                    if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
+                        cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                        return nullptr;
+                    }
+                    
+                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, locAlloc, fieldIdx);
+                    builder->CreateStore(valueVal, fieldPtr);
+                    return nullptr;
+                }
+            }
+            
+            auto rootStructTy = llvm::dyn_cast<llvm::StructType>(allocTy);
+            if (!rootStructTy) {
+                cg_error(Position(), "Not a struct or class");
+                return nullptr;
+            }
+            if (path.path.size() == 1) {
+                llvm::Value* fieldPtr = builder->CreateStructGEP(
+                    rootStructTy,
+                    locAlloc,
+                    path.path[0].second,
+                    fieldName + "_ptr"
+                );
+                builder->CreateStore(valueVal, fieldPtr);
+                return nullptr;
+            }
+            llvm::Value* rootVal = builder->CreateLoad(rootStructTy, locAlloc, "root");
+            
+            llvm::Value* currentVal = rootVal;
+            for (size_t i = 0; i < path.path.size() - 1; i++) {
+                currentVal = builder->CreateExtractValue(currentVal, path.path[i].second, "extract");
+            }
+            llvm::Value* modifiedParent = builder->CreateInsertValue(
+                currentVal,
+                valueVal,
+                path.path.back().second,
+                "insert"
+            );
+            for (int i = path.path.size() - 2; i >= 0; i--) {
+                rootVal = builder->CreateInsertValue(rootVal, modifiedParent, path.path[i].second, "insert_up");
+                if (i > 0) {
+                    modifiedParent = rootVal;
+                    for (int j = 0; j < i; j++) {
+                        modifiedParent = builder->CreateExtractValue(modifiedParent, path.path[j].second, "extract_parent");
+                    }
+                }
+            }
+            
+            builder->CreateStore(rootVal, locAlloc);
+            return nullptr;
+        }
+        else if(auto qin = std::get_if<QInNode>(&node)) {
+            return nullptr;
+        }
+        else if(auto qin = std::get_if<QOutNode>(&node)) {
+            return nullptr;
+        }
         return nullptr;
+    }
+    llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
+        llvm::Type* ty = val->getType();
+        
+        if (ty->isPointerTy()) {
+            return builder->CreateBitCast(val, llvm::PointerType::get(builder->getInt8Ty(), 0));
+        }
+        
+        llvm::Function* mallocFn = module->getFunction("malloc");
+        if (!mallocFn) {
+            llvm::FunctionType* mallocTy = llvm::FunctionType::get(
+                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                {builder->getInt64Ty()},
+                false
+            );
+            mallocFn = llvm::Function::Create(mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
+        }
+        
+        llvm::DataLayout DL(module.get());
+        uint64_t size = DL.getTypeAllocSize(ty);
+        
+        llvm::Value* heapPtr = builder->CreateCall(mallocFn, {builder->getInt64(size)}, "union_heap");
+        llvm::Value* typedPtr = builder->CreateBitCast(heapPtr, llvm::PointerType::get(ty, 0));
+        builder->CreateStore(val, typedPtr);
+        
+        return heapPtr;
+    }
+    int LLVMCompiler::findUnionVariantTag(const std::string& unionName, AnyNode& valueNode, llvm::Value* val) {
+        auto typeIt = userTypes.find(unionName);
+        if (typeIt == userTypes.end()) return -1;
+
+        auto& members = typeIt->second.members;
+
+        for (size_t i = 0; i < members.size(); i++) {
+            auto& member = members[i];
+
+            const std::string& m = member.type;
+            size_t colonPos = m.find(':');
+
+            if (colonPos != std::string::npos) {
+                std::string kind     = m.substr(0, colonPos);
+                std::string valueStr = m.substr(colonPos + 1);
+
+                if (kind == "int") {
+                    if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
+                        if (numNode->tok.value == valueStr) {
+                            return i;
+                        }
+                    }
+                } else if (kind == "string") {
+                    if (auto strNode = std::get_if<StringNode>(&valueNode)) {
+                        std::string lit = "\"" + strNode->tok.value + "\"";
+                        if (lit == valueStr) {
+                            return i;
+                        }
+                    }
+                } else if (kind == "char") {
+                    if (auto charNode = std::get_if<CharNode>(&valueNode)) {
+                        std::string lit = "'" + charNode->tok.value + "'";
+                        if (lit == valueStr) {
+                            return i;
+                        }
+                    }
+                } else if (kind == "bool") {
+                    if (auto boolNode = std::get_if<BoolNode>(&valueNode)) {
+                        if (boolNode->tok.value == valueStr) {
+                            return i;
+                        }
+                    }
+                } else if (kind == "qbool") {
+                    if (auto qBoolNode = std::get_if<QBoolNode>(&valueNode)) {
+                        if (qBoolNode->tok.value == valueStr) {
+                            return i;
+                        }
+                    }
+                }
+            } else {
+                llvm::Type* valTy    = val->getType();
+                llvm::Type* memberTy = llvmTypeFor(m);
+
+                if (valTy == memberTy) {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
+    }
+    llvm::Value* LLVMCompiler::callStringConcat(llvm::Value* a, llvm::Value* b) {
+        llvm::Function* concatFn = module->getFunction("qc_string_concat");
+        if (!concatFn) {
+            llvm::FunctionType* ty = llvm::FunctionType::get(
+                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                {
+                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                },
+                false
+            );
+            concatFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                                            "qc_string_concat", module.get());
+        }
+        return builder->CreateCall(concatFn, {a, b});
+    }
+    void LLVMCompiler::generateStructReprFunctions() {
+        llvm::BasicBlock* savedBB = builder->GetInsertBlock();
+        
+        for (auto& [name, info] : userTypes) {
+            if (info.kind != UserTypeKind::Struct) continue;
+            
+            llvm::StructType* structTy = structTypes[name];
+            llvm::FunctionType* reprFnTy = llvm::FunctionType::get(
+                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                {structTy},
+                false
+            );
+            
+            llvm::Function* reprFn = llvm::Function::Create(
+                reprFnTy,
+                llvm::Function::ExternalLinkage,
+                name + "_repr",
+                module.get()
+            );
+            llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
+            builder->SetInsertPoint(entryBB);
+            llvm::Value* structArg = reprFn->arg_begin();
+            llvm::Value* result = builder->CreateGlobalStringPtr(name + "(");
+            for (size_t i = 0; i < info.fields.size(); i++) {
+                auto& field = info.fields[i];
+                if (i > 0) {
+                    llvm::Value* comma = builder->CreateGlobalStringPtr(", ");
+                    result = callStringConcat(result, comma);
+                }
+                llvm::Value* fieldLabel = builder->CreateGlobalStringPtr(field.name + "=");
+                result = callStringConcat(result, fieldLabel);
+                llvm::Value* fieldVal = builder->CreateExtractValue(structArg, i);
+                llvm::Value* fieldStr = nullptr;
+                
+                if (field.type == "int") {
+                    llvm::Function* toStrFn = module->getFunction("qc_to_string_int");
+                    fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+                }
+                else if (field.type == "float") {
+                    llvm::Function* toStrFn = module->getFunction("qc_to_string_float");
+                    fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+                }
+                else if (field.type == "double") {
+                    llvm::Function* toStrFn = module->getFunction("qc_to_string_double");
+                    fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+                }
+                else if (field.type == "bool") {
+                    llvm::Function* toStrFn = module->getFunction("qc_to_string_bool");
+                    fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+                }
+                else if (field.type == "char") {
+                    llvm::Function* toStrFn = module->getFunction("qc_to_string_char");
+                    fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+                }
+                else if (field.type == "string") {
+                    fieldStr = fieldVal;
+                }
+                else if (structTypes.find(field.type) != structTypes.end()) {
+                    llvm::Function* nestedReprFn = module->getFunction(field.type + "_repr");
+                    if (nestedReprFn) {
+                        fieldStr = builder->CreateCall(nestedReprFn, {fieldVal});
+                    } else {
+                        fieldStr = builder->CreateGlobalStringPtr("?");
+                    }
+                }
+                else {
+                    fieldStr = builder->CreateGlobalStringPtr("?");
+                }
+                
+                result = callStringConcat(result, fieldStr);
+            }
+            llvm::Value* closeParen = builder->CreateGlobalStringPtr(")");
+            result = callStringConcat(result, closeParen);
+            
+            builder->CreateRet(result);
+        }
+        if (savedBB) {
+            builder->SetInsertPoint(savedBB);
+        }
     }
     llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
         llvm::Type* ty = val->getType();
@@ -12546,6 +15291,14 @@ namespace tkz {
         if (ty->isPointerTy()) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&expr)) {
                 std::string varName = (*varAccess)->var_name_tok.value;
+                if (varName == "this") {
+                    if (currentThis) {
+                        return currentThis;
+                    } else {
+                        cg_error((*varAccess)->var_name_tok.pos, "'this' used outside of class method");
+                        return nullptr;
+                    }
+                }
                 if (hasList(varName)) {
                     llvm::Function* fn = module->getFunction("qc_list_to_string");
                     if (!fn) {
@@ -12650,32 +15403,38 @@ namespace tkz {
             } else {
                 llvm::Value* argVal = emitExpr(argNode);
                 if (!argVal) return nullptr;
-                
+
+                argVal = normalizeValue(argVal, argNode);
+                llvm::Type* ty = argVal->getType();
+
                 llvm::Value* argPtr;
-                if (argVal->getType()->isPointerTy()) {
+                if (ty->isPointerTy()) {
                     argPtr = argVal;
                 } else {
-                    llvm::AllocaInst* tempAlloc = createEntryAlloca("arg_temp", argVal->getType());
+                    llvm::AllocaInst* tempAlloc = createEntryAlloca("arg_temp", ty);
                     builder->CreateStore(argVal, tempAlloc);
-                    argPtr = builder->CreateBitCast(tempAlloc, 
-                                                llvm::PointerType::get(builder->getInt8Ty(), 0));
+                    argPtr = builder->CreateBitCast(
+                        tempAlloc,
+                        llvm::PointerType::get(builder->getInt8Ty(), 0)
+                    );
                 }
-                
+
+                int typeCode = getTypeCodeFromLLVM(ty);
+
                 llvm::Value* slot = builder->CreateGEP(
                     llvm::PointerType::get(builder->getInt8Ty(), 0),
                     argsArray,
                     currentIndex
                 );
                 builder->CreateStore(argPtr, slot);
-                
-                int typeCode = getTypeCodeFromLLVM(argVal->getType());
+
                 llvm::Value* typeSlot = builder->CreateGEP(
                     builder->getInt32Ty(),
                     typesArray,
                     currentIndex
                 );
                 builder->CreateStore(builder->getInt32(typeCode), typeSlot);
-                
+
                 currentIndex = builder->CreateAdd(currentIndex, builder->getInt32(1));
             }
         }
@@ -12800,9 +15559,7 @@ namespace tkz {
         llvm::Function* pushFn,
         int elemTypeCode
     ) {
-        std::cerr << "DEBUG: expandSpreadIntoList called" << std::endl;
         llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
-        std::cerr << "DEBUG: lengthVal = " << lengthVal << std::endl;
         if (!lengthVal) return;
         
         bool isList = false;
@@ -12810,30 +15567,21 @@ namespace tkz {
         
         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
             std::string collName = (*varAccess)->var_name_tok.value;
-            std::cerr << "DEBUG: collName = " << collName << std::endl;
             if (hasList(collName)) {
                 isList = true;
-                std::cerr << "DEBUG: It's a list" << std::endl;
             } else {
-                std::cerr << "DEBUG: It's an array" << std::endl;
-                auto locIt = locals.find(collName);
-                if (locIt != locals.end()) {
-                    llvm::Type* allocTy = locIt->second->getAllocatedType();
-                    std::cerr << "DEBUG: allocTy isPointer? " << allocTy->isPointerTy() << std::endl;
+                auto locAlloc = resolveVariable(collName);
+                if (locAlloc) {
+                    llvm::Type* allocTy = getPointeeType(locAlloc);
                     if (allocTy->isPointerTy()) {
-                        actualCollVal = builder->CreateLoad(allocTy, locIt->second, "arr_ptr");
-                        std::cerr << "DEBUG: Loaded array pointer" << std::endl;
+                        actualCollVal = builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
                     } else if (allocTy->isArrayTy()) {
-                        std::cerr << "DEBUG: It's a static array - need GEP to get pointer" << std::endl;
-                        // For static arrays, get pointer to first element
                         std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(0)};
-                        actualCollVal = builder->CreateInBoundsGEP(allocTy, locIt->second, indices, "arr_ptr");
+                        actualCollVal = builder->CreateInBoundsGEP(allocTy, locAlloc, indices, "arr_ptr");
                     }
                 }
             }
         }
-        
-        std::cerr << "DEBUG: About to create loop" << std::endl;
 
         llvm::BasicBlock* loopBB = llvm::BasicBlock::Create(context, "spread_push_loop", currentFunction);
         llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(context, "spread_push_body", currentFunction);
@@ -12947,11 +15695,11 @@ namespace tkz {
             llvm::Value* arrayPtr = collVal;
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
                 std::string collName = (*varAccess)->var_name_tok.value;
-                auto locIt = locals.find(collName);
-                if (locIt != locals.end()) {
-                    llvm::Type* allocTy = locIt->second->getAllocatedType();
+                llvm::Value* locAlloc = resolveVariable(collName);
+                if (locAlloc) {
+                    llvm::Type* allocTy = getPointeeType(locAlloc);
                     if (allocTy->isPointerTy()) {
-                        arrayPtr = builder->CreateLoad(allocTy, locIt->second, "arr_ptr");
+                        arrayPtr = builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
                     }
                 }
             }
@@ -13005,11 +15753,25 @@ namespace tkz {
                 auto arrLenIt = findArrayLength(collName);
                 return builder->getInt32(arrLenIt->second);
             }
-            auto locIt = locals.find(collName);
-            if (locIt != locals.end()) {
-                llvm::Type* allocTy = locIt->second->getAllocatedType();
-                if (allocTy->isArrayTy()) {
+            llvm::Value* locAlloc = resolveVariable(collName);
+            if (locAlloc) {
+                llvm::Type* allocTy = getPointeeType(locAlloc);
+                
+                if (allocTy && allocTy->isArrayTy()) {
                     return builder->getInt32(allocTy->getArrayNumElements());
+                }
+                if (allocTy && allocTy->isPointerTy()) {
+                    llvm::Function* lenFn = module->getFunction("qc_list_length");
+                    if (!lenFn) {
+                        llvm::FunctionType* ty = llvm::FunctionType::get(
+                            builder->getInt32Ty(),
+                            { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                            false
+                        );
+                        lenFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                                                    "qc_list_length", module.get());
+                    }
+                    return builder->CreateCall(lenFn, { collVal }, "list_len");
                 }
             }
         }
@@ -13017,7 +15779,6 @@ namespace tkz {
         if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&collExpr)) {
             return builder->getInt32((*arrLit)->elements.size());
         }
-        
         cg_error(Position(), "Cannot determine collection length for spread");
         return nullptr;
     }
@@ -13169,8 +15930,20 @@ namespace tkz {
         }
         return arrPtr;
     }
-    llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name,
-                                                    llvm::Type* ty) {
+    llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm::Type* ty) {
+        if (!currentFunction) {
+            llvm::Constant* initVal = llvm::Constant::getNullValue(ty);
+            
+            llvm::GlobalVariable* gv = new llvm::GlobalVariable(
+                *module,
+                ty,
+                false,
+                llvm::GlobalValue::ExternalLinkage,
+                initVal,
+                name
+            );
+            return reinterpret_cast<llvm::AllocaInst*>(gv);
+        }
         llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(),
                             currentFunction->getEntryBlock().begin());
         return tmp.CreateAlloca(ty, nullptr, name);
@@ -13178,7 +15951,10 @@ namespace tkz {
     llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         std::string name;
         if (fn.name_tok) {
-            name = mangleName(fn);
+            name = fn.name_tok->value;
+            if (!namespaceStack.empty()) {
+                name = getCurrentNamespace() + "::" + name;
+            }
         } else {
             name = lambdaName();
         }
@@ -13206,8 +15982,6 @@ namespace tkz {
         auto oldLocals = locals;
 
         currentFunction = func;
-        locals.clear();
-        
         unsigned idx = 0;
         for (auto& arg : func->args()) {
             auto& param = *std::next(fn.params.begin(), idx);
@@ -13283,7 +16057,8 @@ namespace tkz {
             std::holds_alternative<std::unique_ptr<ArrayAccessNode>>(node) ||
             std::holds_alternative<std::shared_ptr<PropertyAccessNode>>(node) ||
             std::holds_alternative<std::unique_ptr<MethodCallNode>>(node) ||
-            std::holds_alternative<std::unique_ptr<SpreadNode>>(node)) {
+            std::holds_alternative<std::unique_ptr<SpreadNode>>(node) ||
+            std::holds_alternative<std::unique_ptr<FieldAssignNode>>(node)) {
             emitExpr(node);
         }
         else if (auto qout = std::get_if<std::unique_ptr<QOutExprNode>>(&node)) {
@@ -13342,10 +16117,9 @@ namespace tkz {
                         builder->CreateCall(fn, {mapPtr});
                         continue;
                     }
-                    auto it = locals.find(name);
-                    if (it != locals.end()) {
-                        llvm::AllocaInst* alloc = it->second;
-                        llvm::Type* ty = alloc->getAllocatedType();
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (alloc) {
+                        llvm::Type* ty = getPointeeType(alloc);
                         
                         if (ty->isArrayTy()) {
                             std::vector<uint64_t> dimensions;
@@ -13402,8 +16176,93 @@ namespace tkz {
                 }
                 llvm::Value* v = emitExpr(valNode);
                 if (!v) return;
+                if (auto structTy = llvm::dyn_cast<llvm::StructType>(v->getType())) {
+                    std::string className = structTy->getName().str();
+                    
+                    auto reprMethod = findMethodInHierarchy(className, "repr");
+                    if (reprMethod.first) {
+                        std::vector<llvm::Value*> args;
+                        
+                        llvm::AllocaInst* temp = createEntryAlloca("temp_repr", v->getType());
+                        builder->CreateStore(v, temp);
+                        args.push_back(temp);
+                        
+                        llvm::Value* strResult = builder->CreateCall(reprMethod.first, args);
+                        
+                        v = strResult;
+                    }
+                }
 
                 llvm::Type* ty = v->getType();
+                std::string unionName;
+                if (isUnionType(ty, &unionName)) {
+                    llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
+                    llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
+                    
+                    auto& members = userTypes[unionName].members;
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "print_union_end", currentFunction);
+                    llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
+                    
+                    for (size_t i = 0; i < members.size(); i++) {
+                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
+                            context, "print_case_" + std::to_string(i), currentFunction
+                        );
+                        sw->addCase(builder->getInt32(i), caseBB);
+                        builder->SetInsertPoint(caseBB);
+                        
+                        std::string typeStr = members[i].type;
+                        
+                        size_t colonPos = typeStr.find(':');
+                        if (colonPos != std::string::npos) {
+                            typeStr = typeStr.substr(0, colonPos);
+                        }
+                        
+                        llvm::Type* memberTy = llvmTypeFor(typeStr);
+                        llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                        llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr);
+                        if (memberTy->isIntegerTy(32)) {
+                            llvm::Function* printFn = module->getFunction("qc_print_int");
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isFloatTy()) {
+                            llvm::Function* printFn = module->getFunction("qc_print_float");
+                            if (!printFn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getFloatTy()}, false);
+                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_float", module.get());
+                            }
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isDoubleTy()) {
+                            llvm::Function* printFn = module->getFunction("qc_print_double");
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isIntegerTy(1)) {
+                            llvm::Function* printFn = module->getFunction("qc_print_bool");
+                            if (!printFn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getInt1Ty()}, false);
+                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_bool", module.get());
+                            }
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isIntegerTy(2)) {
+                            llvm::Function* printFn = module->getFunction("qc_print_qbool");
+                            if (!printFn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getIntNTy(2)}, false);
+                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_qbool", module.get());
+                            }
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isIntegerTy(8)) {
+                            llvm::Function* printFn = module->getFunction("qc_print_char");
+                            builder->CreateCall(printFn, {loaded});
+                        } else if (memberTy->isPointerTy()) {
+                            llvm::Value* strPtr = builder->CreateBitCast(payload, memberTy);
+                            
+                            llvm::Function* printFn = module->getFunction("qc_print_string");
+                            builder->CreateCall(printFn, {strPtr});
+                        }
+                        
+                        builder->CreateBr(endBB);
+                    }
+                    
+                    builder->SetInsertPoint(endBB);
+                    continue;
+                }
                 if (ty->isIntegerTy(32)) {
                     llvm::Function* fn = module->getFunction("qc_print_int");
                     if (!fn) {
@@ -13420,6 +16279,19 @@ namespace tkz {
                         );
                     }
                     builder->CreateCall(fn, { v });
+                }
+                else if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
+                    std::string structName = structTy->getName().str();
+                    llvm::Function* reprFn = module->getFunction(structName + "_repr");
+                    
+                    if (reprFn) {
+                        llvm::Value* strVal = builder->CreateCall(reprFn, {v});
+                        
+                        llvm::Function* printFn = module->getFunction("qc_print");
+                        builder->CreateCall(printFn, {strVal});
+                        
+                        return;
+                    }
                 }
                 else if (ty->isFloatingPointTy()) {
                     llvm::Value* d = v;
@@ -13610,7 +16482,7 @@ namespace tkz {
             }
             return;
         }
-       else if (auto mret = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
+        else if (auto mret = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
             llvm::Type* retTy = currentFunction->getReturnType();
 
             if (!retTy->isStructTy()) {
@@ -13619,28 +16491,149 @@ namespace tkz {
             }
 
             llvm::Value* agg = llvm::UndefValue::get(retTy);
+            llvm::StructType* retStructTy = llvm::cast<llvm::StructType>(retTy);
             for (size_t i = 0; i < (*mret)->values.size(); ++i) {
                 llvm::Value* val = nullptr;
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*mret)->values[i])) {
                     std::string name = (*varAccess)->var_name_tok.value;
-                    auto it = locals.find(name);
-                    if (it != locals.end()) {
-                        llvm::Type* allocatedTy = it->second->getAllocatedType();
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (alloc) {
+                        llvm::Type* allocatedTy = getPointeeType(alloc);
                         if (allocatedTy->isArrayTy()) {
                             val = builder->CreateBitCast(
-                                it->second,
+                                alloc,
                                 llvm::PointerType::get(allocatedTy->getArrayElementType(), 0),
                                 "array_ret_ptr"
                             );
                         }
                     }
                 }
-                
+                if (auto call = std::get_if<std::unique_ptr<CallNode>>(&(*mret)->values[i])) {
+                    if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*call)->node_to_call)) {
+                        std::string funcName = (*varAccess)->var_name_tok.value;
+                        
+                        if (classTypes.find(funcName) != classTypes.end()) {
+                            llvm::StructType* classTy = classTypes[funcName];
+                            
+                            std::vector<llvm::Value*> ctorArgs;
+                            for (auto& argNode : (*call)->arg_nodes) {
+                                llvm::Value* arg = emitExpr(argNode);
+                                if (!arg) return;
+                                ctorArgs.push_back(arg);
+                            }
+                            
+                            llvm::Function* ctor = findMethodOverload(funcName, funcName, ctorArgs);
+                            
+                            if (ctor) {
+                                llvm::AllocaInst* retVal = createEntryAlloca("mret_val_" + std::to_string(i), classTy);
+                                
+                                std::vector<llvm::Value*> allArgs = {retVal};
+                                allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
+                                builder->CreateCall(ctor, allArgs);
+                                
+                                val = builder->CreateLoad(classTy, retVal);
+                            }
+                        }
+                    }
+                }
+                if (auto arrayLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*mret)->values[i])) {
+                    val = emitExpr((*mret)->values[i]);
+                    if (!val) return;
+                    
+                    llvm::Type* srcTy = val->getType();
+                    llvm::Type* destTy = retStructTy->getElementType(i);
+                    if (destTy->isPointerTy() && srcTy->isArrayTy()) {
+                        llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
+                        llvm::Type* i64Ty = builder->getInt64Ty();
+                        llvm::Value* size = llvm::ConstantInt::get(i64Ty, 
+                            module->getDataLayout().getTypeAllocSize(arrayType));
+                        
+                        llvm::Function* mallocFn = module->getFunction("malloc");
+                        if (!mallocFn) {
+                            llvm::FunctionType* mallocTy = llvm::FunctionType::get(
+                                builder->getPtrTy(), {i64Ty}, false);
+                            mallocFn = llvm::Function::Create(
+                                mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
+                        }
+                        
+                        llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            heapPtr, llvm::PointerType::get(arrayType, 0));
+                        
+                        builder->CreateStore(val, typedPtr);
+                        
+                        val = builder->CreateBitCast(typedPtr, destTy);
+                    }
+                }
                 if (!val) {
                     val = emitExpr((*mret)->values[i]);
                 }
-                
                 if (!val) return;
+                llvm::Type* srcTy  = val->getType();
+                llvm::Type* destTy = retStructTy->getElementType(i);
+                for (auto& [unionName, unionTy] : unionTypes) {
+                    if (srcTy == unionTy && !isUnionType(destTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "union_data");
+                        if (destTy->isPointerTy()) {
+                            val = builder->CreateBitCast(dataPtr, destTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(destTy, 0)
+                            );
+                            val = builder->CreateLoad(destTy, typedPtr);
+                        }
+                        srcTy = destTy;
+                        break;
+                    }
+                    if (!isUnionType(srcTy) && destTy == unionTy) {
+                        int tag = findUnionVariantTag(unionName, (*mret)->values[i], val);
+                        if (tag == -1) {
+                            cg_error((*mret)->pos, "Return value doesn't match union variant");
+                            return;
+                        }
+                        
+                        llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                        unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+                        llvm::Value* dataPtr = storeAndGetPointer(val);
+                        val = builder->CreateInsertValue(unionVal, dataPtr, 1);
+                        
+                        srcTy = destTy;
+                        break;
+                    }
+                }
+                for (auto& [enumName, enumTy] : enumTypes) {
+                    if (srcTy == enumTy && !isEnumType(destTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "enum_data");
+                        if (destTy->isPointerTy()) {
+                            val = builder->CreateBitCast(dataPtr, destTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(destTy, 0)
+                            );
+                            val = builder->CreateLoad(destTy, typedPtr);
+                        }
+                        srcTy = destTy;
+                        break;
+                    }
+                    if (!isEnumType(srcTy) && destTy == enumTy) {
+                        int tag = findEnumVariantTag(enumName, (*mret)->values[i], val);
+                        if (tag == -1) {
+                            cg_error((*mret)->pos, "Return value doesn't match enum variant");
+                            return;
+                        }
+                        
+                        llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                        enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
+                        llvm::Value* dataPtr = storeAndGetPointer(val);
+                        enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
+                        
+                        val = enumVal;
+                        srcTy = destTy;
+                        break;
+                    }
+                }
                 agg = builder->CreateInsertValue(agg, val, i);
             }
 
@@ -13650,17 +16643,56 @@ namespace tkz {
         else if (auto ret = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*ret)->value)) {
                 std::string name = (*varAccess)->var_name_tok.value;
-                auto it = locals.find(name);
-                if (it != locals.end()) {
-                    llvm::Type* allocatedTy = it->second->getAllocatedType();
+                llvm::Value* alloc = resolveVariable(name);
+                if (alloc) {
+                    llvm::Type* allocatedTy = getPointeeType(alloc);
                     if (allocatedTy->isArrayTy()) {
                         llvm::Value* arrayPtr = builder->CreateBitCast(
-                            it->second,
+                            alloc,
                             llvm::PointerType::get(allocatedTy->getArrayElementType(), 0),
                             "array_ret_ptr"
                         );
                         builder->CreateRet(arrayPtr);
                         return;
+                    }
+                }
+            }
+            if (auto call = std::get_if<std::unique_ptr<CallNode>>(&(*ret)->value)) {
+                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*call)->node_to_call)) {
+                    std::string funcName = (*varAccess)->var_name_tok.value;
+                    
+                    if (classTypes.find(funcName) != classTypes.end()) {
+                        llvm::StructType* classTy = classTypes[funcName];
+                        std::vector<llvm::Value*> ctorArgs;
+                        for (auto& argNode : (*call)->arg_nodes) {
+                            llvm::Value* arg = emitExpr(argNode);
+                            if (!arg) return;
+                            ctorArgs.push_back(arg);
+                        }
+                        
+                        std::string ctorName = funcName;
+                        llvm::Function* ctor = findMethodOverload(funcName, ctorName, ctorArgs);
+                        
+                        if (ctor) {
+                            llvm::AllocaInst* retVal = createEntryAlloca("ret_val", classTy);
+                            
+                            std::vector<llvm::Value*> allArgs = {retVal};
+                            allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
+                            builder->CreateCall(ctor, allArgs);
+                            
+                            llvm::Value* result = llvm::UndefValue::get(classTy);
+                            for (unsigned i = 0; i < classTy->getNumElements(); i++) {
+                                std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
+                                llvm::Value* fieldPtr = builder->CreateInBoundsGEP(classTy, retVal, indices);
+                                llvm::Type* fieldTy = classTy->getElementType(i);
+                                llvm::Value* fieldVal = builder->CreateLoad(fieldTy, fieldPtr);
+                                
+                                result = builder->CreateInsertValue(result, fieldVal, i);
+                            }
+                            
+                            builder->CreateRet(result);
+                            return;
+                        }
                     }
                 }
             }
@@ -13673,6 +16705,103 @@ namespace tkz {
                 }
                 return;
             }
+            llvm::Type* srcTy = v->getType();
+            llvm::Type* destTy = currentFunction->getReturnType();
+            if (auto arrayLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*ret)->value)) {
+                if (destTy->isPointerTy() && srcTy->isArrayTy()) {
+                    llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
+                    llvm::Type* i64Ty = builder->getInt64Ty();
+                    llvm::Value* size = llvm::ConstantInt::get(i64Ty, module->getDataLayout().getTypeAllocSize(arrayType));
+                    llvm::Function* mallocFn = module->getFunction("malloc");
+                    if (!mallocFn) {
+                        llvm::FunctionType* mallocTy = llvm::FunctionType::get(
+                            builder->getPtrTy(), 
+                            {i64Ty}, 
+                            false
+                        );
+                        mallocFn = llvm::Function::Create(
+                            mallocTy,
+                            llvm::Function::ExternalLinkage,
+                            "malloc",
+                            module.get()
+                        );
+                    }
+                    
+                    llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        heapPtr, 
+                        llvm::PointerType::get(arrayType, 0)
+                    );
+                    builder->CreateStore(v, typedPtr);
+                    llvm::Value* retPtr = builder->CreateBitCast(typedPtr, destTy);
+                    
+                    builder->CreateRet(retPtr);
+                    return;
+                }
+            }
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (srcTy == unionTy && !isUnionType(destTy)) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
+                    if (destTy->isPointerTy()) {
+                        v = builder->CreateBitCast(dataPtr, destTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr,
+                            llvm::PointerType::get(destTy, 0)
+                        );
+                        v = builder->CreateLoad(destTy, typedPtr);
+                    }
+                    srcTy = destTy;
+                    break;
+                }
+                if (!isUnionType(srcTy) && destTy == unionTy) {
+                    int tag = findUnionVariantTag(unionName, (*ret)->value, v);
+                    if (tag == -1) {
+                        cg_error((*ret)->pos, "Return value doesn't match union variant");
+                        return;
+                    }
+                    
+                    llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                    unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+                    llvm::Value* dataPtr = storeAndGetPointer(v);
+                    unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
+                    
+                    builder->CreateRet(unionVal);
+                    return;
+                }
+            }
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (srcTy == enumTy && !isEnumType(destTy)) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
+                    if (destTy->isPointerTy()) {
+                        v = builder->CreateBitCast(dataPtr, destTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr,
+                            llvm::PointerType::get(destTy, 0)
+                        );
+                        v = builder->CreateLoad(destTy, typedPtr);
+                    }
+                    srcTy = destTy;
+                    break;
+                }
+                if (!isEnumType(srcTy) && destTy == enumTy) {
+                    int tag = findEnumVariantTag(enumName, (*ret)->value, v);
+                    if (tag == -1) {
+                        cg_error((*ret)->pos, "Return value doesn't match enum variant");
+                        return;
+                    }
+                    
+                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                    enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
+                    llvm::Value* dataPtr = storeAndGetPointer(v);
+                    enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
+                    
+                    builder->CreateRet(enumVal);
+                    return;
+                }
+            }
+            
             builder->CreateRet(v);
             return;
         }
@@ -13700,10 +16829,44 @@ namespace tkz {
                     }
                     arrayTypeStrings[name] = baseType;
                 }
-                llvm::AllocaInst* alloc =
-                    createEntryAlloca(name, field->getType());
+                llvm::Type* srcTy  = field->getType();
+                llvm::Type* destTy = llvmTypeFor(typeStr);
+                for (auto& [unionName, unionTy] : unionTypes) {
+                    if (srcTy == unionTy && !isUnionType(destTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(field, 1, "union_data");
+                        if (destTy->isPointerTy()) {
+                            field = builder->CreateBitCast(dataPtr, destTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(destTy, 0)
+                            );
+                            field = builder->CreateLoad(destTy, typedPtr);
+                        }
+                        srcTy = destTy;
+                        break;
+                    }
+                }
+                for (auto& [enumName, enumTy] : enumTypes) {
+                    if (srcTy == enumTy && !isEnumType(destTy)) {
+                        llvm::Value* dataPtr = builder->CreateExtractValue(field, 1, "enum_data");
+                        if (destTy->isPointerTy()) {
+                            field = builder->CreateBitCast(dataPtr, destTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(
+                                dataPtr,
+                                llvm::PointerType::get(destTy, 0)
+                            );
+                            field = builder->CreateLoad(destTy, typedPtr);
+                        }
+                        srcTy = destTy;
+                        break;
+                    }
+                }
+                llvm::AllocaInst* alloc = createEntryAlloca(name, destTy);
                 builder->CreateStore(field, alloc);
-                locals[name] = alloc;
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = alloc;
             }
 
             return;
@@ -13714,6 +16877,23 @@ namespace tkz {
                 emitStmt((*if_node)->init.value());
             }
             llvm::Value* cond = emitExpr((*if_node)->condition);
+            if (!cond) return;
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (cond->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+                    
+                    llvm::Type* targetTy = builder->getInt1Ty();
+                    
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        dataPtr, 
+                        llvm::PointerType::get(targetTy, 0)
+                    );
+                    cond = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            cond = normalizeValue(cond, (*if_node)->condition);
+            cond = toTruthiness(cond, Position("", "", 0, 0, 0));
             if (!cond) return;
             llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(context, "then", currentFunction);
             llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
@@ -13780,6 +16960,23 @@ namespace tkz {
             builder->CreateBr(condBB);
             builder->SetInsertPoint(condBB);
             llvm::Value* cond = emitExpr((*while_node)->condition);
+            if (!cond) return;
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (cond->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+                    llvm::Type* targetTy = builder->getInt1Ty();
+                    
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        dataPtr, 
+                        llvm::PointerType::get(targetTy, 0)
+                    );
+                    cond = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            cond = normalizeValue(cond, (*while_node)->condition);
+            cond = toTruthiness(cond, Position("", "", 0, 0, 0));
+            if (!cond) return;
             builder->CreateCondBr(cond, bodyBB, endBB);
             builder->SetInsertPoint(bodyBB);
             for (auto& stmt : (*while_node)->body->statements) {
@@ -13823,6 +17020,23 @@ namespace tkz {
             builder->CreateBr(condBB);
             builder->SetInsertPoint(condBB);
             llvm::Value* cond = emitExpr((*for_node)->condition);
+            if (!cond) return;
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (cond->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+                    llvm::Type* targetTy = builder->getInt1Ty();
+                    
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        dataPtr, 
+                        llvm::PointerType::get(targetTy, 0)
+                    );
+                    cond = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            cond = normalizeValue(cond, (*for_node)->condition);
+            cond = toTruthiness(cond, Position("", "", 0, 0, 0));
+            if (!cond) return;
             builder->CreateCondBr(cond, bodyBB, endBB);
             builder->SetInsertPoint(bodyBB);
             for (auto& stmt : (*for_node)->body->statements) {
@@ -13845,6 +17059,25 @@ namespace tkz {
             enterScope();
             llvm::Value* switchVal = emitExpr((*switch_node)->value);
             if (!switchVal) return;
+            
+            llvm::Type* switchTy = switchVal->getType();
+            
+            bool canUseSwitch = switchTy->isIntegerTy();
+            
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (switchTy == enumTy) {
+                    canUseSwitch = false;
+                    break;
+                }
+            }
+            
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (switchTy == unionTy) {
+                    canUseSwitch = false;
+                    break;
+                }
+            }
+            
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "switch.end", currentFunction);
             std::vector<llvm::BasicBlock*> sectionBlocks;
             llvm::BasicBlock* defaultBB = nullptr;
@@ -13860,26 +17093,86 @@ namespace tkz {
             if (!defaultBB) {
                 defaultBB = endBB;
             }
-            llvm::SwitchInst* switchInst = builder->CreateSwitch(switchVal, defaultBB, (*switch_node)->sections.size());
-            for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
-                auto& section = (*switch_node)->sections[i];
-                if (section.is_default) continue;
+            
+            if (canUseSwitch) {
+                llvm::SwitchInst* switchInst = builder->CreateSwitch(switchVal, defaultBB, (*switch_node)->sections.size());
                 
-                for (auto& caseLabel : section.cases) {
-                    llvm::Value* caseVal = emitExpr(caseLabel.expr);
-                    if (auto constInt = llvm::dyn_cast<llvm::ConstantInt>(caseVal)) {
-                        switchInst->addCase(constInt, sectionBlocks[i]);
+                for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
+                    auto& section = (*switch_node)->sections[i];
+                    if (section.is_default) continue;
+                    
+                    for (auto& caseLabel : section.cases) {
+                        llvm::Value* caseVal = emitExpr(caseLabel.expr);
+                        if (auto constInt = llvm::dyn_cast<llvm::ConstantInt>(caseVal)) {
+                            switchInst->addCase(constInt, sectionBlocks[i]);
+                        }
                     }
                 }
             }
+            else {
+                llvm::BasicBlock* currentCheckBB = builder->GetInsertBlock();
+                
+                for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
+                    auto& section = (*switch_node)->sections[i];
+                    
+                    if (section.is_default) {
+                        continue;
+                    }
+                    llvm::BasicBlock* nextCheckBB = (i + 1 < (*switch_node)->sections.size()) 
+                        ? llvm::BasicBlock::Create(context, "switch.check", currentFunction)
+                        : defaultBB;
+                    
+                    builder->SetInsertPoint(currentCheckBB);
+                    
+                    llvm::Value* matches = nullptr;
+                    for (auto& caseLabel : section.cases) {
+                        llvm::Value* caseVal = emitExpr(caseLabel.expr);
+                        
+                        llvm::Value* cmp = nullptr;
+                        
+                        if (switchTy->isPointerTy() && caseVal->getType()->isPointerTy()) {
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            cmp = builder->CreateCall(strcmp_fn, {switchVal, caseVal});
+                        }
+                        else if (switchTy->isIntegerTy()) {
+                            cmp = builder->CreateICmpEQ(switchVal, caseVal);
+                        }
+                        else if (switchTy->isFloatingPointTy()) {
+                            cmp = builder->CreateFCmpOEQ(switchVal, caseVal);
+                        }
+                        else {
+                            llvm::Value* switchTag = builder->CreateExtractValue(switchVal, 0);
+                            llvm::Value* caseTag = builder->CreateExtractValue(caseVal, 0);
+                            llvm::Value* tagMatch = builder->CreateICmpEQ(switchTag, caseTag);
+                            
+                            llvm::Value* switchData = builder->CreateExtractValue(switchVal, 1);
+                            llvm::Value* caseData = builder->CreateExtractValue(caseVal, 1);
+                            llvm::Value* dataMatch = builder->CreateICmpEQ(switchData, caseData);
+                            
+                            cmp = builder->CreateAnd(tagMatch, dataMatch);
+                        }
+                        if (matches) {
+                            matches = builder->CreateOr(matches, cmp);
+                        } else {
+                            matches = cmp;
+                        }
+                    }
+                    
+                    builder->CreateCondBr(matches, sectionBlocks[i], nextCheckBB);
+                    currentCheckBB = nextCheckBB;
+                }
+            }
+            
             llvm::BasicBlock* oldBreakBB = currentBreakBB;
             currentBreakBB = endBB;
+            
             for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
                 builder->SetInsertPoint(sectionBlocks[i]);
                 
                 for (auto& stmt : (*switch_node)->sections[i].body->statements) {
                     emitStmt(stmt);
                 }
+                
                 if (!builder->GetInsertBlock()->getTerminator()) {
                     if (i + 1 < sectionBlocks.size()) {
                         builder->CreateBr(sectionBlocks[i + 1]);
@@ -13888,6 +17181,7 @@ namespace tkz {
                     }
                 }
             }
+            
             currentBreakBB = oldBreakBB;
             exitScope();
             builder->SetInsertPoint(endBB);
@@ -13900,6 +17194,20 @@ namespace tkz {
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "qif.end", currentFunction);
             
             llvm::Value* qifCond = emitExpr((*qif_node)->condition);
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (qifCond->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(qifCond, 1);
+                    llvm::Type* targetTy = builder->getIntNTy(2);
+                    
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        dataPtr, 
+                        llvm::PointerType::get(targetTy, 0)
+                    );
+                    qifCond = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            qifCond = normalizeValue(qifCond, (*qif_node)->condition);
             llvm::Value* qifBit1 = builder->CreateAnd(qifCond, builder->getIntN(2, 0b10));
             llvm::Value* qif_is_true = builder->CreateICmpNE(qifBit1, builder->getIntN(2, 0));
             
@@ -13975,6 +17283,20 @@ namespace tkz {
                 cg_error(Position("", "", 0, 0, 0), "Failed to compile qswitch value");
                 return;
             }
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (qb_val->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(qb_val, 1);
+                    llvm::Type* targetTy = builder->getIntNTy(2);
+                    
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        dataPtr, 
+                        llvm::PointerType::get(targetTy, 0)
+                    );
+                    qb_val = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            qb_val = normalizeValue(qb_val, (*qsw)->value);
             if (qb_val->getType() != builder->getIntNTy(2)) {
                 cg_error(Position("", "", 0, 0, 0), "qswitch requires qbool type");
                 return;
@@ -14075,7 +17397,20 @@ namespace tkz {
             std::string name = (*arrDecl)->var_name_tok.value;
             std::string elemType = (*arrDecl)->type_tok.value;
             llvm::Type* elemTy = llvmTypeFor(elemType);
-            
+            if (!(*arrDecl)->sizes.empty() && (*arrDecl)->sizes[0].has_value()) {
+            int arraySize = *(*arrDecl)->sizes[0];
+            if (std::holds_alternative<std::monostate>((*arrDecl)->value)) {
+                llvm::ArrayType* arrTy = llvm::ArrayType::get(elemTy, arraySize);
+                llvm::AllocaInst* alloc = createEntryAlloca(name, arrTy);
+                llvm::Value* zeroInit = llvm::ConstantAggregateZero::get(arrTy);
+                builder->CreateStore(zeroInit, alloc);
+                locals[name] = alloc;
+                arrayTypeStrings[name] = elemType;
+                arrayLengths[name] = arraySize;
+                
+                return;
+            }
+        }
             if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*arrDecl)->value)) {
                 bool hasSpread = false;
                 for (auto& elem : (*arrLit)->elements) {
@@ -14092,7 +17427,7 @@ namespace tkz {
                     if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*arrDecl)->value)) {
                         for (auto& elem : (*arrLit)->elements) {
                             if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
-                                llvm::Value* collVal = emitExpr((*spread)->expr);
+                                llvm::Value* collVal   = emitExpr((*spread)->expr);
                                 llvm::Value* spreadLen = getCollectionLength(collVal, (*spread)->expr);
                                 totalSize = builder->CreateAdd(totalSize, spreadLen);
                             } else {
@@ -14100,25 +17435,23 @@ namespace tkz {
                             }
                         }
                     }
+
                     if (!(*arrDecl)->sizes.empty() && (*arrDecl)->sizes[0].has_value()) {
                         int userSize = *(*arrDecl)->sizes[0];
                         arrayLengths[name] = userSize;
-                        std::cerr << "DEBUG: User specified size: " << userSize << std::endl;
                     } else if (auto* constSize = llvm::dyn_cast<llvm::ConstantInt>(totalSize)) {
                         arrayLengths[name] = constSize->getSExtValue();
-                        std::cerr << "DEBUG: Set arrayLengths[" << name << "] = " << constSize->getSExtValue() << std::endl;
                     } else {
-                        llvm::AllocaInst* sizeAlloc = createEntryAlloca(name + "_size", builder->getInt32Ty());
+                        llvm::AllocaInst* sizeAlloc =
+                            createEntryAlloca(name + "_size", builder->getInt32Ty());
                         builder->CreateStore(totalSize, sizeAlloc);
                         runtimeArraySizes[name] = sizeAlloc;
-                        std::cerr << "DEBUG: Set runtimeArraySizes[" << name << "] (runtime)" << std::endl;
                     }
-                    
                     llvm::AllocaInst* alloc = createEntryAlloca(name, arrPtr->getType());
                     builder->CreateStore(arrPtr, alloc);
-                    locals[name] = alloc;
-                    arrayTypeStrings[name] = elemType;
-                    std::cerr << "DEBUG: Set arrayTypeStrings[" << name << "] = " << elemType << std::endl;
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = alloc;
+                    arrayTypeStrings[fullName] = elemType;
                     return;
                 }
                 auto [isJagged, depth] = checkJagged((*arrDecl)->value);
@@ -14138,8 +17471,9 @@ namespace tkz {
                     llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
                     llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
                     builder->CreateStore(jaggedArr, alloc);
-                    locals[name] = alloc;
-                    jaggedArrays[name] = {elemTypeCode, depth};
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = alloc;
+                    jaggedArrays[fullName] = {elemTypeCode, depth};
                     
                     return;
                 }
@@ -14190,7 +17524,8 @@ namespace tkz {
                 } else {
                     alloc = createEntryAlloca(name, arrTy);
                 }
-                locals[name] = alloc;
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = alloc;
                 std::function<void(llvm::Value*, llvm::Type*, AnyNode&, std::vector<uint64_t>&)> initArray;
                 initArray = [&](llvm::Value* ptr, llvm::Type* ty, AnyNode& node, std::vector<uint64_t>& indices) {
                     if (auto lit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
@@ -14356,14 +17691,14 @@ namespace tkz {
                         builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
                         return;
                     }
-                    auto it = locals.find(name);
-                    if (it == locals.end()) {
+                    llvm::Value* alloc = resolveVariable(name);
+                    if (!alloc) {
                         cg_error(Position(), "Unknown array: " + name);
                         return;
                     }
                     
-                    llvm::AllocaInst* arrAlloc = it->second;
-                    llvm::Type* arrTy = arrAlloc->getAllocatedType();
+                    llvm::Value* arrAlloc = alloc;
+                    llvm::Type* arrTy = getPointeeType(arrAlloc);
                     
                     llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                     if (!indexVal) return;
@@ -14403,6 +17738,10 @@ namespace tkz {
         }
         else if (auto listDecl = std::get_if<std::unique_ptr<ListDeclNode>>(&node)) {
             std::string name = (*listDecl)->var_name_tok.value;
+            std::cerr << "=== CREATING LIST ===" << std::endl;
+            std::cerr << "Name: " << name << std::endl;
+            std::cerr << "Current namespace: " << getCurrentNamespace() << std::endl;
+            std::cerr << "Current function: " << (currentFunction ? currentFunction->getName().str() : "NULL") << std::endl;
             std::string typeStr = (*listDecl)->type_tok.value;
             size_t start = typeStr.find('<');
             size_t end = typeStr.find('>');
@@ -14475,8 +17814,12 @@ namespace tkz {
             llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
             llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
             builder->CreateStore(listPtr, alloc);
-            locals[name] = alloc;
-            lists[name] = elemTypeCode;
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+            locals[fullName] = alloc;
+            lists[fullName] = elemTypeCode;
+            
+            std::cerr << "Stored as: '" << fullName << "'" << std::endl;
+            std::cerr << "lists.size() after: " << lists.size() << std::endl;
             
             return;
         }
@@ -14490,45 +17833,36 @@ namespace tkz {
             
             llvm::Value* lengthVal = nullptr;
             bool isArray = false;
-            llvm::AllocaInst* arrayAlloc = nullptr;
+            llvm::Value* arrayAlloc = nullptr;
             llvm::Type* arrayElemTy = nullptr;
             
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*foreach)->collection)) {
                 std::string collName = (*varAccess)->var_name_tok.value;
                 
-                auto it = locals.find(collName);
-                if (it != locals.end()) {
-                    llvm::Type* allocTy = it->second->getAllocatedType();
+                llvm::Value* alloc = resolveVariable(collName);
+                if (alloc) {
+                    llvm::Type* allocTy = getPointeeType(alloc);
                     
                     if (allocTy->isArrayTy()) {
                         isArray = true;
-                        arrayAlloc = it->second;
+                        arrayAlloc = alloc;
                         lengthVal = builder->getInt32(allocTy->getArrayNumElements());
                     }
                     else if (allocTy->isPointerTy()) {
-                        std::cerr << "DEBUG foreach: collName=" << collName << std::endl;
-                        std::cerr << "DEBUG foreach: hasArrayLength? " << hasArrayLength(collName) << std::endl;
-                        std::cerr << "DEBUG foreach: hasArrayType? " << hasArrayType(collName) << std::endl;
-                        
                         if (hasArrayLength(collName)) {
                             auto lenIt = findArrayLength(collName);
                             isArray = true;
-                            arrayAlloc = it->second;
+                            arrayAlloc = alloc;
                             lengthVal = builder->getInt32(lenIt->second);
-                            
-                            std::cerr << "DEBUG: hasArrayType? " << hasArrayType(collName) << std::endl;
                             
                             if (hasArrayType(collName)) {
                                 auto typeIt = findArrayType(collName);
-                                std::cerr << "DEBUG: Found type string: '" << typeIt->second << "'" << std::endl;
                                 arrayElemTy = llvmTypeFor(typeIt->second);
-                                std::cerr << "DEBUG: arrayElemTy after llvmTypeFor: " << arrayElemTy << std::endl;
                             } else {
-                                std::cerr << "DEBUG: hasArrayType returned FALSE!" << std::endl;
                             }
                         } else if (runtimeArraySizes.find(collName) != runtimeArraySizes.end()) {
                             isArray = true;
-                            arrayAlloc = it->second;
+                            arrayAlloc = alloc;
                             llvm::AllocaInst* sizeAlloc = runtimeArraySizes[collName];
                             lengthVal = builder->CreateLoad(builder->getInt32Ty(), sizeAlloc, "runtime_len");
                             if (hasArrayType(collName)) {
@@ -14536,7 +17870,6 @@ namespace tkz {
                                 arrayElemTy = llvmTypeFor(typeIt->second);
                             }
                         } else {
-                            std::cerr << "DEBUG: hasArrayLength returned FALSE!" << std::endl;
                         }
                     }
                 }
@@ -14585,7 +17918,7 @@ namespace tkz {
             llvm::Value* elemVal = nullptr;
             
             if (isArray && arrayAlloc) {
-                llvm::Type* allocTy = arrayAlloc->getAllocatedType();
+                llvm::Type* allocTy = getPointeeType(arrayAlloc);
                 
                 if (allocTy->isArrayTy()) {
                     std::vector<llvm::Value*> indices = { builder->getInt32(0), iVal };
@@ -14733,8 +18066,17 @@ namespace tkz {
             llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
             llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
             builder->CreateStore(mapPtr, alloc);
-            locals[name] = alloc;
-            maps[name] = {keyTypeCode, valueTypeCode};
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+            locals[fullName] = alloc;
+            maps[fullName] = {keyTypeCode, valueTypeCode};
+            
+            return;
+        } else if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&node)) {
+            namespaceStack.push_back((*ns)->name);
+            for (auto& decl : (*ns)->body) {
+                emitStmt(decl);
+            }
+            namespaceStack.pop_back();
             
             return;
         }
@@ -14771,33 +18113,278 @@ namespace tkz {
     std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, const std::string& outPath) {
         errors.clear();
         locals.clear();
+        globals.clear();
         functions.clear();
-        functionDefs.clear(); 
-        jaggedArrays.clear();
+        functionDefs.clear();
         functionSignatures.clear();
-        arrayTypeStrings.clear();
-        std::vector<std::shared_ptr<FuncDefNode>> funcDefs;
-        std::vector<AnyNode> otherStmts;
+        runtimeArraySizes.clear();
+        structTypes.clear();
+        jaggedArraysStack.clear();
+        jaggedArraysStack.push_back({});
+        arrayTypeStringsStack.clear();
+        arrayTypeStringsStack.push_back({});
+        listsStack.clear();
+        listsStack.push_back({});
+        arrayLengthsStack.clear();
+        arrayLengthsStack.push_back({});
+        mapsStack.clear();
+        mapsStack.push_back({});
+        
+        createUserTypes();
+        
+        std::function<void(NamespaceNode&)> createGlobals = [&](NamespaceNode& ns) {
+            namespaceStack.push_back(ns.name);
+            for (auto& decl : ns.body) {
+                if (auto va = std::get_if<std::unique_ptr<VarAssignNode>>(&decl)) {
+                    std::string fullName = getCurrentNamespace() + "::" + (*va)->var_name_tok.value;
+                    llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
+                    auto* gv = new llvm::GlobalVariable(*module, ty, false,
+                        llvm::GlobalValue::InternalLinkage,
+                        llvm::Constant::getNullValue(ty), fullName);
+                    globals[fullName] = gv;
+                }
+                else if (auto nested = std::get_if<std::unique_ptr<NamespaceNode>>(&decl)) {
+                    createGlobals(**nested);
+                }
+            }
+            namespaceStack.pop_back();
+        };
 
         for (auto& stmt : root->statements) {
-            if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
-                auto fnPtr = std::get<std::shared_ptr<FuncDefNode>>(stmt);
-                funcDefs.push_back(fnPtr);
-                std::string name = mangleName(*fnPtr);
-                functionDefs[name] = fnPtr;
-            } else {
-                otherStmts.push_back(std::move(stmt));
+            if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
+                createGlobals(**ns);
+            }
+            else if (auto va = std::get_if<std::unique_ptr<VarAssignNode>>(&stmt)) {
+                std::string name = (*va)->var_name_tok.value;
+                llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
+                auto* gv = new llvm::GlobalVariable(*module, ty, false,
+                    llvm::GlobalValue::InternalLinkage,
+                    llvm::Constant::getNullValue(ty), name);
+                globals[name] = gv;
             }
         }
-        for (auto& f : funcDefs) {
-            llvm::Function* fn = emitFuncDef(*f);
-            functions[mangleName(*f)] = fn;
+        std::function<void(NamespaceNode&)> scanAutoFunctions = [&](NamespaceNode& ns) {
+            namespaceStack.push_back(ns.name);
+            
+            for (auto& decl : ns.body) {
+                if (auto fn = std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
+                    if ((*fn)->name_tok.has_value()) {
+                        std::string funcName = (*fn)->name_tok.value().value;
+                        std::string fullName = getCurrentNamespace() + "::" + funcName;
+                        
+                        if (funcHasAutoParams(fn->get())) {
+                            functionDefs[fullName] = *fn;
+                        }
+                    }
+                }
+                else if (auto nested = std::get_if<std::unique_ptr<NamespaceNode>>(&decl)) {
+                    scanAutoFunctions(**nested);
+                }
+            }
+            
+            namespaceStack.pop_back();
+        };
+
+        for (auto& stmt : root->statements) {
+            if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
+                scanAutoFunctions(**ns);
+            }
+            else if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
+                auto fnPtr = std::get<std::shared_ptr<FuncDefNode>>(stmt);
+                if (!fnPtr->name_tok.has_value()) continue;
+                
+                std::string funcName = fnPtr->name_tok.value().value;
+                if (funcHasAutoParams(fnPtr.get())) {
+                    functionDefs[funcName] = fnPtr;
+                }
+            }
         }
-        llvm::Function* mainFn = module->getFunction("main");
-        if (!mainFn) {
-            cg_error(Position(), "No main() function defined for compiled mode");
-            return errors;
+        for (auto& [className, info] : userTypes) {
+            if (info.kind != UserTypeKind::Class) continue;
+            
+            for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
+                auto& method = info.classMethods[methodIdx];
+                bool hasAutoParam = false;
+                for (auto& param : method.params) {
+                    if (param.type.value == "auto") {
+                        hasAutoParam = true;
+                        break;
+                    }
+                }
+                
+                bool hasAutoReturn = !method.return_types.empty() && method.return_types[0].value == "auto";
+                
+                if (hasAutoParam || hasAutoReturn) {
+                    autoMethodIndices[className].push_back(methodIdx);
+                }
+            }
         }
+        std::function<void(NamespaceNode&)> compileNamespaceFunctions = [&](NamespaceNode& ns) {
+            namespaceStack.push_back(ns.name);
+            
+            for (auto& decl : ns.body) {
+                if (auto fn = std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
+                    if ((*fn)->name_tok.has_value()) {
+                        if (!funcHasAutoParams(fn->get())) {
+                            emitFuncDef(**fn);
+                        }
+                    }
+                }
+                else if (auto nested = std::get_if<std::unique_ptr<NamespaceNode>>(&decl)) {
+                    compileNamespaceFunctions(**nested);
+                }
+            }
+            
+            namespaceStack.pop_back();
+        };
+
+        for (auto& stmt : root->statements) {
+            if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
+                compileNamespaceFunctions(**ns);
+            }
+            else if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
+                auto fnPtr = std::get<std::shared_ptr<FuncDefNode>>(stmt);
+                if (!fnPtr->name_tok.has_value()) continue;
+                
+                if (!funcHasAutoParams(fnPtr.get())) {
+                    emitFuncDef(*fnPtr);
+                }
+            }
+        }
+        for (auto& [className, info] : userTypes) {
+            if (info.kind != UserTypeKind::Class) continue;
+            if (!info.namespace_path.empty()) {
+                namespaceStack.push_back(info.namespace_path);
+            }
+            
+            for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
+                auto& method = info.classMethods[methodIdx];
+                if (std::find(autoMethodIndices[className].begin(), 
+                            autoMethodIndices[className].end(), 
+                            methodIdx) != autoMethodIndices[className].end()) {
+                    continue;
+                }
+                
+                llvm::Function* fn = nullptr;
+                auto& overloads = classMethods[className][method.name_tok.value];
+                
+                for (auto* overload : overloads) {
+                    if (overload->arg_size() - 1 == method.params.size()) {
+                        bool matches = true;
+                        for (size_t i = 0; i < method.params.size(); i++) {
+                            llvm::Type* expectedType = llvmTypeFor(method.params[i].type.value);
+                            llvm::Type* actualType = overload->getFunctionType()->getParamType(i + 1);
+                            if (expectedType != actualType) {
+                                matches = false;
+                                break;
+                            }
+                        }
+                        if (matches) {
+                            fn = overload;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!fn || !fn->empty()) continue;
+                
+                llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+                builder->SetInsertPoint(entry);
+                
+                auto oldThis = currentThis;
+                auto oldClassName = currentClassName;
+                auto oldFunction = currentFunction;
+                std::unordered_map<std::string, llvm::AllocaInst*> oldLocals = locals;
+                
+                currentThis = fn->getArg(0);
+                currentClassName = className;
+                currentFunction = fn;
+                
+                for (size_t i = 0; i < method.params.size(); i++) {
+                    auto& param = method.params[i];
+                    llvm::Type* paramTy = llvmTypeFor(param.type.value);
+                    llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
+                    builder->CreateStore(fn->getArg(i + 1), alloc);
+                    locals[param.name.value] = alloc;
+                }
+                
+                size_t bodyStartIdx = 0;
+                if (method.is_constructor && !info.baseClassName.empty()) {
+                    if (method.body && !method.body->statements.empty()) {
+                        auto& firstStmt = method.body->statements[0];
+                        if (auto call = std::get_if<std::unique_ptr<CallNode>>(&firstStmt)) {
+                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*call)->node_to_call)) {
+                                std::string callName = (*varAccess)->var_name_tok.value;
+                                if (callName == info.baseClassName) {
+                                    std::vector<llvm::Value*> parentArgs;
+                                    for (auto& argNode : (*call)->arg_nodes) {
+                                        llvm::Value* arg = emitExpr(argNode);
+                                        if (!arg) continue;
+                                        parentArgs.push_back(arg);
+                                    }
+                                    llvm::Function* parentCtor = findMethodOverload(info.baseClassName, info.baseClassName, parentArgs);
+                                    if (parentCtor) {
+                                        std::vector<llvm::Value*> allArgs = {currentThis};
+                                                                        allArgs.insert(allArgs.end(), parentArgs.begin(), parentArgs.end());
+                                        builder->CreateCall(parentCtor, allArgs);
+                                        bodyStartIdx = 1;
+                                    } else {
+                                        cg_error(Position(), "Parent class '" + info.baseClassName + "' has no matching constructor");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if (method.body) {
+                    for (size_t i = bodyStartIdx; i < method.body->statements.size(); i++) {
+                        emitStmt(method.body->statements[i]);
+                    }
+                }
+                
+                if (!builder->GetInsertBlock()->getTerminator()) {
+                    if (fn->getReturnType()->isVoidTy()) {
+                        builder->CreateRetVoid();
+                    } else {
+                        builder->CreateRet(llvm::Constant::getNullValue(fn->getReturnType()));
+                    }
+                }
+                
+                currentThis = oldThis;
+                currentClassName = oldClassName;
+                currentFunction = oldFunction;
+                locals = oldLocals;
+            }
+            
+            if (!info.namespace_path.empty()) {
+                namespaceStack.pop_back();
+            }
+        }
+        llvm::Function* userEntry = module->getFunction(entrypointName);
+        if (userEntry) {
+            userEntry->setName("__user_entry");
+            
+            llvm::FunctionType* mainTy = llvm::FunctionType::get(builder->getInt32Ty(), {}, false);
+            llvm::Function* realMain = llvm::Function::Create(
+                mainTy, llvm::Function::ExternalLinkage, "main", module.get()
+            );
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", realMain);
+            builder->SetInsertPoint(entry);
+            currentFunction = realMain;
+            for (auto& stmt : root->statements) {
+                if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
+                    emitStmt(stmt);
+                }
+            }
+            llvm::Value* result = builder->CreateCall(userEntry, {}, "entry_result");
+            builder->CreateRet(result);
+        } else {
+            cg_error(Position(), "Entrypoint function '" + entrypointName + "' not defined");
+        }
+
+        currentFunction = nullptr;
+
         if (!errors.empty()) return errors;
 
         std::error_code EC;
@@ -15171,13 +18758,13 @@ namespace tkz {
 
                 
                 // Call main
-                std::shared_ptr<FuncDefNode> main_func = ctx->get_function("main");
+                std::shared_ptr<FuncDefNode> main_func = ctx->get_function(entrypointName);
                 if (!main_func) {
                     throw RTError("No main() function found", Position());
                 }
                 
                 auto main_call_node = std::make_unique<CallNode>(
-                    std::make_unique<VarAccessNode>(Token(TokenType::IDENTIFIER, "main", Position())),
+                    std::make_unique<VarAccessNode>(Token(TokenType::IDENTIFIER, entrypointName, Position())),
                     std::list<AnyNode>{}
                 );
                 AnyNode node_variant = std::move(main_call_node);
@@ -15805,7 +19392,7 @@ namespace tkz {
 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////
-// INCLUDES //////////////////////////////////////////////////////////////////////////////
+// PREPROCCESERS /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
@@ -15858,10 +19445,25 @@ std::string extract_namespace(const std::string& source, const std::string& ns_n
     return source.substr(pos, i - pos);
 }
 std::string preprocess_includes(const std::string& source, const std::string& current_file) {
+    entrypointName = "main";
     std::set<std::pair<std::string, std::string>> included_namespaces;
     std::vector<std::string> exported_blocks;
     std::vector<std::string> namespace_order;
-    
+    size_t ep_pos = source.find("#entrypoint");
+    if (ep_pos != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < ep_pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check-1] != '\\')) {
+                in_string = !in_string;
+            }
+        }
+        if (!in_string) {
+            size_t line_end = source.find('\n', ep_pos);
+            if (line_end == std::string::npos) line_end = source.size();
+            std::string directive = source.substr(ep_pos + 12, line_end - ep_pos - 12);  // +12 for "#entrypoint "
+            entrypointName = trim(directive);
+        }
+    }
     std::function<void(const std::string&, const std::string&)> process_file;
     process_file = [&](const std::string& file_path, const std::string& ns_to_include) {
         std::pair<std::string, std::string> key = {file_path, ns_to_include};
@@ -16092,7 +19694,22 @@ std::string preprocess_includes(const std::string& source, const std::string& cu
         pos = last_pos;
     }
     result += source.substr(last_pos);
-    
+    pos = 0;
+    while ((pos = result.find("#entrypoint", pos)) != std::string::npos) {
+        bool in_str = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (result[check] == '"' && (check == 0 || result[check-1] != '\\')) {
+                in_str = !in_str;
+            }
+        }
+        if (!in_str) {
+            size_t line_end = result.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result.size();
+            result.erase(pos, line_end - pos + 1);
+        } else {
+            pos++;
+        }
+    }
     size_t exported_start = 0;
     bool in_string = false;
     for (size_t scan = 0; scan < result.size(); scan++) {

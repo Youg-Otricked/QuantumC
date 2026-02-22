@@ -18,7 +18,7 @@ test.text
 *.log
 *.o
 *.out
-
+qc
 # Ignore IDE files
 .vscode/
 .idea/
