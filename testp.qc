@@ -12,6 +12,7 @@ int main() {
     // ✅ TEST UTILS
     println("--- Testing Utils ---");
     int r1[] = Utils::range(0, 10, 2);
+    println(r1.length);
     println(f"range(0, 10, 2): {r1[0]}, {r1[1]}, {r1[2]}, {r1[3]}, {r1[4]}");  // 0, 2, 4, 6, 8
     
     int r2[] = Utils::range(10, 0, -1);

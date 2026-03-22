@@ -141,15 +141,6 @@ int main(int argc, char* argv[]) {
             config.raw = true;
         } else if (arg == "--bst" || arg == "-b") {
             config.bst = true;
-        } else if (arg == "--compile" || arg == "-c") {
-            config.compile_mode = true;
-            config.interpret_mode = false;
-        } else if (arg == "--interpret" || arg == "-i") {
-            config.compile_mode = false;
-            config.interpret_mode = true;
-        } else if (arg == "--test-compile" || arg == "-tc") {
-            config.compile_mode = true;
-            config.interpret_mode = true;
         } else if (arg == "--suspense" || arg == "-s") {
             slow = true;
         } else if (arg == "--help" || arg == "-h") {
@@ -170,9 +161,6 @@ Options:
   -r, --raw           Don't pretty print the AST. (must be used in congunction with -a/--ast)
   -s, --suspense      Slowly print the Error codes.
   -b, --bst           Bst style ast (warning, very top heavy) must be used in congunction with -a/ast
-  -c, --compile       Compile code
-  -i, --interpret     Interpret code
-  -tc, --test-compile Interpret, if no errors compile (comming soon)
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @no-context == -nc

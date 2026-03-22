@@ -213,20 +213,7 @@ namespace tkz {
         RTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
         std::string as_string() override;
     };
-    class CTError : public Error {
-    public:
-        CTError(std::string d, Position pos) : Error("Error: ", std::move(d), pos) {}
-
-        std::string as_string() override {
-            std::string result;
-            result += "Compile-time Error: " + this->details + "\n";
-            result += "File " + this->pos.Filename +
-                    ", line " + std::to_string(this->pos.line + 1) +
-                    ", col " + std::to_string(this->pos.column + 1) + "\n\n";
-            result += this->pos.arrow_string();
-            return result;
-        }
-    };
+    
     struct Ler {
         std::vector<Token> Tkns;
         std::unique_ptr<Error> error;
@@ -1036,6 +1023,45 @@ namespace tkz {
         std::vector<Token> tokens;
         std::string currentNamespace;
         Parser(std::vector<Token> tokens);
+        Token peek(int offset = 1) {
+            size_t peek_idx = this->index + offset;
+            if (peek_idx < this->tokens.size()) {
+                return this->tokens[peek_idx];
+            }
+            return this->current_tok;
+        }
+        UserTypeInfo* find_type(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                if (user_types.count(name)) {
+                    return &user_types[name];
+                }
+                return nullptr;
+            }
+            
+            if (!currentNamespace.empty()) {
+                std::string key = currentNamespace + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            for (int i = namespaceStack.size() - 1; i >= 0; --i) {
+                std::string ns;
+                for (int j = 0; j <= i; ++j) {
+                    if (j > 0) ns += "::";
+                    ns += namespaceStack[j];
+                }
+                std::string key = ns + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            
+            if (user_types.count(name)) {
+                return &user_types[name];
+            }
+            
+            return nullptr;
+        }
         std::string qualify_name(const std::string& name);
         bool is_known_type(const std::string& name) const {
             if (user_types.count(name)) return true;
@@ -2027,8 +2053,6 @@ namespace tkz {
         bool quiet_mode = false;
         bool raw = false;
         bool bst = false;
-        bool compile_mode = false;
-        bool interpret_mode = true;
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // RUN //////////////////////////////////////////////////////////////////////////////////////

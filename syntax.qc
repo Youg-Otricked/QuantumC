@@ -5,8 +5,9 @@ If you want to learn this language better, read along while actually codeing in 
 // Run this file to see all current features in action!
 ////////////////////////////////////////////////////////////////////////////////
 // @print-ast
+//Entrypoint preproccesser:
 namespace Exported {
-    #include <UnitTest, std>
+    #include <UnitTest, ./stdlib.qc>
 }
 namespace Outer {
     int outerVar = 10;
@@ -1292,6 +1293,8 @@ int main() {
     x = 5;
     int* p = &x;
     println(&x);
+    println(typeof(p));
+    println(*p);
     t.AssertEqual("int*", typeof(p), "typeof(p) should be int*", "typeof(p)");
     t.AssertEqual(5, *p, "*p reads x", "*p");
 

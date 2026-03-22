@@ -1036,7 +1036,6 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class Parser {
         public:
-        bool parsing_construct = false;
         AnyNode default_value_for_type(const Token& type_tok, const Position& pos);
         std::vector<std::string> namespaceStack;
         size_t index = 0;
@@ -1934,7 +1933,7 @@ namespace tkz {
                     return arg->element_type + "[]";  
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<ListValue>>) {
-                    return arg->element_type;
+                    return "list<" + arg->element_type + ">";
                 }
                 if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
                     return "map<" + arg->key_type + ", " + arg->value_type + ">";
@@ -2248,7 +2247,7 @@ namespace tkz {
             mapsStack.push_back({});
         }
 
-        void exitScope() {
+       void exitScope() {
             jaggedArraysStack.pop_back();
             arrayTypeStringsStack.pop_back();
             listsStack.pop_back();
@@ -2290,7 +2289,6 @@ namespace tkz {
             return false;
         }
         std::string getExpressionType(AnyNode& node) {
-            std::cerr << "getExpressionType called, node index: " << node.index() << std::endl;
             if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
                 if (!(*arrLit)->elements.empty()) {
                     std::string elemType = getExpressionType((*arrLit)->elements[0]);
@@ -2319,7 +2317,6 @@ namespace tkz {
                 return "string";
             }
             else if (auto numNode = std::get_if<NumberNode>(&node)) {
-                std::cerr << "  NumberNode: " << numNode->tok.value << std::endl;
                 switch(numNode->tok.type) {
                     case TokenType::INT:
                         return "int";
@@ -2338,14 +2335,11 @@ namespace tkz {
             else if (auto qboolNode = std::get_if<QBoolNode>(&node)) {
                 return "qbool";
             }
-            else if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
-                std::string varName = (*varAccess)->var_name_tok.value;
-                std::cerr << "  VarAccess: " << varName << std::endl;
-                if (hasArrayType(varName)) {
-                    return arrayTypeStrings[varName] + "[]";
-                }
+            else if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+                std::string varName = (*varAcc)->var_name_tok.value;
                 if (hasList(varName)) {
-                    int code = lists[varName];
+                    auto it = findList(varName);
+                    int code = it->second;
                     std::string elemType;
                     if (code == 0) elemType = "int";
                     else if (code == 1) elemType = "float";
@@ -2357,7 +2351,61 @@ namespace tkz {
                     else elemType = "auto";
                     return "list<" + elemType + ">";
                 }
-                std::cerr << "    -> NOT FOUND! Returning unknown!" << std::endl;
+                if (hasArrayType(varName)) {
+                    return findArrayType(varName)->second + "[]";
+                }
+                if (hasMap(varName)) {
+                    auto it = findMap(varName);
+                    auto codeToType = [](int code) -> std::string {
+                        if (code == 0) return "int";
+                        if (code == 1) return "float";
+                        if (code == 2) return "double";
+                        if (code == 3) return "char";
+                        if (code == 4) return "bool";
+                        if (code == 5) return "qbool";
+                        if (code == 6) return "string";
+                        return "auto";
+                    };
+                    std::string keyType = codeToType(it->second.first);
+                    std::string valType = codeToType(it->second.second);
+                    return "map<" + keyType + "," + valType + ">";
+                }
+            }
+            else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
+                if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
+                    std::string name = (*varAcc)->var_name_tok.value;
+                    if (hasList(name)) {
+                        auto it = findList(name);
+                        int code = it->second;
+                        if (code == 0) return "int";
+                        if (code == 1) return "float";
+                        if (code == 2) return "double";
+                        if (code == 3) return "char";
+                        if (code == 4) return "bool";
+                        if (code == 5) return "qbool";
+                        if (code == 6) return "string";
+                    }
+                    if (hasArrayType(name)) {
+                        return arrayTypeStrings[name];
+                    }
+                    if (hasMap(name)) {
+                        auto it = findMap(name);
+                        auto codeToType = [](int code) -> std::string {
+                            if (code == 0) return "int";
+                            if (code == 1) return "float";
+                            if (code == 2) return "double";
+                            if (code == 3) return "char";
+                            if (code == 4) return "bool";
+                            if (code == 5) return "qbool";
+                            if (code == 6) return "string";
+                            return "auto";
+                        };
+                        std::string keyType = codeToType(it->second.first);
+                        std::string valType = codeToType(it->second.second);
+                        return "map<" + keyType + "," + valType + ">";
+                    }
+                }
+                return "unknown";
             }
             std::cerr << "  -> UNKNOWN (node index " << node.index() << ")" << std::endl;
             return "unknown";
@@ -2376,6 +2424,36 @@ namespace tkz {
             }
             
             return "unknown";
+        }
+        llvm::Value* normalizeArg(llvm::Value* arg) {
+            if (!arg) return nullptr;
+            
+            std::string unionName;
+            if (isUnionType(arg->getType(), &unionName)) {
+                auto& members = userTypes[unionName].members;
+                llvm::Value* tag = builder->CreateExtractValue(arg, 0, "tag");
+                llvm::Value* payload = builder->CreateExtractValue(arg, 1, "payload");
+                std::string firstType = members[0].type;
+                size_t c = firstType.find(':');
+                if (c != std::string::npos) firstType = firstType.substr(0, c);
+                llvm::Type* firstTy = llvmTypeFor(firstType);
+                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(firstTy, 0));
+                return builder->CreateLoad(firstTy, typedPtr, "union_normalized");
+            }
+            
+            std::string enumName;
+            if (isEnumType(arg->getType(), &enumName)) {
+                auto& entries = userTypes[enumName].enumEntries;
+                llvm::Value* payload = builder->CreateExtractValue(arg, 1, "enum_payload");
+                std::string firstType = entries[0].typeAtom;
+                size_t c = firstType.find(':');
+                if (c != std::string::npos) firstType = firstType.substr(0, c);
+                llvm::Type* baseTy = llvmTypeFor(firstType);
+                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(baseTy, 0));
+                return builder->CreateLoad(baseTy, typedPtr, "enum_normalized");
+            }
+            
+            return arg;
         }
         std::pair<llvm::Function*, std::string> findMethodInHierarchy(const std::string& className, const std::string& methodName) {
             std::string resolvedClassName = className;
@@ -2615,7 +2693,7 @@ namespace tkz {
             auto savedGlobals = globals;
             auto savedThis = currentThis;
             auto savedClassName = currentClassName;
-            
+            enterScope();
             auto& method = userTypes[className].classMethods[methodIdx];
             std::vector<llvm::Type*> paramTypes;
             paramTypes.push_back(llvm::PointerType::get(classTypes[className], 0));
@@ -2624,6 +2702,7 @@ namespace tkz {
                 std::string paramType = (method.params[i].type.value == "auto")
                     ? concreteTypes[i]
                     : method.params[i].type.value;
+                    
                 paramTypes.push_back(llvmTypeFor(paramType));
             }
             llvm::Type* retTy = builder->getVoidTy();
@@ -2789,6 +2868,7 @@ namespace tkz {
             globals = savedGlobals;
             currentThis = savedThis;
             currentClassName = savedClassName;
+            exitScope();
             if (savedBlock) {
                 builder->SetInsertPoint(savedBlock);
             }
@@ -2804,7 +2884,6 @@ namespace tkz {
             llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
             auto savedLocals = locals;
             auto savedGlobals = globals;
-            
             std::vector<llvm::Type*> paramTypes;
             size_t paramIdx = 0;
             for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
@@ -3003,8 +3082,6 @@ namespace tkz {
                     if (inferredTypeStr != "unknown") break;
                 }
 
-                std::cerr << "INFERRED RETURN TYPE: " << inferredTypeStr << std::endl;
-
                 
                 if (inferredTypeStr.find(',') != std::string::npos) {
                     std::vector<llvm::Type*> types;
@@ -3018,6 +3095,16 @@ namespace tkz {
                     retTy = llvm::StructType::get(context, types);
                 } else {
                     retTy = llvmTypeFor(inferredTypeStr);
+                }
+            } else if (!funcDef->return_types.empty()) {
+                if (funcDef->return_types.size() > 1) {
+                    std::vector<llvm::Type*> retTypes;
+                    for (auto& rt : funcDef->return_types) {
+                        retTypes.push_back(llvmTypeFor(rt.value));
+                    }
+                    retTy = llvm::StructType::get(context, retTypes);
+                } else {
+                    retTy = llvmTypeFor(funcDef->return_types[0].value);
                 }
             }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
@@ -3047,7 +3134,7 @@ namespace tkz {
                 if (paramType.ends_with("[]")) {
                     std::string elemType = paramType.substr(0, paramType.size() - 2);
                     arrayTypeStrings[paramName] = elemType;
-                        } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
                     std::string elemType = paramType.substr(5, paramType.size() - 6);
                     int typeCode = getTypeCode(elemType);
                     lists[paramName] = typeCode;
@@ -3088,11 +3175,16 @@ namespace tkz {
             if (name.ends_with("[]") || name.starts_with("list<") || name.starts_with("map<")) {
                 return name;
             }
+            auto aliasIt = typeAliases.find(name);
+            if (aliasIt != typeAliases.end()) {
+                return resolveTypeName(aliasIt->second);
+            }
             if (name.find("::") != std::string::npos) {
                 if (classTypes.find(name) != classTypes.end()) return name;
                 if (structTypes.find(name) != structTypes.end()) return name;
                 if (enumTypes.find(name) != enumTypes.end()) return name;
                 if (unionTypes.find(name) != unionTypes.end()) return name;
+                if (typeAliases.find(name) != typeAliases.end()) return name;
             }
             std::string current = getCurrentNamespace();
             
@@ -3102,6 +3194,10 @@ namespace tkz {
                 if (structTypes.find(fullName) != structTypes.end()) return fullName;
                 if (enumTypes.find(fullName) != enumTypes.end()) return fullName;
                 if (unionTypes.find(fullName) != unionTypes.end()) return fullName;
+                if (hasList(fullName)) return fullName;
+                if (hasArrayType(fullName)) return fullName;
+                if (hasMap(fullName)) return fullName;
+                
                 if (current.empty()) break;
                 
                 size_t pos = current.rfind("::");
@@ -3383,8 +3479,9 @@ namespace tkz {
             llvm::Value* payload = builder->CreateExtractValue(v, 1, "payload");
             
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "norm_end", currentFunction);
-            llvm::AllocaInst* tmp = nullptr;
-            bool tmpInitialized = false;
+            
+            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::AllocaInst* tmp = createEntryAlloca("norm_tmp", voidPtrTy);
             
             size_t memberCount = isUnion ? utIt->second.members.size() : utIt->second.enumEntries.size();
             
@@ -3414,28 +3511,18 @@ namespace tkz {
                 
                 llvm::Type* memberTy = llvmTypeFor(typeStr);
                 
-                if (!tmpInitialized) {
-                    tmp = createEntryAlloca("norm_tmp", memberTy);
-                    tmpInitialized = true;
-                } else if (tmp->getAllocatedType() != memberTy) {
-                    cg_error(Position(), "Union/Enum with incompatible member types for auto-use");
-                    builder->CreateBr(endBB);
-                    continue;
-                }
-                
                 llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
                 llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "member");
-                builder->CreateStore(loaded, tmp);
+                llvm::AllocaInst* memberAlloc = createEntryAlloca("member_tmp", memberTy);
+                builder->CreateStore(loaded, memberAlloc);
+                llvm::Value* asVoidPtr = builder->CreateBitCast(memberAlloc, voidPtrTy);
+                builder->CreateStore(asVoidPtr, tmp);
                 builder->CreateBr(endBB);
             }
             
             builder->SetInsertPoint(endBB);
-            if (!tmp) {
-                cg_error(Position(), "Cannot normalize union/enum (no members?)");
-                return v;
-            }
             
-            return builder->CreateLoad(tmp->getAllocatedType(), tmp, "normalized");
+            return builder->CreateLoad(voidPtrTy, tmp, "normalized");
         }
         struct EnumMatchInfo {
             int tagIndex;
