@@ -51,7 +51,8 @@ int main() {
     list<int> toReverse = [1, 2, 3, 4, 5];
     list<int> reversed = Collections::reverse(toReverse);
     println(f"reverse([1,2,3,4,5]): {reversed[0]}, {reversed[1]}, {reversed[2]}, {reversed[3]}, {reversed[4]}\n");  // 5, 4, 3, 2, 1
-    
+    reversed = Collections::remove(reversed, 2);
+    println(f"remove([5,4,3,2,1], 2): {reversed[0]}, {reversed[1]}, {reversed[2]}, {reversed[3]}\n");  // 5, 4, 3, 1
     // ✅ TEST UNITTEST
     println("--- Testing UnitTest ---");
     UnitTest::Test test = UnitTest::Test(5);

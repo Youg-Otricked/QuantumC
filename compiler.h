@@ -2078,6 +2078,7 @@ namespace tkz {
         bool interpret_mode = true;
         bool compile_only = false;
         bool object_only = false;
+        bool debug = false;
         std::string output_file = "a.out";
     };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -2279,10 +2280,16 @@ namespace tkz {
             return sig;
         }
         bool funcHasAutoParams(FuncDefNode* funcDef) {
+            
             if (!funcDef) return false;
             
             for (auto& param : funcDef->params) {
                 if (param.type.value == "auto") {
+                    return true;
+                }
+            }
+            for (auto& ret_type : funcDef->return_types) {
+                if (ret_type.value == "auto") {
                     return true;
                 }
             }
@@ -2374,6 +2381,9 @@ namespace tkz {
             else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
+                    std::cerr << "DEBUG arrAcc getExprType: name=" << name 
+                    << " hasList=" << hasList(name)
+                    << " hasArray=" << hasArrayType(name) << "\n";
                     if (hasList(name)) {
                         auto it = findList(name);
                         int code = it->second;
@@ -2693,6 +2703,12 @@ namespace tkz {
             auto savedGlobals = globals;
             auto savedThis = currentThis;
             auto savedClassName = currentClassName;
+            auto savedNamespaceStack = namespaceStack;
+            namespaceStack.clear();
+            size_t nsSep = specializedName.rfind("::");
+            if (nsSep != std::string::npos) {
+                namespaceStack = {specializedName.substr(0, nsSep)};
+            }
             enterScope();
             auto& method = userTypes[className].classMethods[methodIdx];
             std::vector<llvm::Type*> paramTypes;
@@ -2704,6 +2720,13 @@ namespace tkz {
                     : method.params[i].type.value;
                     
                 paramTypes.push_back(llvmTypeFor(paramType));
+                
+                if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                    std::string elemType = paramType.substr(5, paramType.size() - 6);
+                    lists[method.params[i].name.value] = getTypeCode(elemType);
+                } else if (paramType.ends_with("[]")) {
+                    arrayTypeStrings[method.params[i].name.value] = paramType.substr(0, paramType.size() - 2);
+                }
             }
             llvm::Type* retTy = builder->getVoidTy();
             
@@ -2868,6 +2891,7 @@ namespace tkz {
             globals = savedGlobals;
             currentThis = savedThis;
             currentClassName = savedClassName;
+            namespaceStack = savedNamespaceStack;
             exitScope();
             if (savedBlock) {
                 builder->SetInsertPoint(savedBlock);
@@ -2884,15 +2908,29 @@ namespace tkz {
             llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
             auto savedLocals = locals;
             auto savedGlobals = globals;
+            auto savedNamespaceStack = namespaceStack;
+            namespaceStack.clear();
+            size_t nsSep = specializedName.rfind("::");
+            if (nsSep != std::string::npos) {
+                namespaceStack = {specializedName.substr(0, nsSep)};
+            }
+            enterScope();
+            
             std::vector<llvm::Type*> paramTypes;
             size_t paramIdx = 0;
             for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
                 std::string paramType = it->type.value;
+                if (paramType == "auto") paramType = concreteTypes[paramIdx];
                 
-                if (paramType == "auto") {
-                    paramTypes.push_back(llvmTypeFor(concreteTypes[paramIdx]));
-                } else {
-                    paramTypes.push_back(llvmTypeFor(paramType));
+                paramTypes.push_back(llvmTypeFor(paramType));
+                
+                if (paramType.starts_with("list<") && paramType.ends_with(">")) {
+                    std::string elemType = paramType.substr(5, paramType.size() - 6);
+                    std::cerr << "DEBUG registering param: " << it->name.value << " as list<" << elemType << ">\n";
+                    lists[it->name.value] = getTypeCode(elemType);
+                } else if (paramType.ends_with("[]")) {
+                    std::cerr << "DEBUG registering param: " << it->name.value << " as array\n";
+                    arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
                 }
             }
             
@@ -2910,7 +2948,6 @@ namespace tkz {
                                         std::string paramType = (paramIt->type.value == "auto")
                                             ? concreteTypes[i]
                                             : paramIt->type.value;
-                                        
                                         if (paramType.ends_with("[]")) {
                                             return paramType.substr(0, paramType.size() - 2);
                                         }
@@ -3116,7 +3153,6 @@ namespace tkz {
             );
             
             currentFunction = fn;
-            enterScope();
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
             builder->SetInsertPoint(entry);
             auto argIt = fn->arg_begin();
@@ -3156,6 +3192,7 @@ namespace tkz {
             }
             
             exitScope();
+            namespaceStack = savedNamespaceStack;
             currentFunction = savedFunction;
             locals = savedLocals;
             globals = savedGlobals;

@@ -152,12 +152,12 @@ int main(int argc, char* argv[]) {
             config.interpret_mode = true;
         } else if (arg == "--suspense" || arg == "-s") {
             slow = true;
-        } else if (arg == "-co") {
+        } else if (arg == "-co" || arg == "--compile-only") {
             config.compile_mode = true;
             config.interpret_mode = false;
             config.compile_only = true;
         }
-        else if (arg == "-oo") {
+        else if (arg == "-oo" || arg == "--object-only") {
             config.compile_mode = true;
             config.interpret_mode = false;
             config.object_only = true;
@@ -169,6 +169,8 @@ int main(int argc, char* argv[]) {
                 std::cerr << "Error: -o requires output filename\n";
                 return 1;
             }
+        } else if (arg == "-d" || arg == "--debug") {
+            config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
 Quantum C Interpreter v12.0.0
@@ -193,6 +195,7 @@ Options:
   -oo, --object-only  Only compile up to object (.o) file
   -o, --output        Specift output file for compilation (defaults to a.out)
   -co, --compile-only Only compile to llvm, don't do anything else
+  -d, --debug         Adds debug symbols
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @no-context == -nc

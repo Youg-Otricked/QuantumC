@@ -31,10 +31,9 @@ target triple = "x86_64-pc-linux-gnu"
 @.str.16 = private unnamed_addr constant [5 x i8] c"\22%s\22\00", align 1
 @.str.17 = private unnamed_addr constant [5 x i8] c"'%c'\00", align 1
 @.str.18 = private unnamed_addr constant [6 x i8] c"ERROR\00", align 1
-@.str.19 = private unnamed_addr constant [8 x i8] c" (\22%s\22)\00", align 1
-@.str.20 = private unnamed_addr constant [2 x i8] c"{\00", align 1
-@.str.21 = private unnamed_addr constant [3 x i8] c": \00", align 1
-@.str.22 = private unnamed_addr constant [2 x i8] c"}\00", align 1
+@.str.19 = private unnamed_addr constant [2 x i8] c"{\00", align 1
+@.str.20 = private unnamed_addr constant [3 x i8] c": \00", align 1
+@.str.21 = private unnamed_addr constant [2 x i8] c"}\00", align 1
 @ffi_type_sint32 = external global %struct._ffi_type, align 8
 @ffi_type_float = external global %struct._ffi_type, align 8
 @ffi_type_double = external global %struct._ffi_type, align 8
@@ -4315,8 +4314,91 @@ define dso_local void @qc_list_push(ptr noundef %0, ptr noundef %1, i32 noundef 
 ; Function Attrs: nounwind allocsize(1)
 declare ptr @realloc(ptr noundef, i64 noundef) #7
 
-; Function Attrs: mustprogress noinline optnone uwtable
-define dso_local ptr @qc_list_get(ptr noundef %0, i32 noundef %1) #5 {
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local void @qc_list_set(ptr noundef %0, i32 noundef %1, ptr noundef %2) #0 {
+  %4 = alloca ptr, align 8
+  %5 = alloca i32, align 4
+  %6 = alloca ptr, align 8
+  %7 = alloca ptr, align 8
+  %8 = alloca i32, align 4
+  %9 = alloca ptr, align 8
+  store ptr %0, ptr %4, align 8
+  store i32 %1, ptr %5, align 4
+  store ptr %2, ptr %6, align 8
+  %10 = load ptr, ptr %4, align 8
+  store ptr %10, ptr %7, align 8
+  %11 = load i32, ptr %5, align 4
+  %12 = icmp slt i32 %11, 0
+  br i1 %12, label %19, label %13
+
+13:                                               ; preds = %3
+  %14 = load i32, ptr %5, align 4
+  %15 = load ptr, ptr %7, align 8
+  %16 = getelementptr inbounds %struct.qc_list, ptr %15, i32 0, i32 1
+  %17 = load i32, ptr %16, align 8
+  %18 = icmp sge i32 %14, %17
+  br i1 %18, label %19, label %20
+
+19:                                               ; preds = %13, %3
+  br label %59
+
+20:                                               ; preds = %13
+  %21 = load ptr, ptr %7, align 8
+  %22 = getelementptr inbounds %struct.qc_list, ptr %21, i32 0, i32 3
+  %23 = load i32, ptr %22, align 8
+  %24 = icmp sle i32 %23, 5
+  br i1 %24, label %25, label %51
+
+25:                                               ; preds = %20
+  %26 = load ptr, ptr %7, align 8
+  %27 = getelementptr inbounds %struct.qc_list, ptr %26, i32 0, i32 3
+  %28 = load i32, ptr %27, align 8
+  %29 = call i32 @sizeof_type(i32 noundef %28)
+  store i32 %29, ptr %8, align 4
+  %30 = load i32, ptr %8, align 4
+  %31 = sext i32 %30 to i64
+  %32 = call noalias ptr @malloc(i64 noundef %31) #9
+  store ptr %32, ptr %9, align 8
+  %33 = load ptr, ptr %9, align 8
+  %34 = load ptr, ptr %6, align 8
+  %35 = load i32, ptr %8, align 4
+  %36 = sext i32 %35 to i64
+  call void @llvm.memcpy.p0.p0.i64(ptr align 1 %33, ptr align 1 %34, i64 %36, i1 false)
+  %37 = load ptr, ptr %7, align 8
+  %38 = getelementptr inbounds %struct.qc_list, ptr %37, i32 0, i32 0
+  %39 = load ptr, ptr %38, align 8
+  %40 = load i32, ptr %5, align 4
+  %41 = sext i32 %40 to i64
+  %42 = getelementptr inbounds ptr, ptr %39, i64 %41
+  %43 = load ptr, ptr %42, align 8
+  call void @free(ptr noundef %43) #10
+  %44 = load ptr, ptr %9, align 8
+  %45 = load ptr, ptr %7, align 8
+  %46 = getelementptr inbounds %struct.qc_list, ptr %45, i32 0, i32 0
+  %47 = load ptr, ptr %46, align 8
+  %48 = load i32, ptr %5, align 4
+  %49 = sext i32 %48 to i64
+  %50 = getelementptr inbounds ptr, ptr %47, i64 %49
+  store ptr %44, ptr %50, align 8
+  br label %59
+
+51:                                               ; preds = %20
+  %52 = load ptr, ptr %6, align 8
+  %53 = load ptr, ptr %7, align 8
+  %54 = getelementptr inbounds %struct.qc_list, ptr %53, i32 0, i32 0
+  %55 = load ptr, ptr %54, align 8
+  %56 = load i32, ptr %5, align 4
+  %57 = sext i32 %56 to i64
+  %58 = getelementptr inbounds ptr, ptr %55, i64 %57
+  store ptr %52, ptr %58, align 8
+  br label %59
+
+59:                                               ; preds = %19, %51, %25
+  ret void
+}
+
+; Function Attrs: mustprogress noinline nounwind optnone uwtable
+define dso_local ptr @qc_list_get(ptr noundef %0, i32 noundef %1) #0 {
   %3 = alloca ptr, align 8
   %4 = alloca ptr, align 8
   %5 = alloca i32, align 4
@@ -4336,43 +4418,22 @@ define dso_local ptr @qc_list_get(ptr noundef %0, i32 noundef %1) #5 {
 
 14:                                               ; preds = %8, %2
   store ptr null, ptr %3, align 8
-  br label %40
+  br label %23
 
 15:                                               ; preds = %8
   %16 = load ptr, ptr %4, align 8
-  %17 = getelementptr inbounds %struct.qc_list, ptr %16, i32 0, i32 3
-  %18 = load i32, ptr %17, align 8
-  %19 = icmp eq i32 %18, 6
-  br i1 %19, label %20, label %29
+  %17 = getelementptr inbounds %struct.qc_list, ptr %16, i32 0, i32 0
+  %18 = load ptr, ptr %17, align 8
+  %19 = load i32, ptr %5, align 4
+  %20 = sext i32 %19 to i64
+  %21 = getelementptr inbounds ptr, ptr %18, i64 %20
+  %22 = load ptr, ptr %21, align 8
+  store ptr %22, ptr %3, align 8
+  br label %23
 
-20:                                               ; preds = %15
-  %21 = load ptr, ptr %4, align 8
-  %22 = getelementptr inbounds %struct.qc_list, ptr %21, i32 0, i32 0
-  %23 = load ptr, ptr %22, align 8
-  %24 = load i32, ptr %5, align 4
-  %25 = sext i32 %24 to i64
-  %26 = getelementptr inbounds ptr, ptr %23, i64 %25
-  %27 = load ptr, ptr %26, align 8
-  %28 = call i32 (ptr, ...) @printf(ptr noundef @.str.19, ptr noundef %27)
-  br label %29
-
-29:                                               ; preds = %20, %15
-  %30 = call i32 (ptr, ...) @printf(ptr noundef @.str.12)
-  %31 = load ptr, ptr @stdout, align 8
-  %32 = call i32 @fflush(ptr noundef %31)
-  %33 = load ptr, ptr %4, align 8
-  %34 = getelementptr inbounds %struct.qc_list, ptr %33, i32 0, i32 0
-  %35 = load ptr, ptr %34, align 8
-  %36 = load i32, ptr %5, align 4
-  %37 = sext i32 %36 to i64
-  %38 = getelementptr inbounds ptr, ptr %35, i64 %37
-  %39 = load ptr, ptr %38, align 8
-  store ptr %39, ptr %3, align 8
-  br label %40
-
-40:                                               ; preds = %29, %14
-  %41 = load ptr, ptr %3, align 8
-  ret ptr %41
+23:                                               ; preds = %15, %14
+  %24 = load ptr, ptr %3, align 8
+  ret ptr %24
 }
 
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
@@ -5154,7 +5215,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   %4 = alloca i8, align 1
   %5 = alloca i8, align 1
   store ptr %0, ptr %2, align 8
-  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.20)
+  %6 = call i32 (ptr, ...) @printf(ptr noundef @.str.19)
   store i32 0, ptr %3, align 4
   br label %7
 
@@ -5304,7 +5365,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   br label %113
 
 113:                                              ; preds = %13, %104, %101, %59, %48, %38, %27, %17
-  %114 = call i32 (ptr, ...) @printf(ptr noundef @.str.21)
+  %114 = call i32 (ptr, ...) @printf(ptr noundef @.str.20)
   %115 = load ptr, ptr %2, align 8
   %116 = getelementptr inbounds %struct.qc_map, ptr %115, i32 0, i32 5
   %117 = load i32, ptr %116, align 4
@@ -5464,7 +5525,7 @@ define dso_local void @qc_print_map(ptr noundef %0) #5 {
   br label %7, !llvm.loop !37
 
 227:                                              ; preds = %7
-  %228 = call i32 (ptr, ...) @printf(ptr noundef @.str.22)
+  %228 = call i32 (ptr, ...) @printf(ptr noundef @.str.21)
   ret void
 }
 

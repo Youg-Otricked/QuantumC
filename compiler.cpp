@@ -11599,7 +11599,211 @@ namespace tkz {
                     return result;
                 }
             }
-            
+            if ((*bin)->is_f) {
+                std::function<llvm::Value*(llvm::Value*, const Position&)> toString = [&](llvm::Value* v, const Position& pos) -> llvm::Value* {
+                    llvm::Type* ty = v->getType();
+                    if (ty->isIntegerTy(32)) {
+                        auto* fn = module->getFunction("qc_to_string_int");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_int", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_i32");
+                    }
+                    if (ty->isDoubleTy()) {
+                        auto* fn = module->getFunction("qc_to_string_double");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_double", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_f64");
+                    }
+                    if (ty->isFloatTy()) {
+                        auto* fn = module->getFunction("qc_to_string_float");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_float", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_f32");
+                    }
+                    if (ty->isIntegerTy(1)) {
+                        auto* fn = module->getFunction("qc_to_string_bool");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt1Ty() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_bool", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_bool");
+                    }
+                    if (ty->isIntegerTy(8)) {
+                        auto* fn = module->getFunction("qc_to_string_char");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_char", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_i8");
+                    }
+                    if (ty->isPointerTy()) {
+                        return v;
+                    }
+                    if (ty->isIntegerTy(2)) {
+                        auto* fn = module->getFunction("qc_to_string_qbool");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* fnTy = llvm::FunctionType::get(i8Ptr, { builder->getIntNTy(2) }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_qbool", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_qbool");
+                    }
+                    
+                    if (ty->isArrayTy()) {
+                        std::vector<uint64_t> dimensions;
+                        llvm::Type* checkTy = ty;
+                        while (checkTy->isArrayTy()) {
+                            dimensions.push_back(checkTy->getArrayNumElements());
+                            checkTy = checkTy->getArrayElementType();
+                        }
+                        int elemTypeCode = -1;
+                        if (checkTy->isIntegerTy(32)) elemTypeCode = 0;
+                        else if (checkTy->isFloatTy()) elemTypeCode = 1;
+                        else if (checkTy->isDoubleTy()) elemTypeCode = 2;
+                        else if (checkTy->isIntegerTy(8)) elemTypeCode = 3;
+                        else if (checkTy->isIntegerTy(1)) elemTypeCode = 4;
+                        else if (checkTy->isIntegerTy(2)) elemTypeCode = 5;
+                        else if (checkTy->isPointerTy()) elemTypeCode = 6;
+                        
+                        llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(builder->getInt32Ty(), dimensions.size());
+                        llvm::AllocaInst* dimsAlloc = createEntryAlloca("fstr_dims", dimsArrTy);
+                        
+                        for (size_t i = 0; i < dimensions.size(); i++) {
+                            std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
+                            llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
+                            builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
+                        }
+                        llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        
+                        std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
+                        llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
+                        
+                        auto* fn = module->getFunction("qc_array_to_string_recursive");
+                        if (!fn) {
+                            auto* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                            auto* fnTy = llvm::FunctionType::get(
+                                voidPtrTy,
+                                { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
+                                false
+                            );
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, 
+                                                        "qc_array_to_string_recursive", module.get());
+                        }
+                        
+                        return builder->CreateCall(fn, {
+                            arrPtr,
+                            builder->getInt32(elemTypeCode),
+                            builder->getInt32(dimensions.size()),
+                            dimsPtr
+                        }, "fstr_array");
+                    }
+                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
+                        if (structTy->hasName()) {
+                            std::string className = structTy->getName().str();
+                            
+                            if (classTypes.find(className) != classTypes.end()) {
+                                auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
+                                
+                                if (reprMethod) {
+                                    std::vector<llvm::Value*> args;
+                                    
+                                    llvm::AllocaInst* temp = createEntryAlloca("temp_repr", ty);
+                                    builder->CreateStore(v, temp);
+                                    args.push_back(temp);
+                                    
+                                    return builder->CreateCall(reprMethod, args, "repr_result");
+                                }
+                            }
+                        }
+                    }
+
+                    for (auto& [enumName, enumTy] : enumTypes) {
+                        if (ty == enumTy) {
+                            llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
+                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        }
+                    }
+
+                    for (auto& [unionName, unionTy] : unionTypes) {
+                        if (ty == unionTy) {
+                            auto& members = userTypes[unionName].members;
+                            llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
+                            llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
+                            
+                            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "fstr_union_end", currentFunction);
+                            llvm::AllocaInst* resultAlloc = createEntryAlloca("fstr_union_result", 
+                                llvm::PointerType::get(builder->getInt8Ty(), 0));
+                            
+                            llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
+                            
+                            for (size_t i = 0; i < members.size(); i++) {
+                                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "fstr_union_case_" + std::to_string(i), currentFunction);
+                                sw->addCase(builder->getInt32(i), caseBB);
+                                builder->SetInsertPoint(caseBB);
+                                
+                                std::string ts = members[i].type;
+                                size_t c = ts.find(':'); if (c != std::string::npos) ts = ts.substr(0, c);
+                                llvm::Type* memberTy = llvmTypeFor(ts);
+                                
+                                llvm::Value* memberVal;
+                                if (memberTy->isPointerTy()) {
+                                    memberVal = builder->CreateBitCast(payload, memberTy);
+                                } else {
+                                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                                    memberVal = builder->CreateLoad(memberTy, typedPtr, "union_member");
+                                }
+                                AnyNode fakeNode = std::monostate{};
+                                llvm::Value* strVal = toString(memberVal, pos);
+                                if (!strVal) strVal = builder->CreateGlobalStringPtr("?");
+                                builder->CreateStore(strVal, resultAlloc);
+                                builder->CreateBr(endBB);
+                            }
+                            
+                            builder->SetInsertPoint(endBB);
+                            return builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), resultAlloc, "fstr_union_result");
+                        }
+                    }
+                    if (ty->isPointerTy()) {
+                        return v;
+                    }
+
+                    cg_error(pos, "f-string: unsupported type in compiled mode");
+                    return nullptr;
+                };
+
+                llvm::Value* lStr = toString(L, (*bin)->op_tok.pos);
+                llvm::Value* rStr = toString(R, (*bin)->op_tok.pos);
+                if (!lStr || !rStr) return nullptr;
+
+                llvm::Function* concatFn = module->getFunction("qc_string_concat");
+                if (!concatFn) {
+                    auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    std::vector<llvm::Type*> argTypes = { i8Ptr, i8Ptr };
+                    auto* fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
+                    concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                    "qc_string_concat", module.get());
+                }
+
+                return builder->CreateCall(concatFn, { lStr, rStr }, "fstr_concat");
+            }
             std::string lUnion, rUnion;
             bool lIsUnion = isUnionType(L->getType(), &lUnion);
             bool rIsUnion = isUnionType(R->getType(), &rUnion);
@@ -11780,178 +11984,6 @@ namespace tkz {
                         }
                     }
                 }
-            }
-            if ((*bin)->is_f) {
-                auto toString = [&](llvm::Value* v, const Position& pos) -> llvm::Value* {
-                    llvm::Type* ty = v->getType();
-                    if (ty->isIntegerTy(32)) {
-                        auto* fn = module->getFunction("qc_to_string_int");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_int", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_i32");
-                    }
-                    if (ty->isDoubleTy()) {
-                        auto* fn = module->getFunction("qc_to_string_double");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_double", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_f64");
-                    }
-                    if (ty->isFloatTy()) {
-                        auto* fn = module->getFunction("qc_to_string_float");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_float", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_f32");
-                    }
-                    if (ty->isIntegerTy(1)) {
-                        auto* fn = module->getFunction("qc_to_string_bool");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt1Ty() }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_bool", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_bool");
-                    }
-                    if (ty->isIntegerTy(8)) {
-                        auto* fn = module->getFunction("qc_to_string_char");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_char", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_i8");
-                    }
-                    if (ty->isPointerTy()) {
-                        return v;
-                    }
-                    if (ty->isIntegerTy(2)) {
-                        auto* fn = module->getFunction("qc_to_string_qbool");
-                        if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* fnTy = llvm::FunctionType::get(i8Ptr, { builder->getIntNTy(2) }, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                        "qc_to_string_qbool", module.get());
-                        }
-                        return builder->CreateCall(fn, { v }, "fstr_qbool");
-                    }
-                    
-                    if (ty->isArrayTy()) {
-                        std::vector<uint64_t> dimensions;
-                        llvm::Type* checkTy = ty;
-                        while (checkTy->isArrayTy()) {
-                            dimensions.push_back(checkTy->getArrayNumElements());
-                            checkTy = checkTy->getArrayElementType();
-                        }
-                        int elemTypeCode = -1;
-                        if (checkTy->isIntegerTy(32)) elemTypeCode = 0;
-                        else if (checkTy->isFloatTy()) elemTypeCode = 1;
-                        else if (checkTy->isDoubleTy()) elemTypeCode = 2;
-                        else if (checkTy->isIntegerTy(8)) elemTypeCode = 3;
-                        else if (checkTy->isIntegerTy(1)) elemTypeCode = 4;
-                        else if (checkTy->isIntegerTy(2)) elemTypeCode = 5;
-                        else if (checkTy->isPointerTy()) elemTypeCode = 6;
-                        
-                        llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(builder->getInt32Ty(), dimensions.size());
-                        llvm::AllocaInst* dimsAlloc = createEntryAlloca("fstr_dims", dimsArrTy);
-                        
-                        for (size_t i = 0; i < dimensions.size(); i++) {
-                            std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
-                            llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
-                            builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
-                        }
-                        llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(builder->getInt8Ty(), 0));
-                        
-                        std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
-                        llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
-                        
-                        auto* fn = module->getFunction("qc_array_to_string_recursive");
-                        if (!fn) {
-                            auto* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
-                            auto* fnTy = llvm::FunctionType::get(
-                                voidPtrTy,
-                                { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
-                                false
-                            );
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, 
-                                                        "qc_array_to_string_recursive", module.get());
-                        }
-                        
-                        return builder->CreateCall(fn, {
-                            arrPtr,
-                            builder->getInt32(elemTypeCode),
-                            builder->getInt32(dimensions.size()),
-                            dimsPtr
-                        }, "fstr_array");
-                    }
-                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
-                        if (structTy->hasName()) {
-                            std::string className = structTy->getName().str();
-                            
-                            if (classTypes.find(className) != classTypes.end()) {
-                                auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
-                                
-                                if (reprMethod) {
-                                    std::vector<llvm::Value*> args;
-                                    
-                                    llvm::AllocaInst* temp = createEntryAlloca("temp_repr", ty);
-                                    builder->CreateStore(v, temp);
-                                    args.push_back(temp);
-                                    
-                                    return builder->CreateCall(reprMethod, args, "repr_result");
-                                }
-                            }
-                        }
-                    }
-
-                    for (auto& [enumName, enumTy] : enumTypes) {
-                        if (ty == enumTy) {
-                            llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
-                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
-                        }
-                    }
-
-                    for (auto& [unionName, unionTy] : unionTypes) {
-                        if (ty == unionTy) {
-                            llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
-                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
-                        }
-                    }
-                    if (ty->isPointerTy()) {
-                        return v;
-                    }
-
-                    cg_error(pos, "f-string: unsupported type in compiled mode");
-                    return nullptr;
-                };
-
-                llvm::Value* lStr = toString(L, (*bin)->op_tok.pos);
-                llvm::Value* rStr = toString(R, (*bin)->op_tok.pos);
-                if (!lStr || !rStr) return nullptr;
-
-                llvm::Function* concatFn = module->getFunction("qc_string_concat");
-                if (!concatFn) {
-                    auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                    std::vector<llvm::Type*> argTypes = { i8Ptr, i8Ptr };
-                    auto* fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
-                    concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                    "qc_string_concat", module.get());
-                }
-
-                return builder->CreateCall(concatFn, { lStr, rStr }, "fstr_concat");
             }
             if (lty->isPointerTy() && rty->isPointerTy() && op == TokenType::PLUS) {
                 llvm::Function* concatFn = module->getFunction("qc_string_concat");
@@ -13500,11 +13532,23 @@ namespace tkz {
                 llvm::Function* resolved = resolveFunction(funcName);
                 if (resolved) {
                     resolvedName = resolved->getName().str();
+                } else {
+                    std::string ns = getCurrentNamespace();
+                    while (!ns.empty()) {
+                        std::string candidate = ns + "::" + funcName;
+                        if (functionDefs.count(candidate)) {
+                            resolvedName = candidate;
+                            break;
+                        }
+                        size_t pos = ns.rfind("::");
+                        ns = (pos == std::string::npos) ? "" : ns.substr(0, pos);
+                    }
                 }
                 funcName = resolvedName;
                 auto funcDefIt = functionDefs.find(funcName);
                 if (funcDefIt != functionDefs.end()) {
                     FuncDefNode* funcDef = funcDefIt->second.get();
+                    std::cerr << "DEBUG funcHasAutoParams: " << funcName << " = " << funcHasAutoParams(funcDef) << "\n";
                     if (funcHasAutoParams(funcDef)) {
                         std::vector<llvm::Value*> argValues;
                         std::vector<std::string> argTypes;
@@ -14040,6 +14084,9 @@ namespace tkz {
         else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                 std::string name = (*varAcc)->var_name_tok.value;
+                std::cerr << "DEBUG arrAcc emit: name=" << name 
+          << " hasList=" << hasList(name)
+          << " hasArray=" << hasArrayType(name) << "\n";
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
                     llvm::Value* alloc = resolveVariable(name);
@@ -17869,6 +17916,45 @@ namespace tkz {
                         builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
                         return;
                     }
+                    if (hasList(name)) {
+                        auto listIt = findList(name);
+                        llvm::Value* alloc = resolveVariable(name);
+                        if (!alloc) {
+                            cg_error(Position(), "Unknown list: " + name);
+                            return;
+                        }
+                        
+                        llvm::Value* listPtr = builder->CreateLoad(
+                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            alloc,
+                            "list_ptr"
+                        );
+                        
+                        llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
+                        if (!indexVal) return;
+                        
+                        llvm::Value* valueVal = emitExpr((*arrAssign)->value);
+                        if (!valueVal) return;
+                        
+                        llvm::AllocaInst* valAlloc = createEntryAlloca("list_set_val", valueVal->getType());
+                        builder->CreateStore(valueVal, valAlloc);
+                        llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        
+                        llvm::Function* setFn = module->getFunction("qc_list_set");
+                        if (!setFn) {
+                            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            llvm::FunctionType* fnTy = llvm::FunctionType::get(
+                                builder->getVoidTy(),
+                                {voidPtrTy, builder->getInt32Ty(), voidPtrTy},
+                                false
+                            );
+                            setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                            "qc_list_set", module.get());
+                        }
+                        
+                        builder->CreateCall(setFn, {listPtr, indexVal, valPtr});
+                        return;
+                    }
                     llvm::Value* alloc = resolveVariable(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown array: " + name);
@@ -18390,6 +18476,7 @@ namespace tkz {
             for (auto& decl : ns.body) {
                 if (auto fn = std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
                     if ((*fn)->name_tok.has_value()) {
+                        std::cerr << "DEBUG funcHasAutoParams: " << (*fn)->name_tok.value().value << " = " << funcHasAutoParams(&(*(*fn))) << "\n";
                         if (!funcHasAutoParams(fn->get())) {
                             emitFuncDef(**fn);
                         }
@@ -18410,7 +18497,6 @@ namespace tkz {
             else if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
                 auto fnPtr = std::get<std::shared_ptr<FuncDefNode>>(stmt);
                 if (!fnPtr->name_tok.has_value()) continue;
-                
                 if (!funcHasAutoParams(fnPtr.get())) {
                     emitFuncDef(*fnPtr);
                 }
@@ -18539,11 +18625,6 @@ namespace tkz {
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", realMain);
             builder->SetInsertPoint(entry);
             currentFunction = realMain;
-            for (auto& stmt : root->statements) {
-                if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
-                    emitStmt(stmt);
-                }
-            }
             llvm::Value* result = builder->CreateCall(userEntry, {}, "entry_result");
             builder->CreateRet(result);
         } else {
@@ -19019,6 +19100,7 @@ namespace tkz {
                 }
                 
                 std::string llc_cmd = "llc " + ll_file + " -o " + obj_file + " -filetype=obj -relocation-model=pic";
+                if (config.debug) llc_cmd += " --debugger-tune=gdb";
                 int llc_result = system(llc_cmd.c_str());
                 
                 if (llc_result != 0) {
@@ -19036,7 +19118,7 @@ namespace tkz {
                 }
                 std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
                 std::string link_cmd = "gcc " + obj_file + " -o " + final_exe + " -lm -lffi";
-                int link_result = system(link_cmd.c_str());
+                if (config.debug) link_cmd += " -g";
                 
                 if (link_result != 0) {
                     diagnostics.push_back({

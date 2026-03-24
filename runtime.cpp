@@ -774,18 +774,24 @@ extern "C" {
             list->data[list->size++] = elem;
         }
     }
-
+    void qc_list_set(void* list_ptr, int index, void* value) {
+        qc_list* list = (qc_list*)list_ptr;
+        if (index < 0 || index >= list->size) return;
+        if (list->elem_type <= 5) {
+            int size = sizeof_type(list->elem_type);
+            void* copy = malloc(size);
+            memcpy(copy, value, size);
+            free(list->data[index]);
+            list->data[index] = copy;
+        } else {
+            list->data[index] = value;
+        }
+    }
     void* qc_list_get(qc_list* list, int index) {
         
         if (index < 0 || index >= list->size) {
             return nullptr;
         }
-        if (list->elem_type == 6) {
-            printf(" (\"%s\")", (char*)list->data[index]);
-        }
-        printf("\n");
-        fflush(stdout);
-        
         return list->data[index];
     }
 
