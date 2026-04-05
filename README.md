@@ -197,7 +197,15 @@ int main() {
 
 ## Include system
 ```cpp
-namespace Exported { // Includes go inside exported to keep dependencys working.
+namespace Exported { // Includes go inside exported to keep dependencys working. It's auto merged with includers files on include, so lets say a includes b and b includes c, the actual order is a includes bs exported, then bs exported includes cs exported, nothing's in cs exported, so b includes c, then the chain has been resolved so a includes b. The compiled file would look somthing like
+/*
+namespace Exported (file a)
+namespace Exported (file b)
+namespace Exported (file c)
+<imported namespace from file c>
+<imported namespace from file b>
+(rest of code)
+*/
     #include <Math, std> // std is a alias for /usr/share/bin/stdlib.qc. This line imports the Math namespace from the standered library.
 }
 
