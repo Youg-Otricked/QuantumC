@@ -1,5 +1,6 @@
 # Quantum C (C⁴)
 ### The 4th Evolution of C
+## **THIS IS NOT A QCL**
 Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
 Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
