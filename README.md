@@ -197,12 +197,12 @@ int main() {
 
 ## Include system
 ```cpp
-namespace Exported {
-    #include <Math, std> // std is a alias for /usr/share/bin
+namespace Exported { // Includes go inside exported to keep dependencys working.
+    #include <Math, std> // std is a alias for /usr/share/bin/stdlib.qc. This line imports the Math namespace from the standered library.
 }
 
 int main() {
-    return Math::Max(1234, 432);
+    return Math::Max(1234, 432); // Using the math namespace.
 }
 ```
 
