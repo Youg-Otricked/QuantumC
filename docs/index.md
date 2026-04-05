@@ -28,6 +28,9 @@ int main() {
   ></iframe>
 </div>
 
+## NOTE:
+# **THIS IS NOT A QCL (Quantum Computation Language)**
+
 ### Pages:
 [Features](./desc.md)
 
