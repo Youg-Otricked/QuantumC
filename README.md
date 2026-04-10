@@ -79,7 +79,7 @@ Current Version: v12.0.0 = "MMM"
 |                     | Spread Syntax for Arrays (`@`)                                         | Done                                                                           |
 |                     | Maps & Enums                                                           | Done                                                                           |
 | **Quantum**         | **Quantum Booleans (Superposition!)**                                  | Done                                                                           |
-|                     | **Quantum Logical Operators** (`&&&`, `                                |                                                                                |     | `, `!!`, etc.) | Done |
+|                     | **Quantum Logical Operators** (`&&&`, `\|\|\| `, `!!`, etc.)           | Done                                                                           |
 | **Advanced**        | Structs, Classes, & Namespaces                                         | Done                                                                           |
 |                     | Union Types (TypeScript-style)                                         | Interpreted, Compiled has a few bugs with them, still mostly work in compiler. |
 |                     | Advanced OOP & Operator Overloading                                    | Done                                                                           |
