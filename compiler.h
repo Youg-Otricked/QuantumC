@@ -2435,35 +2435,285 @@ namespace tkz {
             
             return "unknown";
         }
-        llvm::Value* normalizeArg(llvm::Value* arg) {
+        llvm::Value* emitPrimitiveConversion(llvm::Value* arg, const std::string& target) {
             if (!arg) return nullptr;
-            
+
+            llvm::Type* ty = arg->getType();
+            std::string fnName;
+            llvm::Type* retTy = nullptr;
+
+            if (target == "int") {
+                retTy = builder->getInt32Ty();
+                if (ty->isPointerTy()) fnName = "qc_to_int_from_string";
+                else if (ty->isFloatTy()) fnName = "qc_to_int_from_float";
+                else if (ty->isDoubleTy()) fnName = "qc_to_int_from_double";
+                else if (ty->isIntegerTy(1)) fnName = "qc_to_int_from_bool";
+                else if (ty->isIntegerTy(8)) fnName = "qc_to_int_from_char";
+                else if (ty->isIntegerTy(32)) return arg;
+            } else if (target == "float") {
+                retTy = builder->getFloatTy();
+                if (ty->isPointerTy()) fnName = "qc_to_float_from_string";
+                else if (ty->isIntegerTy(32)) fnName = "qc_to_float_from_int";
+                else if (ty->isDoubleTy()) fnName = "qc_to_float_from_double";
+                else if (ty->isIntegerTy(1)) fnName = "qc_to_float_from_bool";
+                else if (ty->isFloatTy()) return arg;
+            } else if (target == "double") {
+                retTy = builder->getDoubleTy();
+                if (ty->isPointerTy()) fnName = "qc_to_double_from_string";
+                else if (ty->isIntegerTy(32)) fnName = "qc_to_double_from_int";
+                else if (ty->isFloatTy()) fnName = "qc_to_double_from_float";
+                else if (ty->isIntegerTy(1)) fnName = "qc_to_double_from_bool";
+                else if (ty->isDoubleTy()) return arg;
+            } else if (target == "bool") {
+                retTy = builder->getInt1Ty();
+                if (ty->isIntegerTy(32)) fnName = "qc_to_bool_from_int";
+                else if (ty->isFloatTy()) fnName = "qc_to_bool_from_float";
+                else if (ty->isDoubleTy()) fnName = "qc_to_bool_from_double";
+                else if (ty->isIntegerTy(1)) return arg;
+            } else if (target == "char") {
+                retTy = builder->getInt8Ty();
+                if (ty->isPointerTy()) fnName = "qc_to_char_from_string";
+                else if (ty->isIntegerTy(32)) fnName = "qc_to_char_from_int";
+                else if (ty->isIntegerTy(8)) return arg;
+            }
+
+            if (fnName.empty() || !retTy) {
+                cg_error(Position(), "Cannot convert to " + target);
+                return nullptr;
+            }
+
+            llvm::Function* fn = module->getFunction(fnName);
+            if (!fn) {
+                llvm::FunctionType* fty = llvm::FunctionType::get(retTy, {ty}, false);
+                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
+            }
+
+            return builder->CreateCall(fn, {arg}, "to_" + target);
+        }
+        llvm::Value* emitBuiltinConversion(llvm::Value* rawArg, const std::string& target) {
+            if (!rawArg) return nullptr;
+
             std::string unionName;
-            if (isUnionType(arg->getType(), &unionName)) {
+            if (isUnionType(rawArg->getType(), &unionName)) {
+                llvm::Value* tag = builder->CreateExtractValue(rawArg, 0, "conv_tag");
+                llvm::Value* payload = builder->CreateExtractValue(rawArg, 1, "conv_payload");
+
                 auto& members = userTypes[unionName].members;
-                llvm::Value* tag = builder->CreateExtractValue(arg, 0, "tag");
-                llvm::Value* payload = builder->CreateExtractValue(arg, 1, "payload");
-                std::string firstType = members[0].type;
-                size_t c = firstType.find(':');
-                if (c != std::string::npos) firstType = firstType.substr(0, c);
-                llvm::Type* firstTy = llvmTypeFor(firstType);
-                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(firstTy, 0));
-                return builder->CreateLoad(firstTy, typedPtr, "union_normalized");
+                llvm::Type* resultTy = nullptr;
+
+                if (target == "int") resultTy = builder->getInt32Ty();
+                else if (target == "float") resultTy = builder->getFloatTy();
+                else if (target == "double") resultTy = builder->getDoubleTy();
+                else if (target == "bool") resultTy = builder->getInt1Ty();
+                else if (target == "char") resultTy = builder->getInt8Ty();
+                else {
+                    cg_error(Position(), "Unknown conversion target: " + target);
+                    return nullptr;
+                }
+
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "conv_union_end", currentFunction);
+                llvm::BasicBlock* failBB = llvm::BasicBlock::Create(context, "conv_union_fail", currentFunction);
+                llvm::SwitchInst* sw = builder->CreateSwitch(tag, failBB, members.size());
+
+                std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> incoming;
+
+                for (size_t i = 0; i < members.size(); i++) {
+                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
+                        context,
+                        "conv_union_case_" + std::to_string(i),
+                        currentFunction
+                    );
+                    sw->addCase(builder->getInt32(i), caseBB);
+                    builder->SetInsertPoint(caseBB);
+
+                    std::string typeStr = members[i].type;
+                    size_t colonPos = typeStr.find(':');
+                    if (colonPos != std::string::npos) {
+                        typeStr = typeStr.substr(0, colonPos);
+                    }
+
+                    llvm::Type* memberTy = llvmTypeFor(typeStr);
+                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_loaded");
+
+                    llvm::Value* converted = emitPrimitiveConversion(loaded, target);
+                    if (!converted) return nullptr;
+
+                    incoming.push_back({builder->GetInsertBlock(), converted});
+                    builder->CreateBr(endBB);
+                }
+
+                builder->SetInsertPoint(failBB);
+                builder->CreateUnreachable();
+
+                builder->SetInsertPoint(endBB);
+                llvm::PHINode* phi = builder->CreatePHI(resultTy, incoming.size(), "conv_union_phi");
+                for (auto& [bb, val] : incoming) {
+                    phi->addIncoming(val, bb);
+                }
+                return phi;
             }
-            
+
             std::string enumName;
-            if (isEnumType(arg->getType(), &enumName)) {
+            if (isEnumType(rawArg->getType(), &enumName)) {
+                llvm::Value* tag = builder->CreateExtractValue(rawArg, 0, "conv_enum_tag");
+                llvm::Value* payload = builder->CreateExtractValue(rawArg, 1, "conv_enum_payload");
+
                 auto& entries = userTypes[enumName].enumEntries;
-                llvm::Value* payload = builder->CreateExtractValue(arg, 1, "enum_payload");
-                std::string firstType = entries[0].typeAtom;
-                size_t c = firstType.find(':');
-                if (c != std::string::npos) firstType = firstType.substr(0, c);
-                llvm::Type* baseTy = llvmTypeFor(firstType);
-                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(baseTy, 0));
-                return builder->CreateLoad(baseTy, typedPtr, "enum_normalized");
+                llvm::Type* resultTy = nullptr;
+
+                if (target == "int") resultTy = builder->getInt32Ty();
+                else if (target == "float") resultTy = builder->getFloatTy();
+                else if (target == "double") resultTy = builder->getDoubleTy();
+                else if (target == "bool") resultTy = builder->getInt1Ty();
+                else if (target == "char") resultTy = builder->getInt8Ty();
+                else {
+                    cg_error(Position(), "Unknown conversion target: " + target);
+                    return nullptr;
+                }
+
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "conv_enum_end", currentFunction);
+                llvm::BasicBlock* failBB = llvm::BasicBlock::Create(context, "conv_enum_fail", currentFunction);
+                llvm::SwitchInst* sw = builder->CreateSwitch(tag, failBB, entries.size());
+
+                std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> incoming;
+
+                for (size_t i = 0; i < entries.size(); i++) {
+                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
+                        context,
+                        "conv_enum_case_" + std::to_string(i),
+                        currentFunction
+                    );
+                    sw->addCase(builder->getInt32(i), caseBB);
+                    builder->SetInsertPoint(caseBB);
+
+                    std::string typeStr = entries[i].typeAtom;
+                    size_t colonPos = typeStr.find(':');
+                    if (colonPos != std::string::npos) {
+                        typeStr = typeStr.substr(0, colonPos);
+                    }
+
+                    llvm::Type* memberTy = llvmTypeFor(typeStr);
+                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_enum_loaded");
+
+                    llvm::Value* converted = emitPrimitiveConversion(loaded, target);
+                    if (!converted) return nullptr;
+
+                    incoming.push_back({builder->GetInsertBlock(), converted});
+                    builder->CreateBr(endBB);
+                }
+
+                builder->SetInsertPoint(failBB);
+                builder->CreateUnreachable();
+
+                builder->SetInsertPoint(endBB);
+                llvm::PHINode* phi = builder->CreatePHI(resultTy, incoming.size(), "conv_enum_phi");
+                for (auto& [bb, val] : incoming) {
+                    phi->addIncoming(val, bb);
+                }
+                return phi;
             }
-            
-            return arg;
+
+            return emitPrimitiveConversion(rawArg, target);
+        }
+        llvm::Value* adaptArgumentForParam(llvm::Value* v, AnyNode& argNode, llvm::Type* paramTy, size_t argIndex) {
+            if (!v) return nullptr;
+
+            llvm::Type* srcTy = v->getType();
+
+            for (auto& [unionName, unionTy] : unionTypes) {
+                if (srcTy == unionTy && !isUnionType(paramTy)) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
+                    if (paramTy->isPointerTy()) {
+                        v = builder->CreateBitCast(dataPtr, paramTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr,
+                            llvm::PointerType::get(paramTy, 0)
+                        );
+                        v = builder->CreateLoad(paramTy, typedPtr);
+                    }
+                    srcTy = paramTy;
+                    break;
+                }
+
+                if (!isUnionType(srcTy) && paramTy == unionTy) {
+                    int tag = findUnionVariantTag(unionName, argNode, v);
+                    if (tag == -1) {
+                        cg_error(Position(), "Argument doesn't match union variant for parameter " + std::to_string(argIndex));
+                        return nullptr;
+                    }
+
+                    llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                    unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+
+                    llvm::Value* dataPtr = storeAndGetPointer(v);
+                    unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
+
+                    v = unionVal;
+                    srcTy = paramTy;
+                    break;
+                }
+            }
+
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (srcTy == enumTy && !isEnumType(paramTy)) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
+                    if (paramTy->isPointerTy()) {
+                        v = builder->CreateBitCast(dataPtr, paramTy);
+                    } else {
+                        llvm::Value* typedPtr = builder->CreateBitCast(
+                            dataPtr,
+                            llvm::PointerType::get(paramTy, 0)
+                        );
+                        v = builder->CreateLoad(paramTy, typedPtr);
+                    }
+                    srcTy = paramTy;
+                    break;
+                }
+
+                if (!isEnumType(srcTy) && paramTy == enumTy) {
+                    int tag = findEnumVariantTag(enumName, argNode, v);
+                    if (tag == -1) {
+                        cg_error(Position(), "Argument doesn't match enum variant for parameter " + std::to_string(argIndex));
+                        return nullptr;
+                    }
+
+                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                    enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
+
+                    llvm::Value* dataPtr = storeAndGetPointer(v);
+                    enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
+
+                    v = enumVal;
+                    srcTy = paramTy;
+                    break;
+                }
+            }
+
+            return v;
+        }
+        std::vector<llvm::Value*> emitAdaptedArgs(
+            const std::list<AnyNode>& argNodes,
+            llvm::FunctionType* fnTy
+        ) {
+            std::vector<llvm::Value*> args;
+            size_t i = 0;
+
+            for (auto it = argNodes.begin(); it != argNodes.end(); ++it, ++i) {
+                AnyNode& argNode = const_cast<AnyNode&>(*it);
+                llvm::Value* v = emitExpr(argNode);
+                if (!v) return {};
+
+                llvm::Type* paramTy = fnTy->getParamType(i);
+                v = adaptArgumentForParam(v, argNode, paramTy, i);
+                if (!v) return {};
+
+                args.push_back(v);
+            }
+
+            return args;
         }
         std::pair<llvm::Function*, std::string> findMethodInHierarchy(const std::string& className, const std::string& methodName) {
             std::string resolvedClassName = className;

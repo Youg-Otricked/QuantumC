@@ -13842,113 +13842,49 @@ namespace tkz {
                     }
                     if (funcName == "to_string" && !call.arg_nodes.empty()) {
                         AnyNode& argNode = call.arg_nodes.front();
-                        llvm::Value* arg = normalizeArg(emitExpr(argNode));
-                        if (arg) return convertToString(arg, argNode);
+                        llvm::Value* arg = emitExpr(argNode);
+                        if (!arg) return nullptr;
+                        return convertToString(arg, argNode);
                     }
+
                     if (funcName == "to_int" && !call.arg_nodes.empty()) {
-                        llvm::Value* arg = normalizeArg(emitExpr(call.arg_nodes.front()));
-                        if (arg) {
-                            llvm::Type* ty = arg->getType();
-                            std::string fnName;
-                            if (ty->isPointerTy()) fnName = "qc_to_int_from_string";
-                            else if (ty->isFloatTy()) fnName = "qc_to_int_from_float";
-                            else if (ty->isDoubleTy()) fnName = "qc_to_int_from_double";
-                            else if (ty->isIntegerTy(1)) fnName = "qc_to_int_from_bool";
-                            else if (ty->isIntegerTy(8)) fnName = "qc_to_int_from_char";
-                            else if (ty->isIntegerTy(32)) return arg;
-                            else { cg_error(Position(), "Cannot convert to int"); return nullptr; }
-                            llvm::Function* fn = module->getFunction(fnName);
-                            if (!fn) {
-                                llvm::FunctionType* fty = llvm::FunctionType::get(builder->getInt32Ty(), {arg->getType()}, false);
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
-                            }
-                            return builder->CreateCall(fn, {arg}, "to_int");
-                        }
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        return emitBuiltinConversion(arg, "int");
                     }
+
                     if (funcName == "to_float" && !call.arg_nodes.empty()) {
-                        llvm::Value* arg = normalizeArg(emitExpr(call.arg_nodes.front()));
-                        if (arg) {
-                            llvm::Type* ty = arg->getType();
-                            std::string fnName;
-                            if (ty->isPointerTy()) fnName = "qc_to_float_from_string";
-                            else if (ty->isIntegerTy(32)) fnName = "qc_to_float_from_int";
-                            else if (ty->isDoubleTy()) fnName = "qc_to_float_from_double";
-                            else if (ty->isIntegerTy(1)) fnName = "qc_to_float_from_bool";
-                            else if (ty->isFloatTy()) return arg;
-                            else { cg_error(Position(), "Cannot convert to float"); return nullptr; }
-                            llvm::Function* fn = module->getFunction(fnName);
-                            if (!fn) {
-                                llvm::FunctionType* fty = llvm::FunctionType::get(builder->getFloatTy(), {arg->getType()}, false);
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
-                            }
-                            return builder->CreateCall(fn, {arg}, "to_float");
-                        }
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        return emitBuiltinConversion(arg, "float");
                     }
+
                     if (funcName == "to_double" && !call.arg_nodes.empty()) {
-                        llvm::Value* arg = normalizeArg(emitExpr(call.arg_nodes.front()));
-                        if (arg) {
-                            llvm::Type* ty = arg->getType();
-                            std::string fnName;
-                            if (ty->isPointerTy()) fnName = "qc_to_double_from_string";
-                            else if (ty->isIntegerTy(32)) fnName = "qc_to_double_from_int";
-                            else if (ty->isFloatTy()) fnName = "qc_to_double_from_float";
-                            else if (ty->isIntegerTy(1)) fnName = "qc_to_double_from_bool";
-                            else if (ty->isDoubleTy()) return arg;
-                            else { cg_error(Position(), "Cannot convert to double"); return nullptr; }
-                            llvm::Function* fn = module->getFunction(fnName);
-                            if (!fn) {
-                                llvm::FunctionType* fty = llvm::FunctionType::get(builder->getDoubleTy(), {arg->getType()}, false);
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
-                            }
-                            return builder->CreateCall(fn, {arg}, "to_double");
-                        }
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        return emitBuiltinConversion(arg, "double");
                     }
+
                     if (funcName == "to_bool" && !call.arg_nodes.empty()) {
-                        llvm::Value* arg = normalizeArg(emitExpr(call.arg_nodes.front()));
-                        if (arg) {
-                            llvm::Type* ty = arg->getType();
-                            std::string fnName;
-                            if (ty->isIntegerTy(32)) fnName = "qc_to_bool_from_int";
-                            else if (ty->isFloatTy()) fnName = "qc_to_bool_from_float";
-                            else if (ty->isDoubleTy()) fnName = "qc_to_bool_from_double";
-                            else if (ty->isIntegerTy(1)) return arg;
-                            else { cg_error(Position(), "Cannot convert to bool"); return nullptr; }
-                            llvm::Function* fn = module->getFunction(fnName);
-                            if (!fn) {
-                                llvm::FunctionType* fty = llvm::FunctionType::get(builder->getInt1Ty(), {arg->getType()}, false);
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
-                            }
-                            return builder->CreateCall(fn, {arg}, "to_bool");
-                        }
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        return emitBuiltinConversion(arg, "bool");
                     }
+
                     if (funcName == "to_char" && !call.arg_nodes.empty()) {
-                        llvm::Value* arg = normalizeArg(emitExpr(call.arg_nodes.front()));
-                        if (arg) {
-                            llvm::Type* ty = arg->getType();
-                            std::string fnName;
-                            if (ty->isPointerTy()) fnName = "qc_to_char_from_string";
-                            else if (ty->isIntegerTy(32)) fnName = "qc_to_char_from_int";
-                            else if (ty->isIntegerTy(8)) return arg;
-                            else { cg_error(Position(), "Cannot convert to char"); return nullptr; }
-                            llvm::Function* fn = module->getFunction(fnName);
-                            if (!fn) {
-                                llvm::FunctionType* fty = llvm::FunctionType::get(builder->getInt8Ty(), {arg->getType()}, false);
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
-                            }
-                            return builder->CreateCall(fn, {arg}, "to_char");
-                        }
+                        llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                        if (!arg) return nullptr;
+                        return emitBuiltinConversion(arg, "char");
                     }
                     llvm::Function* fn = module->getFunction(runtimeName);
                     if (!fn) {
                         cg_error(Position(), "Built-in function not found in runtime: " + runtimeName);
                         return nullptr;
                     }
-                    std::vector<llvm::Value*> args;
-                    for (auto& argNode : call.arg_nodes) {
-                        llvm::Value* v = emitExpr(argNode);
-                        if (!v) return nullptr;
-                        args.push_back(v);
-                    }
+                    llvm::FunctionType* builtinFnTy = fn->getFunctionType();
+                    std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, builtinFnTy);
+                    if (call.arg_nodes.size() != args.size()) return nullptr;
+
                     llvm::Type* retTy = fn->getReturnType();
                     return builder->CreateCall(fn, args, retTy->isVoidTy() ? "" : "builtin_call");
                 }
@@ -14007,51 +13943,8 @@ namespace tkz {
                 return emitSpreadFunctionCall(calleeVal, fnTy, call);
             }
             
-            std::vector<llvm::Value*> args;
-            size_t i = 0;
-            for (auto it = call.arg_nodes.begin(); it != call.arg_nodes.end(); ++it, ++i) {
-                AnyNode& argNode = *it;
-                llvm::Value* v = emitExpr(argNode);
-                if (!v) return nullptr;
-
-                llvm::Type* paramTy = fnTy->getParamType(i);
-                llvm::Type* srcTy   = v->getType();
-                for (auto& [unionName, unionTy] : unionTypes) {
-                    if (srcTy == unionTy && !isUnionType(paramTy)) {
-                        llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
-                        if (paramTy->isPointerTy()) {
-                            v = builder->CreateBitCast(dataPtr, paramTy);
-                        } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(
-                                dataPtr,
-                                llvm::PointerType::get(paramTy, 0)
-                            );
-                            v = builder->CreateLoad(paramTy, typedPtr);
-                        }
-                        srcTy = paramTy;
-                        break;
-                    }
-                }
-                for (auto& [enumName, enumTy] : enumTypes) {
-                    if (srcTy == enumTy && !isEnumType(paramTy)) {
-                        llvm::Value* dataPtr = builder->CreateExtractValue(v, 1);
-                        
-                        if (paramTy->isPointerTy()) {
-                            v = builder->CreateBitCast(dataPtr, paramTy);
-                        } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(
-                                dataPtr,
-                                llvm::PointerType::get(paramTy, 0)
-                            );
-                            v = builder->CreateLoad(paramTy, typedPtr);
-                        }
-                        
-                        srcTy = paramTy;
-                        break;
-                    }
-                }
-                args.push_back(v);
-            }
+            std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, fnTy);
+            if (call.arg_nodes.size() != args.size()) return nullptr;
             auto defIt = functionDefs.find(funcName);
             if (defIt != functionDefs.end()) {
                 auto& fnDef = defIt->second;
@@ -19119,7 +19012,7 @@ namespace tkz {
                 std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
                 std::string link_cmd = "gcc " + obj_file + " -o " + final_exe + " -lm -lffi";
                 if (config.debug) link_cmd += " -g";
-                
+                int link_result = system(link_cmd.c_str());
                 if (link_result != 0) {
                     diagnostics.push_back({
                         RTError("Failed to link object file", Position("", "", 0, 0, 0)),
