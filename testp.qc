@@ -11,11 +11,10 @@ int main() {
     
     // ✅ TEST UTILS
     println("--- Testing Utils ---");
-    int r1[] = Utils::range(0, 10, 2);
+    list<int> r1[] = Utils::range(0, 10, 2);
     println(r1.length);
     println(f"range(0, 10, 2): {r1[0]}, {r1[1]}, {r1[2]}, {r1[3]}, {r1[4]}");  // 0, 2, 4, 6, 8
-    
-    int r2[] = Utils::range(10, 0, -1);
+    list<int> r2 = Utils::range(10, 0, -1);
     println(f"range(10, 0, -1) length: {r2.length}");  // 10
     
     println("Testing sleep(1)...");
@@ -44,7 +43,7 @@ int main() {
     println(f"has([1,2,3,4,5], 10) = {Collections::has(nums, 10)}");  // false
     println(f"index_of([1,2,3,4,5], 3) = {Collections::index_of(nums, 3)}");  // 2
     
-    list<int> unsorted = [5, 2, 8, 1, 9];
+    list<int> unsorted = [5, 2, 8, 1, 9]; 
     list<int> sorted = Collections::sort(unsorted);
     println(f"sort([5,2,8,1,9]): {sorted[0]}, {sorted[1]}, {sorted[2]}, {sorted[3]}, {sorted[4]}");  // 1, 2, 5, 8, 9
     
@@ -56,7 +55,6 @@ int main() {
     // ✅ TEST UNITTEST
     println("--- Testing UnitTest ---");
     UnitTest::Test test = UnitTest::Test(5);
-    
     test.AssertEqual(5, 5, "", "5 == 5");
     test.AssertEqual(10, 5 + 5, "", "10 == 5+5");
     test.AssertTrue(true, "", "true is true");

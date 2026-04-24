@@ -20,9 +20,9 @@ In Quantum C you do not include files. instead, you include _namespaces_ FROM fi
 
 Now, there are _Certanly_ at least 2 people saying _"Oh but what if we want to use the global scope instead of this namespace for X or Y reason, like DRY code?_". Quantum C has a answer for this. Introducing, the Exported namespace.
 
-The exported namespace is a top level namespace _That's right **Top level**. That means that you **MUST** put the exported namespace without nesting._ This is because it breaks all forms of nesting and dependancy logic, so it must be the **First thing** in the file. Not the first top level thing: the **FIRST THING PERIOD** What goes in the exported namespace, you may ask? The answer is 3 things.
-- Global variables (semi global. You access them with Exported::thing)
-- Global functions (same as above)
+The exported namespace is a top level namespace _That's right **Top level**. That means that you **really should** put the exported namespace without nesting._ This is because it breaks all forms of nesting and dependancy logic (in the interpreter), so it should be the **First thing** in the file. Not the first top level thing: the **FIRST THING** What goes in the exported namespace, you may ask? The answer is 3 things.
+- Global variables (semi global. You access them with Exported::thing) (try to avoid this)
+- Global functions (same as above) (try to avoid this)
 - Include statements.
 
 Just to restate this:
@@ -31,12 +31,12 @@ The `Exported` namespace _**MUST**_:
 - Be the _**Very First Thing** in the file other than comments.
 - NOT be nested in any other namespaces
 
-The `Exported` namespace may _**only** contain_:
+The `Exported` namespace should _**only** contain_:
 - Global variables (E.G: `Exported::name`)
 - Global functions (E.G: `Exported::get_stats()`)
 - `#include` statements
 
-The exported namespace is _**Automatically merged with your exported namespace on include and run**_
+The exported namespace is _**Automatically merged with your exported namespace on include and run**_, and collisions are last-defined-wins (hence avoiding vars/functions in exported namespace)
 The reason for include statments going in the exported namespace? Dependancys. Let's say we have 3 files.
 
 `file-a.qc`

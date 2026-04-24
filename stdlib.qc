@@ -77,7 +77,7 @@ namespace AdvQBool {
     }
 }
 namespace Utils {
-    int[] range(int start, int stop, int step = 1) {
+    list<int> range(int start, int stop, int step = 1) {
         list<int> fin = [];
         if (step > 0 && start <= stop) {
             for (; start < stop; start += step) {
@@ -92,7 +92,7 @@ namespace Utils {
         else {
             return [];
         }
-        return [@fin];
+        return fin;
     }
     void sleep(long int crr) {
         crr += time();
@@ -234,6 +234,7 @@ namespace UnitTest {
         int Failed;
         list<string> Messages;
         Test(int Ttl) {
+            this.Messages = [];
             this.Total = Ttl;
             this.Ran = 0;
             this.Passed = 0;

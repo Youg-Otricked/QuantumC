@@ -10444,9 +10444,8 @@ namespace tkz {
         if (!node) return VoidValue();
 
         NumberVariant base_val = this->process(node->base);
-        NumberVariant rightVal = this->process(node->value);
         const std::string& fieldName = node->field_name.value;
-       
+        NumberVariant finalVal;
         if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&base_val)) {
             const std::string& className = (*inst)->class_name;
             const std::string  fieldName = node->field_name.value;
@@ -10463,12 +10462,14 @@ namespace tkz {
             UserTypeInfo* cur = &ut_it->second;
             bool found = false;
             std::string access = "public";
+            std::string targetFieldType = "";
 
             while (cur) {
                 for (auto& f : cur->classFields) {
                     if (f.name == fieldName) {
                         found = true;
                         access = f.access;
+                        targetFieldType = f.type;
                         break;
                     }
                 }
@@ -10479,7 +10480,7 @@ namespace tkz {
                 if (bit == context->user_types.end() ||
                     bit->second.kind != UserTypeKind::Class)
                     break;
-                cur = &bit->second;
+                cur = &bit->second;     
             }
 
             if (!found) {
@@ -10510,14 +10511,53 @@ namespace tkz {
                     return VoidValue{};
                 }
             }
+            NumberVariant rightVal;
+            if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node->value)) {
+                if (targetFieldType.find("list<") == 0) {
+                    std::vector<NumberVariant> evaluatedElements;
+                    for (auto& elementNode : (*arrLit)->elements) {
+                        evaluatedElements.push_back(this->process(elementNode));
+                    }
+                    std::string innerType = getElementType(targetFieldType); 
+                    finalVal = std::make_shared<ListValue>(innerType, evaluatedElements);
+                } else {
+                    finalVal = this->process(node->value);
+                }
+            }
+
             (*inst)->fields[fieldName] = rightVal;
             return rightVal;
         }
         if (auto s = std::get_if<std::shared_ptr<StructValue>>(&base_val)) {
-            (*s)->fields[fieldName] = rightVal;
-            return rightVal;
+            const std::string& structName = (*s)->type_name;
+            std::string targetFieldType = "";
+
+            auto ut_it = context->user_types.find(structName);
+            if (ut_it != context->user_types.end()) {
+                for (auto& f : ut_it->second.fields) {
+                    if (f.name == fieldName) {
+                        targetFieldType = f.type;
+                        break;
+                    }
+                }
+            }
+            NumberVariant rightVal;
+            if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node->value)) {
+                if (targetFieldType.find("list<") == 0) {
+                    std::vector<NumberVariant> evaluatedElements;
+                    for (auto& elementNode : (*arrLit)->elements) {
+                        evaluatedElements.push_back(this->process(elementNode));
+                    }
+                    std::string innerType = getElementType(targetFieldType); 
+                    finalVal = std::make_shared<ListValue>(innerType, evaluatedElements);
+                } else {
+                    finalVal = this->process(node->value);
+                }
+            }
+
+            (*s)->fields[fieldName] = finalVal;
+            return finalVal;
         }
-        
         this->errors.push_back({
             RTError("Expected struct or class instance on left side of '.'",
                     node->field_name.pos),
@@ -13977,9 +14017,11 @@ namespace tkz {
         else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                 std::string name = (*varAcc)->var_name_tok.value;
-                std::cerr << "DEBUG arrAcc emit: name=" << name 
-          << " hasList=" << hasList(name)
-          << " hasArray=" << hasArrayType(name) << "\n";
+                std::cerr << "DEBUG arrAcc emit: name=" << name
+                    << " hasList=" << hasList(name)
+                    << " hasArray=" << hasArrayType(name)
+                    << " currentNS=" << getCurrentNamespace()
+                    << "\n";
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
                     llvm::Value* alloc = resolveVariable(name);
@@ -14043,6 +14085,7 @@ namespace tkz {
                     return builder->CreateLoad(elemTy, typedPtr, "jagged_elem");
                 }
                 if (hasList(name)) {
+                    std::cout << "Generating list acc for " << name << '\n';
                     auto listIt = findList(name);
                     llvm::Value* alloc = resolveVariable(name);
                     if (!alloc) {
@@ -14072,14 +14115,8 @@ namespace tkz {
                     if (!indexVal) return nullptr;
                     
                     llvm::Value* elemPtr = builder->CreateCall(getFn, {listPtr, indexVal}, "list_elem_ptr");
-                    
+                    llvm::Value* nestedPtr = elemPtr;
                     if ((*arrAcc)->indices.size() > 1) {
-                        llvm::Value* nestedPtr = builder->CreateLoad(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
-                            elemPtr,
-                            "nested_ptr"
-                        );
-                        
                         for (size_t i = 1; i < (*arrAcc)->indices.size(); i++) {
                             llvm::Value* idx = emitExpr((*arrAcc)->indices[i]);
                             if (!idx) return nullptr;
@@ -15099,8 +15136,32 @@ namespace tkz {
         }
         else if (auto fieldAssign = std::get_if<std::unique_ptr<FieldAssignNode>>(&node)) {
             std::string fieldName = (*fieldAssign)->field_name.value;
-            
-            llvm::Value* valueVal = emitExpr((*fieldAssign)->value);
+            std::string targetTypeStr = "";
+            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*fieldAssign)->base)) {
+                if ((*varAccess)->var_name_tok.value == "this" && !currentClassName.empty()) {
+                    targetTypeStr = getFieldType(currentClassName, fieldName);
+                }
+            }
+            llvm::Value* valueVal = nullptr;
+            if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*fieldAssign)->value)) {
+                if ((*arrLit)->elements.empty() && targetTypeStr.find("list<") == 0) {
+                    std::string inner = getElementType(targetTypeStr); 
+                    int typeCode = getTypeCode(inner);
+                    llvm::Function* createListFn = module->getFunction("qc_create_list");
+                    if (!createListFn) {
+                        llvm::FunctionType* ft = llvm::FunctionType::get(
+                            builder->getPtrTy(), 
+                            {builder->getInt32Ty()}, 
+                            false
+                        );
+                        createListFn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "qc_create_list", module.get());
+                    }
+                    valueVal = builder->CreateCall(createListFn, {builder->getInt32(typeCode)});
+                }
+            }
+            if (!valueVal) {
+                valueVal = emitExpr((*fieldAssign)->value);
+            }
             if (!valueVal) return nullptr;
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*fieldAssign)->base)) {
                 if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
@@ -15857,6 +15918,10 @@ namespace tkz {
                 auto arrLenIt = findArrayLength(collName);
                 return builder->getInt32(arrLenIt->second);
             }
+            if (hasJaggedArray(collName)) {
+                auto arrLenIt = findJaggedArray(collName);
+                return builder->getInt32(arrLenIt->second);
+            }
             llvm::Value* locAlloc = resolveVariable(collName);
             if (locAlloc) {
                 llvm::Type* allocTy = getPointeeType(locAlloc);
@@ -15897,10 +15962,15 @@ namespace tkz {
         llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
         if (!lengthVal) return startIndex;
         bool isList = false;
+        bool isJagged = false;
         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
-            std::string collName = (*varAccess)->var_name_tok.value;
-            if (hasList(collName)) {
+            std::string rawName = (*varAccess)->var_name_tok.value;
+            std::string resolvedName = resolveMetadataName(rawName); // Use the helper!
+
+            if (hasList(resolvedName)) {
                 isList = true;
+            } else if (hasJaggedArray(resolvedName)) {
+                isJagged = true;
             }
         }
         
@@ -16096,6 +16166,33 @@ namespace tkz {
             auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
             builder->CreateStore(&arg, alloca);
             locals[param.name.value] = alloca;
+            std::string t = param.type.value;
+            if (t.find("list<") == 0) {
+                std::string inner = getElementType(t);
+                int code = getTypeCode(inner); 
+                lists[param.name.value] = code;
+            } 
+            else if (t.find("map<") == 0) {
+                auto [key, val] = splitMapTypes(t); 
+                maps[param.name.value] = std::make_pair(getTypeCode(key), getTypeCode(val));
+            }
+            if (t.find("[]") != std::string::npos) {
+                int dims = 0;
+                size_t pos = t.find("[]");
+                while (pos != std::string::npos) {
+                    dims++;
+                    pos = t.find("[]", pos + 2);
+                }
+                if (dims > 1) {
+                    std::string base = t.substr(0, t.find("[]"));
+                    int baseTypeCode = getTypeCode(base);
+                    jaggedArrays[param.name.value] = {baseTypeCode, dims};
+                    arrayTypeStrings[param.name.value] = base;
+                } else {
+                    std::string base = t.substr(0, t.find("[]"));
+                    arrayTypeStrings[param.name.value] = base;
+                }
+            }
 
             idx++;
         }
@@ -17684,9 +17781,15 @@ namespace tkz {
             return;
         }
         else if (auto arrAssign = std::get_if<std::unique_ptr<ArrayAssignNode>>(&node)) {
+            
             if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*arrAssign)->array_access)) {
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
+                    std::cerr << "DEBUG arrAssign emit: name=" << name
+                        << " hasList=" << hasList(name)
+                        << " hasArray=" << hasArrayType(name)
+                        << " currentNS=" << getCurrentNamespace()
+                        << "\n";
                     if (hasJaggedArray(name)) {
                         auto jagIt = findJaggedArray(name);
                         auto it = locals.find(name);
@@ -18108,15 +18211,11 @@ namespace tkz {
                     );
                 }
                 llvm::Value* elemPtr = builder->CreateCall(getFn, { collVal, iVal }, "elem_ptr");
-                if ((*foreach)->elem_type.value == "string") {
-                    elemVal = elemPtr;
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(
-                        elemPtr,
-                        llvm::PointerType::get(elemTy, 0)
-                    );
-                    elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
-                }
+                llvm::Value* typedPtr = builder->CreateBitCast(
+                    elemPtr,
+                    llvm::PointerType::get(elemTy, 0) // elemTy is ptr (char*)
+                );
+                elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
             }
             
             builder->CreateStore(elemVal, elemAlloc);

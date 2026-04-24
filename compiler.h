@@ -2063,6 +2063,14 @@ namespace tkz {
             const std::string& mname,
             const std::vector<NumberVariant>& args
         );
+        std::string getElementType(const std::string& fullType) {
+            size_t start = fullType.find("<");
+            size_t end = fullType.rfind(">");
+            if (start != std::string::npos && end != std::string::npos) {
+                return fullType.substr(start + 1, end - start - 1);
+            }
+            return "auto";
+        }
         size_t get_sizeof_type(const std::string& type);
     };
     struct RunConfig {
@@ -2420,6 +2428,29 @@ namespace tkz {
             std::cerr << "  -> UNKNOWN (node index " << node.index() << ")" << std::endl;
             return "unknown";
         }
+        std::string getElementType(std::string fullType) {
+            size_t start = fullType.find("<");
+            size_t end = fullType.rfind(">");
+            if (start != std::string::npos && end != std::string::npos) {
+                return fullType.substr(start + 1, end - start - 1);
+            }
+            return "";
+        }
+        std::pair<std::string, std::string> splitMapTypes(const std::string& t) {
+            size_t start = t.find("<");
+            size_t end = t.rfind(">");
+            std::string inner = t.substr(start + 1, end - start - 1);
+            
+            int depth = 0;
+            for (size_t i = 0; i < inner.size(); i++) {
+                if (inner[i] == '<') depth++;
+                if (inner[i] == '>') depth--;
+                if (inner[i] == ',' && depth == 0) {
+                    return {inner.substr(0, i), inner.substr(i + 1)};
+                }
+            }
+            return {inner, ""};
+        }
         std::string getTypeName(llvm::Type* ty) {
             if (ty->isIntegerTy(32)) return "int";
             if (ty->isIntegerTy(16)) return "short";
@@ -2489,6 +2520,19 @@ namespace tkz {
             }
 
             return builder->CreateCall(fn, {arg}, "to_" + target);
+        }
+        std::string getFieldType(const std::string& className, const std::string& fieldName) {
+            auto it = userTypes.find(className);
+            if (it == userTypes.end()) return "";
+            auto& info = it->second;
+            for (auto& f : info.classFields) {
+                if (f.name == fieldName) return f.type;
+            }
+            if (!info.baseClassName.empty()) {
+                return getFieldType(info.baseClassName, fieldName);
+            }
+
+            return "";
         }
         llvm::Value* emitBuiltinConversion(llvm::Value* rawArg, const std::string& target) {
             if (!rawArg) return nullptr;
@@ -3526,6 +3570,22 @@ namespace tkz {
             auto git = globals.find(name);
             if (git != globals.end()) return git->second;
             return nullptr;
+        }
+        std::string resolveMetadataName(const std::string& name) {
+            if (name.find("::") != std::string::npos) return name;
+
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                if (hasList(fullName) || hasArrayType(fullName) || hasJaggedArray(fullName)) {
+                    return fullName;
+                }
+
+                if (current.empty()) break;
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            return name;
         }
         llvm::Function* resolveFunction(const std::string& name) {
             if (name.find("::") != std::string::npos) {
