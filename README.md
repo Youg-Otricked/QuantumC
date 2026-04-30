@@ -61,7 +61,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 # Development Status
 
 strikthrough = done
-Current Version: v12.0.0 = "MMM"
+Current Version: v15.0.0 = "Compiler Is Mostly Done"
 
 ## Feature Roadmap
 
