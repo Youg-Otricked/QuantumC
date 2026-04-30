@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFI REQUIRED libffi)
+pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
 
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
 
@@ -15,31 +15,25 @@ set(SOURCES
 )
 
 add_executable(qc ${SOURCES})
-
 target_compile_options(qc PRIVATE
     -O0
     -fconstexpr-ops-limit=1000000000
     -g
 )
+if(ENABLE_LLVM)
+    find_package(LLVM REQUIRED CONFIG)
+    separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
+    add_definitions(${LLVM_DEFINITIONS_LIST})
+    add_definitions(-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
+
+    target_compile_definitions(qc PRIVATE ENABLE_LLVM)
+    target_include_directories(qc PRIVATE ${LLVM_INCLUDE_DIRS})
+    llvm_map_components_to_libnames(llvm_libs core support native mc linker irreader)
+    target_link_libraries(qc PRIVATE ${llvm_libs} ${LLVM_SYSTEM_LIBS})
+endif()
 
 target_include_directories(qc PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${FFI_INCLUDE_DIRS}
 )
-
-if(ENABLE_LLVM)
-    target_compile_definitions(qc PRIVATE ENABLE_LLVM)
-
-    target_include_directories(qc PRIVATE
-        /usr/lib/llvm-18/include
-    )
-
-    target_link_directories(qc PRIVATE
-        /usr/lib/llvm-18/lib
-    )
-
-    target_link_libraries(qc PRIVATE
-        LLVM-18
-    )
-endif()
-target_link_libraries(qc PRIVATE ${FFI_LIBRARIES})
+target_link_libraries(qc PRIVATE PkgConfig::FFI)

@@ -10445,7 +10445,6 @@ namespace tkz {
 
         NumberVariant base_val = this->process(node->base);
         const std::string& fieldName = node->field_name.value;
-        NumberVariant finalVal;
         if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&base_val)) {
             const std::string& className = (*inst)->class_name;
             const std::string  fieldName = node->field_name.value;
@@ -10512,18 +10511,7 @@ namespace tkz {
                 }
             }
             NumberVariant rightVal;
-            if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node->value)) {
-                if (targetFieldType.find("list<") == 0) {
-                    std::vector<NumberVariant> evaluatedElements;
-                    for (auto& elementNode : (*arrLit)->elements) {
-                        evaluatedElements.push_back(this->process(elementNode));
-                    }
-                    std::string innerType = getElementType(targetFieldType); 
-                    finalVal = std::make_shared<ListValue>(innerType, evaluatedElements);
-                } else {
-                    finalVal = this->process(node->value);
-                }
-            }
+            rightVal = this->process(node->value);
 
             (*inst)->fields[fieldName] = rightVal;
             return rightVal;
@@ -10549,14 +10537,14 @@ namespace tkz {
                         evaluatedElements.push_back(this->process(elementNode));
                     }
                     std::string innerType = getElementType(targetFieldType); 
-                    finalVal = std::make_shared<ListValue>(innerType, evaluatedElements);
+                    rightVal = std::make_shared<ListValue>(innerType, evaluatedElements);
                 } else {
-                    finalVal = this->process(node->value);
+                    rightVal = this->process(node->value);
                 }
             }
 
-            (*s)->fields[fieldName] = finalVal;
-            return finalVal;
+            (*s)->fields[fieldName] = rightVal;
+            return rightVal;
         }
         this->errors.push_back({
             RTError("Expected struct or class instance on left side of '.'",
@@ -15284,7 +15272,7 @@ namespace tkz {
             mallocFn = llvm::Function::Create(mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
         }
         
-        llvm::DataLayout DL(module.get());
+        const llvm::DataLayout &DL = module->getDataLayout();
         uint64_t size = DL.getTypeAllocSize(ty);
         
         llvm::Value* heapPtr = builder->CreateCall(mallocFn, {builder->getInt64(size)}, "union_heap");
@@ -15918,10 +15906,6 @@ namespace tkz {
                 auto arrLenIt = findArrayLength(collName);
                 return builder->getInt32(arrLenIt->second);
             }
-            if (hasJaggedArray(collName)) {
-                auto arrLenIt = findJaggedArray(collName);
-                return builder->getInt32(arrLenIt->second);
-            }
             llvm::Value* locAlloc = resolveVariable(collName);
             if (locAlloc) {
                 llvm::Type* allocTy = getPointeeType(locAlloc);
@@ -16080,7 +16064,7 @@ namespace tkz {
                                             "malloc", module.get());
         }
         
-        llvm::DataLayout DL(module.get());
+        const llvm::DataLayout &DL = module->getDataLayout();
         uint64_t elemSize = DL.getTypeAllocSize(elemTy);
         llvm::Value* totalSizeExt = builder->CreateZExt(totalSize, builder->getInt64Ty());
         llvm::Value* sizeBytes = builder->CreateMul(totalSizeExt, builder->getInt64(elemSize));
@@ -17714,7 +17698,7 @@ namespace tkz {
                         mallocFn = llvm::Function::Create(mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
                     }
                     
-                    llvm::DataLayout DL(module.get());
+                    const llvm::DataLayout &DL = module->getDataLayout();
                     uint64_t sizeBytes = DL.getTypeAllocSize(arrTy);
                     
                     llvm::Value* mallocCall = builder->CreateCall(mallocFn, {builder->getInt64(sizeBytes)}, "heap_arr");

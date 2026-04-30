@@ -8,8 +8,8 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/lucar/C^4/compiler.cpp" "CMakeFiles/qc.dir/compiler.cpp.o" "gcc" "CMakeFiles/qc.dir/compiler.cpp.o.d"
-  "/home/lucar/C^4/compiler_run.cpp" "CMakeFiles/qc.dir/compiler_run.cpp.o" "gcc" "CMakeFiles/qc.dir/compiler_run.cpp.o.d"
+  "/home/luca/C^4/compiler.cpp" "CMakeFiles/qc.dir/compiler.cpp.o" "gcc" "CMakeFiles/qc.dir/compiler.cpp.o.d"
+  "/home/luca/C^4/compiler_run.cpp" "CMakeFiles/qc.dir/compiler_run.cpp.o" "gcc" "CMakeFiles/qc.dir/compiler_run.cpp.o.d"
   "" "qc" "gcc" "CMakeFiles/qc.dir/link.d"
   )
 

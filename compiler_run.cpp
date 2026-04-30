@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
             config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Interpreter v12.0.0
+Quantum C Compiler v12.0.0
 
 Usage: ./qc [options] <file>
 
