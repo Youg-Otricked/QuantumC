@@ -65,32 +65,36 @@ Current Version: v15.0.0 = "Compiler Is Mostly Done"
 
 ## Feature Roadmap
 
-| Category            | Feature                                                                | Status (WIP/Planned, Interpreted, or Done)                                     |
-| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --- | -------------- | ---- |
-| **Core Logic**      | Variables & Types (`int`, `float`, `double`, `string`, `char`, `bool`) | Done                                                                           |
-|                     | Constants (`const`) & `auto` Inference                                 | Done                                                                           |
-|                     | Long and Short types                                                   | Done                                                                           |
-| **Operators**       | Standard Math & Expressions (includes `**` power operator)             | Done                                                                           |
-|                     | Control Flow (`if/else`, `switch`, `while`, `for`, `foreach`)          | Done                                                                           |
-| **Functions**       | Functions with Default Parameters                                      | Done                                                                           |
-|                     | Lambdas & Higher-Order Functions                                       | Done                                                                           |
-|                     | **Native Multi-Return Values**                                         | Done                                                                           |
-| **Data Structures** | Arrays & Lists (with `.length` member)                                 | Done                                                                           |
-|                     | Spread Syntax for Arrays (`@`)                                         | Done                                                                           |
-|                     | Maps & Enums                                                           | Done                                                                           |
-| **Quantum**         | **Quantum Booleans (Superposition!)**                                  | Done                                                                           |
-|                     | **Quantum Logical Operators** (`&&&`, `\|\|\| `, `!!`, etc.)           | Done                                                                           |
-| **Advanced**        | Structs, Classes, & Namespaces                                         | Done                                                                           |
-|                     | Union Types (TypeScript-style)                                         | Interpreted, Compiled has a few bugs with them, still mostly work in compiler. |
-|                     | Advanced OOP & Operator Overloading                                    | Done                                                                           |
-|                     | Manual Memory Management                                               | Interpreted                                                                    |
-| **System**          | F-Strings (Python-style interpolation)                                 | Done                                                                           |
-|                     | Random Number Generation                                               | Done                                                                           |
-|                     | Stdlib Part 1 & 2                                                      | Done                                                                           |
-| **Future**          | Stdlib Part 3                                                          | Coming Soon                                                                    |
-|                     | Concurrency functions                                                  | Coming Soon                                                                    |
-|                     | HTTP                                                                   | Coming Soon                                                                    |
-|                     | Generics                                                               | Coming Soon                                                                    |
+| Category            | Feature                                                                | Status      |
+| ------------------- | ---------------------------------------------------------------------- | ----------- |
+| **Core Logic**      | Variables & Types (`int`, `float`, `double`, `string`, `char`, `bool`) | Done        |
+|                     | Constants (`const`) & `auto` Inference                                 | Done        |
+|                     | Long and Short types                                                   | Done        |
+| **Operators**       | Standard Math & Expressions (includes `**` power operator)             | Done        |
+|                     | Control Flow (`if/else`, `switch`, `while`, `for`, `foreach`)          | Done        |
+| **Functions**       | Functions with Default Parameters                                      | Done        |
+|                     | Lambdas & Higher-Order Functions                                       | Done        |
+|                     | **Native Multi-Return Values**                                         | Done        |
+| **Data Structures** | Arrays & Lists (with `.length` member)                                 | Done        |
+|                     | Spread Syntax for Arrays (`@`)                                         | Done        |
+|                     | Maps & Enums                                                           | Done        |
+| **Quantum**         | **Quantum Booleans (Superposition!)**                                  | Done        |
+|                     | **Quantum Logical Operators** (`&&&`, `\|\|\| `, `!!`, etc.)           | Done        |
+| **Advanced**        | Structs, Classes, & Namespaces                                         | Done        |
+|                     | Union Types (TypeScript-style)                                         | DONE        |
+|                     | Advanced OOP & Operator Overloading                                    | Done        |
+|                     | Manual Memory Management                                               | Interpreted |
+| **System**          | F-Strings (Python-style interpolation)                                 | Done        |
+|                     | Random Number Generation                                               | Done        |
+|                     | Stdlib Part 1 & 2                                                      | Done        |
+| **Future**          | Stdlib Part 3                                                          | Coming Soon |
+|                     | Concurrency functions                                                  | Coming Soon |
+|                     | HTTP                                                                   | Coming Soon |
+|                     | Generics                                                               | Coming Soon |
+|                     | Passable code blocks, eg `void example() code { code.eval() }`         | Coming Soon |
+|                     | Extern                                                                 | Coming Soon |
+|                     | Bitwise Logic                                                          | Coming Soon |
+|                     | Reallly fancy operator overloads                                       | Coming Soon |
 
 # Contributing
 
@@ -160,14 +164,14 @@ qif (qb) {
 
 ## Why Quantum C?
 
-| **Feature**                   | **C++**    | **C#** | **Rust**       | **Quantum C**                                                                                                   |
-| ----------------------------- | ---------- | ------ | -------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Total Runtime**             | Slow       | Medium   | Medium           | **Really** Fast                                                                                               |
-| **Compile Time**              | Slow       | Medium   | Medium         | Medium                                                                                                          |
-| **Runtime**                   | Fast       | Medium | Medium         | Fast |
-| **Memory safety**             | Manual     | GC     | Borrow checker | **C style!**                                                                                                    |
-| **Quantum booleans**          | No         | No     | No             | **4 states!**                                                                                                   |
-| **Multi-return**              | Structs    | Tuples | Tuples         | **Native**                                                                                                      |
+| **Feature**          | **C++** | **C#** | **Rust**       | **Quantum C**   |
+| -------------------- | ------- | ------ | -------------- | --------------- |
+| **Total Runtime**    | Slow    | Medium | Medium         | **Really** Fast |
+| **Compile Time**     | Slow    | Medium | Medium         | Medium          |
+| **Runtime**          | Fast    | Medium | Medium         | Fast            |
+| **Memory safety**    | Manual  | GC     | Borrow checker | **C style!**    |
+| **Quantum booleans** | No      | No     | No             | **4 states!**   |
+| **Multi-return**     | Structs | Tuples | Tuples         | **Native**      |
 
 ---
 
@@ -196,6 +200,7 @@ int main() {
 ```
 
 ## Include system
+
 ```cpp
 namespace Exported { // Includes go inside exported to keep dependencys working. It's auto merged with includers files on include, so lets say a includes b and b includes c, the actual order is a includes bs exported, then bs exported includes cs exported, nothing's in cs exported, so b includes c, then the chain has been resolved so a includes b. The compiled file would look somthing like
 /*
@@ -234,4 +239,13 @@ int main() {
 ## Known limitations:
 
 - You cannot use + style string concat on class instances if you arn't entending the + to call the operator+ method because it won't call repr, instead it will try and call operator+ on the class with a string argument. This limitation doesn't exist on fstrings though.
+
+## Ideals
+
+QuantumC follows 4 core rules:
+
+- Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convinient for language', it means what it should be. Clean is not a "pythonic" equievalant, it is self explanitory.
+- Your Memory, Your Problem: QuantumC does not stop you from doing somthing cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. It won't make you specifically say the type to interprete a union as or narrow it. It also won't stop you from using a string as a int.
+- No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacoamb. If it is a intrinsic, it says it is.
+- No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
   Made by [Me](https://github.com/Youg-Otricked)
