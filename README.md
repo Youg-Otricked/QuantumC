@@ -9,7 +9,7 @@ Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
 **More Powerful Than Explosives™**
 
-C⁴ combines the performance of C++, the ergonomics of C#, and the safety of Rust—without the 20 `#include` statements.
+C⁴ combines the performance of C++, the ergonomics of Rust, and the cleaness of Zig—without the 20 `#include` statements.
 
 ---
 
@@ -164,14 +164,14 @@ qif (qb) {
 
 ## Why Quantum C?
 
-| **Feature**          | **C++** | **C#** | **Rust**       | **Quantum C**   |
-| -------------------- | ------- | ------ | -------------- | --------------- |
-| **Total Runtime**    | Slow    | Medium | Medium         | **Really** Fast |
-| **Compile Time**     | Slow    | Medium | Medium         | Medium          |
-| **Runtime**          | Fast    | Medium | Medium         | Fast            |
-| **Memory safety**    | Manual  | GC     | Borrow checker | **C style!**    |
-| **Quantum booleans** | No      | No     | No             | **4 states!**   |
-| **Multi-return**     | Structs | Tuples | Tuples         | **Native**      |
+| **Feature**          | **C++** | **Zig** | **Rust**       | **Quantum C**   |
+| -------------------- | ------- | ------- | -------------- | --------------- |
+| **Total Runtime**    | Slow    | Medium  | Medium         | **Really** Fast |
+| **Compile Time**     | Slow    | Medium  | Medium         | Medium          |
+| **Runtime**          | Fast    | Medium  | Medium         | Fast            |
+| **Memory safety**    | Manual  | GPA     | Borrow checker | **C style!**    |
+| **Quantum booleans** | No      | No      | No             | **4 states!**   |
+| **Multi-return**     | Structs | Tuples  | Tuples         | **Native**      |
 
 ---
 
