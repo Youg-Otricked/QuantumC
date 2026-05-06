@@ -13,7 +13,7 @@ namespace NamespaceName {
     // Stuff goes here
 }
 ```
-Thats it. However accessing items in namespaces is slightly more complex.
+That's it. However accessing items in namespaces is slightly more complex.
 
 You access namespaces fields with as follows:
 ```cpp
