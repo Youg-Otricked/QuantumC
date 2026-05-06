@@ -4,7 +4,7 @@
 The available collection types are list, map, and array. The syntax is:
 ```cpp
 int main() {
-    int[] ListEx = [1, 2, 3, 4, 5]; // Lists use the syntax type[] name and are non-fixed size collections of a type
+    list<int> ListEx = [1, 2, 3, 4, 5]; // Lists use the syntax list<type> name and are non-fixed size collections of a type
     int ArrayEx[5] = [1, 2, 3, 4, 5]; // Arrays use the syntax type name[] and are fixed size collections of a type
     map<string, int> MapIds = { "": 0, "all numbers": 1234567890}; // Maps are key -> value mapings of type1 -> type2.
     // Arrays have no methods and the property length which returns the size of the array

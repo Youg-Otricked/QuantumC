@@ -160,7 +160,7 @@ Options:
   -t, --time          Show compilation time
   -r, --raw           Don't pretty print the AST. (must be used in congunction with -a/--ast)
   -s, --suspense      Slowly print the Error codes.
-  -b, --bst           Bst style ast (warning, very top heavy) msut be used in congunction with -a/ast
+  -b, --bst           Bst style ast (warning, very top heavy) must be used in congunction with -a/ast
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @no-context == -nc

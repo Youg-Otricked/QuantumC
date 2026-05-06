@@ -5,8 +5,9 @@ If you want to learn this language better, read along while actually codeing in 
 // Run this file to see all current features in action!
 ////////////////////////////////////////////////////////////////////////////////
 // @print-ast
+//Entrypoint preproccesser:
 namespace Exported {
-    #include <UnitTest, std>
+    #include <UnitTest, ./stdlib.qc>
 }
 namespace Outer {
     int outerVar = 10;
@@ -126,7 +127,7 @@ int main() {
     a;              // 100
     b;              // 100
     // Basic compound assignments
-    int x = 10;
+    x = 10;
     x += 5;     // 15
     x;
 
@@ -166,8 +167,8 @@ int main() {
     z;
 
     // With variables on right side
-    int a = 10;
-    int b = 5;
+    a = 10;
+    b = 5;
     a += b;         // 15
     a;
 
@@ -299,11 +300,11 @@ int main() {
     // 16. CONSTANTS
     //==============================================================================
 
-    const double pi = 3.14159;
+    const double pi_constant = 3.14159;
 
     // pi = 3.1 //erors. cannot assign to a const
 
-    const string name = "Quantum C";
+    const string NAME = "Quantum C";
 
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +399,7 @@ int main() {
     //=============================================================================
     // SECTION 18: switch statments
     // ============================================================================
-    int x = 2;
+    x = 2;
 
     switch (x) {
     case 1:
@@ -458,10 +459,10 @@ int main() {
         ////////////////////////////////////////////////////////////////////////////////
         // EXAMPLE 2: Void function with default arguments(no return value)
         ////////////////////////////////////////////////////////////////////////////////
-        void greet(string name = "world", int times = 1) {
+        void greet(string name_to_print = "world", int times = 1) {
             int i = 0;
             while (i < times) {
-                print("Hello, " + name + "!");
+                print("Hello, " + name_to_print + "!");
                 i = i + 1;
             }
         }
@@ -551,14 +552,14 @@ int main() {
     }
 
     // Multi-variable declaration - destructuring multi-return
-    int id, string name = get_user();
+    int id, string name_name_name_name = get_user();
     id;    // 123
-    name;  // "Alice"
+    name_name_name_name;  // "Alice"
 
     // Multi-return with 3 variables
-    int code, float pi, bool flag = get_data();
+    int code, float pi_f, bool flag = get_data();
     code;  // 100
-    pi;    // 3.14
+    pi_f;    // 3.14
     flag;  // true
 
     // Multi-return with default parameters
@@ -753,14 +754,14 @@ int main() {
     println(letters[0][2]);  // c
     std::qout << matrix << '\n';
     // you make a list with type[] name and a array with type name[]
-    int[] plswork = [1];
+    list<int> plswork = [1];
     //you can push values to an list like this
     plswork.push(123);
     // pushing a array to a list
     plswork.push([1, 2, 4]);
     // defining a second list
-    char[] works = ['c', 'd'];
-    int[] migthtwotk = [2];
+    list<char> works = ['c', 'd'];
+    list<int> migthtwotk = [2];
     // pushing an list on a list
     // plswork.push(works); - Runtime Error: cannot push a list<char> to a list of type int
     plswork.push(migthtwotk);
@@ -789,7 +790,7 @@ int main() {
         println(v);
     }
 
-    int[] bbb = make_array();
+    list<int> bbb = make_array();
     int bb[] = make_array();
     println(bbb);           // should print [1, 2, 3]
     print_any(bbb);         // should also print [1, 2, 3]
@@ -797,17 +798,17 @@ int main() {
         println(xs);
     }
 
-    int[] a = [1, 2, 3];
-    print_int_list(a); 
+    list<int> alistthing = [1, 2, 3];
+    print_int_list(alistthing); 
     int[] copyInt(list<int> x) {
         return x;
     }
     int[] copyIntArr(int[] z) {
         return z;
     }
-    int[] cpl = [9, 9, 1, 4];
+    list<int> cpl = [9, 9, 1, 4];
     int cpa[] = [1, 99999, 34234];
-    int[] copyed = copyInt(cpl);
+    list<int> copyed = copyInt(cpl);
     int copyedArr[] = copyIntArr(cpa);
     std::qout << cpl << cpa << copyed << copyedArr << '\n';
     // --- list<int> params, return, and multi-return ---
@@ -821,8 +822,8 @@ int main() {
         println(xs);
     }
 
-    int[] base = [1, 2, 3, 4];
-    int[] copy = id_list(base);        // base is list<int> internally
+    list<int> base = [1, 2, 3, 4];
+    list<int> copy = id_list(base);        // base is list<int> internally
     print_int_list(copy);                  // [1, 2, 3, 4]
 
 
@@ -835,8 +836,8 @@ int main() {
     println(grid);         // [[1, 2], [3, 4]]
     println(grid[0][1]);   // 2
 
-    int[] l1 = [5, 6, 7];
-    int[] l2 = l1;
+    list<int> l1 = [5, 6, 7];
+    list<int> l2 = l1;
     l2.push(8);
     println(l1);           // [5, 6, 7, 8] if aliasing, or [5,6,7] if copied
     println(l2);           // [5, 6, 7, 8]
@@ -845,7 +846,7 @@ int main() {
     // define a array with type name[] = value
     string example[] = ["This is an example"];
     // define a list with type[] name = value
-    string[] listexample = ["This is a list"];
+    list<string> listexample = ["This is a list"];
     // add to list with .push and subtract with .pop
     listexample.push("This");
     listexample.pop();
@@ -866,14 +867,14 @@ int main() {
     int arr2[] = [4, 5, 6];
     int combined[] = [@arr1, @arr2];
     println(combined);
-    int[] list1 = [10, 20];
-    int[] list2 = [30, 40];
-    int[] merged = [@list1, @list2, 50];
+    list<int> list1 = [10, 20];
+    list<int> list2 = [30, 40];
+    list<int> merged = [@list1, @list2, 50];
     println(merged);
-    int[] a = [1, 2];
-    int[] b = [3, 4];
-    int[] c = [5, 6];
-    int[] all = [0, @a, @b, @c, 7];
+    list<int> alistthing = [1, 2];
+    list<int> blistthing = [3, 4];
+    list<int> clistthing = [5, 6];
+    list<int> all = [0, @alistthing, @blistthing, @clistthing, 7];
     println(all);
     void print_three(int x, int y, int z) {
         println(x);
@@ -887,7 +888,7 @@ int main() {
         return a + b + c;
     };
 
-    int result = sum_lambda(1, 2, 3);
+    result = sum_lambda(1, 2, 3);
     println(result);
     int args_list[] = [4, 5, 6];
     int result2 = sum_lambda(@args_list);
@@ -995,8 +996,8 @@ int main() {
     // INPUT AND short or long
 
     // USACO fence problem
-    int a = 0;
-    int b = 0;
+    a = 0;
+    b = 0;
     int c = 0;
     int d = 0;
     std::qout << "Type two numbers seperated by a space";
@@ -1020,7 +1021,7 @@ int main() {
         }
     }
     // end of fence
-    short int x = 100;
+    short int shortint = 100;
     int y = 50000;
     long int z = 9999999999;
     float f = 3.14f;
@@ -1101,12 +1102,12 @@ int main() {
     std::qout << getRateLimitForTier(tier);
     type Weird = 1 | 2 | "ok" | 'x' | true | qtrue | int;
 
-    Weird a = 1;        
-    Weird b = "ok";     
-    Weird c = 'x';    
-    Weird d = true; 
-    Weird e = qtrue;    
-    Weird f = 42;  
+    Weird aW = 1;        
+    Weird bW = "ok";     
+    Weird cW = 'x';    
+    Weird dW = true; 
+    Weird eW = qtrue;    
+    Weird fW = 42;  
     ApiTier GetTierFromRate(int rate) {
         switch (rate) {
             case 10:
@@ -1121,7 +1122,7 @@ int main() {
             return "Free";
         }
     }
-    ApiTier thingy = GetTierFromRate(f);
+    ApiTier thingy = GetTierFromRate(fW);
     std::qout << typeof(thingy);
     if (typeof(thingy) != "string") {
         throw("Should have been string");
@@ -1183,10 +1184,10 @@ int main() {
             this.rage += 20;
         }
     }
-    Boss b = Boss(100, 0);
-    b.damage(30);
-    println(b.getHp());
-    b.enrage();
+    Boss boss = Boss(100, 0);
+    boss.damage(30);
+    println(boss.getHp());
+    boss.enrage();
     FinalBoss fb = FinalBoss(1000, 100, 10);
     fb.pnt();
     fb.enrage();
@@ -1201,8 +1202,8 @@ int main() {
     Outer::Inner::innerVar = 200;
 
     // Call functions
-    int a = Outer::getOuter();
-    int b = Outer::Inner::getInner();
+    a = Outer::getOuter();
+    b = Outer::Inner::getInner();
 
 
     // Struct using namespace member type
@@ -1246,15 +1247,15 @@ int main() {
         return f"Dimentions: {this.x} x {this.y}";
         }
     }
-    Vec2 a = Vec2(1, 2);
-    Vec2 b = Vec2(3, 4);
-    Vec2 c = a + b;
+    Vec2 aVector = Vec2(1, 2);
+    Vec2 bVector = Vec2(3, 4);
+    Vec2 c = aVector + bVector;
 
     Vec2 d = Vec2(4, 6);
     bool eq1 = (c == d);
     bool eq2 = (a == b);
 
-    int result = 0;
+    result = 0;
     if (eq1) {
         result += 10;
     }
@@ -1282,16 +1283,18 @@ int main() {
             this.y = 0;
         }
     }
-    int x = 5;
+    x = 5;
     int& ref = x;
     ref = 10;
     println(x);
     UnitTest::Test t = UnitTest::Test(20);
 
     // 1. & and * on int
-    int x = 5;
+    x = 5;
     int* p = &x;
     println(&x);
+    println(typeof(p));
+    println(*p);
     t.AssertEqual("int*", typeof(p), "typeof(p) should be int*", "typeof(p)");
     t.AssertEqual(5, *p, "*p reads x", "*p");
 
@@ -1322,8 +1325,8 @@ int main() {
     q = nullptr;
 
     // 4. pointer reassignment between vars
-    int a = 1;
-    int b = 2;
+    a = 1;
+    b = 2;
     int* r = &a;
 
     *r = 100;

@@ -14,14 +14,24 @@ namespace AdvQBool {
         int FalseLevel;
         AQB(int truth) {
             if (truth > 100 || truth < 0) {
-                throw("Cannot make a advanced qbool more than 100 percent true or more than 100% false.");
+                //throw("Cannot make a advanced qbool more than 100 percent true or more than 100% false.");
+                if (truth > 100) {
+                    truth = 100;
+                } else {
+                    truth = 0;
+                }
             }
             this.TruthLevel = truth;
             this.FalseLevel = 100 - truth;
         }
         void operator=(int other) {
-            if (other > 100) {
-                throw("Cannot make a advanced qbool more than 100 percent true.");
+            if (other > 100 || other < 0) {
+                //throw("Cannot make a advanced qbool more than 100 percent true.");
+                if (other > 100) {
+                    other = 100;
+                } else {
+                    other = 0;
+                }
             }
             this.TruthLevel = other;
             this.FalseLevel = 100 - other;
@@ -67,8 +77,8 @@ namespace AdvQBool {
     }
 }
 namespace Utils {
-    int[] range(int start, int stop, int step = 1) {
-        int[] fin = [];
+    list<int> range(int start, int stop, int step = 1) {
+        list<int> fin = [];
         if (step > 0 && start <= stop) {
             for (; start < stop; start += step) {
                 fin.push(start);
@@ -82,7 +92,7 @@ namespace Utils {
         else {
             return [];
         }
-        return [@fin];
+        return fin;
     }
     void sleep(long int crr) {
         crr += time();
@@ -190,7 +200,8 @@ namespace Math {
     }
     double log(double x) {
         if (x <= 0) {
-            throw("log: x must be positive");
+            //throw("log: x must be positive");
+            return 0.0;
         }
         double log2 = 0.693147180559945309417;
         int n = 0;
@@ -221,8 +232,9 @@ namespace UnitTest {
         int Ran;
         int Passed;
         int Failed;
-        string[] Messages;
+        list<string> Messages;
         Test(int Ttl) {
+            this.Messages = [];
             this.Total = Ttl;
             this.Ran = 0;
             this.Passed = 0;
@@ -360,7 +372,7 @@ namespace Collections {
         }
         return collection;
     }
-    list<auto> remove(list<auto> collection, auto value) {
+    auto remove(auto collection, auto value) {
         int index = index_of(collection, value);
         if (index != -1) {
             for (int i = index; i < collection.length - 1; i++) {
@@ -370,7 +382,7 @@ namespace Collections {
         }
         return collection;
     }
-    list<auto> reverse(list<auto> collection) {
+    auto reverse(auto collection) {
         int n = collection.length;
         for (int i = 0; i < n / 2; i++) {
             auto temp = collection[i];

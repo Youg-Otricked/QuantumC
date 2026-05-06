@@ -4191,6 +4191,7 @@ namespace tkz {
                     this->advance();
                     key_type.value += "*";
                 }
+                
                 if (this->current_tok.type != TokenType::COMMA) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S068: Expected ',' in map<K, V>", this->current_tok.pos));
@@ -4213,6 +4214,7 @@ namespace tkz {
                     this->advance();
                     value_type.value += "*";
                 }
+                
                 if (this->current_tok.type != TokenType::MORE) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
                         "QC-S070: Expected '>' in map<K, V>", this->current_tok.pos));
@@ -4220,80 +4222,88 @@ namespace tkz {
                 }
                 this->advance();
                 
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S085: Expected variable name", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token var_name = this->current_tok;
-                this->advance();
-                
-                std::vector<std::pair<AnyNode, AnyNode>> init_pairs;
-                
-                if (this->current_tok.type == TokenType::EQ) {
-                    this->advance();
+                type_tok = Token(
+                    TokenType::KEYWORD,
+                    "map<" + key_type.value + ", " + value_type.value + ">",
+                    type_tok.pos
+                );
+                if (this->current_tok.type == TokenType::IDENTIFIER) {
+                    Token var_name = this->current_tok;
                     
-                    if (this->current_tok.type != TokenType::LBRACE) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S003: Expected '{' for map initialization", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    
-                    if (this->current_tok.type != TokenType::RBRACE) {
-                        AnyNode key = res.reg(this->logical_or());
-                        if (res.error) return res.to_prs();
-                        
-                        if (this->current_tok.type != TokenType::COLON) {
-                            res.failure(std::make_unique<InvalidSyntaxError>(
-                                "Expected ':' after key", this->current_tok.pos));
-                            return res.to_prs();
-                        }
+                    if (this->peek().type == TokenType::EQ || 
+                        this->peek().type == TokenType::SEMICOLON) {
                         this->advance();
+                        std::vector<std::pair<AnyNode, AnyNode>> init_pairs;
                         
-                        AnyNode value = res.reg(this->logical_or());
-                        if (res.error) return res.to_prs();
-                        
-                        init_pairs.emplace_back(std::move(key), std::move(value));
-                        
-                        while (this->current_tok.type == TokenType::COMMA) {
+                        if (this->current_tok.type == TokenType::EQ) {
                             this->advance();
                             
-                            if (this->current_tok.type == TokenType::RBRACE) break; 
-                            
-                            AnyNode key = res.reg(this->logical_or());
-                            if (res.error) return res.to_prs();
-                            
-                            if (this->current_tok.type != TokenType::COLON) {
+                            if (this->current_tok.type != TokenType::LBRACE) {
                                 res.failure(std::make_unique<InvalidSyntaxError>(
-                                    "Expected ':' after key", this->current_tok.pos));
+                                    "QC-S003: Expected '{' for map initialization", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             this->advance();
                             
-                            AnyNode value = res.reg(this->logical_or());
-                            if (res.error) return res.to_prs();
+                            if (this->current_tok.type != TokenType::RBRACE) {
+                                AnyNode key = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                
+                                if (this->current_tok.type != TokenType::COLON) {
+                                    res.failure(std::make_unique<InvalidSyntaxError>(
+                                        "Expected ':' after key", this->current_tok.pos));
+                                    return res.to_prs();
+                                }
+                                this->advance();
+                                
+                                AnyNode value = res.reg(this->logical_or());
+                                if (res.error) return res.to_prs();
+                                
+                                init_pairs.emplace_back(std::move(key), std::move(value));
+                                
+                                while (this->current_tok.type == TokenType::COMMA) {
+                                    this->advance();
+                                    
+                                    if (this->current_tok.type == TokenType::RBRACE) break;
+                                    
+                                    AnyNode key = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    
+                                    if (this->current_tok.type != TokenType::COLON) {
+                                        res.failure(std::make_unique<InvalidSyntaxError>(
+                                            "Expected ':' after key", this->current_tok.pos));
+                                        return res.to_prs();
+                                    }
+                                    this->advance();
+                                    
+                                    AnyNode value = res.reg(this->logical_or());
+                                    if (res.error) return res.to_prs();
+                                    
+                                    init_pairs.emplace_back(std::move(key), std::move(value));
+                                }
+                            }
                             
-                            init_pairs.emplace_back(std::move(key), std::move(value));
+                            if (this->current_tok.type != TokenType::RBRACE) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected '}' after map initialization", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
                         }
+                        
+                        if (this->current_tok.type != TokenType::SEMICOLON) {
+                            res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        return res.success(std::make_unique<MapDeclNode>(
+                            is_const, key_type, value_type, var_name, std::move(init_pairs)));
                     }
-                    if (this->current_tok.type != TokenType::RBRACE) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "Expected '}' after map initialization", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
                 }
                 
-                if (this->current_tok.type != TokenType::SEMICOLON) {
-                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
-                    return res.to_prs();
-                }
-                this->advance();
-                
-                return res.success(std::make_unique<MapDeclNode>(
-                    is_const, key_type, value_type, var_name, std::move(init_pairs)));
             }
+            bool is_list = false;
             if (type_tok.value == "list" && this->current_tok.type == TokenType::LESS) {
                 this->advance();
                 
@@ -4325,8 +4335,9 @@ namespace tkz {
                     "list<" + elem_type.value + ">",
                     type_tok.pos
                 );
+                is_list = true;
             }
-            bool is_list = false;
+            
             while (this->current_tok.type == TokenType::LBRACKET) {
                 this->advance();
                 if (this->current_tok.type != TokenType::RBRACKET) {
@@ -4336,7 +4347,6 @@ namespace tkz {
                 }
                 this->advance();
                 type_tok.value += "[]";
-                is_list = true;
             }
 
             if (type_tok.value.find("[][]") != std::string::npos) {
@@ -4364,7 +4374,7 @@ namespace tkz {
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
                     
-                    if (this->current_tok.type != TokenType::KEYWORD && !(this->user_types.count(this->current_tok.value) > 0)) {
+                    if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "Expected type", this->current_tok.pos));
                         return res.to_prs();
@@ -4453,6 +4463,100 @@ namespace tkz {
                 if (res.error) return res.to_prs();
                 return res.success(std::move(func_def));
             }
+            std::vector<Token> var_names = {name_tok};
+
+            if (this->current_tok.type == TokenType::COMMA) {
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    
+                    if (this->current_tok.value == "list" && this->index + 1 < this->tokens.size() && this->tokens[this->index + 1].type == TokenType::LESS) {
+                        Token list_tok = this->current_tok;
+                        this->advance(); 
+                        this->advance();
+                        
+                        if (this->current_tok.type != TokenType::KEYWORD) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected element type in list<T>", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        
+                        Token elem_type = this->current_tok;
+                        this->advance();
+                        
+                        if (this->current_tok.type != TokenType::MORE) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected '>' in list<T>", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                        
+                        Token type = Token(
+                            TokenType::KEYWORD,
+                            "list<" + elem_type.value + ">",
+                            list_tok.pos
+                        );
+                        return_types.push_back(type);
+                    }
+                    else if (this->current_tok.type != TokenType::KEYWORD) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected type", this->current_tok.pos));
+                        return res.to_prs();
+                    } else {
+                        Token type = this->current_tok;
+                        this->advance();
+                        
+                        while (this->current_tok.type == TokenType::LBRACKET) {
+                            this->advance();
+                            if (this->current_tok.type == TokenType::INT) {
+                                this->advance();
+                            }
+                            if (this->current_tok.type != TokenType::RBRACKET) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "Expected ']'", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                            type.value += "[]";
+                        }
+                        
+                        return_types.push_back(type);
+                    }
+                    
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-S085: Expected identifier", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    var_names.push_back(this->current_tok);
+                    this->advance();
+                }
+                
+                if (this->current_tok.type != TokenType::EQ) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Expected '=' in multi-variable declaration", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                AnyNode value = res.reg(this->qout_expr());
+                if (res.error) return res.to_prs();
+                
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                
+                if (return_types.size() != var_names.size()) {
+                    res.failure(std::make_unique<InvalidSyntaxError>(
+                        "Number of types must match number of variables", var_names[0].pos));
+                    return res.to_prs();
+                }
+                
+                return res.success(std::make_unique<MultiVarDeclNode>(
+                    is_const, return_types, var_names, std::move(value)));
+            }
+
             if (is_list) {
                 AnyNode value;
                 if (this->current_tok.type == TokenType::EQ) {
@@ -4477,6 +4581,7 @@ namespace tkz {
                 return res.success(std::make_unique<ListDeclNode>(
                     is_const, type_tok, name_tok, std::move(value)));
             }
+
             if (is_array) {
                 AnyNode value;
                 if (this->current_tok.type == TokenType::EQ) {
@@ -4499,43 +4604,16 @@ namespace tkz {
                 this->advance();
                 
                 return res.success(std::make_unique<ArrayDeclNode>(
-                    is_const, type_tok, name_tok, std::move(value), 
+                            is_const, type_tok, name_tok, std::move(value), 
                     dimensions, std::move(array_sizes)));
             }
-            std::vector<Token> var_names = {name_tok};
-
-            while (this->current_tok.type == TokenType::COMMA) {
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::KEYWORD) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Expected type", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                return_types.push_back(this->current_tok);
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S085: Expected identifier", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                var_names.push_back(this->current_tok);
-                this->advance();
-            }
-
             AnyNode value;
-            if (this->current_tok.type == TokenType::LPAREN) {
-                auto func_def = res.reg(this->func_def_multi(return_types, std::make_optional(var_names[0])));
-                if (res.error) return res.to_prs();
-                return res.success(std::move(func_def));
-            }
             if (this->current_tok.type == TokenType::EQ) {
                 this->advance();
                 if (is_reference) {
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-R001: Cannot assing a expression to a reference.", var_names[0].pos));
+                            "QC-R001: Cannot assign an expression to a reference.", var_names[0].pos));
                         return res.to_prs();
                     }
                     
@@ -4561,26 +4639,15 @@ namespace tkz {
                 }
                 value = default_value_for_type(type_tok, var_names[0].pos);
             }
-            
+
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(std::make_unique<MissingSemicolonError>(this->current_tok.pos));
                 return res.to_prs();
             }
+            this->advance();
 
-            this->advance();  
-            
-            if (return_types.size() > 1 || var_names.size() > 1) {
-                if (return_types.size() != var_names.size()) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "Number of types must match number of variables", var_names[0].pos));
-                    return res.to_prs();
-                }
-                return res.success(std::make_unique<MultiVarDeclNode>(
-                    is_const, return_types, var_names, std::move(value)));
-            } else {
-                return res.success(std::make_unique<VarAssignNode>(
-                    is_const, return_types[0], var_names[0], std::move(value)));
-            }
+            return res.success(std::make_unique<VarAssignNode>(
+                is_const, return_types[0], var_names[0], std::move(value)));
         }
         if (tok.type == TokenType::IDENTIFIER) {
             size_t saved_index = this->index;
@@ -7055,6 +7122,111 @@ namespace tkz {
                 } else {
                     this->errors.push_back({RTError("QC-B002: to_upper() requires string argument", get_pos(val)), "Error"});
                 }
+            }
+            if (func_name == "fopen") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: fopen() requires exactly 2 arguments (path, mode)", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant path_val = this->process(node->arg_nodes.front());
+                NumberVariant mode_val = this->process(node->arg_nodes.back());
+                
+                auto path_str = std::get_if<StringValue>(&path_val);
+                auto mode_str = std::get_if<StringValue>(&mode_val);
+                
+                if (!path_str || !mode_str) {
+                    this->errors.push_back({RTError("QC-B002: fopen() requires string arguments", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                FILE* file = fopen(path_str->value.c_str(), mode_str->value.c_str());
+                if (!file) {
+                    this->errors.push_back({RTError("QC-B003: Failed to open file: " + path_str->value, Position()), "Error"});
+                    return StringValue("");
+                }
+                
+                std::ostringstream oss;
+                oss << (void*)file;
+                return StringValue(oss.str()).set_pos(path_str->pos);
+            }
+
+            if (func_name == "fclose") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: fclose() requires exactly 1 argument", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    if (file) fclose(file);
+                    return VoidValue();
+                }
+                this->errors.push_back({RTError("QC-B002: fclose() requires file handle", Position()), "Error"});
+                return VoidValue();
+            }
+
+            if (func_name == "fread") {
+                if (node->arg_nodes.size() != 1) {
+                    this->errors.push_back({RTError("QC-B001: fread() requires exactly 1 argument", Position()), "Error"});
+                    return StringValue("");
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    
+                    if (!file) return StringValue("");
+                    
+                    char buffer[1024];
+                    if (fgets(buffer, sizeof(buffer), file)) {
+                        std::string line(buffer);
+                        if (!line.empty() && line.back() == '\n') {
+                            line.pop_back();
+                        }
+                        return StringValue(line);
+                    }
+                    return StringValue("");
+                }
+                
+                this->errors.push_back({RTError("QC-B002: fread() requires file handle", Position()), "Error"});
+                return StringValue("");
+            }
+
+            if (func_name == "fwrite") {
+                if (node->arg_nodes.size() != 2) {
+                    this->errors.push_back({RTError("QC-B001: fwrite() requires exactly 2 arguments (file, data)", Position()), "Error"});
+                    return VoidValue();
+                }
+                
+                NumberVariant file_val = this->process(node->arg_nodes.front());
+                NumberVariant data_val = this->process(node->arg_nodes.back());
+                
+                if (auto file_str = std::get_if<StringValue>(&file_val)) {
+                    void* ptr;
+                    std::istringstream iss(file_str->value);
+                    iss >> ptr;
+                    FILE* file = (FILE*)ptr;
+                    
+                    if (!file) return VoidValue();
+                    
+                    std::string data = value_to_string(data_val);
+                    fputs(data.c_str(), file);
+                    fputc('\n', file);
+                    return VoidValue();
+                }
+                
+                this->errors.push_back({RTError("QC-B002: fwrite() requires file handle", Position()), "Error"});
+                return VoidValue();
             }
             if (func_name == "substring") {
                 if (node->arg_nodes.size() != 3) {

@@ -1023,6 +1023,45 @@ namespace tkz {
         std::vector<Token> tokens;
         std::string currentNamespace;
         Parser(std::vector<Token> tokens);
+        Token peek(int offset = 1) {
+            size_t peek_idx = this->index + offset;
+            if (peek_idx < this->tokens.size()) {
+                return this->tokens[peek_idx];
+            }
+            return this->current_tok;
+        }
+        UserTypeInfo* find_type(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                if (user_types.count(name)) {
+                    return &user_types[name];
+                }
+                return nullptr;
+            }
+            
+            if (!currentNamespace.empty()) {
+                std::string key = currentNamespace + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            for (int i = namespaceStack.size() - 1; i >= 0; --i) {
+                std::string ns;
+                for (int j = 0; j <= i; ++j) {
+                    if (j > 0) ns += "::";
+                    ns += namespaceStack[j];
+                }
+                std::string key = ns + "::" + name;
+                if (user_types.count(key)) {
+                    return &user_types[key];
+                }
+            }
+            
+            if (user_types.count(name)) {
+                return &user_types[name];
+            }
+            
+            return nullptr;
+        }
         std::string qualify_name(const std::string& name);
         bool is_known_type(const std::string& name) const {
             if (user_types.count(name)) return true;
