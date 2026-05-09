@@ -91,8 +91,9 @@ Quantum C favors clarity over convenience, and explicitness over brevity.
 
 ## Versioning
 
-Quantum C uses feature-based versioning during early development.
+Quantum C uses feature-based versioning
 
 - Minor version increments indicate new language features
 - Patch versions are used for bug fixes and documentation changes
 - Breaking changes may occur at any version below 2.X
+- All versions below 0.15.0 (which is all versions 12.0.0 and lower, 0.15.0 is the new versioning) are deprecated. Versions marked with a x instead of a v are new non-deprecated versions (eg x0.15.0 is a non depreacated latest version, x1.0.0 will be different from v1.0.0(first interpreter version))
