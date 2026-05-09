@@ -21,8 +21,8 @@ set(SOURCES
 add_executable(qc ${SOURCES})
 target_compile_options(qc PRIVATE
     -O0
-    -fconstexpr-ops-limit=1000000000
     -g
+    $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=1000000000>
 )
 
 if(ENABLE_LLVM)
