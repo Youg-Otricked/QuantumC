@@ -10,28 +10,55 @@
 NAMESPCACES!!!!!!!!!!
 1/27/26: Current version: 10.0.0(i missed a lot of changelogs). Multifile, more stdlib, typing, trycatch
 1/28/26: Changed power operator from ** to ^*
+5/6/26: I haven't updated this change log in FOREVER. Refactord IO to make pointers in compielr easier. Input is now `qin` instead of `std::qin`, and instead of ouptut using C++ style << and being called `std::qout`, it is called `qout`, and uses the C-style formater.
 # Features checklist (suitable for change(by adding more))
 
-- [x] User Types (
-    - [x] Structs
-    - [x] Enums
-    - [x] Unions
-    - [x] Classes
-    - [x] ~~Template~~ (Replaced by Unions)
-    - [x] Typedef
-    - [x] Namespace
-    - [x] Better scope(\:\:)
-)
-- [x] Manual Memory Managment (
-    - [x] Pointers (\*)
-    - [x] Address syntax (&)
-    - [x] Malloc
-    - [x] Free
-    - [x] Realloc
-    - [x] Calloc
-    - [x] ->
-    - [x] Deref
-)
+- Interpreter
+    - [x] User Types (
+        - [x] Structs
+          - [ ] Generics
+        - [x] Enums
+        - [x] Unions
+        - [x] Classes
+          - [ ] Generics
+        - [x] ~~Template~~ (Replaced by Unions)
+        - [x] Typedef
+        - [x] Namespace
+        - [ ] Modifier
+    )
+    - [x] Manual Memory Managment (
+        - [x] Pointers (\*)
+        - [x] Address syntax (&)
+        - [x] Malloc
+        - [x] Free
+        - [x] Realloc
+        - [x] Calloc
+        - [x] ->
+        - [x] Deref
+    )
+- Compiler
+    - [x] User Types (
+        - [x] Structs
+          - [ ] Generics
+        - [x] Enums
+        - [x] Unions
+        - [x] Classes
+          - [ ] Generics
+        - [x] ~~Template~~ (Replaced by Unions)
+        - [x] Typedef
+        - [x] Namespace
+        - [ ] Modifier
+    )
+    - [ ] Manual Memory Managment (
+        - [ ] Pointers (\*)
+        - [x] Address syntax (&)
+        - [ ] Malloc
+        - [ ] Free
+        - [ ] Realloc
+        - [ ] Calloc
+        - [ ] ->
+        - [ ] Deref
+    )
 - [x] Including other files (
     - [x] Include via namespace with syntax #include \<namespacename, path-to-file>
 )

@@ -67,9 +67,9 @@ class PrivateAndPublic {
 }
 int main() {
     PrivateAndPublic thingy = PrivateAndPublic(123, "THING");
-    // println(thingy.private_field); <- this would error
+    // qout("%n", thingy.private_field); <- this would error
     // thingy.private_changer(); <- this would also error
-    println(thingy.public_field); // OK
+    qout("%s", thingy.public_field); // OK
     thingy.thing(); // Also OK.
 }
 ```

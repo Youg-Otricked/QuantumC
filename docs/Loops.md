@@ -40,7 +40,7 @@ int main() {
     // iterating through a list
     int[] lst = [1, 2, 3, 4, 5];
     for (int i = 0; i < lst.length; i++) {
-        std::qout << lst[i] << '\n';
+        qout("%n\n", lst[i]);
     } // The loop stops once i has iterated through all indexes because i is the index as indexes start at 0
 }
 ```
@@ -50,7 +50,7 @@ Foreach loops are obviously less useful, but easier and sometimes better
 int main() {
     int[] example = [1, 56, 3, 66, 3, 2];
     foreach (int i in example) {
-        std::qout << i << '\n';
+        qout("%n\n", i);
     } // Prints all elements in the list. Exact same as iterating with for and an index.
 }
 ```

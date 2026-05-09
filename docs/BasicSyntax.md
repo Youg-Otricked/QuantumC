@@ -69,11 +69,11 @@ int main() {
 
 # Console Output
 
-The main way to output to the console in Quantum C is `std::qout`.
+The main way to output to the console in Quantum C is `qout`.
 
 Example:
 ```cpp
-std::qout << "Hello, World" << '\n';
+qout("Hello, World\n");
 ```
 
 ## Now, you can write to console the imortal words "Hello, Linus Torvalds" (you though i was gonna say `Hello, World!` didnt you)

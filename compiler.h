@@ -2218,6 +2218,7 @@ namespace tkz {
         std::vector<std::unordered_map<std::string, int>> listsStack;
         std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
         std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
+        std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
         std::unordered_map<std::string, llvm::AllocaInst*> runtimeArraySizes;
         int findUnionVariantTag(const std::string& unionName,  AnyNode& valueNode, llvm::Value* val);
         llvm::Value* storeAndGetPointer(llvm::Value* val);
@@ -2232,7 +2233,7 @@ namespace tkz {
             }
             return false;
         }
-
+        #define hasVarType(name) foundInStack(varTypesStack, name)
         #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
         #define hasList(name) foundInStack(listsStack, name)
         #define hasArrayLength(name) foundInStack(arrayLengthsStack, name)
@@ -2242,10 +2243,12 @@ namespace tkz {
         #define arrayLengths (arrayLengthsStack.back())
         #define maps (mapsStack.back())
         #define jaggedArrays (jaggedArraysStack.back())
+        #define varTypes (varTypesStack.back())
         #define arrayTypeStrings (arrayTypeStringsStack.back())
         #define findList(name) findInStack(listsStack, name)
         #define findArrayLength(name) findInStack(arrayLengthsStack, name)
         #define findMap(name) findInStack(mapsStack, name)
+        #define findVarType(name) findInStack(varTypesStack, name)
         #define findJaggedArray(name) findInStack(jaggedArraysStack, name)
         #define findArrayType(name) findInStack(arrayTypeStringsStack, name)
         void enterScope() {
@@ -2254,6 +2257,7 @@ namespace tkz {
             listsStack.push_back({});
             arrayLengthsStack.push_back({});
             mapsStack.push_back({});
+            varTypesStack.push_back({});
         }
 
        void exitScope() {
@@ -2262,6 +2266,7 @@ namespace tkz {
             listsStack.pop_back();
             arrayLengthsStack.pop_back();
             mapsStack.pop_back();
+            varTypesStack.pop_back();
         }
         llvm::Value* getCollectionLength(llvm::Value* collVal, AnyNode& collExpr);
         llvm::Value* expandSpreadIntoArrays(llvm::Value* collVal, AnyNode& collExpr, llvm::AllocaInst* argsArray, llvm::AllocaInst* typesArray, llvm::Value* startIndex);
@@ -3020,6 +3025,8 @@ namespace tkz {
                     lists[method.params[i].name.value] = getTypeCode(elemType);
                 } else if (paramType.ends_with("[]")) {
                     arrayTypeStrings[method.params[i].name.value] = paramType.substr(0, paramType.size() - 2);
+                } else {
+                    varTypes[method.params[i].name.value] = paramType;
                 }
             }
             llvm::Type* retTy = builder->getVoidTy();
@@ -3225,6 +3232,8 @@ namespace tkz {
                 } else if (paramType.ends_with("[]")) {
                     std::cerr << "DEBUG registering param: " << it->name.value << " as array\n";
                     arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
+                } else {
+                    varTypes[it->name.value] = paramType;
                 }
             }
             

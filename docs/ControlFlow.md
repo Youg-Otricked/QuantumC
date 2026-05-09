@@ -36,21 +36,21 @@ Operators are symbols you use on booleans (or non booleans) to evaluate expressi
 int main() {
     bool flag = true;
     if (flag) { // This block will run
-        std::qout << "This will run if flag is true" << '\n';
+        qout("This will run if flag is true\n");
     } else { // This won't
-        std::qout << "This block would have ran if the block above didn't run" << '\n';
+        qout("This block would have ran if the block above didn't run\n");
     }
     bool other = false;
     if (!flag) { // This block won't run because the opisite of true is false
-        std::qout << "This block won't run" << '\n';
+        qout("This block won't run\n");
     } else if (flag && other) {// This block won't run because true and false is false
-        std::qout << "This block also won't run" << '\n';
+        qout("This block also won't run\n")';
     } else { // This block runs;
         other = true;
         if (flag ^ other) {// This block won't run because other and flag are both true
-            std::qout << "This block won't run" << '\n';
+            qout("This block won't run\n");
         } else if (flag || other) { // This block runs because at least one side is true
-            std::qout << "This block runs" << '\n';
+            qout("This block runs\n");
         }
     }
 }
@@ -72,9 +72,9 @@ Why the break is after the code is because somthing called fallthrough:
 int num = 1;
 switch(num) {
     case 1:
-        std::qout << "The variable is 1" << '\n';
+        qout("The variable is 1\n");
     case 2:
-        std::qout << "The variable is 2" << '\n';
+        qout("The variable is 2\n");
 }
 ```
 In the code above, the output would be:

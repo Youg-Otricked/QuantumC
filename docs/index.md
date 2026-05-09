@@ -7,7 +7,7 @@
 int main() {
     qbool state = both;
     qif (state) {
-        std::qout << "Quantum!" << '\n';
+        qout("Quantum!\n");
     }
 }
 ```

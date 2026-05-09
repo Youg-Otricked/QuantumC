@@ -11927,13 +11927,6 @@ namespace tkz {
                     llvm::Type* lTy = lhsVal->getType();
                     llvm::Type* rTy = rhsVal->getType();
                     if (lTy != rTy) {
-                        std::string lStr, rStr;
-                        llvm::raw_string_ostream lRso(lStr), rRso(rStr);
-                        lTy->print(lRso);
-                        rTy->print(rRso);
-                        std::cerr << "DEBUG union binop type mismatch: lhs=" << lStr << " rhs=" << rStr << "\n";
-                    }
-                    if (lTy != rTy) {
                         if (lTy->isDoubleTy() || rTy->isDoubleTy()) {
                             if (!lTy->isDoubleTy()) lhsVal = lTy->isFloatTy()
                                 ? builder->CreateFPExt(lhsVal, builder->getDoubleTy())
@@ -12525,6 +12518,8 @@ namespace tkz {
                     else if (elemTy->isIntegerTy(1)) arrayTypeStrings[name] = "bool";
                     else if (elemTy->isIntegerTy(2)) arrayTypeStrings[name] = "qbool";
                     else if (elemTy->isPointerTy()) arrayTypeStrings[name] = "string";
+                } else {
+                    varTypes[fullName] = qcType;
                 }
                 
                 return nullptr;
@@ -12631,6 +12626,7 @@ namespace tkz {
                     
                     std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                     locals[fullName] = structAlloc;
+                    varTypes[fullName] = qcType;
                     return nullptr;
                 }
             }
@@ -12692,6 +12688,7 @@ namespace tkz {
                 
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = instance;
+                varTypes[fullName] = qcType;
                 return nullptr;
             }
             if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Union) {
@@ -12735,7 +12732,7 @@ namespace tkz {
                 builder->CreateStore(unionVal, unionAlloc);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = unionAlloc;
-                
+                varTypes[fullName] = qcType;
                 return nullptr;
             }
             if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Enum) {
@@ -12747,7 +12744,7 @@ namespace tkz {
                 builder->CreateStore(rhs, enumAlloc);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = enumAlloc;
-                
+                varTypes[fullName] = qcType;
                 return nullptr;
             }
             if (qcType.find("[]") != std::string::npos) {
@@ -12782,6 +12779,7 @@ namespace tkz {
                 }
                 alloc = createEntryAlloca(fullName, ty);
                 locals[fullName] = alloc;
+                varTypes[fullName] = qcType;
             } else {
                 if (auto* existingLocal = llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
                     llvm::Type* existingTy = existingLocal->getAllocatedType();
@@ -12792,6 +12790,7 @@ namespace tkz {
                         std::string uniqueName = fullName + ".shadow." + std::to_string(shadowId++);
                         alloc = createEntryAlloca(uniqueName, newTy);
                         locals[fullName] = alloc;
+                        varTypes[fullName] = qcType;
                     } else {
                         alloc = existingLocal;
                     }
@@ -13256,7 +13255,6 @@ namespace tkz {
                     else if (op == TokenType::QNOT) {
                         targetTy = builder->getIntNTy(2);
                     }
-                    
                     if (targetTy) {
                         llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
                         llvm::Value* typedPtr = builder->CreateBitCast(
@@ -13388,6 +13386,25 @@ namespace tkz {
 
                 bool isPostfix = (*unary)->is_postfix;
                 return isPostfix ? oldVal : newVal;
+            }
+            if ((*unary)->op_tok.type == TokenType::AMPERSAND) {
+                auto* varPtr = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node);
+                if (!varPtr) {
+                    cg_error((*unary)->op_tok.pos, "& only supported on variables");
+                    return nullptr;
+                }
+                std::string name = (*varPtr)->var_name_tok.value;
+                if (!locals[name] && !globals[name]) {
+                    cg_error((*unary)->op_tok.pos, "cannot & something that doesn't exist.");
+                    return nullptr;
+                }
+                if (locals[name]) {
+                    return locals[name];
+                } else {
+                    return globals[name];
+                }
+            }
+            if ((*unary)->op_tok.type == TokenType::MUL) {
             }
         }
         else if (auto fnPtr = std::get_if<std::shared_ptr<FuncDefNode>>(&node)) {
@@ -13576,7 +13593,6 @@ namespace tkz {
                 auto funcDefIt = functionDefs.find(funcName);
                 if (funcDefIt != functionDefs.end()) {
                     FuncDefNode* funcDef = funcDefIt->second.get();
-                    std::cerr << "DEBUG funcHasAutoParams: " << funcName << " = " << funcHasAutoParams(funcDef) << "\n";
                     if (funcHasAutoParams(funcDef)) {
                         std::vector<llvm::Value*> argValues;
                         std::vector<std::string> argTypes;
@@ -14005,11 +14021,6 @@ namespace tkz {
         else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                 std::string name = (*varAcc)->var_name_tok.value;
-                std::cerr << "DEBUG arrAcc emit: name=" << name
-                    << " hasList=" << hasList(name)
-                    << " hasArray=" << hasArrayType(name)
-                    << " currentNS=" << getCurrentNamespace()
-                    << "\n";
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
                     llvm::Value* alloc = resolveVariable(name);
@@ -14073,7 +14084,6 @@ namespace tkz {
                     return builder->CreateLoad(elemTy, typedPtr, "jagged_elem");
                 }
                 if (hasList(name)) {
-                    std::cout << "Generating list acc for " << name << '\n';
                     auto listIt = findList(name);
                     llvm::Value* alloc = resolveVariable(name);
                     if (!alloc) {
@@ -16160,7 +16170,7 @@ namespace tkz {
                 auto [key, val] = splitMapTypes(t); 
                 maps[param.name.value] = std::make_pair(getTypeCode(key), getTypeCode(val));
             }
-            if (t.find("[]") != std::string::npos) {
+            else if (t.find("[]") != std::string::npos) {
                 int dims = 0;
                 size_t pos = t.find("[]");
                 while (pos != std::string::npos) {
@@ -16176,6 +16186,8 @@ namespace tkz {
                     std::string base = t.substr(0, t.find("[]"));
                     arrayTypeStrings[param.name.value] = base;
                 }
+            } else {
+                varTypes[param.name.value] = t;
             }
 
             idx++;
@@ -16250,8 +16262,11 @@ namespace tkz {
         }
         else if (auto qout = std::get_if<std::unique_ptr<QOutExprNode>>(&node)) {
             for (auto& valNode : (*qout)->values) {
+                bool hasName = false;
+                std::string name = "";
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&valNode)) {
-                    std::string name = (*varAccess)->var_name_tok.value;
+                    hasName = true;
+                    name = (*varAccess)->var_name_tok.value;
                     if (hasJaggedArray(name)) {
                         auto jagIt = findJaggedArray(name);
                         auto it = locals.find(name);
@@ -16405,7 +16420,7 @@ namespace tkz {
                         }
                         
                         llvm::Type* memberTy = llvmTypeFor(typeStr);
-                        llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                        llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                         llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr);
                         if (memberTy->isIntegerTy(32)) {
                             llvm::Function* printFn = module->getFunction("qc_print_int");
@@ -16438,10 +16453,41 @@ namespace tkz {
                             llvm::Function* printFn = module->getFunction("qc_print_char");
                             builder->CreateCall(printFn, {loaded});
                         } else if (memberTy->isPointerTy()) {
-                            llvm::Value* strPtr = builder->CreateBitCast(payload, memberTy);
-                            
-                            llvm::Function* printFn = module->getFunction("qc_print_string");
-                            builder->CreateCall(printFn, {strPtr});
+                            if (typeStr == "string") {
+                                llvm::Function* fn = module->getFunction("qc_print_string");
+                                if (!fn) {
+                                    auto* i8Ptr = llvm::PointerType::get(context, 0);
+                                    auto* fty = llvm::FunctionType::get(
+                                        builder->getVoidTy(),
+                                        { i8Ptr },
+                                        false
+                                    );
+                                    fn = llvm::Function::Create(
+                                        fty,
+                                        llvm::Function::ExternalLinkage,
+                                        "qc_print_string",
+                                        module.get()
+                                    );
+                                }
+                                builder->CreateCall(fn, {payload});
+                            } else {
+                                llvm::Function* printFn = module->getFunction("qc_print_ptr");
+                                if (!printFn) {
+                                    auto* i8Ptr = llvm::PointerType::get(context, 0);
+                                    auto* fty = llvm::FunctionType::get(
+                                        builder->getVoidTy(),
+                                        { i8Ptr },
+                                        false
+                                    );
+                                    printFn = llvm::Function::Create(
+                                        fty,
+                                        llvm::Function::ExternalLinkage,
+                                        "qc_print_ptr",
+                                        module.get()
+                                    );
+                                }
+                                builder->CreateCall(printFn, {payload});
+                            }
                         }
                         
                         builder->CreateBr(endBB);
@@ -16645,22 +16691,78 @@ namespace tkz {
                     });
                 }
                 else if (ty->isPointerTy()) {
-                    llvm::Function* fn = module->getFunction("qc_print_string");
-                    if (!fn) {
-                        auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { i8Ptr },
-                            false
-                        );
-                        fn = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_string",
-                            module.get()
-                        );
+                    if (hasName) {
+                        std::string type = varTypes[name];
+                        if (type == "string") {
+                            llvm::Function* fn = module->getFunction("qc_print_string");
+                            if (!fn) {
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
+                                auto* fty = llvm::FunctionType::get(
+                                    builder->getVoidTy(),
+                                    { i8Ptr },
+                                    false
+                                );
+                                fn = llvm::Function::Create(
+                                    fty,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_print_string",
+                                    module.get()
+                                );
+                            }
+                            builder->CreateCall(fn, { v });
+                        } else {
+                            llvm::Function* printFn = module->getFunction("qc_print_ptr");
+                            if (!printFn) {
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
+                                auto* fty = llvm::FunctionType::get(
+                                    builder->getVoidTy(),
+                                    { i8Ptr },
+                                    false
+                                );
+                                printFn = llvm::Function::Create(
+                                    fty,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_print_ptr",
+                                    module.get()
+                                );
+                            }
+                            builder->CreateCall(printFn, { v });
+                        }
+                    } else if (std::holds_alternative<StringNode>((valNode))) {
+                        llvm::Function* printFn = module->getFunction("qc_print_string");
+                        if (!printFn) {
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fty = llvm::FunctionType::get(
+                                builder->getVoidTy(),
+                                { i8Ptr },
+                                false
+                            );
+                            printFn = llvm::Function::Create(
+                                fty,
+                                llvm::Function::ExternalLinkage,
+                                "qc_print_string",
+                                module.get()
+                            );
+                        }
+                        builder->CreateCall(printFn, { v });
+                    } else {
+                        llvm::Function* printFn = module->getFunction("qc_print_ptr");
+                        if (!printFn) {
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fty = llvm::FunctionType::get(
+                                builder->getVoidTy(),
+                                { i8Ptr },
+                                false
+                            );
+                            printFn = llvm::Function::Create(
+                                fty,
+                                llvm::Function::ExternalLinkage,
+                                "qc_print_ptr",
+                                module.get()
+                            );
+                        }
+                        builder->CreateCall(printFn, { v });
                     }
-                    builder->CreateCall(fn, { v });
                 }
                 else {
                     cg_error(Position(), "std::qout: unsupported type in compiled mode");
@@ -17769,11 +17871,6 @@ namespace tkz {
             if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*arrAssign)->array_access)) {
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
-                    std::cerr << "DEBUG arrAssign emit: name=" << name
-                        << " hasList=" << hasList(name)
-                        << " hasArray=" << hasArrayType(name)
-                        << " currentNS=" << getCurrentNamespace()
-                        << "\n";
                     if (hasJaggedArray(name)) {
                         auto jagIt = findJaggedArray(name);
                         auto it = locals.find(name);
@@ -18180,9 +18277,9 @@ namespace tkz {
                 llvm::Function* getFn = module->getFunction("qc_list_get");
                 if (!getFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         { 
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             builder->getInt32Ty()
                         },
                         false
@@ -18195,11 +18292,15 @@ namespace tkz {
                     );
                 }
                 llvm::Value* elemPtr = builder->CreateCall(getFn, { collVal, iVal }, "elem_ptr");
-                llvm::Value* typedPtr = builder->CreateBitCast(
-                    elemPtr,
-                    llvm::PointerType::get(elemTy, 0) // elemTy is ptr (char*)
-                );
-                elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
+                if ((*foreach)->elem_type.value == "string") {
+                    elemVal = elemPtr;
+                } else {
+                    llvm::Value* typedPtr = builder->CreateBitCast(
+                        elemPtr,
+                        llvm::PointerType::get(elemTy, 0)
+                    );
+                    elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
+                }
             }
             
             builder->CreateStore(elemVal, elemAlloc);
@@ -18361,6 +18462,8 @@ namespace tkz {
         arrayLengthsStack.push_back({});
         mapsStack.clear();
         mapsStack.push_back({});
+        varTypesStack.clear();
+        varTypesStack.push_back({});
         
         createUserTypes();
         
@@ -18374,6 +18477,7 @@ namespace tkz {
                         llvm::GlobalValue::InternalLinkage,
                         llvm::Constant::getNullValue(ty), fullName);
                     globals[fullName] = gv;
+                    varTypes[fullName] = (*va)->type_tok.value;
                 }
                 else if (auto nested = std::get_if<std::unique_ptr<NamespaceNode>>(&decl)) {
                     createGlobals(**nested);
@@ -18393,6 +18497,7 @@ namespace tkz {
                     llvm::GlobalValue::InternalLinkage,
                     llvm::Constant::getNullValue(ty), name);
                 globals[name] = gv;
+                varTypes[name] = (*va)->type_tok.value;
             }
         }
         std::function<void(NamespaceNode&)> scanAutoFunctions = [&](NamespaceNode& ns) {
@@ -18452,7 +18557,6 @@ namespace tkz {
             for (auto& decl : ns.body) {
                 if (auto fn = std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
                     if ((*fn)->name_tok.has_value()) {
-                        std::cerr << "DEBUG funcHasAutoParams: " << (*fn)->name_tok.value().value << " = " << funcHasAutoParams(&(*(*fn))) << "\n";
                         if (!funcHasAutoParams(fn->get())) {
                             emitFuncDef(**fn);
                         }
@@ -18523,8 +18627,9 @@ namespace tkz {
                 auto oldClassName = currentClassName;
                 auto oldFunction = currentFunction;
                 std::unordered_map<std::string, llvm::AllocaInst*> oldLocals = locals;
-                
+                enterScope();
                 currentThis = fn->getArg(0);
+                varTypes["this"] = className;
                 currentClassName = className;
                 currentFunction = fn;
                 
@@ -18535,6 +18640,7 @@ namespace tkz {
                     llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
                     builder->CreateStore(fn->getArg(i + 1), alloc);
                     locals[param.name.value] = alloc;
+                    varTypes[param.name.value] = resolvedType;
                 }
                 
                 size_t bodyStartIdx = 0;
@@ -18584,6 +18690,7 @@ namespace tkz {
                 currentClassName = oldClassName;
                 currentFunction = oldFunction;
                 locals = oldLocals;
+                exitScope();
             }
             
             if (!info.namespace_path.empty()) {

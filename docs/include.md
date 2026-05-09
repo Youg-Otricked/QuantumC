@@ -16,13 +16,11 @@ namespace Exported {
 
 Let me break this down step-by-step. First, the line that actualy includes: `#include`.
 
-In Quantum C you do not include files. instead, you include _namespaces_ FROM files. You cannot include code from the global scope in Quanrum C, like the main function. You can only include namespaces from files.
+In Quantum C you do not include files. instead, you include _namespaces_ FROM files. You cannot include code from the global scope in Quantum C, like the main function. You can only include namespaces from files.
 
 Now, there are _Certanly_ at least 2 people saying _"Oh but what if we want to use the global scope instead of this namespace for X or Y reason, like DRY code?_". Quantum C has a answer for this. Introducing, the Exported namespace.
 
-The exported namespace is a top level namespace _That's right **Top level**. That means that you **really should** put the exported namespace without nesting._ This is because it breaks all forms of nesting and dependancy logic (in the interpreter), so it should be the **First thing** in the file. Not the first top level thing: the **FIRST THING** What goes in the exported namespace, you may ask? The answer is 3 things.
-- Global variables (semi global. You access them with Exported::thing) (try to avoid this)
-- Global functions (same as above) (try to avoid this)
+The exported namespace is a top level namespace _That's right **Top level**. That means that you **really should** put the exported namespace without nesting._ This is because it breaks all forms of nesting and dependancy logic (in the interpreter), so it should be the **First thing** in the file. Not the first top level thing: the **FIRST THING** What goes in the exported namespace, you may ask? The answer is 1 thing.
 - Include statements.
 
 Just to restate this:
@@ -32,10 +30,9 @@ The `Exported` namespace _**MUST**_:
 - NOT be nested in any other namespaces
 
 The `Exported` namespace should _**only** contain_:
-- Global variables (E.G: `Exported::name`)
-- Global functions (E.G: `Exported::get_stats()`)
 - `#include` statements
 
+It must be first because if you use a dependancy BEFORE it's incldued, then it won't be defined.
 The exported namespace is _**Automatically merged with your exported namespace on include and run**_, and collisions are last-defined-wins (hence avoiding vars/functions in exported namespace)
 The reason for include statments going in the exported namespace? Dependancys. Let's say we have 3 files.
 

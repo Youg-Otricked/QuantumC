@@ -372,7 +372,6 @@ int main() {
         std::qout << y << " ";
     }
     println("");
-    
     println("List pop:");
     myList.pop();
     std::qout << myList.length << '\n';
@@ -1696,5 +1695,13 @@ int main() {
     list<auto> inferedlist = [1.0, 2.0];
     println(f"{typeof(infferedarr)}, {typeof(inferedlist)}");
     println(to_string(infferedarr[0]));
+    println("How the hell did i not test string lists:");
+    list<string> imDum = ["Hello", "World"];
+    imDum.push("How am i so dumb");
+    imDum.pop();
+    imDum.push("BRO");
+    foreach (string c in imDum) {
+        println(c);
+    }
     return x + sum + xdddddddd + twice(22);
 }

@@ -19,9 +19,9 @@
 int main() {
     qbool flag = both;
     qif (flag) {
-        println("Flag is true");
+        qout("Flag is true");
     } qelse {
-        println("Flag is false");
+        qout("Flag is false");
     }
 }
 ```

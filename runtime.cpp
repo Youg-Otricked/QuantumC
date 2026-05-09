@@ -17,6 +17,9 @@ extern "C" {
         }
         return result;
     }
+    void qc_print_ptr(void* p) {
+        printf("%p\n", p);
+    }
     char* qc_string_concat(const char* a, const char* b) {
         if (!a) a = "";
         if (!b) b = "";
@@ -764,19 +767,21 @@ extern "C" {
             list->capacity *= 2;
             list->data = (void**)realloc(list->data, list->capacity * sizeof(void*));
         }
-        
+
         if (elem_type <= 5) {
             int size = sizeof_type(elem_type);
             void* copy = malloc(size);
             memcpy(copy, elem, size);
             list->data[list->size++] = copy;
         } else {
-            list->data[list->size++] = elem;
+            list->data[list->size++] = *(void**)elem;
         }
     }
+
     void qc_list_set(void* list_ptr, int index, void* value) {
         qc_list* list = (qc_list*)list_ptr;
         if (index < 0 || index >= list->size) return;
+
         if (list->elem_type <= 5) {
             int size = sizeof_type(list->elem_type);
             void* copy = malloc(size);
@@ -784,7 +789,7 @@ extern "C" {
             free(list->data[index]);
             list->data[index] = copy;
         } else {
-            list->data[index] = value;
+            list->data[index] = *(void**)value;
         }
     }
     void* qc_list_get(qc_list* list, int index) {

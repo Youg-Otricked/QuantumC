@@ -120,9 +120,9 @@ Quantum C is the **world's second quantum programming language _(at least, that 
 qbool qb = both;  // Superposition! Both true AND false!
 
 qif (qb) {
-    println("True path");   // Executes!
+    qout("True path");   // Executes!
 } qelse {
-    println("False path");  // ALSO executes!
+    qout("False path");  // ALSO executes!
 }
 ```
 ---
@@ -161,7 +161,7 @@ int, string GetStatus() {
 }
 int main() {
     int code, string alias = GetStatus();
-    std::qout << f"Code: {code}, AKA: {alias}" << '\n';
+    qout(f"Code: {code}, AKA: {alias}\n);
     return 0;
 }
 ```
@@ -170,7 +170,7 @@ int main() {
 int main() {
     int* ptr = malloc(sizeof("int"));
     *ptr = 42;
-    println(*ptr); 
+    qout("%p", *ptr); 
     free(ptr);
 }
 ```

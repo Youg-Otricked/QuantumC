@@ -21,14 +21,14 @@ class Base {
         this.x = x;
     }
     void say_x() {
-        println(f"Base x = {x}");
+        qout(f"Base x = {x}");
     }
 }
 
 class Child : Base {
     int y;
     void say_xy() {
-        println(f"x = {this.x}, y = {this.y}");
+        qout(f"x = {this.x}, y = {this.y}");
     }
 }
 ```
@@ -92,13 +92,13 @@ A child can define a method with the same name as the parent’s method to “ov
 ```cpp
 class Animal {
     void speak() {
-        println("Some animal noise");
+        qout("Some animal noise");
     }
 }
 
 class Dog : Animal {
     void speak() {
-        println("Woof!");
+        qout("Woof!");
     }
 }
 
