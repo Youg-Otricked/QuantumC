@@ -187,8 +187,6 @@ Options:
   -v, --version       Show version information
   -h, --help          Show this help message
   -id, --interpreter-demo Run the demo file (syntax.qc) (note that for this to work you must run the install script)
-  -lt, --loose-types  Enable loose type checking
-  -nc, --no-context   Disable context tracking
   -a, --ast           Print the AST (Abstract Syntax Tree)
   -tkn, --tokens      Print the token stream
   -t, --time          Show compilation time
@@ -204,12 +202,9 @@ Options:
   -d, --debug         Adds debug symbols
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
-  // @no-context == -nc
-  // @looser-types == -lt
   // @print-ast == -a
   // @print-tokens == -tkn
   // @show-time == -t
-  // @quiet == -q
   // @raw-ast == -r
   // @bst-ast == -b
   quiet silences non debug output

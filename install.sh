@@ -44,7 +44,7 @@ install_deps() {
             exit 1
         fi
     elif [[ "$OS" == "macos" ]]; then
-        brew install llvm libffi pkg-config cmake
+        brew install llvm@21 libffi pkg-config cmake
         echo -e "${YELLOW}Set LLVM_DIR manually, see README${NC}"
     fi
 }
@@ -81,7 +81,7 @@ if [ ! -f "compiler.cpp" ]; then
 fi
 rm -rf CMakeCache.txt CMakeFiles
 cmake .
-cmake --build . -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu) 2>build.log
+cmake --build . -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4) 2>build.log
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Compilation failed!${NC}"
@@ -110,20 +110,36 @@ echo -e "${GREEN}qc installed to ~/.qc/bin/${NC}"
 echo ""
 
 SHELL_RC=""
-SHELL_RC="$HOME/.$(basename $SHELL)rc"
+case "$SHELL" in
+    */bash)  SHELL_RC="$HOME/.bashrc" ;;
+    */zsh)   SHELL_RC="$HOME/.zshrc" ;;
+    */fish)  SHELL_RC="$HOME/.config/fish/config.fish" ;;
+    */ksh)   SHELL_RC="$HOME/.kshrc" ;;
+    */dash)  SHELL_RC="$HOME/.profile" ;;
+    *)       SHELL_RC="$HOME/.profile" ;;
+esac
 if [ -n "$SHELL_RC" ]; then
     if grep -q "# QC Compiler" "$SHELL_RC"; then
         echo -e "${YELLOW}Removing old QC configuration...${NC}"
         grep -v "# QC Compiler\|QC_STDLIB\|QC_INTERP_TEST\|\.qc/bin" "$SHELL_RC" > "${SHELL_RC}.tmp"
         mv "${SHELL_RC}.tmp" "$SHELL_RC"
     fi
-    
-    echo "" >> "$SHELL_RC"
-    echo "# QC Compiler" >> "$SHELL_RC"
-    echo "export QC_STDLIB=\"$QC_LIB/stdlib.qc\"" >> "$SHELL_RC"
-    echo "export QC_INTERP_TEST=\"$QC_LIB/syntax.qc\"" >> "$SHELL_RC"
-    echo "export PATH=\"\$HOME/.qc/bin:\$PATH\"" >> "$SHELL_RC"
-    echo -e "${GREEN}Added QC_STDLIB to $SHELL_RC${NC}"
+    if [[ "$SHELL" == */fish ]]; then
+        echo "WHY FISH? THIS IS A SPECIAL CASE BECUASE ITS SO WEIRD"
+        echo "" >> "$SHELL_RC"
+        echo "# QC Compiler" >> "$SHELL_RC"
+        echo "set -x QC_STDLIB \"$QC_LIB/stdlib.qc\"" >> "$SHELL_RC"
+        echo "set -x QC_INTERP_TEST \"$QC_LIB/syntax.qc\"" >> "$SHELL_RC"
+        echo "fish_add_path \"$HOME/.qc/bin\"" >> "$SHELL_RC"
+        echo -e "${GREEN}Added QC_STDLIB to $SHELL_RC${NC}"
+    else
+        echo "" >> "$SHELL_RC"
+        echo "# QC Compiler" >> "$SHELL_RC"
+        echo "export QC_STDLIB=\"$QC_LIB/stdlib.qc\"" >> "$SHELL_RC"
+        echo "export QC_INTERP_TEST=\"$QC_LIB/syntax.qc\"" >> "$SHELL_RC"
+        echo "export PATH=\"\$HOME/.qc/bin:\$PATH\"" >> "$SHELL_RC"
+        echo -e "${GREEN}Added QC_STDLIB to $SHELL_RC${NC}"
+    fi
 fi
 
 export PATH="$HOME/.qc/bin:$PATH"

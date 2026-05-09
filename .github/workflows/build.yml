@@ -3,13 +3,31 @@ name: Build Quantum C
 on:
   push:
     branches: [ master ]
-    tags:
-      - 'v*'
-  pull_request:
-    branches: [ master ]
+    paths:
+      - 'version.txt'
 
 jobs:
+  tag:
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      outputs:
+        version: ${{ steps.get_version.outputs.version }}
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Get version
+          id: get_version
+          run: echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+        
+        - name: Create tag
+          run: |
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git tag ${{ steps.get_version.outputs.version }}
+            git push origin ${{ steps.get_version.outputs.version }}
   build-linux:
+    needs: [tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +53,7 @@ jobs:
           path: qc-linux
 
   build-macos:
+    needs: [tag]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,6 +75,7 @@ jobs:
           name: qc-macos
           path: qc-macos
   upload-extras:
+    needs: [tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +97,7 @@ jobs:
   # windows not supported
 
   build-wasm:
+    needs: [tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,8 +119,8 @@ jobs:
             qc.wasm
             stdlib.qc
             qc.data  
-  deploy-to-website:
-    needs: build-wasm
+  deploy-to-website:  
+    needs: [build-wasm, tag]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
@@ -132,7 +153,8 @@ jobs:
           git commit -m "Update Quantum C compiler [automated]" || echo "No changes to commit"
           git push
   release:
-    needs: [build-linux, build-macos, upload-extras]
+    needs: [tag, build-linux, build-macos, upload-extras]
+    if: always() && needs.tag.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -144,6 +166,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ needs.tag.outputs.version }}
           files: |
             qc-linux/qc-linux
             qc-macos/qc-macos
