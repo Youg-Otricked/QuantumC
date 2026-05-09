@@ -6,7 +6,7 @@
 
 ## Including
 
-Ok, time to info dump. Quantum C has a _**Very confusing**_ but _Very **Intresting** and **Very Powerfull**_ include system.
+Ok, time to info dump. Quantum C has a _**Very confusing**_ but _Very **Intresting** and **Very Powerful**_ include system.
 In Quantum C, you include with the syntax:
 ```cpp
 namespace Exported {
@@ -18,7 +18,7 @@ Let me break this down step-by-step. First, the line that actualy includes: `#in
 
 In Quantum C you do not include files. instead, you include _namespaces_ FROM files. You cannot include code from the global scope in Quantum C, like the main function. You can only include namespaces from files.
 
-Now, there are _Certanly_ at least 2 people saying _"Oh but what if we want to use the global scope instead of this namespace for X or Y reason, like DRY code?_". Quantum C has a answer for this. Introducing, the Exported namespace.
+Now, there are _Certanly_ at least 2 people saying _"Oh but what if we want to use the global scope instead of this namespace for X or Y reason, like DRY code?_". Quantum C has an answer for this. Introducing, the Exported namespace.
 
 The exported namespace is a top level namespace _That's right **Top level**. That means that you **really should** put the exported namespace without nesting._ This is because it breaks all forms of nesting and dependancy logic (in the interpreter), so it should be the **First thing** in the file. Not the first top level thing: the **FIRST THING** What goes in the exported namespace, you may ask? The answer is 1 thing.
 - Include statements.
