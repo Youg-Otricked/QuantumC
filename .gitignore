@@ -25,3 +25,6 @@ qc-*
 # Ignore IDE files
 .vscode/
 .idea/
+CMakeCache.txt
+CMakeFiles/
+qc
