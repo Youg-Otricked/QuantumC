@@ -22,7 +22,7 @@
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
-
+const std::string ver = "x0.15.1";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -87,6 +87,9 @@ int main(int argc, char* argv[]) {
         std::string arg = argv[i];
         if (arg == "--no-context" || arg == "-nc") {
             config.use_context = false;
+        } else if (arg == "--silent-version" || arg == "-sv") {
+            std::cout << ver << '\n';
+            return 0;
         } else if (arg == "--version" || arg == "-v") {
             std::ifstream file("logo.txt");
             if (file.is_open()) {
@@ -107,13 +110,14 @@ int main(int argc, char* argv[]) {
 `8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.         `8 888       .8' 
  ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.           888     ,88'  
     `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.          `888888P'  
-        Quantum C (C⁴) v0.15.0
+        Quantum C (C⁴) )" << ver << R"(
 
         The 4th Evolution of C
         More Powerful Than Explosives
         Now on a higher version than Geometry Dash
         Now officaly past version 1(byte)
         ITS OVER... NINE.
+        Yes it did drop from 12.0.0 to 0.15.1 i forgor to put a 0. before 12
         Features:
         ✓ C++ Performance -- without the 20 #includes
         ✓ C# Ergonomics  
@@ -179,7 +183,7 @@ int main(int argc, char* argv[]) {
             config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Compiler v0.15.0
+Quantum C Compiler)" << ver << R"(
 
 Usage: ./qc [options] <file>
 
@@ -200,6 +204,7 @@ Options:
   -o, --output        Specift output file for compilation (defaults to a.out)
   -co, --compile-only Only compile to llvm, don't do anything else
   -d, --debug         Adds debug symbols
+  -sv, --silent-version Print just the version without the rest of the version output
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @print-ast == -a
@@ -225,7 +230,7 @@ Examples:
         
         // REPL mode
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL v0.15.0" << RESET << std::endl;
+        std::cout << GREEN << "Quantum C REPL " << ver << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;

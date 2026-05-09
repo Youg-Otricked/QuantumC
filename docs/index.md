@@ -88,12 +88,20 @@ Quantum C favors clarity over convenience, and explicitness over brevity.
 - Quantum C does not auto-correct ambiguous logic
 - Quantum C does not _make_ ambiguous logic
 - Quantum C does not _allow_ ambiguous logic
-
+`
 ## Versioning
 
-Quantum C uses feature-based versioning
+Quantum C  uses a feature-based versioning scheme.
 
-- Minor version increments indicate new language features
-- Patch versions are used for bug fixes and documentation changes
-- Breaking changes may occur at any version below 2.X
-- All versions below 0.15.0 (which is all versions 12.0.0 and lower, 0.15.0 is the new versioning) are deprecated. Versions marked with a x instead of a v are new non-deprecated versions (eg x0.15.0 is a non depreacated latest version, x1.0.0 will be different from v1.0.0(first interpreter version))
+- Minor versions indicate new language features
+- Patch versions indicate bug fixes and documentation changes
+
+### Legacy Versions
+
+All legacy `v*` versions are deprecated. This includes the old release line up to `v12.0.0`.
+
+### Current Versions
+
+The current release line starts at `x0.15.0`.
+
+Current `x*` versions are the non-deprecated versions going forward. For example, `x1.0.0` is part of the current version line and is distinct from the old legacy `v1.0.0`.`
