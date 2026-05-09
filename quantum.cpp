@@ -107,6 +107,7 @@ int main(int argc, char* argv[]) {
  ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.           888     ,88'  
     `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.          `888888P'  
         Quantum C (C⁴) v12.0.0
+        NOTE: The interpreter only version of QuantumC is OFFICIALY DEPRICATED.
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -146,7 +147,7 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--help" || arg == "-h") {
         std::cout << GREEN << R"(
 Quantum C Interpreter v12.0.0
-
+NOTE: The interpreter only version of QuantumC is OFFICIALY DEPRICATED.
 Usage: ./qc [options] <file>
 
 Options:

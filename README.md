@@ -41,7 +41,6 @@ After installing, or clone the repo directly then do
 cd QuantumC
 chmod +x install.sh
 ./install.sh
-# type_your_sudo_password (it moves the binary into /usr/local/bin/ and also moves the stdli9b into /usr/local/QC/, along with the demo script)
 # Now, you can type
 qc [flags] (filepath)
 # to run a file
@@ -61,7 +60,7 @@ See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
 # Development Status
 
 strikthrough = done
-Current Version: v15.0.0 = "Compiler Is Mostly Done"
+Current Version: v0.15.0 = "Compiler Is Mostly Done" (aparantly i've been using 15 instead of 0.15 OOPS)
 
 ## Feature Roadmap
 
@@ -194,11 +193,7 @@ int main() {
 int main() {
     int* ptr = malloc(sizeof("int"));
     *ptr = 42;
-<<<<<<< HEAD
     qout("%p", *ptr); 
-=======
-    println(*ptr);
->>>>>>> b78a7e8022674d545948f0345114243cfda2496b
     free(ptr);
 }
 ```

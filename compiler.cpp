@@ -19993,7 +19993,11 @@ std::string preprocess_includes(const std::string& source, const std::string& cu
         
         std::string full_path;
         if (path == "std") {
-            full_path = "/usr/share/qc/stdlib.qc";
+            const char* home = std::getenv("QC_STDLIB");
+            if (!home) {
+                throw std::runtime_error("QC_STDLIB environment variable not set");
+            }
+            full_path = std::string(home);
         } else {
             full_path = resolve_path(current_file, path);
         }

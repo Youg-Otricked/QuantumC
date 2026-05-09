@@ -19,6 +19,7 @@ test.text
 *.o
 *.out
 qc
+
 qc-linux
 qc-*
 # Ignore IDE files

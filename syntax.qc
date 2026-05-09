@@ -1415,7 +1415,7 @@ int main() {
     rq = realloc(rq, sizeof("int"));   // or just some positive size
     t.AssertEqual(7, *rq, "realloc on scalar keeps value", "*rq after realloc");
     // END OF DEMO
-    // All features shown above are working in Quantum C v12.0.0!
+    // All features shown above are working in Quantum C v0.15.0!
     //==============================================================================
     return res;
 }

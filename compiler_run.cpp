@@ -10,6 +10,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <cstdlib>
 #define RESET   "\033[0m"
 #define RED     "\033[31m"
 #define GREEN   "\033[32m"
@@ -106,7 +107,7 @@ int main(int argc, char* argv[]) {
 `8 8888       ;8P  ` 8888     ,8P .8'   `8. `88888.   8      `Y8o. `Y8       8 8888       ` 8888     ,8P ,8'     `8.`'     `8.`8888.         `8 888       .8' 
  ` 8888     ,88'8.   8888   ,d8P .888888888. `88888.  8         `Y8o.`       8 8888         8888   ,d8P ,8'       `8        `8.`8888.           888     ,88'  
     `8888888P'  `8.   `Y88888P' .8'       `8. `88888. 8            `Yo       8 8888          `Y88888P' ,8'         `         `8.`8888.          `888888P'  
-        Quantum C (C⁴) v12.0.0
+        Quantum C (C⁴) v0.15.0
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -126,8 +127,13 @@ int main(int argc, char* argv[]) {
             return 0;
         } else if (arg == "--loose-types" || arg == "-lt") {
             config.looser_types = true;
-        } else if (arg == "--demo" || arg == "-d") {
-            filename = "/usr/local/QC/syntax.qc";
+        } else if (arg == "--interp-demo" || arg == "-id") {
+            const char* demo = std::getenv("QC_INTERP_TEST");
+            if (!demo) {
+                std::cerr << RED << "QC_INTERP_TEST not set, run install script\n" << RESET;
+                return 1;
+            }
+            filename = demo;
         } else if (arg == "--ast" || arg == "-a") {
             config.print_ast = true;
         } else if (arg == "--quiet" || arg == "-q") {
@@ -173,14 +179,14 @@ int main(int argc, char* argv[]) {
             config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Compiler v12.0.0
+Quantum C Compiler v0.15.0
 
 Usage: ./qc [options] <file>
 
 Options:
   -v, --version       Show version information
   -h, --help          Show this help message
-  -d, --demo          Run the demo file (syntax.qc) (note that for this to work you must run the install script)
+  -id, --interpreter-demo Run the demo file (syntax.qc) (note that for this to work you must run the install script)
   -lt, --loose-types  Enable loose type checking
   -nc, --no-context   Disable context tracking
   -a, --ast           Print the AST (Abstract Syntax Tree)
@@ -209,7 +215,7 @@ In Code:
   quiet silences non debug output
 Examples:
   qc main.qc          Run main.qc
-  qc -d               Run the demo
+  qc -id              Run the demo
   qc -v               Show version
   qc --ast test.qc    Show AST for test.qc
             )" << RESET << std::endl;
@@ -224,7 +230,7 @@ Examples:
         
         // REPL mode
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL v12.0.0" << RESET << std::endl;
+        std::cout << GREEN << "Quantum C REPL v0.15.0" << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) {
             std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
@@ -333,7 +339,7 @@ Examples:
                 code_buffer.clear();
                 std::cout << YELLOW << "[Buffer cleared]" << RESET << std::endl;
             } else if (line.rfind("!@set ", 0) == 0) {
-                std::string rest = line.substr(5);
+                std::string rest = line.substr(6);
                 auto eq = rest.find('=');
                 if (eq == std::string::npos) {
                     std::cout << RED << "Usage: !@set flag=0|1\n" << RESET;

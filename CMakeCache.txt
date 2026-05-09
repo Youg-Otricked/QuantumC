@@ -53,6 +53,32 @@ CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 //Flags used by the CXX compiler during RELWITHDEBINFO builds.
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 
+//C compiler
+CMAKE_C_COMPILER:FILEPATH=/usr/bin/cc
+
+//A wrapper around 'ar' adding the appropriate '--plugin' option
+// for the GCC compiler
+CMAKE_C_COMPILER_AR:FILEPATH=/usr/bin/gcc-ar-15
+
+//A wrapper around 'ranlib' adding the appropriate '--plugin' option
+// for the GCC compiler
+CMAKE_C_COMPILER_RANLIB:FILEPATH=/usr/bin/gcc-ranlib-15
+
+//Flags used by the C compiler during all build types.
+CMAKE_C_FLAGS:STRING=
+
+//Flags used by the C compiler during DEBUG builds.
+CMAKE_C_FLAGS_DEBUG:STRING=-g
+
+//Flags used by the C compiler during MINSIZEREL builds.
+CMAKE_C_FLAGS_MINSIZEREL:STRING=-Os -DNDEBUG
+
+//Flags used by the C compiler during RELEASE builds.
+CMAKE_C_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
+
+//Flags used by the C compiler during RELWITHDEBINFO builds.
+CMAKE_C_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
+
 //Path to a program.
 CMAKE_DLLTOOL:FILEPATH=CMAKE_DLLTOOL-NOTFOUND
 
@@ -222,6 +248,12 @@ LIBXML2_XMLLINT_EXECUTABLE:FILEPATH=LIBXML2_XMLLINT_EXECUTABLE-NOTFOUND
 //The directory containing a CMake configuration file for LLVM.
 LLVM_DIR:PATH=/usr/lib/llvm-21/cmake
 
+//Path to a file.
+LibEdit_INCLUDE_DIRS:PATH=/usr/include
+
+//Path to a library.
+LibEdit_LIBRARIES:FILEPATH=/usr/lib/x86_64-linux-gnu/libedit.so
+
 //Arguments to supply to pkg-config
 PKG_CONFIG_ARGN:STRING=
 
@@ -239,9 +271,6 @@ ZLIB_LIBRARY_RELEASE:FILEPATH=/usr/lib/x86_64-linux-gnu/libz.so
 
 //Path to a library.
 pkgcfg_lib_FFI_ffi:FILEPATH=/usr/lib/x86_64-linux-gnu/libffi.so
-
-//Path to a library.
-pkgcfg_lib_LibEdit_edit:FILEPATH=/usr/lib/x86_64-linux-gnu/libedit.so
 
 //Path to a library.
 pkgcfg_lib_PC_CURL_curl:FILEPATH=/usr/lib/x86_64-linux-gnu/libcurl.so
@@ -314,6 +343,22 @@ CMAKE_CXX_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_CXX_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_CXX_FLAGS_RELWITHDEBINFO
 CMAKE_CXX_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_COMPILER
+CMAKE_C_COMPILER-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_COMPILER_AR
+CMAKE_C_COMPILER_AR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_COMPILER_RANLIB
+CMAKE_C_COMPILER_RANLIB-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_FLAGS
+CMAKE_C_FLAGS-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_FLAGS_DEBUG
+CMAKE_C_FLAGS_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_FLAGS_MINSIZEREL
+CMAKE_C_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_FLAGS_RELEASE
+CMAKE_C_FLAGS_RELEASE-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_FLAGS_RELWITHDEBINFO
+CMAKE_C_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_DLLTOOL
 CMAKE_DLLTOOL-ADVANCED:INTERNAL=1
 //Executable file format
@@ -459,11 +504,11 @@ FFI_libffi_LIBDIR:INTERNAL=
 FFI_libffi_PREFIX:INTERNAL=
 FFI_libffi_VERSION:INTERNAL=
 //Details about finding CURL
-FIND_PACKAGE_MESSAGE_DETAILS_CURL:INTERNAL=[/usr/lib/x86_64-linux-gnu/libcurl.so][/usr/include/x86_64-linux-gnu][ ][v8.20.0-rc3()]
+FIND_PACKAGE_MESSAGE_DETAILS_CURL:INTERNAL=[/usr/lib/x86_64-linux-gnu/libcurl.so][/usr/include/x86_64-linux-gnu][ ][v8.20.0()]
 //Details about finding FFI
 FIND_PACKAGE_MESSAGE_DETAILS_FFI:INTERNAL=[ffi][1][v()]
 //Details about finding LibEdit
-FIND_PACKAGE_MESSAGE_DETAILS_LibEdit:INTERNAL=[/usr/include;/usr/include/editline][edit][v()]
+FIND_PACKAGE_MESSAGE_DETAILS_LibEdit:INTERNAL=[/usr/include][/usr/lib/x86_64-linux-gnu/libedit.so][v2.11()]
 //Details about finding LibXml2
 FIND_PACKAGE_MESSAGE_DETAILS_LibXml2:INTERNAL=[/usr/lib/x86_64-linux-gnu/libxml2.so][/usr/include/libxml2][v2.15.2()]
 //Details about finding PkgConfig
@@ -476,51 +521,18 @@ FIND_PACKAGE_MESSAGE_DETAILS_zstd:INTERNAL=[/usr/lib/x86_64-linux-gnu/libzstd.so
 HAVE_FFI_CALL-ADVANCED:INTERNAL=1
 //Test HAVE_FFI_CALL
 HAVE_FFI_CALL:INTERNAL=1
+//Have include histedit.h
+HAVE_HISTEDIT_H:INTERNAL=1
 //ADVANCED property for variable: LIBXML2_INCLUDE_DIR
 LIBXML2_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: LIBXML2_LIBRARY
 LIBXML2_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: LIBXML2_XMLLINT_EXECUTABLE
 LIBXML2_XMLLINT_EXECUTABLE-ADVANCED:INTERNAL=1
-LibEdit_CFLAGS:INTERNAL=-I/usr/include;-I/usr/include/editline
-LibEdit_CFLAGS_I:INTERNAL=
-LibEdit_CFLAGS_OTHER:INTERNAL=
-LibEdit_FOUND:INTERNAL=1
-LibEdit_INCLUDEDIR:INTERNAL=/usr/include
 //ADVANCED property for variable: LibEdit_INCLUDE_DIRS
 LibEdit_INCLUDE_DIRS-ADVANCED:INTERNAL=1
-LibEdit_INCLUDE_DIRS:INTERNAL=/usr/include;/usr/include/editline
-LibEdit_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-ledit
-LibEdit_LDFLAGS_OTHER:INTERNAL=
-LibEdit_LIBDIR:INTERNAL=/usr/lib/x86_64-linux-gnu
 //ADVANCED property for variable: LibEdit_LIBRARIES
 LibEdit_LIBRARIES-ADVANCED:INTERNAL=1
-LibEdit_LIBRARIES:INTERNAL=edit
-LibEdit_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
-LibEdit_LIBS:INTERNAL=
-LibEdit_LIBS_L:INTERNAL=
-LibEdit_LIBS_OTHER:INTERNAL=
-LibEdit_LIBS_PATHS:INTERNAL=
-LibEdit_MODULE_NAME:INTERNAL=libedit
-LibEdit_PREFIX:INTERNAL=/usr
-LibEdit_STATIC_CFLAGS:INTERNAL=-I/usr/include;-I/usr/include/editline
-LibEdit_STATIC_CFLAGS_I:INTERNAL=
-LibEdit_STATIC_CFLAGS_OTHER:INTERNAL=
-LibEdit_STATIC_INCLUDE_DIRS:INTERNAL=/usr/include;/usr/include/editline
-LibEdit_STATIC_LDFLAGS:INTERNAL=-L/usr/lib/x86_64-linux-gnu;-ledit;-ltermcap;-lbsd
-LibEdit_STATIC_LDFLAGS_OTHER:INTERNAL=
-LibEdit_STATIC_LIBDIR:INTERNAL=
-LibEdit_STATIC_LIBRARIES:INTERNAL=edit;termcap;bsd
-LibEdit_STATIC_LIBRARY_DIRS:INTERNAL=/usr/lib/x86_64-linux-gnu
-LibEdit_STATIC_LIBS:INTERNAL=
-LibEdit_STATIC_LIBS_L:INTERNAL=
-LibEdit_STATIC_LIBS_OTHER:INTERNAL=
-LibEdit_STATIC_LIBS_PATHS:INTERNAL=
-LibEdit_VERSION:INTERNAL=3.1
-LibEdit_libedit_INCLUDEDIR:INTERNAL=
-LibEdit_libedit_LIBDIR:INTERNAL=
-LibEdit_libedit_PREFIX:INTERNAL=
-LibEdit_libedit_VERSION:INTERNAL=
 PC_CURL_CFLAGS:INTERNAL=-I/usr/include/x86_64-linux-gnu;-I/usr/include;-isystem;/usr/include/mit-krb5;-isystem;/usr/include/mit-krb5
 PC_CURL_CFLAGS_I:INTERNAL=
 PC_CURL_CFLAGS_OTHER:INTERNAL=
@@ -551,7 +563,7 @@ PC_CURL_STATIC_LIBS:INTERNAL=
 PC_CURL_STATIC_LIBS_L:INTERNAL=
 PC_CURL_STATIC_LIBS_OTHER:INTERNAL=
 PC_CURL_STATIC_LIBS_PATHS:INTERNAL=
-PC_CURL_VERSION:INTERNAL=8.20.0-rc3
+PC_CURL_VERSION:INTERNAL=8.20.0
 PC_CURL_libcurl_INCLUDEDIR:INTERNAL=
 PC_CURL_libcurl_LIBDIR:INTERNAL=
 PC_CURL_libcurl_PREFIX:INTERNAL=
@@ -672,21 +684,17 @@ ZLIB_LIBRARY_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: ZLIB_LIBRARY_RELEASE
 ZLIB_LIBRARY_RELEASE-ADVANCED:INTERNAL=1
 __pkg_config_arguments_FFI:INTERNAL=REQUIRED;IMPORTED_TARGET;libffi
-__pkg_config_arguments_LibEdit:INTERNAL=REQUIRED;libedit
 __pkg_config_arguments_PC_CURL:INTERNAL=QUIET;libcurl
 __pkg_config_arguments_PC_LIBEDIT:INTERNAL=QUIET;libedit
 __pkg_config_arguments_PC_LIBFFI:INTERNAL=QUIET;libffi
 __pkg_config_arguments_PC_LIBXML:INTERNAL=QUIET;libxml-2.0
 __pkg_config_checked_FFI:INTERNAL=1
-__pkg_config_checked_LibEdit:INTERNAL=1
 __pkg_config_checked_PC_CURL:INTERNAL=1
 __pkg_config_checked_PC_LIBEDIT:INTERNAL=1
 __pkg_config_checked_PC_LIBFFI:INTERNAL=1
 __pkg_config_checked_PC_LIBXML:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_FFI_ffi
 pkgcfg_lib_FFI_ffi-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: pkgcfg_lib_LibEdit_edit
-pkgcfg_lib_LibEdit_edit-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_PC_CURL_curl
 pkgcfg_lib_PC_CURL_curl-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib_PC_LIBEDIT_edit

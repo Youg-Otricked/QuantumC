@@ -3,6 +3,8 @@ name: Build Quantum C
 on:
   push:
     branches: [ master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ master ]
 
@@ -12,10 +14,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Add LLVM repo
+        run: |
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+          sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main"
+          sudo apt update
+      - name: Install deps
+        run: sudo apt install -y llvm-21 llvm-21-dev libffi-dev pkg-config cmake
+
       - name: Build (Linux)
         run: |
-          g++ *.cpp -o qc-linux -std=c++23 -fconstexpr-ops-limit=100000000
-      
+          cmake -DCMAKE_BUILD_TYPE=Release .
+          cmake --build . -j$(nproc)
+          mv qc qc-linux
+
       - name: Upload Linux Binary
         uses: actions/upload-artifact@v4
         with:
@@ -27,31 +39,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install deps
+        run: |
+          brew install llvm@21 || brew install llvm
+          brew install libffi pkg-config cmake
+          echo "/opt/homebrew/opt/llvm/bin" >> $GITHUB_PATH
+          echo "LLVM_DIR=/opt/homebrew/opt/llvm/lib/cmake/llvm" >> $GITHUB_ENV
       - name: Build (macOS)
         run: |
-          clang++ *.cpp -o qc-macos -std=c++20 -stdlib=libc++
-      
+          cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR .
+          cmake --build . -j$(sysctl -n hw.logicalcpu)
+          mv qc qc-macos
+
       - name: Upload macOS Binary
         uses: actions/upload-artifact@v4
         with:
           name: qc-macos
           path: qc-macos
-
-  build-windows:
-    runs-on: windows-latest
+  upload-extras:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build (Windows)
-        shell: bash
-        run: |
-          g++ *.cpp -o qc.exe -std=c++23 -fconstexpr-ops-limit=100000000 -static-libgcc -static-libstdc++ -static -Wa,-mbig-obj
-      
-      - name: Upload Windows Binary
+      - name: Upload stdlib
         uses: actions/upload-artifact@v4
         with:
-          name: qc-windows
-          path: qc.exe
+          name: stdlib.qc
+          path: stdlib.qc
+      - name: Upload syntax
+        uses: actions/upload-artifact@v4
+        with:
+          name: syntax.qc
+          path: syntax.qc
+      - name: Upload test
+        uses: actions/upload-artifact@v4
+        with:
+          name: test.qc
+          path: test.qc
+  # windows not supported
 
   build-wasm:
     runs-on: ubuntu-latest
@@ -64,8 +88,7 @@ jobs:
           version: 'latest'
       
       - name: Build (WASM)
-        run: emcc Ct4.cpp quantum.cpp -o qc.js -std=c++20 -stdlib=libc++ -s WASM=1 -s FORCE_FILESYSTEM=1 -s EXPORTED_FUNCTIONS='["_run_quantum_code"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' -s ALLOW_MEMORY_GROWTH=1 --preload-file stdlib.qc@/stdlib.qc -s STACK_SIZE=134217728 -s MODULARIZE=1 -s EXPORT_NAME="QuantumC" -s TOTAL_MEMORY=805306368 -s ASSERTIONS=2 -s SAFE_HEAP=1 -s NO_DISABLE_EXCEPTION_CATCHING -D__EMSCRIPTEN__
-
+        run: emcc compiler.cpp compiler_run.cpp -o qc.js -std=c++20 -s WASM=1 -s FORCE_FILESYSTEM=1 -s EXPORTED_FUNCTIONS='["_run_quantum_code"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' -s ALLOW_MEMORY_GROWTH=1 --preload-file stdlib.qc@/stdlib.qc -s STACK_SIZE=134217728 -s MODULARIZE=1 -s EXPORT_NAME="QuantumC" -s TOTAL_MEMORY=805306368 -s ASSERTIONS=2 -s SAFE_HEAP=1 -s NO_DISABLE_EXCEPTION_CATCHING -D__EMSCRIPTEN__
             
       - name: Upload WASM Files
         uses: actions/upload-artifact@v4
@@ -109,3 +132,18 @@ jobs:
           git add QuantumC/qc.js QuantumC/qc.wasm QuantumC/stdlib.qc QuantumC/qc.data
           git commit -m "Update Quantum C compiler [automated]" || echo "No changes to commit"
           git push
+  release:
+    needs: [build-linux, build-macos, upload-extras]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            qc-linux/qc-linux
+            qc-macos/qc-macos
+            stdlib.qc/stdlib.qc

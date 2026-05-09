@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
-project(qc LANGUAGES CXX)
-
+project(qc LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
+if(APPLE)
+    set(CMAKE_CXX_STANDARD 20)
+endif()
+if(LLVM_VERSION_MAJOR LESS 21)
+    message(FATAL_ERROR "LLVM 21+ required, found ${LLVM_VERSION_MAJOR}")
+endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
 
@@ -20,6 +24,7 @@ target_compile_options(qc PRIVATE
     -fconstexpr-ops-limit=1000000000
     -g
 )
+
 if(ENABLE_LLVM)
     find_package(LLVM REQUIRED CONFIG)
     separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
