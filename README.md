@@ -127,9 +127,11 @@ Also, C4 is a powerful explosive. This language is more powerful than explosives
 
 Now Turing complete!
 
-### Q: Why is your cat GPU-sized?
+### Q: How many Seg-Faults have you delt with.
 
-## **A:** Wrong FAQ. Also IDK
+#### A;
+
+The answer would integer overflow.
 
 ### Quantum Booleans
 
