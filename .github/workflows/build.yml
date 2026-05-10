@@ -29,18 +29,19 @@ jobs:
   build-linux:
     needs: [tag]
     runs-on: ubuntu-latest
+    container:
+      image: debian:sid
     steps:
       - uses: actions/checkout@v4
       
-      - name: Add LLVM repo
-        run: |
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-          sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main"
-          sudo apt update
       - name: Install deps
-        run: sudo apt install -y llvm-21 llvm-21-dev libffi-dev pkg-config cmake clang-21
+        run: |
+          apt update
+          apt install -y llvm-21 llvm-21-dev clang-21 libffi-dev pkg-config cmake g++ git
+      
       - name: Generate runtime.ll
         run: clang-21 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
+      
       - name: Build (Linux)
         run: |
           cmake -DCMAKE_BUILD_TYPE=Release .
