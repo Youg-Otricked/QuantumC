@@ -2151,25 +2151,25 @@ namespace tkz {
                 int i = std::stoi(value);
                 llvm::AllocaInst* temp = createEntryAlloca("enum_int", builder->getInt32Ty());
                 builder->CreateStore(builder->getInt32(i), temp);
-                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
             }
             else if (type == "float") {
                 float f = std::stof(value);
                 llvm::AllocaInst* temp = createEntryAlloca("enum_float", builder->getFloatTy());
                 builder->CreateStore(llvm::ConstantFP::get(builder->getFloatTy(), f), temp);
-                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
             }
             else if (type == "double") {
                 double d = std::stod(value);
                 llvm::AllocaInst* temp = createEntryAlloca("enum_double", builder->getDoubleTy());
                 builder->CreateStore(llvm::ConstantFP::get(builder->getDoubleTy(), d), temp);
-                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
             }
             else if (type == "bool") {
                 bool b = (value == "true");
                 llvm::AllocaInst* temp = createEntryAlloca("enum_bool", builder->getInt1Ty());
                 builder->CreateStore(builder->getInt1(b), temp);
-                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
             }
             else if (type == "char") {
                 std::string charStr = value.substr(1, value.length() - 2);
@@ -2192,7 +2192,7 @@ namespace tkz {
                 
                 llvm::AllocaInst* temp = createEntryAlloca("enum_char", builder->getInt8Ty());
                 builder->CreateStore(builder->getInt8(c), temp);
-                return builder->CreateBitCast(temp, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
             }
             
             return nullptr;
@@ -2582,7 +2582,7 @@ namespace tkz {
                     }
 
                     llvm::Type* memberTy = llvmTypeFor(typeStr);
-                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                     llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_loaded");
 
                     llvm::Value* converted = emitPrimitiveConversion(loaded, target);
@@ -2643,7 +2643,7 @@ namespace tkz {
                     }
 
                     llvm::Type* memberTy = llvmTypeFor(typeStr);
-                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                     llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_enum_loaded");
 
                     llvm::Value* converted = emitPrimitiveConversion(loaded, target);
@@ -2679,7 +2679,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr,
-                            llvm::PointerType::get(paramTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         v = builder->CreateLoad(paramTy, typedPtr);
                     }
@@ -2714,7 +2714,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr,
-                            llvm::PointerType::get(paramTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         v = builder->CreateLoad(paramTy, typedPtr);
                     }
@@ -3011,7 +3011,7 @@ namespace tkz {
             enterScope();
             auto& method = userTypes[className].classMethods[methodIdx];
             std::vector<llvm::Type*> paramTypes;
-            paramTypes.push_back(llvm::PointerType::get(classTypes[className], 0));
+            paramTypes.push_back(llvm::PointerType::get(context, 0));
             
             for (size_t i = 0; i < method.params.size(); i++) {
                 std::string paramType = (method.params[i].type.value == "auto")
@@ -3735,7 +3735,7 @@ namespace tkz {
                 case 3: return builder->getInt8Ty();
                 case 4: return builder->getInt1Ty();
                 case 5: return builder->getIntNTy(2);
-                case 6: return llvm::PointerType::get(builder->getInt8Ty(), 0);
+                case 6: return llvm::PointerType::get(context, 0);
                 default: return builder->getInt32Ty();
             }
         }
@@ -3812,7 +3812,7 @@ namespace tkz {
             llvm::Value* dataPtr  = builder->CreateExtractValue(unionVal, 1, "union_data");
             llvm::Value* typedPtr = builder->CreateBitCast(
                 dataPtr,
-                llvm::PointerType::get(targetTy, 0)
+                llvm::PointerType::get(context, 0)
             );
             return builder->CreateLoad(targetTy, typedPtr, "union_unwrapped");
         }
@@ -3836,7 +3836,7 @@ namespace tkz {
             
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "norm_end", currentFunction);
             
-            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
             llvm::AllocaInst* tmp = createEntryAlloca("norm_tmp", voidPtrTy);
             
             size_t memberCount = isUnion ? utIt->second.members.size() : utIt->second.enumEntries.size();
@@ -3867,7 +3867,7 @@ namespace tkz {
                 
                 llvm::Type* memberTy = llvmTypeFor(typeStr);
                 
-                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                 llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "member");
                 llvm::AllocaInst* memberAlloc = createEntryAlloca("member_tmp", memberTy);
                 builder->CreateStore(loaded, memberAlloc);

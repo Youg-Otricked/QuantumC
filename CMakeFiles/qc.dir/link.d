@@ -4,6 +4,7 @@ qc: \
   /usr/lib/gcc/x86_64-linux-gnu/15/crtbeginS.o \
   CMakeFiles/qc.dir/compiler.cpp.o \
   CMakeFiles/qc.dir/compiler_run.cpp.o \
+  CMakeFiles/qc.dir/runtime_embed.cpp.o \
   /usr/lib/llvm-21/lib/libLLVMCore.a \
   /usr/lib/llvm-21/lib/libLLVMSupport.a \
   /usr/lib/llvm-21/lib/libLLVMMC.a \
@@ -97,6 +98,8 @@ qc: \
 CMakeFiles/qc.dir/compiler.cpp.o:
 
 CMakeFiles/qc.dir/compiler_run.cpp.o:
+
+CMakeFiles/qc.dir/runtime_embed.cpp.o:
 
 /usr/lib/llvm-21/lib/libLLVMCore.a:
 

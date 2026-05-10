@@ -69,13 +69,17 @@ include CMakeFiles/qc.dir/progress.make
 # Include the compile flags for this target's objects.
 include CMakeFiles/qc.dir/flags.make
 
+runtime_embed.cpp: runtime.ll
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --blue --bold --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Generating runtime_embed.cpp"
+	/usr/bin/cmake "-DRUNTIME_LL=/home/luca/C^4/runtime.ll" "-DOUTPUT=/home/luca/C^4/runtime_embed.cpp" "-DTEMPLATE=/home/luca/C^4/runtime_embed.cpp.in" -P "/home/luca/C^4/embed_runtime.cmake"
+
 CMakeFiles/qc.dir/codegen:
 .PHONY : CMakeFiles/qc.dir/codegen
 
 CMakeFiles/qc.dir/compiler.cpp.o: CMakeFiles/qc.dir/flags.make
 CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp
 CMakeFiles/qc.dir/compiler.cpp.o: CMakeFiles/qc.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/qc.dir/compiler.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/qc.dir/compiler.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/qc.dir/compiler.cpp.o -MF CMakeFiles/qc.dir/compiler.cpp.o.d -o CMakeFiles/qc.dir/compiler.cpp.o -c "/home/luca/C^4/compiler.cpp"
 
 CMakeFiles/qc.dir/compiler.cpp.i: cmake_force
@@ -89,7 +93,7 @@ CMakeFiles/qc.dir/compiler.cpp.s: cmake_force
 CMakeFiles/qc.dir/compiler_run.cpp.o: CMakeFiles/qc.dir/flags.make
 CMakeFiles/qc.dir/compiler_run.cpp.o: compiler_run.cpp
 CMakeFiles/qc.dir/compiler_run.cpp.o: CMakeFiles/qc.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/qc.dir/compiler_run.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/qc.dir/compiler_run.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/qc.dir/compiler_run.cpp.o -MF CMakeFiles/qc.dir/compiler_run.cpp.o.d -o CMakeFiles/qc.dir/compiler_run.cpp.o -c "/home/luca/C^4/compiler_run.cpp"
 
 CMakeFiles/qc.dir/compiler_run.cpp.i: cmake_force
@@ -100,16 +104,32 @@ CMakeFiles/qc.dir/compiler_run.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/qc.dir/compiler_run.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/luca/C^4/compiler_run.cpp" -o CMakeFiles/qc.dir/compiler_run.cpp.s
 
+CMakeFiles/qc.dir/runtime_embed.cpp.o: CMakeFiles/qc.dir/flags.make
+CMakeFiles/qc.dir/runtime_embed.cpp.o: runtime_embed.cpp
+CMakeFiles/qc.dir/runtime_embed.cpp.o: CMakeFiles/qc.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/qc.dir/runtime_embed.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/qc.dir/runtime_embed.cpp.o -MF CMakeFiles/qc.dir/runtime_embed.cpp.o.d -o CMakeFiles/qc.dir/runtime_embed.cpp.o -c "/home/luca/C^4/runtime_embed.cpp"
+
+CMakeFiles/qc.dir/runtime_embed.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/qc.dir/runtime_embed.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/home/luca/C^4/runtime_embed.cpp" > CMakeFiles/qc.dir/runtime_embed.cpp.i
+
+CMakeFiles/qc.dir/runtime_embed.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/qc.dir/runtime_embed.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/luca/C^4/runtime_embed.cpp" -o CMakeFiles/qc.dir/runtime_embed.cpp.s
+
 # Object files for target qc
 qc_OBJECTS = \
 "CMakeFiles/qc.dir/compiler.cpp.o" \
-"CMakeFiles/qc.dir/compiler_run.cpp.o"
+"CMakeFiles/qc.dir/compiler_run.cpp.o" \
+"CMakeFiles/qc.dir/runtime_embed.cpp.o"
 
 # External object files for target qc
 qc_EXTERNAL_OBJECTS =
 
 qc: CMakeFiles/qc.dir/compiler.cpp.o
 qc: CMakeFiles/qc.dir/compiler_run.cpp.o
+qc: CMakeFiles/qc.dir/runtime_embed.cpp.o
 qc: CMakeFiles/qc.dir/build.make
 qc: CMakeFiles/qc.dir/compiler_depend.ts
 qc: /usr/lib/llvm-21/lib/libLLVMCore.a
@@ -168,7 +188,7 @@ qc: /usr/lib/x86_64-linux-gnu/libz.so
 qc: /usr/lib/x86_64-linux-gnu/libzstd.so
 qc: /usr/lib/x86_64-linux-gnu/libffi.so
 qc: CMakeFiles/qc.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable qc"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_5) "Linking CXX executable qc"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/qc.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -179,7 +199,7 @@ CMakeFiles/qc.dir/clean:
 	$(CMAKE_COMMAND) -P CMakeFiles/qc.dir/cmake_clean.cmake
 .PHONY : CMakeFiles/qc.dir/clean
 
-CMakeFiles/qc.dir/depend:
+CMakeFiles/qc.dir/depend: runtime_embed.cpp
 	cd "/home/luca/C^4" && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" "/home/luca/C^4" "/home/luca/C^4" "/home/luca/C^4" "/home/luca/C^4" "/home/luca/C^4/CMakeFiles/qc.dir/DependInfo.cmake" "--color=$(COLOR)" qc
 .PHONY : CMakeFiles/qc.dir/depend
 

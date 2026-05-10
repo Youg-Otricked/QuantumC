@@ -63,7 +63,7 @@ echo -e "${GREEN}Detected OS: $OS${NC}"
 echo ""
 
 if [ -f "$HOME/.qc/bin/qc" ]; then
-    echo -e "${YELLOW}QC version $(qc -v| grep -oP 'v\d+\.\d+\.\d+') is already installed. Reinstalling...${NC}"
+    echo -e "${YELLOW}QC version $(qc -sv) is already installed. Reinstalling...${NC}"
     rm -f ~/.qc/bin/qc
 fi
 

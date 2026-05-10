@@ -1083,6 +1083,24 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: compiler_run.cpp \
   /usr/lib/llvm-21/include/llvm/Support/type_traits.h \
   /usr/lib/llvm-21/include/llvm/TargetParser/Triple.h
 
+CMakeFiles/qc.dir/runtime_embed.cpp.o: runtime_embed.cpp \
+  /usr/include/c++/15/bits/version.h \
+  /usr/include/c++/15/cstddef \
+  /usr/include/c++/15/pstl/pstl_config.h \
+  /usr/include/features-time64.h \
+  /usr/include/features.h \
+  /usr/include/stdc-predef.h \
+  /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/bits/timesize.h \
+  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+  /usr/include/x86_64-linux-gnu/c++/15/bits/c++config.h \
+  /usr/include/x86_64-linux-gnu/c++/15/bits/cpu_defines.h \
+  /usr/include/x86_64-linux-gnu/c++/15/bits/os_defines.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+  /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+  /usr/lib/gcc/x86_64-linux-gnu/15/include/stddef.h
+
 qc: /lib64/ld-linux-x86-64.so.2 \
   /usr/lib/x86_64-linux-gnu/Scrt1.o \
   /usr/lib/x86_64-linux-gnu/crti.o \
@@ -1153,14 +1171,15 @@ qc: /lib64/ld-linux-x86-64.so.2 \
   /usr/lib/x86_64-linux-gnu/libz3.so \
   /usr/lib/x86_64-linux-gnu/libzstd.so \
   CMakeFiles/qc.dir/compiler.cpp.o \
-  CMakeFiles/qc.dir/compiler_run.cpp.o
+  CMakeFiles/qc.dir/compiler_run.cpp.o \
+  CMakeFiles/qc.dir/runtime_embed.cpp.o
 
+
+CMakeFiles/qc.dir/runtime_embed.cpp.o:
 
 CMakeFiles/qc.dir/compiler_run.cpp.o:
 
 CMakeFiles/qc.dir/compiler.cpp.o:
-
-/usr/lib/x86_64-linux-gnu/libzstd.so:
 
 /usr/lib/x86_64-linux-gnu/libz3.so:
 
@@ -1229,6 +1248,10 @@ CMakeFiles/qc.dir/compiler.cpp.o:
 /usr/lib/x86_64-linux-gnu/libc.so:
 
 /usr/lib/x86_64-linux-gnu/Scrt1.o:
+
+/usr/lib/x86_64-linux-gnu/libzstd.so:
+
+runtime_embed.cpp:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/opt_random.h:
 

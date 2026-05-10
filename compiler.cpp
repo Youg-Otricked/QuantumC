@@ -75,6 +75,8 @@ std::string strip(const std::string& s) {
 }
 bool loose;
 std::string entrypointName = "main";
+extern "C" const char _binary_runtime_ll_start[];
+extern "C" const size_t _binary_runtime_ll_size;
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
@@ -10565,16 +10567,16 @@ namespace tkz {
         if (type.ends_with("[]")) {
             std::string baseType = type.substr(0, type.length() - 2);
             llvm::Type* elemTy = llvmTypeFor(baseType);
-            return llvm::PointerType::get(elemTy, 0);
+            return llvm::PointerType::get(context, 0);
         }
         if (type.starts_with("list<") && type.ends_with(">")) {
             size_t start = 5;
             size_t end = qcType.length() - 1;
             std::string elemType = type.substr(start, end - start);
-            return llvm::PointerType::get(builder->getInt8Ty(), 0);
+            return llvm::PointerType::get(context, 0);
         }
         if (type.starts_with("map<") && type.ends_with(">")) {
-            return llvm::PointerType::get(builder->getInt8Ty(), 0);
+            return llvm::PointerType::get(context, 0);
         }
         if (type == "int")        return builder->getInt32Ty();
         if (type == "short int")  return builder->getInt16Ty();
@@ -10585,7 +10587,7 @@ namespace tkz {
         if (type == "char")        return builder->getInt8Ty();
         if (type == "bool")        return builder->getInt1Ty();
         if (type == "qbool")       return builder->getIntNTy(2);
-        if (type == "string")      return llvm::PointerType::get(builder->getInt8Ty(), 0);
+        if (type == "string")      return llvm::PointerType::get(context, 0);
     
         if (classTypes.find(type) != classTypes.end()) {
             return classTypes[type];
@@ -10624,7 +10626,7 @@ namespace tkz {
                 
                 std::vector<llvm::Type*> fields = {
                     builder->getInt32Ty(),
-                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                    llvm::PointerType::get(context, 0)
                 };
                 
                 llvm::StructType* enumTy = llvm::StructType::create(context, fields, mapKey);
@@ -10730,7 +10732,7 @@ namespace tkz {
                 std::string methodName = mapKey + "_" + method.name_tok.value;
                 
                 std::vector<llvm::Type*> paramTypes;
-                paramTypes.push_back(llvm::PointerType::get(classTy, 0));
+                paramTypes.push_back(llvm::PointerType::get(context, 0));
                 
                 for (auto& param : method.params) {
                     paramTypes.push_back(llvmTypeFor(param.type.value));
@@ -10771,7 +10773,7 @@ namespace tkz {
             if (info.kind == UserTypeKind::Union) {
                 std::vector<llvm::Type*> fields = {
                     builder->getInt32Ty(),
-                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                    llvm::PointerType::get(context, 0)
                 };
                 
                 llvm::StructType* unionTy = llvm::StructType::create(context, fields, mapKey);
@@ -10804,7 +10806,7 @@ namespace tkz {
             llvm::Type* retTy = llvmTypeFor(returnTypes[0].value);
             
             if (retTy->isArrayTy()) {
-                retTy = llvm::PointerType::get(retTy->getArrayElementType(), 0);
+                retTy = llvm::PointerType::get(context, 0);
             }
             
             return llvm::FunctionType::get(retTy, paramTypes, false);
@@ -10814,7 +10816,7 @@ namespace tkz {
         for (auto& rt : returnTypes) {
             llvm::Type* ty = llvmTypeFor(rt.value);
             if (ty->isArrayTy()) {
-                ty = llvm::PointerType::get(ty->getArrayElementType(), 0);
+                ty = llvm::PointerType::get(context, 0);
             }
             
             retTypes.push_back(ty);
@@ -10837,7 +10839,7 @@ namespace tkz {
             
             llvm::Function* createRowFn = module->getFunction("qc_create_leaf_row");
             if (!createRowFn) {
-                llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     voidPtrTy,
                     {builder->getInt32Ty(), builder->getInt32Ty()},
@@ -10854,7 +10856,7 @@ namespace tkz {
             
             llvm::Function* setLeafFn = module->getFunction("qc_set_leaf_element");
             if (!setLeafFn) {
-                llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(),
                     {voidPtrTy, builder->getInt32Ty(), voidPtrTy, builder->getInt32Ty()},
@@ -10872,7 +10874,7 @@ namespace tkz {
                 builder->CreateStore(elemVal, tempAlloc);
                 
                 llvm::Value* elemPtr = builder->CreateBitCast(tempAlloc, 
-                                                            llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                            llvm::PointerType::get(context, 0));
                 
                 builder->CreateCall(setLeafFn, {
                     row,
@@ -10886,7 +10888,7 @@ namespace tkz {
         }
         llvm::Function* createFn = module->getFunction("qc_create_jagged_array");
         if (!createFn) {
-            llvm::Type* jaggedPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* jaggedPtrTy = llvm::PointerType::get(context, 0);
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 jaggedPtrTy,
                 {builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty()},
@@ -10905,7 +10907,7 @@ namespace tkz {
         
         llvm::Function* setFn = module->getFunction("qc_set_jagged_element");
         if (!setFn) {
-            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 builder->getVoidTy(),
                 {voidPtrTy, builder->getInt32Ty(), voidPtrTy, builder->getInt32Ty()},
@@ -10942,23 +10944,18 @@ namespace tkz {
         addRuntimeToModule();
     }
     void LLVMCompiler::addRuntimeToModule() {
-        
+        llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
         llvm::SMDiagnostic err;
-        
-        std::unique_ptr<llvm::Module> runtimeMod = llvm::parseIRFile("runtime.ll", err, context);
-        
+        llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
+        std::unique_ptr<llvm::Module> runtimeMod = llvm::parseIR(bufRef, err, context);
         if (!runtimeMod) {
             err.print("qc", llvm::errs());
             errors.emplace_back("Failed to load runtime.ll", Position());
             return;
         }
-        
         if (llvm::Linker::linkModules(*module, std::move(runtimeMod))) {
-            std::cerr << "ERROR: Failed to link runtime module" << std::endl;
             errors.emplace_back("Failed to link runtime module", Position());
-        } else {
         }
-        
     }
     llvm::Value* LLVMCompiler::boolToQBool(llvm::Value* boolVal) {
         llvm::Value* ext = builder->CreateZExt(boolVal, builder->getInt8Ty());
@@ -11057,7 +11054,7 @@ namespace tkz {
                 llvm::Function* qinFn = module->getFunction("qc_qin");
                 if (!qinFn) {
                     auto* fnTy = llvm::FunctionType::get(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         {},
                         false
                     );
@@ -11080,42 +11077,42 @@ namespace tkz {
                     if (varTy->isIntegerTy(32)) {
                         llvm::Function* fn = module->getFunction("qc_to_int_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_int_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isFloatTy()) {
                         llvm::Function* fn = module->getFunction("qc_to_float_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getFloatTy(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getFloatTy(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_float_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isDoubleTy()) {
                         llvm::Function* fn = module->getFunction("qc_to_double_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getDoubleTy(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getDoubleTy(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_double_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(8)) {
                         llvm::Function* fn = module->getFunction("qc_to_char_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt8Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt8Ty(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_char_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(1)) {
                         llvm::Function* fn = module->getFunction("qc_to_bool_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_bool_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(2)) {
                         llvm::Function* fn = module->getFunction("qc_to_qbool_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(2), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(2), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_qbool_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -11209,13 +11206,13 @@ namespace tkz {
                             
                             llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
                             if (!strcmp_fn) {
-                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
                                 auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                                 strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
                             }
                             payloadMatch = builder->CreateCall(strcmp_fn, {payload, R}, "payload_str_eq");
                         } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                             llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
 
                             if (memberTy->isIntegerTy()) {
@@ -11279,13 +11276,13 @@ namespace tkz {
                             
                             llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
                             if (!strcmp_fn) {
-                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
                                 auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                                 strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
                             }
                             payloadMatch = builder->CreateCall(strcmp_fn, {L, payload}, "payload_str_eq");
                         } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                             llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
 
                             if (memberTy->isIntegerTy()) {
@@ -11356,8 +11353,8 @@ namespace tkz {
                             lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
                             rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
                         } else {
-                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(memberTy, 0));
-                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(context, 0));
+                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(context, 0));
                             lhsVal = builder->CreateLoad(memberTy, lhsTyped);
                             rhsVal = builder->CreateLoad(memberTy, rhsTyped);
                         }
@@ -11433,13 +11430,13 @@ namespace tkz {
                             
                             llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
                             if (!strcmp_fn) {
-                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
                                 auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                                 strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
                             }
                             payloadMatch = builder->CreateCall(strcmp_fn, {payload, R}, "payload_str_eq");
                         } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                             llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
 
                             if (memberTy->isIntegerTy()) {
@@ -11504,13 +11501,13 @@ namespace tkz {
                             
                             llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
                             if (!strcmp_fn) {
-                                auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                auto* i8Ptr = llvm::PointerType::get(context, 0);
                                 auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                                 strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_string_eq", module.get());
                             }
                             payloadMatch = builder->CreateCall(strcmp_fn, {L, payload}, "payload_str_eq");
                         } else {
-                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                             llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
 
                             if (memberTy->isIntegerTy()) {
@@ -11581,8 +11578,8 @@ namespace tkz {
                             lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
                             rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
                         } else {
-                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(memberTy, 0));
-                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(memberTy, 0));
+                            llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(context, 0));
+                            llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(context, 0));
                             lhsVal = builder->CreateLoad(memberTy, lhsTyped);
                             rhsVal = builder->CreateLoad(memberTy, rhsTyped);
                         }
@@ -11633,7 +11630,7 @@ namespace tkz {
                     if (ty->isIntegerTy(32)) {
                         auto* fn = module->getFunction("qc_to_string_int");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_int", module.get());
@@ -11643,7 +11640,7 @@ namespace tkz {
                     if (ty->isDoubleTy()) {
                         auto* fn = module->getFunction("qc_to_string_double");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_double", module.get());
@@ -11653,7 +11650,7 @@ namespace tkz {
                     if (ty->isFloatTy()) {
                         auto* fn = module->getFunction("qc_to_string_float");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getDoubleTy() }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_float", module.get());
@@ -11663,7 +11660,7 @@ namespace tkz {
                     if (ty->isIntegerTy(1)) {
                         auto* fn = module->getFunction("qc_to_string_bool");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt1Ty() }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_bool", module.get());
@@ -11673,7 +11670,7 @@ namespace tkz {
                     if (ty->isIntegerTy(8)) {
                         auto* fn = module->getFunction("qc_to_string_char");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt32Ty() }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_char", module.get());
@@ -11686,7 +11683,7 @@ namespace tkz {
                     if (ty->isIntegerTy(2)) {
                         auto* fn = module->getFunction("qc_to_string_qbool");
                         if (!fn) {
-                            auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
                             auto* fnTy = llvm::FunctionType::get(i8Ptr, { builder->getIntNTy(2) }, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                                                         "qc_to_string_qbool", module.get());
@@ -11718,15 +11715,15 @@ namespace tkz {
                             llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
                             builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
                         }
-                        llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(context, 0));
                         
                         std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
                         llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
                         
                         auto* fn = module->getFunction("qc_array_to_string_recursive");
                         if (!fn) {
-                            auto* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            auto* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                            auto* voidPtrTy = llvm::PointerType::get(context, 0);
+                            auto* intPtrTy = llvm::PointerType::get(context, 0);
                             auto* fnTy = llvm::FunctionType::get(
                                 voidPtrTy,
                                 { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
@@ -11766,7 +11763,7 @@ namespace tkz {
                     for (auto& [enumName, enumTy] : enumTypes) {
                         if (ty == enumTy) {
                             llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
-                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                         }
                     }
 
@@ -11778,7 +11775,7 @@ namespace tkz {
                             
                             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "fstr_union_end", currentFunction);
                             llvm::AllocaInst* resultAlloc = createEntryAlloca("fstr_union_result", 
-                                llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                llvm::PointerType::get(context, 0));
                             
                             llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
                             
@@ -11795,7 +11792,7 @@ namespace tkz {
                                 if (memberTy->isPointerTy()) {
                                     memberVal = builder->CreateBitCast(payload, memberTy);
                                 } else {
-                                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                                     memberVal = builder->CreateLoad(memberTy, typedPtr, "union_member");
                                 }
                                 AnyNode fakeNode = std::monostate{};
@@ -11806,7 +11803,7 @@ namespace tkz {
                             }
                             
                             builder->SetInsertPoint(endBB);
-                            return builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), resultAlloc, "fstr_union_result");
+                            return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "fstr_union_result");
                         }
                     }
                     if (ty->isPointerTy()) {
@@ -11823,7 +11820,7 @@ namespace tkz {
 
                 llvm::Function* concatFn = module->getFunction("qc_string_concat");
                 if (!concatFn) {
-                    auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    auto* i8Ptr = llvm::PointerType::get(context, 0);
                     std::vector<llvm::Type*> argTypes = { i8Ptr, i8Ptr };
                     auto* fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
                     concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
@@ -11858,8 +11855,8 @@ namespace tkz {
                     size_t c = ts.find(':'); if (c != std::string::npos) ts = ts.substr(0, c);
                     llvm::Type* memberTy = llvmTypeFor(ts);
                     
-                    llvm::Value* lTypedPtr = builder->CreateBitCast(lPayload, llvm::PointerType::get(memberTy, 0));
-                    llvm::Value* rTypedPtr = builder->CreateBitCast(rPayload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* lTypedPtr = builder->CreateBitCast(lPayload, llvm::PointerType::get(context, 0));
+                    llvm::Value* rTypedPtr = builder->CreateBitCast(rPayload, llvm::PointerType::get(context, 0));
                     llvm::Value* lhsVal = builder->CreateLoad(memberTy, lTypedPtr, "lmember");
                     llvm::Value* rhsVal = builder->CreateLoad(memberTy, rTypedPtr, "rmember");
                     
@@ -11918,7 +11915,7 @@ namespace tkz {
                     size_t c = ts.find(':'); if (c != std::string::npos) ts = ts.substr(0, c);
                     llvm::Type* memberTy = llvmTypeFor(ts);
                     
-                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(memberTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                     llvm::Value* memberVal = builder->CreateLoad(memberTy, typedPtr, "member");
                     
                     llvm::Value* lhsVal = lIsUnion ? memberVal : otherVal;
@@ -12009,7 +12006,7 @@ namespace tkz {
             if (lty->isPointerTy() && rty->isPointerTy() && op == TokenType::PLUS) {
                 llvm::Function* concatFn = module->getFunction("qc_string_concat");
                 if (!concatFn) {
-                    llvm::Type* i8PtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
                     std::vector<llvm::Type*> argTypes = { i8PtrTy, i8PtrTy };
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(i8PtrTy, argTypes, false);
                     concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
@@ -12472,7 +12469,7 @@ namespace tkz {
                 if (elemTypeCode != -1) {
                     llvm::Function* createFn = module->getFunction("qc_create_list");
                     if (!createFn) {
-                        llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                         llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             ptrTy,
                             {builder->getInt32Ty()},
@@ -12484,7 +12481,7 @@ namespace tkz {
                     
                     llvm::Value* listPtr = builder->CreateCall(createFn, {builder->getInt32(elemTypeCode)}, "list_ptr");
                     
-                    llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                     llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
                     builder->CreateStore(listPtr, alloc);
                     
@@ -12820,7 +12817,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, 
-                            llvm::PointerType::get(destTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         rhs = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -12838,7 +12835,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, 
-                            llvm::PointerType::get(destTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         rhs = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -13090,7 +13087,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, 
-                            llvm::PointerType::get(destTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         rhsVal = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -13259,7 +13256,7 @@ namespace tkz {
                         llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, 
-                            llvm::PointerType::get(targetTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         operand = builder->CreateLoad(targetTy, typedPtr);
                         operandTy = targetTy;
@@ -13284,7 +13281,7 @@ namespace tkz {
                         llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, 
-                            llvm::PointerType::get(targetTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         operand = builder->CreateLoad(targetTy, typedPtr);
                         operandTy = targetTy;
@@ -13425,7 +13422,7 @@ namespace tkz {
             
             llvm::Function* createFn = module->getFunction("qc_create_map");
             if (!createFn) {
-                llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     ptrTy,
                     {builder->getInt32Ty(), builder->getInt32Ty()},
@@ -13442,7 +13439,7 @@ namespace tkz {
             
             llvm::Function* setFn = module->getFunction("qc_map_set");
             if (!setFn) {
-                llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(),
                     {voidPtrTy, voidPtrTy, voidPtrTy},
@@ -13463,9 +13460,9 @@ namespace tkz {
                 builder->CreateStore(valueVal, valAlloc);
                 
                 llvm::Value* keyPtr = builder->CreateBitCast(keyAlloc, 
-                                                            llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                            llvm::PointerType::get(context, 0));
                 llvm::Value* valPtr = builder->CreateBitCast(valAlloc, 
-                                                            llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                            llvm::PointerType::get(context, 0));
                 
                 builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
             }
@@ -13699,7 +13696,7 @@ namespace tkz {
                                 if (typeIt != userTypes.end()) {
                                     auto& members = typeIt->second.members;
                                     llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
-                                    llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                    llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
                                     llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, members.size());
                                     for (size_t i = 0; i < members.size(); i++) {
                                         llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "typeof_case_" + std::to_string(i), currentFunction);
@@ -13713,7 +13710,7 @@ namespace tkz {
                                         switchInst->addCase(builder->getInt32(i), caseBB);
                                     }
                                     builder->SetInsertPoint(endBB);
-                                    return builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), resultAlloc, "typeof_result");
+                                    return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "typeof_result");
                                 }
                             }
                         }
@@ -13722,7 +13719,7 @@ namespace tkz {
                                 llvm::Value* tag = builder->CreateExtractValue(arg, 0);
                                 auto& entries = userTypes[enumName].enumEntries;
                                 llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
-                                llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
                                 llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, entries.size());
                                 for (size_t i = 0; i < entries.size(); i++) {
                                     llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "case", currentFunction);
@@ -13735,7 +13732,7 @@ namespace tkz {
                                     switchInst->addCase(builder->getInt32(i), caseBB);
                                 }
                                 builder->SetInsertPoint(endBB);
-                                return builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), resultAlloc);
+                                return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc);
                             }
                         }
                         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
@@ -13780,8 +13777,8 @@ namespace tkz {
                         llvm::Function* fn = module->getFunction("qc_fopen");
                         if (!fn) {
                             auto* fnTy = llvm::FunctionType::get(
-                                llvm::PointerType::get(builder->getInt8Ty(), 0),
-                                {llvm::PointerType::get(builder->getInt8Ty(), 0), llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                llvm::PointerType::get(context, 0),
+                                {llvm::PointerType::get(context, 0), llvm::PointerType::get(context, 0)},
                                 false
                             );
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fopen", module.get());
@@ -13793,7 +13790,7 @@ namespace tkz {
                         if (!arg) return nullptr;
                         llvm::Function* fn = module->getFunction("qc_fclose");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {llvm::PointerType::get(builder->getInt8Ty(), 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fclose", module.get());
                         }
                         builder->CreateCall(fn, {arg});
@@ -13805,8 +13802,8 @@ namespace tkz {
                         llvm::Function* fn = module->getFunction("qc_fread");
                         if (!fn) {
                             auto* fnTy = llvm::FunctionType::get(
-                                llvm::PointerType::get(builder->getInt8Ty(), 0),
-                                {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                llvm::PointerType::get(context, 0),
+                                {llvm::PointerType::get(context, 0)},
                                 false
                             );
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fread", module.get());
@@ -13824,7 +13821,7 @@ namespace tkz {
                         if (!fn) {
                             auto* fnTy = llvm::FunctionType::get(
                                 builder->getVoidTy(),
-                                {llvm::PointerType::get(builder->getInt8Ty(), 0), llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                {llvm::PointerType::get(context, 0), llvm::PointerType::get(context, 0)},
                                 false
                             );
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_fwrite", module.get());
@@ -13843,12 +13840,12 @@ namespace tkz {
                                 if (!fn) {
                                     llvm::FunctionType* ty = llvm::FunctionType::get(
                                         builder->getVoidTy(),
-                                        {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                        {llvm::PointerType::get(context, 0)},
                                         false
                                     );
                                     fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, "qc_println", module.get());
                                 }
-                                builder->CreateCall(fn, {llvm::ConstantPointerNull::get(llvm::PointerType::get(builder->getInt8Ty(), 0))});
+                                builder->CreateCall(fn, {llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))});
                                 return nullptr;
                             }
                         }
@@ -13876,7 +13873,7 @@ namespace tkz {
                         if (!fn) {
                             llvm::FunctionType* ty = llvm::FunctionType::get(
                                 builder->getVoidTy(),
-                                {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                                {llvm::PointerType::get(context, 0)},
                                 false
                             );
                             fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, fnName, module.get());
@@ -14030,7 +14027,7 @@ namespace tkz {
                     }
                     
                     llvm::Value* jaggedPtr = builder->CreateLoad(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         alloc,
                         "jagged_ptr"
                     );
@@ -14050,8 +14047,8 @@ namespace tkz {
                     }
                     llvm::Function* getFn = module->getFunction("qc_jagged_array_get");
                     if (!getFn) {
-                        llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                        llvm::Type* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                        llvm::Type* intPtrTy = llvm::PointerType::get(context, 0);
                         llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             voidPtrTy,
                             {voidPtrTy, intPtrTy, builder->getInt32Ty()},
@@ -14078,9 +14075,9 @@ namespace tkz {
                         case 3: elemTy = builder->getInt8Ty(); break;
                         case 4: elemTy = builder->getInt1Ty(); break;
                         case 5: elemTy = builder->getIntNTy(2); break;
-                        case 6: elemTy = llvm::PointerType::get(builder->getInt8Ty(), 0); break;
+                        case 6: elemTy = llvm::PointerType::get(context, 0); break;
                     }
-                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(elemTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
                     return builder->CreateLoad(elemTy, typedPtr, "jagged_elem");
                 }
                 if (hasList(name)) {
@@ -14092,14 +14089,14 @@ namespace tkz {
                     }
                     
                     llvm::Value* listPtr = builder->CreateLoad(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         alloc,
                         "list_ptr"
                     );
                     
                     llvm::Function* getFn = module->getFunction("qc_list_get");
                     if (!getFn) {
-                        llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                         llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             voidPtrTy,
                             {voidPtrTy, builder->getInt32Ty()},
@@ -14127,7 +14124,7 @@ namespace tkz {
                                 case 3: elemTy = builder->getInt8Ty(); break;
                                 case 4: elemTy = builder->getInt1Ty(); break;
                                 case 5: elemTy = builder->getIntNTy(2); break;
-                                case 6: elemTy = llvm::PointerType::get(builder->getInt8Ty(), 0); break;
+                                case 6: elemTy = llvm::PointerType::get(context, 0); break;
                             }
                             
                             nestedPtr = builder->CreateGEP(elemTy, nestedPtr, idx, "nested_elem_ptr");
@@ -14142,7 +14139,7 @@ namespace tkz {
                             case 3: elemTy = builder->getInt8Ty(); break;
                             case 4: elemTy = builder->getInt1Ty(); break;
                             case 5: elemTy = builder->getIntNTy(2); break;
-                            case 6: elemTy = llvm::PointerType::get(builder->getInt8Ty(), 0); break;
+                            case 6: elemTy = llvm::PointerType::get(context, 0); break;
                         }
                         
                         return builder->CreateLoad(elemTy, nestedPtr, "list_nested_elem");
@@ -14157,10 +14154,10 @@ namespace tkz {
                         case 3: elemTy = builder->getInt8Ty(); break;
                         case 4: elemTy = builder->getInt1Ty(); break;
                         case 5: elemTy = builder->getIntNTy(2); break;
-                        case 6: elemTy = llvm::PointerType::get(builder->getInt8Ty(), 0); break;
+                        case 6: elemTy = llvm::PointerType::get(context, 0); break;
                     }
                     
-                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(elemTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
                     return builder->CreateLoad(elemTy, typedPtr, "list_elem");
                 }
                 if (hasMap(name)) {
@@ -14172,7 +14169,7 @@ namespace tkz {
                     }
                     
                     llvm::Value* mapPtr = builder->CreateLoad(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         alloc,
                         "map_ptr"
                     );
@@ -14187,11 +14184,11 @@ namespace tkz {
                         llvm::AllocaInst* keyAlloc = createEntryAlloca("map_key", keyVal->getType());
                         builder->CreateStore(keyVal, keyAlloc);
                         keyPtr = builder->CreateBitCast(keyAlloc, 
-                                                    llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                    llvm::PointerType::get(context, 0));
                     }
                     llvm::Function* getFn = module->getFunction("qc_map_get");
                     if (!getFn) {
-                        llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                         llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             voidPtrTy,
                             {voidPtrTy, voidPtrTy},
@@ -14209,7 +14206,7 @@ namespace tkz {
                         return valPtr;
                     } else {
                         llvm::Type* valueTy = getTypeFromCode(valueTypeCode);
-                        llvm::Value* typedPtr = builder->CreateBitCast(valPtr, llvm::PointerType::get(valueTy, 0));
+                        llvm::Value* typedPtr = builder->CreateBitCast(valPtr, llvm::PointerType::get(context, 0));
                         return builder->CreateLoad(valueTy, typedPtr, "map_val");
                     }
                 }
@@ -14343,7 +14340,7 @@ namespace tkz {
                 if (!lenFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getInt32Ty(),
-                        { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                        { llvm::PointerType::get(context, 0) },
                         false
                     );
                     lenFn = llvm::Function::Create(
@@ -14364,7 +14361,7 @@ namespace tkz {
                 if (!sizeFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getInt32Ty(),
-                        { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                        { llvm::PointerType::get(context, 0) },
                         false
                     );
                     sizeFn = llvm::Function::Create(
@@ -14493,14 +14490,14 @@ namespace tkz {
                                 
                                 llvm::Value* dataFieldPtr = builder->CreateStructGEP(unionTy, varAlloc, 1, "union_data_ptr");
                                 llvm::Value* dataPtr = builder->CreateLoad(
-                                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                    llvm::PointerType::get(context, 0),
                                     dataFieldPtr, "union_data"
                                 );
                                 
                                 llvm::StructType* classTy = classTypes[resolvedVariant];
                                 llvm::Value* castedPtr = builder->CreateBitCast(
                                     dataPtr,
-                                    llvm::PointerType::get(classTy, 0)
+                                    llvm::PointerType::get(context, 0)
                                 );
                                 
                                 llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
@@ -14526,14 +14523,14 @@ namespace tkz {
                                 
                                 llvm::Value* dataFieldPtr = builder->CreateStructGEP(unionTy, varAlloc, 1, "union_data_ptr");
                                 llvm::Value* dataPtr = builder->CreateLoad(
-                                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                    llvm::PointerType::get(context, 0),
                                     dataFieldPtr, "union_data"
                                 );
                                 
                                 llvm::StructType* structTy = structTypes[resolvedVariant];
                                 llvm::Value* castedPtr = builder->CreateBitCast(
                                     dataPtr,
-                                    llvm::PointerType::get(structTy, 0)
+                                    llvm::PointerType::get(context, 0)
                                 );
                                 
                                 llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
@@ -14762,9 +14759,9 @@ namespace tkz {
                                 if (classTypes.find(resolvedVariant) != classTypes.end()) {
                                     if (classMethods[resolvedVariant].find(methodName) != classMethods[resolvedVariant].end()) {
                                         llvm::Value* dataFieldPtr = builder->CreateStructGEP(unionTy, varAlloc, 1, "union_data_ptr");
-                                        llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(builder->getInt8Ty(), 0), dataFieldPtr, "union_data");
+                                        llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), dataFieldPtr, "union_data");
                                         llvm::StructType* classTy = classTypes[resolvedVariant];
-                                        llvm::Value* castedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(classTy, 0), "union_as_" + resolvedVariant);
+                                        llvm::Value* castedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0), "union_as_" + resolvedVariant);
                                         std::vector<llvm::Value*> methodArgs;
                                         for (auto& argNode : (*methodCall)->args) {
                                             llvm::Value* arg = emitExpr(argNode);
@@ -14964,8 +14961,8 @@ namespace tkz {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getVoidTy(),
                         {
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),  
-                            llvm::PointerType::get(builder->getInt8Ty(), 0), 
+                            llvm::PointerType::get(context, 0),  
+                            llvm::PointerType::get(context, 0), 
                             builder->getInt32Ty()                      
                         },
                         false
@@ -14983,7 +14980,7 @@ namespace tkz {
                 
                 llvm::Value* argPtr = builder->CreateBitCast(
                     argAlloc,
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(context, 0),
                     "arg_void_ptr"
                 );
                 
@@ -14995,8 +14992,8 @@ namespace tkz {
                 llvm::Function* popFn = module->getFunction("qc_list_pop");
                 if (!popFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
-                        { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                        llvm::PointerType::get(context, 0),
+                        { llvm::PointerType::get(context, 0) },
                         false
                     );
                     popFn = llvm::Function::Create(
@@ -15024,12 +15021,12 @@ namespace tkz {
                 builder->CreateStore(keyVal, keyAlloc);
                 builder->CreateStore(valueVal, valAlloc);
                 
-                llvm::Value* keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
-                llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                llvm::Value* keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(context, 0));
+                llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(context, 0));
                 
                 llvm::Function* setFn = module->getFunction("qc_map_set");
                 if (!setFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getVoidTy(),
                         {voidPtrTy, voidPtrTy, voidPtrTy},
@@ -15058,12 +15055,12 @@ namespace tkz {
                 } else {
                     llvm::AllocaInst* keyAlloc = createEntryAlloca("has_key", keyVal->getType());
                     builder->CreateStore(keyVal, keyAlloc);
-                    keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                    keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(context, 0));
                 }
                 
                 llvm::Function* hasFn = module->getFunction("qc_map_has");
                 if (!hasFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt1Ty(),
                         {voidPtrTy, voidPtrTy},
@@ -15091,12 +15088,12 @@ namespace tkz {
                 } else {
                     llvm::AllocaInst* keyAlloc = createEntryAlloca("remove_key", keyVal->getType());
                     builder->CreateStore(keyVal, keyAlloc);
-                    keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                    keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(context, 0));
                 }
                 
                 llvm::Function* removeFn = module->getFunction("qc_map_remove");
                 if (!removeFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getVoidTy(),
                         {voidPtrTy, voidPtrTy},
@@ -15112,7 +15109,7 @@ namespace tkz {
             if (methodName == "keys") {
                 llvm::Function* keysFn = module->getFunction("qc_map_keys");
                 if (!keysFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy,
                         {voidPtrTy},
@@ -15269,13 +15266,13 @@ namespace tkz {
         llvm::Type* ty = val->getType();
         
         if (ty->isPointerTy()) {
-            return builder->CreateBitCast(val, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            return builder->CreateBitCast(val, llvm::PointerType::get(context, 0));
         }
         
         llvm::Function* mallocFn = module->getFunction("malloc");
         if (!mallocFn) {
             llvm::FunctionType* mallocTy = llvm::FunctionType::get(
-                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                llvm::PointerType::get(context, 0),
                 {builder->getInt64Ty()},
                 false
             );
@@ -15286,7 +15283,7 @@ namespace tkz {
         uint64_t size = DL.getTypeAllocSize(ty);
         
         llvm::Value* heapPtr = builder->CreateCall(mallocFn, {builder->getInt64(size)}, "union_heap");
-        llvm::Value* typedPtr = builder->CreateBitCast(heapPtr, llvm::PointerType::get(ty, 0));
+        llvm::Value* typedPtr = builder->CreateBitCast(heapPtr, llvm::PointerType::get(context, 0));
         builder->CreateStore(val, typedPtr);
         
         return heapPtr;
@@ -15356,10 +15353,10 @@ namespace tkz {
         llvm::Function* concatFn = module->getFunction("qc_string_concat");
         if (!concatFn) {
             llvm::FunctionType* ty = llvm::FunctionType::get(
-                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                llvm::PointerType::get(context, 0),
                 {
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
-                    llvm::PointerType::get(builder->getInt8Ty(), 0)
+                    llvm::PointerType::get(context, 0),
+                    llvm::PointerType::get(context, 0)
                 },
                 false
             );
@@ -15376,7 +15373,7 @@ namespace tkz {
             
             llvm::StructType* structTy = structTypes[name];
             llvm::FunctionType* reprFnTy = llvm::FunctionType::get(
-                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                llvm::PointerType::get(context, 0),
                 {structTy},
                 false
             );
@@ -15466,8 +15463,8 @@ namespace tkz {
                     llvm::Function* fn = module->getFunction("qc_list_to_string");
                     if (!fn) {
                         llvm::FunctionType* ty = llvm::FunctionType::get(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
-                            {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                            llvm::PointerType::get(context, 0),
+                            {llvm::PointerType::get(context, 0)},
                             false
                         );
                         fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, "qc_list_to_string", module.get());
@@ -15478,8 +15475,8 @@ namespace tkz {
                     llvm::Function* fn = module->getFunction("qc_map_to_string");
                     if (!fn) {
                         llvm::FunctionType* ty = llvm::FunctionType::get(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
-                            {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                            llvm::PointerType::get(context, 0),
+                            {llvm::PointerType::get(context, 0)},
                             false
                         );
                         fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, "qc_map_to_string", module.get());
@@ -15490,8 +15487,8 @@ namespace tkz {
                     llvm::Function* fn = module->getFunction("qc_jagged_to_string");
                     if (!fn) {
                         llvm::FunctionType* ty = llvm::FunctionType::get(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
-                            {llvm::PointerType::get(builder->getInt8Ty(), 0)},
+                            llvm::PointerType::get(context, 0),
+                            {llvm::PointerType::get(context, 0)},
                             false
                         );
                         fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, "qc_jagged_to_string", module.get());
@@ -15516,7 +15513,7 @@ namespace tkz {
         llvm::Function* fn = module->getFunction(fnName);
         if (!fn) {
             llvm::FunctionType* fty = llvm::FunctionType::get(
-                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                llvm::PointerType::get(context, 0),
                 {val->getType()},
                 false
             );
@@ -15543,7 +15540,7 @@ namespace tkz {
         }
         
         llvm::AllocaInst* argsArray = builder->CreateAlloca(
-            llvm::PointerType::get(builder->getInt8Ty(), 0),
+            llvm::PointerType::get(context, 0),
             totalArgsCount,
             "spread_args_array"
         );
@@ -15578,14 +15575,14 @@ namespace tkz {
                     builder->CreateStore(argVal, tempAlloc);
                     argPtr = builder->CreateBitCast(
                         tempAlloc,
-                        llvm::PointerType::get(builder->getInt8Ty(), 0)
+                        llvm::PointerType::get(context, 0)
                     );
                 }
 
                 int typeCode = getTypeCodeFromLLVM(ty);
 
                 llvm::Value* slot = builder->CreateGEP(
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(context, 0),
                     argsArray,
                     currentIndex
                 );
@@ -15604,14 +15601,14 @@ namespace tkz {
         
         llvm::Function* spreadFn = module->getFunction("qc_spread_call");
         if (!spreadFn) {
-            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
             llvm::FunctionType* ty = llvm::FunctionType::get(
                 builder->getVoidTy(),
                 {
                     voidPtrTy,
                     builder->getInt32Ty(),
-                    llvm::PointerType::get(voidPtrTy, 0),
-                    llvm::PointerType::get(builder->getInt32Ty(), 0),
+                    llvm::PointerType::get(context, 0),
+                    llvm::PointerType::get(context, 0),
                     builder->getInt32Ty()
                 },
                 false
@@ -15626,7 +15623,7 @@ namespace tkz {
             retTypeCode = getTypeCodeFromLLVM(retTy);
         }
         
-        llvm::Value* funcPtr = builder->CreateBitCast(calleeVal, llvm::PointerType::get(builder->getInt8Ty(), 0));
+        llvm::Value* funcPtr = builder->CreateBitCast(calleeVal, llvm::PointerType::get(context, 0));
         if (retTy->isVoidTy()) {
             builder->CreateCall(spreadFn, {
                 funcPtr,
@@ -15634,12 +15631,12 @@ namespace tkz {
                 argsArray,
                 typesArray,
                 builder->getInt32(retTypeCode),
-                llvm::ConstantPointerNull::get(llvm::PointerType::get(builder->getInt8Ty(), 0))
+                llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))
             });
             return nullptr;
         } else {
             llvm::AllocaInst* retAlloc = createEntryAlloca("spread_ret", retTy);
-            llvm::Value* retPtr = builder->CreateBitCast(retAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            llvm::Value* retPtr = builder->CreateBitCast(retAlloc, llvm::PointerType::get(context, 0));
             
             builder->CreateCall(spreadFn, {
                 funcPtr,
@@ -15688,9 +15685,9 @@ namespace tkz {
                     llvm::Function* getFn = module->getFunction("qc_list_get");
                     if (!getFn) {
                         llvm::FunctionType* ty = llvm::FunctionType::get(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             { 
-                                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                llvm::PointerType::get(context, 0),
                                 builder->getInt32Ty()
                             },
                             false
@@ -15701,7 +15698,7 @@ namespace tkz {
                     llvm::Value* elemPtr = builder->CreateCall(getFn, { collVal, builder->getInt32(i) });
                     
                     llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
-                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(elemTy, 0));
+                    llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
                     elemVal = builder->CreateLoad(elemTy, typedPtr);
                 } else {
                     llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
@@ -15766,9 +15763,9 @@ namespace tkz {
             llvm::Function* getFn = module->getFunction("qc_list_get");
             if (!getFn) {
                 llvm::FunctionType* ty = llvm::FunctionType::get(
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(context, 0),
                     { 
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         builder->getInt32Ty()
                     },
                     false
@@ -15780,7 +15777,7 @@ namespace tkz {
         } else {
              llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
         llvm::Value* gepPtr = builder->CreateGEP(elemTy, actualCollVal, iVal);
-        elemPtr = builder->CreateBitCast(gepPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+        elemPtr = builder->CreateBitCast(gepPtr, llvm::PointerType::get(context, 0));
         }
         
         builder->CreateCall(pushFn, {listPtr, elemPtr, builder->getInt32(elemTypeCode)});
@@ -15842,9 +15839,9 @@ namespace tkz {
             llvm::Function* getFn = module->getFunction("qc_list_get");
             if (!getFn) {
                 llvm::FunctionType* ty = llvm::FunctionType::get(
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(context, 0),
                     { 
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         builder->getInt32Ty()
                     },
                     false
@@ -15868,11 +15865,11 @@ namespace tkz {
             }
             
             llvm::Value* gepPtr = builder->CreateGEP(elemTy, arrayPtr, iVal, "arr_elem_ptr");
-            elemPtr = builder->CreateBitCast(gepPtr, llvm::PointerType::get(builder->getInt8Ty(), 0));
+            elemPtr = builder->CreateBitCast(gepPtr, llvm::PointerType::get(context, 0));
         }
         
         llvm::Value* argSlot = builder->CreateGEP(
-            llvm::PointerType::get(builder->getInt8Ty(), 0),
+            llvm::PointerType::get(context, 0),
             argsArray,
             currentIdx
         );
@@ -15904,7 +15901,7 @@ namespace tkz {
                 if (!lenFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getInt32Ty(),
-                        { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                        { llvm::PointerType::get(context, 0) },
                         false
                     );
                     lenFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
@@ -15928,7 +15925,7 @@ namespace tkz {
                     if (!lenFn) {
                         llvm::FunctionType* ty = llvm::FunctionType::get(
                             builder->getInt32Ty(),
-                            { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                            { llvm::PointerType::get(context, 0) },
                             false
                         );
                         lenFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
@@ -15988,9 +15985,9 @@ namespace tkz {
             llvm::Function* getFn = module->getFunction("qc_list_get");
             if (!getFn) {
                 llvm::FunctionType* ty = llvm::FunctionType::get(
-                    llvm::PointerType::get(builder->getInt8Ty(), 0),
+                    llvm::PointerType::get(context, 0),
                     { 
-                        llvm::PointerType::get(builder->getInt8Ty(), 0),
+                        llvm::PointerType::get(context, 0),
                         builder->getInt32Ty()
                     },
                     false
@@ -16002,7 +15999,7 @@ namespace tkz {
             if (elemTypeCode == 6) {
                 elemVal = elemPtr;
             } else {
-                llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(elemTy, 0));
+                llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
                 elemVal = builder->CreateLoad(elemTy, typedPtr);
             }
         } else {
@@ -16066,7 +16063,7 @@ namespace tkz {
         llvm::Function* mallocFn = module->getFunction("malloc");
         if (!mallocFn) {
             llvm::FunctionType* mallocTy = llvm::FunctionType::get(
-                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                llvm::PointerType::get(context, 0),
                 {builder->getInt64Ty()},
                 false
             );
@@ -16080,7 +16077,7 @@ namespace tkz {
         llvm::Value* sizeBytes = builder->CreateMul(totalSizeExt, builder->getInt64(elemSize));
         
         llvm::Value* mallocCall = builder->CreateCall(mallocFn, {sizeBytes}, "runtime_arr");
-        llvm::Value* arrPtr = builder->CreateBitCast(mallocCall, llvm::PointerType::get(elemTy, 0));
+        llvm::Value* arrPtr = builder->CreateBitCast(mallocCall, llvm::PointerType::get(context, 0));
         
         llvm::Value* currentIndex = builder->getInt32(0);
         
@@ -16272,14 +16269,14 @@ namespace tkz {
                         auto it = locals.find(name);
                         if (it != locals.end()) {
                             llvm::Value* jaggedPtr = builder->CreateLoad(
-                                llvm::PointerType::get(builder->getInt8Ty(), 0),
+                                llvm::PointerType::get(context, 0),
                                 it->second,
                                 "jagged_ptr"
                             );
                             
                             llvm::Function* printFn = module->getFunction("qc_print_jagged_array_recursive");
                             if (!printFn) {
-                                llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                                     builder->getVoidTy(),
                                     {voidPtrTy},
@@ -16299,14 +16296,14 @@ namespace tkz {
                         if (it == locals.end()) continue;
                         
                         llvm::Value* mapPtr = builder->CreateLoad(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             it->second,
                             "map_ptr"
                         );
                         
                         llvm::Function* fn = module->getFunction("qc_print_map");
                         if (!fn) {
-                            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                                 builder->getVoidTy(),
                                 {voidPtrTy},
@@ -16348,15 +16345,15 @@ namespace tkz {
                                 llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
                                 builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
                             }
-                            llvm::Value* arrPtr = builder->CreateBitCast(alloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                            llvm::Value* arrPtr = builder->CreateBitCast(alloc, llvm::PointerType::get(context, 0));
                             
                             std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
                             llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
                             
                             llvm::Function* fn = module->getFunction("qc_print_array_recursive");
                             if (!fn) {
-                                auto* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                                auto* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                                auto* voidPtrTy = llvm::PointerType::get(context, 0);
+                                auto* intPtrTy = llvm::PointerType::get(context, 0);
                                 auto* fty = llvm::FunctionType::get(
                                     builder->getVoidTy(),
                                     { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
@@ -16568,7 +16565,7 @@ namespace tkz {
                 else if (ty->isIntegerTy(1)) {
                     llvm::Function* toStr = module->getFunction("qc_to_string_bool");
                     if (!toStr) {
-                        auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
                         auto* fty = llvm::FunctionType::get(
                             i8Ptr,
                             { builder->getInt1Ty() },
@@ -16585,7 +16582,7 @@ namespace tkz {
 
                     llvm::Function* printStr = module->getFunction("qc_print_string");
                     if (!printStr) {
-                        auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
                         auto* fty = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             { i8Ptr },
@@ -16603,7 +16600,7 @@ namespace tkz {
                 else if (ty->isIntegerTy(2)) {
                     llvm::Function* toStr = module->getFunction("qc_to_string_qbool");
                     if (!toStr) {
-                        auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
                         auto* i2Ty  = builder->getIntNTy(2);
                         auto* fty   = llvm::FunctionType::get(
                             i8Ptr,
@@ -16621,7 +16618,7 @@ namespace tkz {
 
                     llvm::Function* printStr = module->getFunction("qc_print_string");
                     if (!printStr) {
-                        auto* i8Ptr = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
                         auto* fty = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             { i8Ptr },
@@ -16666,15 +16663,15 @@ namespace tkz {
                         builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
                     }
                     
-                    llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                    llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(context, 0));
                     
                     std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
                     llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
                     
                     llvm::Function* fn = module->getFunction("qc_print_array_recursive");
                     if (!fn) {
-                        auto* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                        auto* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                        auto* voidPtrTy = llvm::PointerType::get(context, 0);
+                        auto* intPtrTy = llvm::PointerType::get(context, 0);
                         auto* fty = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
@@ -16791,7 +16788,7 @@ namespace tkz {
                         if (allocatedTy->isArrayTy()) {
                             val = builder->CreateBitCast(
                                 alloc,
-                                llvm::PointerType::get(allocatedTy->getArrayElementType(), 0),
+                                llvm::PointerType::get(context, 0),
                                 "array_ret_ptr"
                             );
                         }
@@ -16847,7 +16844,7 @@ namespace tkz {
                         
                         llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
                         llvm::Value* typedPtr = builder->CreateBitCast(
-                            heapPtr, llvm::PointerType::get(arrayType, 0));
+                            heapPtr, llvm::PointerType::get(context, 0));
                         
                         builder->CreateStore(val, typedPtr);
                         
@@ -16868,7 +16865,7 @@ namespace tkz {
                         } else {
                             llvm::Value* typedPtr = builder->CreateBitCast(
                                 dataPtr,
-                                llvm::PointerType::get(destTy, 0)
+                                llvm::PointerType::get(context, 0)
                             );
                             val = builder->CreateLoad(destTy, typedPtr);
                         }
@@ -16899,7 +16896,7 @@ namespace tkz {
                         } else {
                             llvm::Value* typedPtr = builder->CreateBitCast(
                                 dataPtr,
-                                llvm::PointerType::get(destTy, 0)
+                                llvm::PointerType::get(context, 0)
                             );
                             val = builder->CreateLoad(destTy, typedPtr);
                         }
@@ -16938,7 +16935,7 @@ namespace tkz {
                     if (allocatedTy->isArrayTy()) {
                         llvm::Value* arrayPtr = builder->CreateBitCast(
                             alloc,
-                            llvm::PointerType::get(allocatedTy->getArrayElementType(), 0),
+                            llvm::PointerType::get(context, 0),
                             "array_ret_ptr"
                         );
                         builder->CreateRet(arrayPtr);
@@ -17019,7 +17016,7 @@ namespace tkz {
                     llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         heapPtr, 
-                        llvm::PointerType::get(arrayType, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     builder->CreateStore(v, typedPtr);
                     llvm::Value* retPtr = builder->CreateBitCast(typedPtr, destTy);
@@ -17036,7 +17033,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr,
-                            llvm::PointerType::get(destTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         v = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -17067,7 +17064,7 @@ namespace tkz {
                     } else {
                         llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr,
-                            llvm::PointerType::get(destTy, 0)
+                            llvm::PointerType::get(context, 0)
                         );
                         v = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -17128,7 +17125,7 @@ namespace tkz {
                         } else {
                             llvm::Value* typedPtr = builder->CreateBitCast(
                                 dataPtr,
-                                llvm::PointerType::get(destTy, 0)
+                                llvm::PointerType::get(context, 0)
                             );
                             field = builder->CreateLoad(destTy, typedPtr);
                         }
@@ -17144,7 +17141,7 @@ namespace tkz {
                         } else {
                             llvm::Value* typedPtr = builder->CreateBitCast(
                                 dataPtr,
-                                llvm::PointerType::get(destTy, 0)
+                                llvm::PointerType::get(context, 0)
                             );
                             field = builder->CreateLoad(destTy, typedPtr);
                         }
@@ -17175,7 +17172,7 @@ namespace tkz {
                     
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, 
-                        llvm::PointerType::get(targetTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     cond = builder->CreateLoad(targetTy, typedPtr);
                     break;
@@ -17257,7 +17254,7 @@ namespace tkz {
                     
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, 
-                        llvm::PointerType::get(targetTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     cond = builder->CreateLoad(targetTy, typedPtr);
                     break;
@@ -17317,7 +17314,7 @@ namespace tkz {
                     
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, 
-                        llvm::PointerType::get(targetTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     cond = builder->CreateLoad(targetTy, typedPtr);
                     break;
@@ -17490,7 +17487,7 @@ namespace tkz {
                     
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, 
-                        llvm::PointerType::get(targetTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     qifCond = builder->CreateLoad(targetTy, typedPtr);
                     break;
@@ -17579,7 +17576,7 @@ namespace tkz {
                     
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, 
-                        llvm::PointerType::get(targetTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     qb_val = builder->CreateLoad(targetTy, typedPtr);
                     break;
@@ -17756,7 +17753,7 @@ namespace tkz {
                     else if (elemType == "string") elemTypeCode = 6;
                     
                     llvm::Value* jaggedArr = createJaggedArray((*arrDecl)->value, elemTypeCode, depth - 1);
-                    llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                     llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
                     builder->CreateStore(jaggedArr, alloc);
                     std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
@@ -17793,7 +17790,7 @@ namespace tkz {
                     llvm::Function* mallocFn = module->getFunction("malloc");
                     if (!mallocFn) {
                         llvm::FunctionType* mallocTy = llvm::FunctionType::get(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             {builder->getInt64Ty()},
                             false
                         );
@@ -17804,9 +17801,9 @@ namespace tkz {
                     uint64_t sizeBytes = DL.getTypeAllocSize(arrTy);
                     
                     llvm::Value* mallocCall = builder->CreateCall(mallocFn, {builder->getInt64(sizeBytes)}, "heap_arr");
-                    llvm::Value* arrPtr = builder->CreateBitCast(mallocCall, llvm::PointerType::get(arrTy, 0), "arr_cast");
+                    llvm::Value* arrPtr = builder->CreateBitCast(mallocCall, llvm::PointerType::get(context, 0), "arr_cast");
                     
-                    alloc = createEntryAlloca(name, llvm::PointerType::get(arrTy, 0));
+                    alloc = createEntryAlloca(name, llvm::PointerType::get(context, 0));
                     builder->CreateStore(arrPtr, alloc);
                     arrayTypeStrings[name] = elemType;
                 } else {
@@ -17835,7 +17832,7 @@ namespace tkz {
                                 }
                                 
                                 llvm::Value* basePtr = useHeap 
-                                    ? builder->CreateLoad(llvm::PointerType::get(arrTy, 0), alloc, "heap_ptr")
+                                    ? builder->CreateLoad(llvm::PointerType::get(context, 0), alloc, "heap_ptr")
                                     : static_cast<llvm::Value*>(alloc);
                                 
                                 llvm::Value* elemPtr = builder->CreateInBoundsGEP(arrTy, basePtr, llvmIndices);
@@ -17880,7 +17877,7 @@ namespace tkz {
                         }
                         
                         llvm::Value* jaggedPtr = builder->CreateLoad(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             it->second,
                             "jagged_ptr"
                         );
@@ -17901,8 +17898,8 @@ namespace tkz {
                         
                         llvm::Function* getFn = module->getFunction("qc_jagged_array_get");
                         if (!getFn) {
-                            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
-                            llvm::Type* intPtrTy = llvm::PointerType::get(builder->getInt32Ty(), 0);
+                            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                            llvm::Type* intPtrTy = llvm::PointerType::get(context, 0);
                             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                                 voidPtrTy,
                                 {voidPtrTy, intPtrTy, builder->getInt32Ty()},
@@ -17933,10 +17930,10 @@ namespace tkz {
                             case 3: elemTy = builder->getInt8Ty(); break;
                             case 4: elemTy = builder->getInt1Ty(); break;
                             case 5: elemTy = builder->getIntNTy(2); break;
-                            case 6: elemTy = llvm::PointerType::get(builder->getInt8Ty(), 0); break;
+                            case 6: elemTy = llvm::PointerType::get(context, 0); break;
                         }
                         
-                        llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(elemTy, 0));
+                        llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
                         builder->CreateStore(valueVal, typedPtr);
                         
                         return;
@@ -17950,7 +17947,7 @@ namespace tkz {
                         }
                         
                         llvm::Value* mapPtr = builder->CreateLoad(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             it->second,
                             "map_ptr"
                         );
@@ -17966,7 +17963,7 @@ namespace tkz {
                             llvm::AllocaInst* keyAlloc = createEntryAlloca("map_key", keyVal->getType());
                             builder->CreateStore(keyVal, keyAlloc);
                             keyPtr = builder->CreateBitCast(keyAlloc, 
-                                                        llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                        llvm::PointerType::get(context, 0));
                         }
 
                         llvm::Value* valPtr;
@@ -17976,11 +17973,11 @@ namespace tkz {
                             llvm::AllocaInst* valAlloc = createEntryAlloca("map_val", valueVal->getType());
                             builder->CreateStore(valueVal, valAlloc);
                             valPtr = builder->CreateBitCast(valAlloc, 
-                                                        llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                        llvm::PointerType::get(context, 0));
                         }
                         llvm::Function* setFn = module->getFunction("qc_map_set");
                         if (!setFn) {
-                            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                                 builder->getVoidTy(),
                                 {voidPtrTy, voidPtrTy, voidPtrTy},
@@ -18002,7 +17999,7 @@ namespace tkz {
                         }
                         
                         llvm::Value* listPtr = builder->CreateLoad(
-                            llvm::PointerType::get(builder->getInt8Ty(), 0),
+                            llvm::PointerType::get(context, 0),
                             alloc,
                             "list_ptr"
                         );
@@ -18015,11 +18012,11 @@ namespace tkz {
                         
                         llvm::AllocaInst* valAlloc = createEntryAlloca("list_set_val", valueVal->getType());
                         builder->CreateStore(valueVal, valAlloc);
-                        llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(builder->getInt8Ty(), 0));
+                        llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(context, 0));
                         
                         llvm::Function* setFn = module->getFunction("qc_list_set");
                         if (!setFn) {
-                            llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                                 builder->getVoidTy(),
                                 {voidPtrTy, builder->getInt32Ty(), voidPtrTy},
@@ -18094,7 +18091,7 @@ namespace tkz {
             else if (elemType == "string") elemTypeCode = 6;
             llvm::Function* createFn = module->getFunction("qc_create_list");
             if (!createFn) {
-                llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     ptrTy,
                     {builder->getInt32Ty()},
@@ -18112,7 +18109,7 @@ namespace tkz {
             else if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&(*listDecl)->value)) {
                 llvm::Function* pushFn = module->getFunction("qc_list_push");
                 if (!pushFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getVoidTy(),
                         {voidPtrTy, voidPtrTy},
@@ -18134,7 +18131,7 @@ namespace tkz {
                         builder->CreateStore(elemVal, tempAlloc);
                         
                         llvm::Value* elemPtr = builder->CreateBitCast(tempAlloc, 
-                                                                    llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                                    llvm::PointerType::get(context, 0));
                         
                         builder->CreateCall(pushFn, {listPtr, elemPtr, builder->getInt32(elemTypeCode)});
                     }
@@ -18148,7 +18145,7 @@ namespace tkz {
                 listPtr = emitExpr((*listDecl)->value);
                 if (!listPtr) return;
             }
-            llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
             llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
             builder->CreateStore(listPtr, alloc);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
@@ -18212,7 +18209,7 @@ namespace tkz {
                 if (!lenFn) {
                     llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getInt32Ty(),
-                        { llvm::PointerType::get(builder->getInt8Ty(), 0) },
+                        { llvm::PointerType::get(context, 0) },
                         false
                     );
                     lenFn = llvm::Function::Create(
@@ -18297,7 +18294,7 @@ namespace tkz {
                 } else {
                     llvm::Value* typedPtr = builder->CreateBitCast(
                         elemPtr,
-                        llvm::PointerType::get(elemTy, 0)
+                        llvm::PointerType::get(context, 0)
                     );
                     elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
                 }
@@ -18338,7 +18335,7 @@ namespace tkz {
             int valueTypeCode = getTypeCode(valueType);
             llvm::Function* createFn = module->getFunction("qc_create_map");
             if (!createFn) {
-                llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     ptrTy,
                     {builder->getInt32Ty(), builder->getInt32Ty()},
@@ -18356,7 +18353,7 @@ namespace tkz {
             if (!(*mapDecl)->init_pairs.empty()) {
                 llvm::Function* setFn = module->getFunction("qc_map_set");
                 if (!setFn) {
-                    llvm::Type* voidPtrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getVoidTy(),
                         {voidPtrTy, voidPtrTy, voidPtrTy},
@@ -18380,7 +18377,7 @@ namespace tkz {
                         llvm::AllocaInst* keyAlloc = createEntryAlloca("temp_key", keyVal->getType());
                         builder->CreateStore(keyVal, keyAlloc);
                         keyPtr = builder->CreateBitCast(keyAlloc, 
-                                                    llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                    llvm::PointerType::get(context, 0));
                     }
                     
                     if (valueVal->getType()->isPointerTy()) {
@@ -18389,14 +18386,14 @@ namespace tkz {
                         llvm::AllocaInst* valAlloc = createEntryAlloca("temp_val", valueVal->getType());
                         builder->CreateStore(valueVal, valAlloc);
                         valPtr = builder->CreateBitCast(valAlloc, 
-                                                    llvm::PointerType::get(builder->getInt8Ty(), 0));
+                                                    llvm::PointerType::get(context, 0));
                     }
                     
                     builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
                 }
             }
             
-            llvm::Type* ptrTy = llvm::PointerType::get(builder->getInt8Ty(), 0);
+            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
             llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
             builder->CreateStore(mapPtr, alloc);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
@@ -18720,6 +18717,10 @@ namespace tkz {
 
         std::error_code EC;
         llvm::raw_fd_ostream out(outPath, EC, llvm::sys::fs::OF_Text);
+        if (EC) {
+            llvm::errs() << "Failed to open output: " << EC.message() << "\n";
+            return errors;
+        }
         module->print(out, nullptr);
         return errors;
     }
@@ -19145,13 +19146,12 @@ namespace tkz {
             if (config.compile_mode) {
                 LLVMCompiler comp(ast.user_types);
                 std::string base_name = config.output_file.empty() ? "out" : removeExtension(config.output_file);
-                
-                std::string ll_file;
-                if (config.compile_only) {
-                    ll_file = base_name + ".ll";
-                } else {
-                    ll_file = "temp_" + base_name + ".ll";
-                }
+                size_t last_slash = base_name.find_last_of("/\\");
+                std::string dir = (last_slash == std::string::npos) ? "" : base_name.substr(0, last_slash + 1);
+                std::string stem = (last_slash == std::string::npos) ? base_name : base_name.substr(last_slash + 1);
+
+                std::string ll_file = config.compile_only ? base_name + ".ll" : dir + "temp_" + stem + ".ll";
+                std::string obj_file = config.object_only ? base_name + ".o" : dir + "temp_" + stem + ".o";
                 
                 std::vector<CTError> compile_errors = comp.compile(ast.statements.get(), ll_file);
                 auto end = std::chrono::high_resolution_clock::now();
@@ -19175,13 +19175,6 @@ namespace tkz {
                     message += ". Compiled to " + ll_file;
                     return Mer{std::move(ast), std::move(resp), message, diagnostics};
                 }
-                std::string obj_file;
-                if (config.object_only) {
-                    obj_file = base_name + ".o";
-                } else {
-                    obj_file = "temp_" + base_name + ".o";
-                }
-                
                 std::string llc_cmd = "llc " + ll_file + " -o " + obj_file + " -filetype=obj -relocation-model=pic";
                 if (config.debug) llc_cmd += " --debugger-tune=gdb";
                 int llc_result = system(llc_cmd.c_str());

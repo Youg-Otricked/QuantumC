@@ -1,0 +1,6 @@
+#include <cstddef>
+
+extern "C" {
+    extern const char _binary_runtime_ll_start[] = { @RUNTIME_LL_HEX@ 0x00 };
+    extern const size_t _binary_runtime_ll_size = sizeof(_binary_runtime_ll_start) - 1;
+}

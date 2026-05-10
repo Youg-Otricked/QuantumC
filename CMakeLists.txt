@@ -12,13 +12,23 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
 
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
-
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
+    COMMAND ${CMAKE_COMMAND}
+        -DRUNTIME_LL=${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+        -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
+        -DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/runtime_embed.cpp.in
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/embed_runtime.cmake
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+    VERBATIM
+)
 set(SOURCES
     compiler.cpp
     compiler_run.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
 )
-
 add_executable(qc ${SOURCES})
+
 target_compile_options(qc PRIVATE
     -O0
     -g

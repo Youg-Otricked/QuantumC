@@ -1,0 +1,3 @@
+file(READ ${RUNTIME_LL} RUNTIME_LL_CONTENT HEX)
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," RUNTIME_LL_HEX "${RUNTIME_LL_CONTENT}")
+configure_file(${TEMPLATE} ${OUTPUT})

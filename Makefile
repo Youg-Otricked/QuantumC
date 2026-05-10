@@ -242,6 +242,30 @@ compiler_run.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/compiler_run.cpp.s
 .PHONY : compiler_run.cpp.s
 
+runtime_embed.o: runtime_embed.cpp.o
+.PHONY : runtime_embed.o
+
+# target to build an object file
+runtime_embed.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/runtime_embed.cpp.o
+.PHONY : runtime_embed.cpp.o
+
+runtime_embed.i: runtime_embed.cpp.i
+.PHONY : runtime_embed.i
+
+# target to preprocess a source file
+runtime_embed.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/runtime_embed.cpp.i
+.PHONY : runtime_embed.cpp.i
+
+runtime_embed.s: runtime_embed.cpp.s
+.PHONY : runtime_embed.s
+
+# target to generate assembly for a file
+runtime_embed.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/runtime_embed.cpp.s
+.PHONY : runtime_embed.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -262,6 +286,9 @@ help:
 	@echo "... compiler_run.o"
 	@echo "... compiler_run.i"
 	@echo "... compiler_run.s"
+	@echo "... runtime_embed.o"
+	@echo "... runtime_embed.i"
+	@echo "... runtime_embed.s"
 .PHONY : help
 
 
