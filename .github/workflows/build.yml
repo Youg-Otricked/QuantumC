@@ -39,7 +39,8 @@ jobs:
           sudo apt update
       - name: Install deps
         run: sudo apt install -y llvm-21 llvm-21-dev libffi-dev pkg-config cmake
-
+      - name: Generate runtime.ll
+        run: clang-21 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
       - name: Build (Linux)
         run: |
           cmake -DCMAKE_BUILD_TYPE=Release .
@@ -63,6 +64,8 @@ jobs:
           brew install llvm@21 libffi cmake
           echo "LLVM_DIR=$(brew --prefix llvm@21)/lib/cmake/llvm" >> $GITHUB_ENV
           echo "$(brew --prefix llvm@21)/bin" >> $GITHUB_PATH
+      - name: Generate runtime.ll
+        run: clang -S -emit-llvm -O0 -o runtime.ll runtime.cpp
       - name: Build (macOS)
         run: |
           cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR .
