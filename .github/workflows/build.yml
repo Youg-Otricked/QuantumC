@@ -38,7 +38,7 @@ jobs:
           sudo add-apt-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-21 main"
           sudo apt update
       - name: Install deps
-        run: sudo apt install -y llvm-21 llvm-21-dev libffi-dev pkg-config cmake
+        run: sudo apt install -y llvm-21 llvm-21-dev libffi-dev pkg-config cmake clang-21
       - name: Generate runtime.ll
         run: clang-21 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
       - name: Build (Linux)
@@ -65,7 +65,7 @@ jobs:
           echo "LLVM_DIR=$(brew --prefix llvm@21)/lib/cmake/llvm" >> $GITHUB_ENV
           echo "$(brew --prefix llvm@21)/bin" >> $GITHUB_PATH
       - name: Generate runtime.ll
-        run: clang -S -emit-llvm -O0 -o runtime.ll runtime.cpp
+        run: clang -S -emit-llvm -O0 -I$(brew --prefix libffi)/include -o runtime.ll runtime.cpp
       - name: Build (macOS)
         run: |
           cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR .
