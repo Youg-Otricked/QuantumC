@@ -37,7 +37,7 @@ jobs:
       - name: Install deps
         run: |
           apt update
-          apt install -y llvm-21 llvm-21-dev clang-21 libffi-dev pkg-config cmake g++ git
+          apt install -y llvm-21 llvm-21-dev clang-21 libffi-dev pkg-config cmake g++ git libzstd-dev
       
       - name: Generate runtime.ll
         run: clang-21 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
