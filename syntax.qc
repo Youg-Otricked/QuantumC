@@ -438,12 +438,9 @@ int main() {
     //=======================================
     //Write to console
     //=======================================
-    //You cna write to consoel with std::qout or print or println
+    //You can write to consoel with qout
 
-    std::qout << "Hello, World!" << '\n';
-
-    print("Hello, World!\n");
-    println("Hello, World!\n");
+    qout("Hello, World!\n");
 
 ////////////////////////////////////////////////////////////////////////////////
 // SECTION: FUNCTIONS & LAMBDAS.
@@ -462,7 +459,7 @@ int main() {
         void greet(string name_to_print = "world", int times = 1) {
             int i = 0;
             while (i < times) {
-                print("Hello, " + name_to_print + "!");
+                qout("Hello, %s!", name_to_print);
                 i = i + 1;
             }
         }
@@ -503,7 +500,7 @@ int main() {
             return n * factorial(--n); // recursion through the variable name
         };
     int r1 = add(2, 3);           // 5
-    println(r1);
+    qout("%i", r1);
 
     // Void function
     greet();               
@@ -512,26 +509,26 @@ int main() {
 
     // Lambda assigned to variable
     auto sum = make_adder;
-    println(sum(10, 20));         // prints 30
+    qout("%i", sum(10, 20));         // prints 30
 
     // Immediate invocation
-    println(immediate_result);    // prints 12
+    qout("%i", immediate_result);    // prints 12
 
     // Higher-order usage
-    auto printer = fn(int n) { println(n); };
+    auto printer = fn(int n) { qout("%i", n); };
     twice(printer, 7);            // prints 7 twice
 
     // Lambda that calls a void function
     hello_lambda();               // prints "Hello, Lambda"
 
     // Recursion
-    println(factorial(5));        // prints 120
+    qout("%i", factorial(5));        // prints 120
     ////////////////////////////////////////////////////////
     // F strings
     ///////////////////////////////////////////////////////
     // f strings are python style
     string this = f"Hello, {add(1, 2)}, {w2}";
-    std::qout << this;
+    qout("%s", this);
     //=============================================================================
     // SECTION 21: Multi-Return Values
     //=============================================================================
@@ -583,14 +580,14 @@ int main() {
     // ========================================
     
     int numbers[] = [1, 2, 3, 4, 5];
-    println(numbers[0]);  // 1
-    println(numbers[4]);  // 5
+    qout("%i", numbers[0]);  // 1
+    qout("%i", numbers[4]);  // 5
     
     string names[] = ["Alice", "Bob", "Charlie"];
-    println(names[1]);  // Bob
+    qout("%s", names[1]);  // Bob
     
     float prices[] = [9.99, 19.99, 29.99];
-    println(prices[2]);  // 29.99
+    qout("%d", prices[2]);  // 29.99
     
     
     // ========================================
@@ -603,9 +600,9 @@ int main() {
         [4, 5, 6],
         [7, 8, 9]
     ];
-    println(grid[0][0]);  // 1
-    println(grid[1][1]);  // 5
-    println(grid[2][2]);  // 9
+    qout("%i", grid[0][0]);  // 1
+    qout("%i", grid[1][1]);  // 5
+    qout("%i", grid[2][2]);  // 9
     
     // String grid
     string board[][] = [
@@ -613,7 +610,7 @@ int main() {
         ["O", "X", "O"],
         ["X", "O", "X"]
     ];
-    println(board[0][1]);  // O
+    qout("%s", board[0][1]);  // O
     
     
     // ========================================
@@ -626,10 +623,10 @@ int main() {
         [6],              // Row 2: 1 element
         [7, 8, 9, 10]     // Row 3: 4 elements
     ];
-    println(jagged[0][0]);  // 1
-    println(jagged[1][2]);  // 5
-    println(jagged[2][0]);  // 6
-    println(jagged[3][3]);  // 10
+    qout("%i", jagged[0][0]);  // 1
+    qout("%i", jagged[1][2]);  // 5
+    qout("%i", jagged[2][0]);  // 6
+    qout("%i", jagged[3][3]);  // 10
     
     // Jagged string array (like a paragraph)
     string paragraph[][] = [
@@ -637,8 +634,8 @@ int main() {
         ["fox"],
         ["jumps", "over", "the", "lazy", "dog"]
     ];
-    println(paragraph[0][1]);  // quick
-    println(paragraph[2][4]);  // dog
+    qout("%s", paragraph[0][1]);  // quick
+    qout("%s", paragraph[2][4]);  // dog
     
     
     // ========================================
@@ -656,10 +653,10 @@ int main() {
             [7, 8]
         ]
     ];
-    println(cube[0][0][0]);  // 1
-    println(cube[0][1][1]);  // 4
-    println(cube[1][0][1]);  // 6
-    println(cube[1][1][1]);  // 8
+    qout("%i", cube[0][0][0]);  // 1
+    qout("%i", cube[0][1][1]);  // 4
+    qout("%i", cube[1][0][1]);  // 6
+    qout("%i", cube[1][1][1]);  // 8
     
     // RGB image (3x3 pixels, 3 color channels)
     int image[][][] = [
@@ -667,8 +664,8 @@ int main() {
         [[255, 255, 0], [255, 0, 255], [0, 255, 255]],  // Row 2
         [[128, 128, 128], [0, 0, 0], [255, 255, 255]]   // Row 3
     ];
-    println(image[0][0][0]);  // 255 (red channel of pixel 0,0)
-    println(image[1][2][1]);  // 255 (green channel of pixel 1,2)
+    qout("%i", image[0][0][0]);  // 255 (red channel of pixel 0,0)
+    qout("%i", image[1][2][1]);  // 255 (green channel of pixel 1,2)
     
     
     // ========================================
@@ -685,8 +682,8 @@ int main() {
             [7, 8, 9, 10]  // Four elements!
         ]
     ];
-    println(jagged3d[0][1][2]);  // 5
-    println(jagged3d[1][1][3]);  // 10
+    qout("%i", jagged3d[0][1][2]);  // 5
+    qout("%i", jagged3d[1][1][3]);  // 10
     
     
     // ========================================
@@ -716,10 +713,10 @@ int main() {
             ]
         ]
     ];
-    println(tesseract[0][0][0][0]);  // 1
-    println(tesseract[0][1][1][1]);  // 8
-    println(tesseract[1][0][1][0]);  // 11
-    println(tesseract[1][1][1][1]);  // 16
+    qout("%i", tesseract[0][0][0][0]);  // 1
+    qout("%i", tesseract[0][1][1][1]);  // 8
+    qout("%i", tesseract[1][0][1][0]);  // 11
+    qout("%i", tesseract[1][1][1][1]);  // 16
     
     // Video data (time, height, width, RGB)
     // 2 frames, 2x2 pixels, 3 color channels
@@ -733,8 +730,8 @@ int main() {
             [[128, 128, 128], [0, 0, 0]]     // Row 2
         ]
     ];
-    println(video[0][0][0][0]);  // 255 (Frame 1, pixel 0,0, red)
-    println(video[1][1][1][2]);  // 0   (Frame 2, pixel 1,1, blue)
+    qout("%i", video[0][0][0][0]);  // 255 (Frame 1, pixel 0,0, red)
+    qout("%i", video[1][1][1][2]);  // 0   (Frame 2, pixel 1,1, blue)
     
     
     // ========================================
@@ -745,14 +742,7 @@ int main() {
         [1.1, 2.2, 3.3],
         [4.4, 5.5, 6.6]
     ];
-    println(matrix[1][2]);  // 6.6
-    
-    char letters[][] = [
-        ['a', 'b', 'c'],
-        ['x', 'y', 'z']
-    ];
-    println(letters[0][2]);  // c
-    std::qout << matrix << '\n';
+    qout("%ct\n", matrix);
     // you make a list with type[] name and a array with type name[]
     list<int> plswork = [1];
     //you can push values to an list like this
@@ -769,15 +759,11 @@ int main() {
     // popping from lists
     plswork.push(1);
     plswork.push(2121212121);
-    std::qout << plswork << '\n';
     plswork.pop();
-    std::qout << plswork << '\n';
     plswork.pop();
-    std::qout << plswork << '\n';
     // pushing inner list = pushing list its linked to
     migthtwotk.push(123);
-    std::qout << plswork << '\n';
-    std::qout << plswork[2][0] << '\n' << plswork[3][0] << '\n';
+    qout("%ct\n", plswork);
     // =======================================
     // returning colleciton types from functions (im not sure if this works yet)
     // =======================================
@@ -787,61 +773,13 @@ int main() {
     }
 
     void print_any(auto v) {
-        println(v);
+        qout("%a", v);
     }
 
     list<int> bbb = make_array();
     int bb[] = make_array();
-    println(bbb);           // should print [1, 2, 3]
-    print_any(bbb);         // should also print [1, 2, 3]
-    void print_int_list(list<int> xs) {
-        println(xs);
-    }
-
-    list<int> alistthing = [1, 2, 3];
-    print_int_list(alistthing); 
-    int[] copyInt(list<int> x) {
-        return x;
-    }
-    int[] copyIntArr(int[] z) {
-        return z;
-    }
-    list<int> cpl = [9, 9, 1, 4];
-    int cpa[] = [1, 99999, 34234];
-    list<int> copyed = copyInt(cpl);
-    int copyedArr[] = copyIntArr(cpa);
-    std::qout << cpl << cpa << copyed << copyedArr << '\n';
-    // --- list<int> params, return, and multi-return ---
-    int[] id_list(list<int> xs) {
-        return xs;
-    }
-
-   
-
-    void print_int_list(list<int> xs) {
-        println(xs);
-    }
-
-    list<int> base = [1, 2, 3, 4];
-    list<int> copy = id_list(base);        // base is list<int> internally
-    print_int_list(copy);                  // [1, 2, 3, 4]
-
-
-    // --- mixing arrays and lists ---
-
-    int grid[][] = [
-        [1, 2],
-        [3, 4]
-    ];
-    println(grid);         // [[1, 2], [3, 4]]
-    println(grid[0][1]);   // 2
-
-    list<int> l1 = [5, 6, 7];
-    list<int> l2 = l1;
-    l2.push(8);
-    println(l1);           // [5, 6, 7, 8] if aliasing, or [5,6,7] if copied
-    println(l2);           // [5, 6, 7, 8]
-
+    print_any(bbb);         // should print [1, 2, 3]
+    
     // LIST AND ARRAY SUMMARY
     // define a array with type name[] = value
     string example[] = ["This is an example"];
@@ -855,31 +793,31 @@ int main() {
     // foreach loop
     // ==============================================
     foreach (int x in [1, 2, 3, 4, 5]) {
-        println(x);
+        qout("%i", x);
     }
     // ==============================================
     // spread (@) operator
     // ==============================================
     int grid[][] = [[1, 2], [3, 4]];
     int flat[] = [@grid[0], @grid[1]];
-    println(flat);
+    qout(flat);
     int arr1[] = [1, 2, 3];
     int arr2[] = [4, 5, 6];
     int combined[] = [@arr1, @arr2];
-    println(combined);
+    qout(combined);
     list<int> list1 = [10, 20];
     list<int> list2 = [30, 40];
     list<int> merged = [@list1, @list2, 50];
-    println(merged);
+    qout(merged);
     list<int> alistthing = [1, 2];
     list<int> blistthing = [3, 4];
     list<int> clistthing = [5, 6];
     list<int> all = [0, @alistthing, @blistthing, @clistthing, 7];
-    println(all);
+    qout(all);
     void print_three(int x, int y, int z) {
-        println(x);
-        println(y);
-        println(z);
+        qout(x);
+        qout(y);
+        qout(z);
     }
     
     int args[] = [100, 200, 300];
@@ -889,10 +827,10 @@ int main() {
     };
 
     result = sum_lambda(1, 2, 3);
-    println(result);
+    qout(result);
     int args_list[] = [4, 5, 6];
     int result2 = sum_lambda(@args_list);
-    println(result2);
+    qout(result2);
     // ========================================
     // QUANTUM BOOLEAN 
     // ========================================
@@ -901,98 +839,82 @@ int main() {
     qb = qfalse;          // Definitely false
     qb = both;            // Superposition! Both true AND false!
     
-    std::qout << "QBool: " << qb << "\n";
+    qout("QBool: %q\n", qb);
     // =======================================
     // Quantum Logic & control flow
     // =======================================
-    println("=== QTRUE ===");
+    qout("=== QTRUE ===");
     qbool q1 = qtrue;
     qif (q1) {
-        println("True");
+        qout("True");
     } qelse {
-        println("False");
+        qout("False");
     }
     
-    println("\n=== QFALSE ===");
+    qout("\n=== QFALSE ===");
     qbool q2 = qfalse;
     qif (q2) {
-        println("True");
+        qout("True");
     } qelse {
-        println("False");
+        qout("False");
     }
     
-    println("\n=== BOTH ===");
+    qout("\n=== BOTH ===");
     qbool q3 = both;
     qif (q3) {
-        println("True");
+        qout("True");
     } qelse {
-        println("False");
+        qout("False");
     }
     
-    println("\n=== NONE ===");
+    qout("\n=== NONE ===");
     qbool q4 = none;
     qif (q4) {
-        println("True");
+        qout("True");
     } qelse {
-        println("False");
+        qout("False");
     }
     // use qelif for else if statments
     qb = both;
     
     qswitch (qb) {
         case t:
-            println("True case!");
+            qout("True case!");
             break;
         case f:
-            println("False case!");
+            qout("False case!");
             break;
         case n:
-            println("None case!");
+            qout("None case!");
             break;
         case b:
-            println("Both case!");
+            qout("Both case!");
             break;
     }
-    std::qout << "Type qtrue qfalse none or both" << '\n';
-    qbool z = qtrue;
-    qbool n = both;
-    std::qin >> z;
-    std::qout << "\nType qtrue qfalse none or both" << '\n';
-    std::qin >> n;
-    std::qout << z &&& n; // if both sides can be true and one is both both
-    std::qout << z ||| n; // if at least one side is both both
-    std::qout << z ^^ n; // ||| !!&&&
-    std::qout << "z" === 1; // if left is eqaul to ight true
-    std::qout << "z" !== 1;// === but !=
-    std::qout << n;
-    std::qout << !!n;// ! but for QBOOLs
-    std::qout << !n;
-    std::qout << z |&| !!n; // if either side is true or both true
-    std::qout << z &|& n; // if both sides are true or both true
     map<string, int> ages = {
         "Alice": 25,
         "Bob": 30
     };
     
-    println(ages["Alice"]);  // 25
+    qout(ages["Alice"]);  // 25
     
     ages["Charlie"] = 35;
     ages.set("Dave", 40);
     
-    println(ages.size);  // 4
-    println(ages.has("Bob"));  // true
+    qout(ages.size);  // 4
+    qout(ages.has("Bob"));  // true
     
     ages.remove("Bob");
-    println(ages.has("Bob"));  // false
+    qout(ages.has("Bob"));  // false
     
     foreach (string key in ages.keys()) {
-        println(key + ": " + f"{ages[key]}");
+        qout(key + ": " + f"{ages[key]}");
     }
     seed(time());
     
-    println(random());        // 0.0 to 1.0
-    println(random(10));      // 0 to 9
-    println(random(5, 15));   // 5 to 14
+    qout(random());        // 0.0 to 1.0
+    qout(random(10));      // 0 to 9
+    qout(random(5, 15));   // 5 to 14
     // INPUT AND short or long
 
     // USACO fence problem
@@ -1000,24 +922,24 @@ int main() {
     b = 0;
     int c = 0;
     int d = 0;
-    std::qout << "Type two numbers seperated by a space";
-    std::qin >> a >> b;
-    std::qout << "Type two numbers seperated by a space";
-    std::qin >> c >> d;
+    qout("Type two numbers seperated by a space");
+    qin >> a >> b;
+    qout("Type two numbers seperated by a space");
+    qin >> c >> d;
     if (a < c && b < c || c < a &&  d < a) {
-        std::qout << b - a + d - c;
+        qout("%i", b - a + d - c);
     }
     else if (a < c) {
         if (b < d) {
-            std::qout << d - a;
+            qout("%i", d - a);
         }  else {
-            std::qout << b - a;
+            qout("%i", b - a);
         }
     } else {
         if (b < d) {
-            std::qout << d - c;
+            qout("%i", d - c);
         }  else {
-            std::qout << b - c;
+            qout("%i", b - c);
         }
     }
     // end of fence
@@ -1028,12 +950,12 @@ int main() {
     double d = 3.14159;
     long double ld = 3.14159265358979323846;
     
-    println(x);
-    println(y);
-    println(z);
-    println(f);
-    println(d);
-    println(ld);
+    qout(x);
+    qout(y);
+    qout(z);
+    qout(f);
+    qout(d);
+    qout(ld);
     struct Vector2 {
         float x;
         float y;
@@ -1058,33 +980,33 @@ int main() {
         { [1, 2, 3], ["head"] }
     };
 
-    println(p.name);
-    println(p.hp);
-    println(p.pos.x);
-    println(p.pos.y);
-    println(p.inv.bag.length);
-    println(p.inv.slots[0]);
+    qout(p.name);
+    qout(p.hp);
+    qout(p.pos.x);
+    qout(p.pos.y);
+    qout(p.inv.bag.length);
+    qout(p.inv.slots[0]);
 
     Player q = p;
     q.name = "Bob";
     q.hp = 50;
     q.pos.x = 9.0f;
 
-    println(p.name);
-    println(p.hp);
-    println(p.pos.x);
+    qout(p.name);
+    qout(p.hp);
+    qout(p.pos.x);
 
-    println(q.name);
-    println(q.hp);
-    println(q.pos.x); 
+    qout(q.name);
+    qout(q.hp);
+    qout(q.pos.x); 
 
     p.inv.bag.push(4);
-    println(p.inv.bag.length);
+    qout(p.inv.bag.length);
     map<string,int> ages = { "Alice":25, "Bob":30 };
     ages["Charlie"] = 35;
     ages.remove("Bob");
-    println(ages.has("Alice"));
-    foreach (string k in ages.keys()) { println(k + ": " + f"{ages[k]}"); }
+    qout(ages.has("Alice"));
+    foreach (string k in ages.keys()) { qout(k + ": " + f"{ages[k]}"); }
     type ApiTier = "Pro" | "Free" | "Basic" | "Enterprise";
     int getRateLimitForTier(ApiTier tier) {
         switch (tier) {
@@ -1099,7 +1021,7 @@ int main() {
         }
     }
     ApiTier tier = "Pro";
-    std::qout << getRateLimitForTier(tier);
+    qout("%i", getRateLimitForTier(tier));
     type Weird = 1 | 2 | "ok" | 'x' | true | qtrue | int;
 
     Weird aW = 1;        
@@ -1123,7 +1045,7 @@ int main() {
         }
     }
     ApiTier thingy = GetTierFromRate(fW);
-    std::qout << typeof(thingy);
+    qout("%s", typeof(thingy));
     if (typeof(thingy) != "string") {
         throw("Should have been string");
     }
@@ -1133,8 +1055,8 @@ int main() {
     }
 
     Api t = Api.Pro;
-    println(t);            
-    println(typeof(t));
+    qout(t);            
+    qout(typeof(t));
     class Enemy {
         int hp;
 
@@ -1146,7 +1068,7 @@ int main() {
             this.hp -= amount;
         }
         protected void repr() {
-            println(this.hp);
+            qout(this.hp);
         }
         public int getHp() {
             return this.hp;
@@ -1186,13 +1108,13 @@ int main() {
     }
     Boss boss = Boss(100, 0);
     boss.damage(30);
-    println(boss.getHp());
+    qout(boss.getHp());
     boss.enrage();
     FinalBoss fb = FinalBoss(1000, 100, 10);
     fb.pnt();
     fb.enrage();
-    println(fb.rage);
-    std::qout << p.has("hp");
+    qout(fb.rage);
+    qout("%b", p.has("hp"));
     int globalVar = 1;
     // Access global
     globalVar = 2;
@@ -1263,11 +1185,9 @@ int main() {
         result += 1;
     }
     if (a) {
-      std::qout << "Eval works" << '\n';
+      qout("Eval works\n");
     }
-    std::qout << a << '\n';
-    std::qout << "c.x=" << c.x << " c.y=" << c.y << "\n";
-    std::qout << "eq1=" << eq1 << " eq2=" << eq2 << "\n";
+    qout("%i\n", a);
     // =========================================================================
     // MMM
     // =========================================================================
@@ -1286,15 +1206,15 @@ int main() {
     x = 5;
     int& ref = x;
     ref = 10;
-    println(x);
+    qout(x);
     UnitTest::Test t = UnitTest::Test(20);
 
     // 1. & and * on int
     x = 5;
     int* p = &x;
-    println(&x);
-    println(typeof(p));
-    println(*p);
+    qout(&x);
+    qout(typeof(p));
+    qout(*p);
     t.AssertEqual("int*", typeof(p), "typeof(p) should be int*", "typeof(p)");
     t.AssertEqual(5, *p, "*p reads x", "*p");
 
@@ -1372,20 +1292,20 @@ int main() {
     } catch (string e) {
         t.Success("[SUCCESS] *nullptr correctly rejected");
     }
-    println(sizeof("int"));        // 4
-    println(sizeof("double"));     // 8
-    println(sizeof("char"));       // 1
-    println(sizeof("int*"));       // 8
-    println(sizeof("int**"));      // 8
+    qout(sizeof("int"));        // 4
+    qout(sizeof("double"));     // 8
+    qout(sizeof("char"));       // 1
+    qout(sizeof("int*"));       // 8
+    qout(sizeof("int**"));      // 8
 
     int y = 5;
-    println(sizeof(typeof(y)));    // 4
+    qout(sizeof(typeof(y)));    // 4
 
     int* py = &y;
-    println(sizeof(typeof(py)));   // 8
+    qout(sizeof(typeof(py)));   // 8
 
     Pr pt2 = Pr(1, 2);
-    println(sizeof(typeof(pt2)));  // sum of field sizes
+    qout(sizeof(typeof(pt2)));  // sum of field sizes
 
     // 8. heap malloc/calloc tests (using type names, not sizeof yet)
 

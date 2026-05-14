@@ -2,7 +2,7 @@
 // Bro why u readin this do i need to make my docs beter?
 
 int main() {
-    std::qout << "Quantum C Standerd Lib. Don't run this file. include from it" << '\n';
+    qout("Quantum C Standerd Lib. Don't run this file. include from it\n");
     return 0;
 }
 namespace Exported {
@@ -245,20 +245,20 @@ namespace UnitTest {
                 this.Ran = 0;
                 if (this.Messages.length > 0) {
                     foreach(string message in this.Messages) {
-                        std::qout << "==============================" << '\n';
-                        std::qout << message << '\n';
+                        qout("==============================\n");
+                        qout("%s\n", message);
                     }
-                    std::qout << "==============================" << '\n';
+                    qout("==============================\n");
                 }
                 
-                std::qout << f"Failed: {this.Failed}" << '\n';
-                std::qout << f"Passed: {this.Passed}" << '\n';
+                qout(f"Failed: {this.Failed}\n");
+                qout(f"Passed: {this.Passed}\n");
 
-                std::qout << "==============================" << '\n';
+                qout("==============================\n");
                 if (this.Failed > 0) {
-                    std::qout << "[FAIL]" << '\n';
+                    qout("[FAIL]\n");
                 } else {
-                    std::qout << "[PASS]" << '\n';
+                    qout("[PASS]\n");
                 }
             }
         }

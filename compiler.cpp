@@ -28,6 +28,7 @@
 #include <filesystem>
 #include <set>
 #include <algorithm>
+#include <iomanip>
 #ifdef ENABLE_LLVM
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -335,9 +336,6 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, QBoolNode>) {
                 return QBoolNode(arg.tok);
             }
-            else if constexpr (std::is_same_v<T, QOutNode>) {
-                return QOutNode();
-            }
             else if constexpr (std::is_same_v<T, QInNode>) {
                 return QInNode();
             }
@@ -450,12 +448,6 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
                 return arg->print();
             } 
-            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutNode>>) {
-                return arg->print();
-            }
-            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
-                return arg->print();
-            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return arg->print();
             }
@@ -654,12 +646,6 @@ namespace tkz {
             else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
                 return Prs{std::move(arg)};
             }
-            else if constexpr (std::is_same_v<T, QOutNode>) {
-                return Prs{std::move(arg)};
-            }
-            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
-                return Prs{std::move(arg)};
-            }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>>) {
@@ -763,12 +749,6 @@ namespace tkz {
                 return Prs{std::move(arg)};
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
-                return Prs{std::move(arg)};
-            }
-            else if constexpr (std::is_same_v<T, QOutNode>) {
-                return Prs{std::move(arg)};
-            }
-            else if constexpr (std::is_same_v<T, std::unique_ptr<QOutExprNode>>) {
                 return Prs{std::move(arg)};
             }
             else if constexpr (std::is_same_v<T, std::unique_ptr<ReturnNode>>) {
@@ -1740,17 +1720,6 @@ namespace tkz {
         ParseResult res;
         AnyNode left = res.reg(this->logical_or());  
         if (res.error) return res.to_prs();
-        if (std::holds_alternative<QOutNode>(left)) {
-            std::vector<AnyNode> values;
-            
-            while (this->current_tok.type == TokenType::LSHIFT) {
-                this->advance();  
-                AnyNode value = res.reg(this->logical_or());
-                if (res.error) return res.to_prs();
-                values.push_back(std::move(value));
-            }
-            return res.success(std::make_unique<QOutExprNode>(std::move(values)));
-        }
         
         return res.success(std::move(left));
     }
@@ -1882,22 +1851,10 @@ namespace tkz {
         }
         if (tok.type == TokenType::LBRACKET)
             return this->array_literal();
-
-        if (tok.value == "std") {
+        if (current_tok.value == "qin") {
             this->advance();
-            if (this->current_tok.type == TokenType::SCOPE) {
-                this->advance();
-                if (this->current_tok.value == "qout") {
-                    this->advance();
-                    return res.success(QOutNode());
-                }
-                if (current_tok.value == "qin") {
-                    this->advance();
-                    
-                    return this->qin_expr(); 
-                }
-
-            }
+            
+            return this->qin_expr(); 
         }
         
         if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
@@ -2725,7 +2682,6 @@ namespace tkz {
                 std::is_same_v<T, std::unique_ptr<ContinueNode>> ||
                 std::is_same_v<T, std::unique_ptr<CallNode>> ||
                 std::is_same_v<T, std::shared_ptr<FuncDefNode>> ||
-                std::is_same_v<T, std::unique_ptr<QOutExprNode>> ||
                 std::is_same_v<T, std::unique_ptr<ReturnNode>> ||
                 std::is_same_v<T, std::unique_ptr<MultiReturnNode>> ||
                 std::is_same_v<T, std::unique_ptr<MultiVarDeclNode>> ||
@@ -5484,9 +5440,9 @@ namespace tkz {
                 if (!method) {
                     this->errors.push_back({RTError(
                         "QC-CLW2: Instance of '" + className +
-                        "' printed, but missing repr function: calling base print.", Position()),
+                        "' printed, but missing repr function. Printing (reprless class)", Position()),
                         "Warning"});
-                    return v->print();
+                    return "(reprless class)";
                 }
                 NumberVariant result = call_instance_method(
                     inst,
@@ -6773,19 +6729,6 @@ namespace tkz {
 
         return std::move(last);
     }
-    NumberVariant Interpreter::operator()(std::unique_ptr<QOutExprNode>& node) {
-        if (!node) return Number<int>(0);
-
-        for (auto& val : node->values) {
-            NumberVariant result = this->process(val);
-            std::cout << this->value_to_string(result);
-        }
-
-        return Number<int>(0);
-    }
-    NumberVariant Interpreter::operator()(QOutNode& node) {
-        return std::move(Number<int>(0));
-    }
     NumberVariant Interpreter::operator()(QInNode& node) {
         return std::move(Number<int>(0));
     }
@@ -6973,10 +6916,270 @@ namespace tkz {
                 NumberVariant value = this->process(node->arg_nodes.front());
                 throw value;
             }
-            if (func_name == "print" || func_name == "println") {
-                for (auto& arg : node->arg_nodes)
-                    std::cout << this->value_to_string(this->process(arg));
-                if (func_name == "println") std::cout << std::endl;
+            if (func_name == "qout") {
+                if (node->arg_nodes.size() < 1) {
+                    this->errors.push_back({RTError("QC-B001: qout() requires at least 1 argument", get_pos(target_val)), "Error"});
+                }
+                std::vector<NumberVariant> args;
+                for (auto& arg : node->arg_nodes) {
+                    args.push_back(this->process(arg));
+                }
+                int current_arg = 0;
+                std::string val = this->value_to_string(args[0]);
+                std::string to_print;
+                for (size_t i = 0; i < val.size(); i++) {
+                    char c = val[i];
+                    if (c != '%') {
+                        to_print += c;
+                        continue;
+                    }
+                    i++;
+                    if (i >= val.size()) {
+                        this->errors.push_back({RTError("QC-Q003: invalid formatter", get_pos(target_val)), "Error"});
+                        break;
+                    }
+                    bool zero_pad = false;
+                    int width = -1;
+                    int precision = -1;
+                    c = val[i];
+                    if (c == '%') {
+                        to_print += '%';
+                        continue;
+                    } else if (c == '0') {
+                        zero_pad = true;
+                        i++;
+                        if (i >= val.size()) {
+                            this->errors.push_back({RTError("QC-Q003: invalid formatter", get_pos(target_val)), "Error"});
+                            break;
+                        }
+                        c = val[i];
+                    }
+                    if (std::isdigit(static_cast<unsigned char>(c))) {
+                        std::string num;
+                        while (i < val.size() && std::isdigit(static_cast<unsigned char>(val[i]))) {
+                            num += val[i];
+                            i++;
+                        }
+                        c = val[i];
+                        width = std::stoi(num);
+                    }
+                    if (c == '.') {
+                        i++;
+                        if (i >= val.size()) {
+                            this->errors.push_back({RTError("QC-Q003: invalid formatter", get_pos(target_val)), "Error"});
+                            break;
+                        }
+                        c = val[i];
+                        if (std::isdigit(static_cast<unsigned char>(c))) {
+                            std::string num;
+                            while (i < val.size() && std::isdigit(static_cast<unsigned char>(val[i]))) {
+                                num += val[i];
+                                i++;
+                            }
+                            c = val[i];
+                            precision = std::stoi(num);
+                        } else {
+                            this->errors.push_back({RTError("QC-Q003: invalid formatter", get_pos(target_val)), "Error"});
+                            break;
+                        }
+                    }
+                    switch (c) {
+                        case 'i':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) {
+                                this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            } else if (auto is_intVal = std::get_if<Number<int>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << is_intVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): i formater takes a int", get_pos(target_val)), "Error"});
+                            } 
+                            break;
+                        case 's':
+                            current_arg++;
+                            if (current_arg >= args.size()) {
+                                this->errors.push_back({
+                                    RTError("QC-B001: too few arguments to qout().", get_pos(target_val)),
+                                    "Error"
+                                });
+                            } else if (i + 1 < val.size()) {
+                                if (val[i + 1] == 't') {
+                                    i++;
+                                    if (std::get_if<std::shared_ptr<StructValue>>(&args[current_arg])) {
+                                        to_print += this->value_to_string(args[current_arg]);
+                                    } else {
+                                        this->errors.push_back({
+                                            RTError("QC-B002: st formater requires a struct value.", get_pos(target_val)),
+                                            "Error"
+                                        });
+                                    }
+                                } else {
+                                    if (std::get_if<StringValue>(&args[current_arg])) {
+                                        to_print += this->value_to_string(args[current_arg]);
+                                    } else {
+                                        this->errors.push_back({RTError("QC-B002: qout(): s formater takes a string", get_pos(target_val)), "Error"});
+                                    }
+                                }
+                            } else {
+                                if (std::get_if<StringValue>(&args[current_arg])) {
+                                    to_print += this->value_to_string(args[current_arg]);
+                                } else {
+                                    this->errors.push_back({RTError("QC-B002: qout(): s formater takes a string", get_pos(target_val)), "Error"});
+                                }
+                            }
+                            break;
+                        case 'f':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) {
+                                this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            } else if (auto is_ftVal = std::get_if<Number<float>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::fixed << is_ftVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): f formater takes a float", get_pos(target_val)), "Error"});
+                            } 
+                            break;
+                        case 'd':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) {
+                                this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            } else if (auto is_dobVal = std::get_if<Number<double>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << is_dobVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): d formater takes a double", get_pos(target_val)), "Error"});
+                            } 
+                            break;
+                        case 'c':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            if (i >= val.size()) {
+                            } else if (val[i + 1] == 's') {
+                                i++;
+                                if (std::get_if<std::shared_ptr<InstanceValue>>(&args[current_arg])) { 
+                                    to_print += this->value_to_string(args[current_arg]);
+                                } else {
+                                    this->errors.push_back({RTError("QC-B002: qout(): cs formater takes a class instance", get_pos(target_val)), "Error"});
+                                }
+                            }
+                            else if (std::get_if<CharValue>(&args[current_arg])) { 
+                                to_print += this->value_to_string(args[current_arg]);
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): c formater takes a char", get_pos(target_val)), "Error"});
+                            }
+                            break; 
+                        case 'b':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            else to_print += this->value_to_string(args[current_arg]);
+                            break;
+                        case 'q':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            else to_print += this->value_to_string(args[current_arg]);
+                            break;
+                        case 'p':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            else if (std::get_if<PointerValue>(&args[current_arg])) { to_print += this->value_to_string(args[current_arg]); }
+                            else { this->errors.push_back({RTError("QC-B002: qout(): p formater takes a pointer", get_pos(target_val)), "Error"}); }
+                            break;
+                        case 'x':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            if (auto is_intVal = std::get_if<Number<int>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << std::showbase << std::hex << is_intVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): x formater takes a int", get_pos(target_val)), "Error"});
+                            }   
+                            break;  
+                        case 'o':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            if (auto is_intVal = std::get_if<Number<int>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << std::showbase << std::oct << is_intVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): o formater takes a int", get_pos(target_val)), "Error"});
+                            }   
+                            break;
+                        case 'e':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            if (auto is_intVal = std::get_if<Number<int>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_intVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_dobVal = std::get_if<Number<double>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_dobVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_ftVal = std::get_if<Number<float>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_ftVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_sVal = std::get_if<Number<short>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_sVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_llVal = std::get_if<Number<long long>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_llVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_ldVal = std::get_if<Number<long double>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_ldVal->value;
+                                to_print += ss.str();
+                            } else {
+                                this->errors.push_back({RTError("QC-B002: qout(): e formatter takes a numeric type", get_pos(target_val)), "Error"});
+                            }   
+                            break; 
+                        case 'a':
+                            current_arg++;
+                            if (args.size() - 1 < current_arg) this->errors.push_back({RTError("QC-B001: too few arguments to qout().", get_pos(target_val)), "Error"});
+                            else to_print += this->value_to_string(args[current_arg]);
+                            break;                
+                        default:
+                            this->errors.push_back({RTError("QC-Q003: invalid formatter", get_pos(target_val)), "Error"});
+                    }
+                }
+                std::cout << to_print;
                 return Number<int>(0);
             }
             if (func_name == "random") {
@@ -13671,8 +13874,7 @@ namespace tkz {
                     {"to_char", "qc_to_char_from_string"},
                     {"to_bool", "qc_to_bool_from_int"},
                     {"to_string", "qc_to_string_int"},
-                    {"print", "qc_print"},
-                    {"println", "qc_println"},
+                    {"qout", ""},
                     {"typeof", ""},
                     {"fopen", "qc_fopen"},
                     {"fclose", "qc_fclose"},
@@ -13684,6 +13886,7 @@ namespace tkz {
                 
                 if (it != builtins.end()) {
                     std::string runtimeName = it->second;
+                    
                     if (funcName == "typeof" && !call.arg_nodes.empty()) {
                         AnyNode& argNode = call.arg_nodes.front();
                         llvm::Value* arg = emitExpr(argNode);
@@ -13833,52 +14036,540 @@ namespace tkz {
                         if (call.arg_nodes.size() == 1) runtimeName = "qc_random_int";
                         else if (call.arg_nodes.size() == 2) runtimeName = "qc_random_range";
                     }
-                    if (funcName == "print" || funcName == "println") {
+                    else if (funcName == "qout") {
                         if (call.arg_nodes.empty()) {
-                            if (funcName == "println") {
-                                llvm::Function* fn = module->getFunction("qc_println");
-                                if (!fn) {
-                                    llvm::FunctionType* ty = llvm::FunctionType::get(
-                                        builder->getVoidTy(),
-                                        {llvm::PointerType::get(context, 0)},
-                                        false
-                                    );
-                                    fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, "qc_println", module.get());
-                                }
-                                builder->CreateCall(fn, {llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0))});
+                            cg_error((*varAccess)->var_name_tok.pos, "qout requires arguments: " + funcName);
+                            return nullptr;
+                        }
+                        std::vector<AnyNode> goodArgs(std::make_move_iterator(call.arg_nodes.begin()), std::make_move_iterator(call.arg_nodes.end()));
+                        int current_arg = 0;
+                        std::string fmtString = "";
+                        llvm::Value *argVal = emitExpr(goodArgs[0]);
+                        llvm::ConstantDataSequential *constArray = nullptr;
+                        if (auto *CE = llvm::dyn_cast<llvm::ConstantExpr>(argVal)) {
+                            if (CE->getOpcode() == llvm::Instruction::GetElementPtr) {
+                                argVal = CE->getOperand(0);
+                            }
+                        }
+                        if (auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(argVal)) {
+                            if (GV->hasInitializer()) {
+                                constArray = llvm::dyn_cast<llvm::ConstantDataSequential>(GV->getInitializer());
+                            }
+                        }
+                        else {
+                            constArray = llvm::dyn_cast<llvm::ConstantDataSequential>(argVal);
+                        }
+                        if (constArray && constArray->isString()) {
+                            fmtString = constArray->getAsString().str();
+                        } else {
+                            cg_error((*varAccess)->var_name_tok.pos, "qout requires the first argument to be a string: " + funcName);
+                            return nullptr;
+                        }
+                        std::string to_print = "";
+                        char c;
+                        llvm::Function* printString = module->getFunction("qc_print_string");
+                        if (!printString) {
+                            llvm::FunctionType* prStrFnTy = llvm::FunctionType::get(builder->getVoidTy(), { llvm::PointerType::get(context, 0) }, false);
+                            printString = llvm::Function::Create(
+                                    prStrFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_print_string",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtStr = module->getFunction("qc_fmt_string");
+                        if (!fmtStr) {
+                            llvm::FunctionType* prStrFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { llvm::PointerType::get(context, 0), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            fmtStr = llvm::Function::Create(
+                                    prStrFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_string",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtInt = module->getFunction("qc_fmt_int");
+                        if (!fmtInt) {
+                            llvm::FunctionType* fmtIntFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            fmtInt = llvm::Function::Create(
+                                    fmtIntFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_int",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtFloat = module->getFunction("qc_fmt_float");
+                        if (!fmtFloat) {
+                            llvm::FunctionType* fmtFloatFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getDoubleTy(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            fmtFloat = llvm::Function::Create(
+                                    fmtFloatFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_float",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtDouble = module->getFunction("qc_fmt_double");
+                        if (!fmtDouble) {
+                            llvm::FunctionType* fmtDoubleFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getDoubleTy(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                                fmtDouble = llvm::Function::Create(
+                                    fmtDoubleFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_double",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtChar = module->getFunction("qc_fmt_char");
+                        if (!fmtChar) {
+                            llvm::FunctionType* fmtCharFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt8Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            fmtChar = llvm::Function::Create(
+                                    fmtCharFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_char",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtQBool = module->getFunction("qc_fmt_qbool");
+                        if (!fmtQBool) {
+                            llvm::FunctionType* fmtQBoolFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt1Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                                fmtQBool = llvm::Function::Create(
+                                    fmtQBoolFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_qbool",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtBool = module->getFunction("qc_fmt_bool");
+                        if (!fmtBool) {
+                            llvm::FunctionType* fmtBoolFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt8Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            fmtBool = llvm::Function::Create(
+                                    fmtBoolFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_bool",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtPtr = module->getFunction("qc_fmt_ptr");
+                        if (!fmtStr) {
+                            llvm::FunctionType* fmtPtrFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { llvm::PointerType::get(context, 0), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            fmtPtr = llvm::Function::Create(
+                                    fmtPtrFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_ptr",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtOctal = module->getFunction("qc_fmt_octal");
+                        if (!fmtOctal) {
+                            llvm::FunctionType* fmtOctalFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            fmtOctal = llvm::Function::Create(
+                                    fmtOctalFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_octal",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
+                        if (!fmtHex) {
+                            llvm::FunctionType* fmtHexFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            fmtHex = llvm::Function::Create(
+                                    fmtHexFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_hex",
+                                    module.get()
+                                );
+                        }
+                        llvm::Function* fmtScientific = module->getFunction("qc_fmt_scientific");
+                        if (!fmtScientific) {
+                            llvm::FunctionType* fmtScientificFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getDoubleTy(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                                fmtScientific = llvm::Function::Create(
+                                    fmtScientificFnTy,
+                                    llvm::Function::ExternalLinkage,
+                                    "qc_fmt_scientific",
+                                    module.get()
+                                );
+                        }
+                        for (size_t i = 0; i < fmtString.length(); i++) {
+                            c = fmtString[i];
+                            if (c != '%') {
+                                to_print += c;
+                                continue;
+                            }
+                            i++;
+                            if (i > fmtString.length() - 1) {
+                                cg_error((*varAccess)->var_name_tok.pos, "unexpected end of fmt string: " + funcName);
                                 return nullptr;
                             }
-                        }
-                        AnyNode& argNode = call.arg_nodes.front();
-                        llvm::Value* arg = emitExpr(argNode);
-                        if (!arg) return nullptr;
-                        llvm::Value* strVal = nullptr;
-                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(arg->getType())) {
-                            if (structTy->hasName()) {
-                                std::string className = structTy->getName().str();
-                                if (classTypes.find(className) != classTypes.end()) {
-                                    auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
-                                    if (reprMethod) {
-                                        llvm::AllocaInst* temp = createEntryAlloca("temp_repr", arg->getType());
-                                        builder->CreateStore(arg, temp);
-                                        strVal = builder->CreateCall(reprMethod, {temp}, "repr_result");
+                            c = fmtString[i];
+                            bool zero_pad = false;
+                            int width = -1;
+                            int precision = -1;
+                            if (c == '%') {
+                                to_print += '%';
+                                continue;
+                            }
+                            if (c == '0') {
+                                zero_pad = true;
+                                i++;
+                                if (i >= fmtString.size()) {
+                                    cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                    break;
+                                }
+                                c = fmtString[i];
+                            }
+                            if (std::isdigit(static_cast<unsigned char>(c))) {
+                                std::string num;
+                                while (i < fmtString.size() && std::isdigit(static_cast<unsigned char>(fmtString[i]))) {
+                                    num += fmtString[i];
+                                    i++;
+                                }
+                                c = fmtString[i];
+                                width = std::stoi(num);
+                            }
+                            if (c == '.') {
+                                i++;
+                                if (i >= fmtString.size()) {
+                                    cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                    break;
+                                }
+                                c = fmtString[i];
+                                if (std::isdigit(static_cast<unsigned char>(c))) {
+                                    std::string num;
+                                    while (i < fmtString.size() && std::isdigit(static_cast<unsigned char>(fmtString[i]))) {
+                                        num += fmtString[i];
+                                        i++;
                                     }
+                                    c = fmtString[i];
+                                    precision = std::stoi(num);
+                                } else {
+                                    cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                    break;
                                 }
                             }
+                            switch (c) {
+                                case 'i': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
+                                    if (!itgVal->getType()->isIntegerTy(32)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "i formater takes a int: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtInt, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 's': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                    }
+                                    llvm::Value* stVal = emitExpr(goodArgs[current_arg]);
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    if (i >= fmtString.size()) {
+                                    } else if (fmtString[i + 1] == 't') {
+                                        i++;
+                                        llvm::Type* ty = stVal->getType();
+                                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(stVal->getType())) {
+                                            if (structTy->hasName()) {
+                                                std::string className = structTy->getName().str();
+                                                
+                                                if (classTypes.find(className) != classTypes.end()) {
+                                                    cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct instance: " + funcName);
+                                                    break;
+                                                }
+                                                else if (structTypes.find(className) != structTypes.end()) {
+                                                    llvm::Function* nestedReprFn = module->getFunction(className + "_repr");
+                                                    if (nestedReprFn) {
+                                                        builder->CreateCall(printString, { builder->CreateCall(nestedReprFn, {stVal}) });
+                                                    } else {
+                                                        builder->CreateCall(printString, { builder->CreateGlobalString("(unknown struct)") });
+                                                    }
+                                                } else {
+                                                    cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct instance: " + funcName);
+                                                    break;
+                                                }
+                                            }
+                                        } else {
+                                            cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct instance: " + funcName);
+                                        }
+                                    } else {
+                                        if (!stVal->getType()->isPointerTy()) {
+                                            cg_error((*varAccess)->var_name_tok.pos, "s formater takes a string: " + funcName);
+                                        }
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtStr, { stVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    }
+                                    break;
+                                }
+                                case 'f': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* floatVal = emitExpr(goodArgs[current_arg]);
+                                    if (!floatVal->getType()->isFloatTy()) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "f formater takes a float: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtFloat, { builder->CreateFPExt(floatVal, builder->getDoubleTy()), llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'd': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* doubVal = emitExpr(goodArgs[current_arg]);
+                                    if (!doubVal->getType()->isDoubleTy()) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "d formater takes a double: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtDouble, { doubVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'c': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    llvm::Value* cVal = emitExpr(goodArgs[current_arg]);
+                                    if (i >= fmtString.size()) {
+                                    } else if (fmtString[i + 1] == 's') {
+                                        i++;
+                                        llvm::Type* ty = cVal->getType();
+                                        if (auto structTy = llvm::dyn_cast<llvm::StructType>(cVal->getType())) {
+                                            if (structTy->hasName()) {
+                                                std::string className = structTy->getName().str();
+                                                
+                                                if (classTypes.find(className) != classTypes.end()) {
+                                                    auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
+                                                    
+                                                    if (reprMethod) {
+                                                        std::vector<llvm::Value*> args;
+                                                        llvm::AllocaInst* temp = createEntryAlloca("temp_repr", ty);
+                                                        builder->CreateStore(cVal, temp);
+                                                        args.push_back(temp);
+                                                        
+                                                        builder->CreateCall(printString, { builder->CreateCall(reprMethod, args) });
+                                                    } else {
+                                                        to_print += "(reprless class)";
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            cg_error((*varAccess)->var_name_tok.pos, "cs formater takes a class instance: " + funcName);
+                                        }
+                                    } else {
+                                        if (!cVal->getType()->isIntegerTy(8)) {
+                                            cg_error((*varAccess)->var_name_tok.pos, "c formater takes a char: " + funcName);
+                                        }
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtChar, { cVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    break; 
+                                }
+                                case 'b': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* boolVal = emitExpr(goodArgs[current_arg]);
+                                    if (!boolVal->getType()->isIntegerTy(1)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "b formater takes a bool: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtBool, { boolVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'q': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* qboolVal = emitExpr(goodArgs[current_arg]);
+                                    if (!qboolVal->getType()->isIntegerTy(2)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "q formater takes a qbool: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtQBool, { qboolVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'x': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
+                                    if (!itgVal->getType()->isIntegerTy(32)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtHex, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'o': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
+                                    if (!itgVal->getType()->isIntegerTy(32)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName);
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtOctal, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'p': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                    }
+                                    llvm::Value* ptVal = emitExpr(goodArgs[current_arg]);
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    if (!ptVal->getType()->isPointerTy()) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "p formater takes a pointer: " + funcName);
+                                        break;
+                                    }
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtPtr, { ptVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'e': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* decimalVal = emitExpr(goodArgs[current_arg]);
+                                    if (!decimalVal->getType()->isFloatTy() && !decimalVal->getType()->isDoubleTy() && !decimalVal->getType()->isIntegerTy(32)) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "e formater takes a number: " + funcName);
+                                    }
+                                    if (decimalVal->getType()->isIntegerTy()) {
+                                        decimalVal = builder->CreateSIToFP(decimalVal, builder->getDoubleTy()); 
+                                    } else if (decimalVal->getType()->isFloatTy()) {
+                                        decimalVal = builder->CreateFPExt(decimalVal, builder->getDoubleTy()); 
+                                    } else if (decimalVal->getType()->isDoubleTy()) {
+                                        decimalVal = decimalVal;
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtScientific, { builder->CreateFPExt(decimalVal, builder->getDoubleTy()), llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'a': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                    }
+                                    llvm::Value* val = emitExpr(goodArgs[current_arg]);
+                                    llvm::Type* aTy = val->getType();
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    if (aTy->isIntegerTy(32)) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtInt, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(aTy)) {
+                                        if (structTy->hasName()) {
+                                            std::string className = structTy->getName().str();
+                                            if (structTypes.find(className) != structTypes.end()) {
+                                                llvm::Function* nestedReprFn = module->getFunction(className + "_repr");
+                                                if (nestedReprFn) {
+                                                    builder->CreateCall(printString, { builder->CreateCall(nestedReprFn, {val}) });
+                                                } else {
+                                                    builder->CreateCall(printString, { builder->CreateGlobalString("(unknown struct)") });
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    }
+                                    auto* varNode = std::get_if<std::unique_ptr<VarAccessNode>>(&goodArgs[current_arg]);
+                                    if ((aTy->isPointerTy() && std::get_if<StringNode>(&goodArgs[current_arg])) || (varNode && hasVarType((*varNode)->var_name_tok.value) && findVarType((*varNode)->var_name_tok.value)->second == std::string("string"))) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtStr, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (aTy->isFloatTy()) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtFloat, { builder->CreateFPExt(val, builder->getDoubleTy()), llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (aTy->isDoubleTy()) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtDouble, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(aTy)) {
+                                        if (structTy->hasName()) {
+                                            std::string className = structTy->getName().str();
+                                            if (classTypes.find(className) != classTypes.end()) {
+                                                auto [reprMethod, ownerClass] = findMethodInHierarchy(className, "repr");
+                                                if (reprMethod) {
+                                                    std::vector<llvm::Value*> args;
+                                                    llvm::AllocaInst* temp = createEntryAlloca("temp_repr", aTy);
+                                                    builder->CreateStore(val, temp);
+                                                    args.push_back(temp);
+                                                    builder->CreateCall(printString, { builder->CreateCall(reprMethod, args) });
+                                                } else {
+                                                    to_print += "(reprless class)";
+                                                }
+                                            }
+                                        }
+                                        if (aTy->isIntegerTy(8)) {
+                                            builder->CreateCall(printString, { builder->CreateCall(fmtChar, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                            break;
+                                        }
+                                        break;
+                                    }
+                                    if (aTy->isIntegerTy(1)) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtBool, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (aTy->isIntegerTy(2)) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtQBool, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    if (aTy->isPointerTy()) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtPtr, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                        break;
+                                    }
+                                    break;
+                                }     
+                                default:
+                                    cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                    break;
+                            }
                         }
-                        if (!strVal) strVal = convertToString(arg, argNode);
-                        if (!strVal) return nullptr;
-                        std::string fnName = funcName == "print" ? "qc_print" : "qc_println";
-                        llvm::Function* fn = module->getFunction(fnName);
-                        if (!fn) {
-                            llvm::FunctionType* ty = llvm::FunctionType::get(
-                                builder->getVoidTy(),
-                                {llvm::PointerType::get(context, 0)},
-                                false
-                            );
-                            fn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage, fnName, module.get());
-                        }
-                        builder->CreateCall(fn, {strVal});
+                        llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                        builder->CreateCall(printString, { strVal });
+                        to_print = "";
                         return nullptr;
                     }
                     if (funcName == "to_string" && !call.arg_nodes.empty()) {
@@ -15254,12 +15945,6 @@ namespace tkz {
             builder->CreateStore(rootVal, locAlloc);
             return nullptr;
         }
-        else if(auto qin = std::get_if<QInNode>(&node)) {
-            return nullptr;
-        }
-        else if(auto qin = std::get_if<QOutNode>(&node)) {
-            return nullptr;
-        }
         return nullptr;
     }
     llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
@@ -16256,517 +16941,6 @@ namespace tkz {
             std::holds_alternative<std::unique_ptr<SpreadNode>>(node) ||
             std::holds_alternative<std::unique_ptr<FieldAssignNode>>(node)) {
             emitExpr(node);
-        }
-        else if (auto qout = std::get_if<std::unique_ptr<QOutExprNode>>(&node)) {
-            for (auto& valNode : (*qout)->values) {
-                bool hasName = false;
-                std::string name = "";
-                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&valNode)) {
-                    hasName = true;
-                    name = (*varAccess)->var_name_tok.value;
-                    if (hasJaggedArray(name)) {
-                        auto jagIt = findJaggedArray(name);
-                        auto it = locals.find(name);
-                        if (it != locals.end()) {
-                            llvm::Value* jaggedPtr = builder->CreateLoad(
-                                llvm::PointerType::get(context, 0),
-                                it->second,
-                                "jagged_ptr"
-                            );
-                            
-                            llvm::Function* printFn = module->getFunction("qc_print_jagged_array_recursive");
-                            if (!printFn) {
-                                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
-                                llvm::FunctionType* fnTy = llvm::FunctionType::get(
-                                    builder->getVoidTy(),
-                                    {voidPtrTy},
-                                    false
-                                );
-                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                                "qc_print_jagged_array_recursive", module.get());
-                            }
-                            
-                            builder->CreateCall(printFn, {jaggedPtr});
-                            continue;
-                        }
-                    }
-                    if (hasMap(name)) {
-                        auto mapIt = findMap(name);
-                        auto it = locals.find(name);
-                        if (it == locals.end()) continue;
-                        
-                        llvm::Value* mapPtr = builder->CreateLoad(
-                            llvm::PointerType::get(context, 0),
-                            it->second,
-                            "map_ptr"
-                        );
-                        
-                        llvm::Function* fn = module->getFunction("qc_print_map");
-                        if (!fn) {
-                            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
-                            llvm::FunctionType* fnTy = llvm::FunctionType::get(
-                                builder->getVoidTy(),
-                                {voidPtrTy},
-                                false
-                            );
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                    "qc_print_map", module.get());
-                        }
-                        
-                        builder->CreateCall(fn, {mapPtr});
-                        continue;
-                    }
-                    llvm::Value* alloc = resolveVariable(name);
-                    if (alloc) {
-                        llvm::Type* ty = getPointeeType(alloc);
-                        
-                        if (ty->isArrayTy()) {
-                            std::vector<uint64_t> dimensions;
-                            llvm::Type* checkTy = ty;
-                            while (checkTy->isArrayTy()) {
-                                dimensions.push_back(checkTy->getArrayNumElements());
-                                checkTy = checkTy->getArrayElementType();
-                            }
-                            
-                            int elemTypeCode = -1;
-                            if (checkTy->isIntegerTy(32)) elemTypeCode = 0;
-                            else if (checkTy->isFloatTy()) elemTypeCode = 1;
-                            else if (checkTy->isDoubleTy()) elemTypeCode = 2;
-                            else if (checkTy->isIntegerTy(8)) elemTypeCode = 3;
-                            else if (checkTy->isIntegerTy(1)) elemTypeCode = 4;
-                            else if (checkTy->isIntegerTy(2)) elemTypeCode = 5;
-                            else if (checkTy->isPointerTy()) elemTypeCode = 6;
-                            
-                            llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(builder->getInt32Ty(), dimensions.size());
-                            llvm::AllocaInst* dimsAlloc = createEntryAlloca("dims_arr", dimsArrTy);
-                            
-                            for (size_t i = 0; i < dimensions.size(); i++) {
-                                std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
-                                llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
-                                builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
-                            }
-                            llvm::Value* arrPtr = builder->CreateBitCast(alloc, llvm::PointerType::get(context, 0));
-                            
-                            std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
-                            llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
-                            
-                            llvm::Function* fn = module->getFunction("qc_print_array_recursive");
-                            if (!fn) {
-                                auto* voidPtrTy = llvm::PointerType::get(context, 0);
-                                auto* intPtrTy = llvm::PointerType::get(context, 0);
-                                auto* fty = llvm::FunctionType::get(
-                                    builder->getVoidTy(),
-                                    { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
-                                    false
-                                );
-                                fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, "qc_print_array_recursive", module.get());
-                            }
-                            
-                            builder->CreateCall(fn, {
-                                arrPtr,
-                                builder->getInt32(elemTypeCode),
-                                builder->getInt32(dimensions.size()),
-                                dimsPtr
-                            });
-                            
-                            continue;
-                        }
-                    }
-                }
-                llvm::Value* v = emitExpr(valNode);
-                if (!v) return;
-                if (auto structTy = llvm::dyn_cast<llvm::StructType>(v->getType())) {
-                    std::string className = structTy->getName().str();
-                    
-                    auto reprMethod = findMethodInHierarchy(className, "repr");
-                    if (reprMethod.first) {
-                        std::vector<llvm::Value*> args;
-                        
-                        llvm::AllocaInst* temp = createEntryAlloca("temp_repr", v->getType());
-                        builder->CreateStore(v, temp);
-                        args.push_back(temp);
-                        
-                        llvm::Value* strResult = builder->CreateCall(reprMethod.first, args);
-                        
-                        v = strResult;
-                    }
-                }
-
-                llvm::Type* ty = v->getType();
-                std::string unionName;
-                if (isUnionType(ty, &unionName)) {
-                    llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
-                    llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
-                    
-                    auto& members = userTypes[unionName].members;
-                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "print_union_end", currentFunction);
-                    llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
-                    
-                    for (size_t i = 0; i < members.size(); i++) {
-                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
-                            context, "print_case_" + std::to_string(i), currentFunction
-                        );
-                        sw->addCase(builder->getInt32(i), caseBB);
-                        builder->SetInsertPoint(caseBB);
-                        
-                        std::string typeStr = members[i].type;
-                        
-                        size_t colonPos = typeStr.find(':');
-                        if (colonPos != std::string::npos) {
-                            typeStr = typeStr.substr(0, colonPos);
-                        }
-                        
-                        llvm::Type* memberTy = llvmTypeFor(typeStr);
-                        llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
-                        llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr);
-                        if (memberTy->isIntegerTy(32)) {
-                            llvm::Function* printFn = module->getFunction("qc_print_int");
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isFloatTy()) {
-                            llvm::Function* printFn = module->getFunction("qc_print_float");
-                            if (!printFn) {
-                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getFloatTy()}, false);
-                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_float", module.get());
-                            }
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isDoubleTy()) {
-                            llvm::Function* printFn = module->getFunction("qc_print_double");
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isIntegerTy(1)) {
-                            llvm::Function* printFn = module->getFunction("qc_print_bool");
-                            if (!printFn) {
-                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getInt1Ty()}, false);
-                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_bool", module.get());
-                            }
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isIntegerTy(2)) {
-                            llvm::Function* printFn = module->getFunction("qc_print_qbool");
-                            if (!printFn) {
-                                auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {builder->getIntNTy(2)}, false);
-                                printFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_print_qbool", module.get());
-                            }
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isIntegerTy(8)) {
-                            llvm::Function* printFn = module->getFunction("qc_print_char");
-                            builder->CreateCall(printFn, {loaded});
-                        } else if (memberTy->isPointerTy()) {
-                            if (typeStr == "string") {
-                                llvm::Function* fn = module->getFunction("qc_print_string");
-                                if (!fn) {
-                                    auto* i8Ptr = llvm::PointerType::get(context, 0);
-                                    auto* fty = llvm::FunctionType::get(
-                                        builder->getVoidTy(),
-                                        { i8Ptr },
-                                        false
-                                    );
-                                    fn = llvm::Function::Create(
-                                        fty,
-                                        llvm::Function::ExternalLinkage,
-                                        "qc_print_string",
-                                        module.get()
-                                    );
-                                }
-                                builder->CreateCall(fn, {payload});
-                            } else {
-                                llvm::Function* printFn = module->getFunction("qc_print_ptr");
-                                if (!printFn) {
-                                    auto* i8Ptr = llvm::PointerType::get(context, 0);
-                                    auto* fty = llvm::FunctionType::get(
-                                        builder->getVoidTy(),
-                                        { i8Ptr },
-                                        false
-                                    );
-                                    printFn = llvm::Function::Create(
-                                        fty,
-                                        llvm::Function::ExternalLinkage,
-                                        "qc_print_ptr",
-                                        module.get()
-                                    );
-                                }
-                                builder->CreateCall(printFn, {payload});
-                            }
-                        }
-                        
-                        builder->CreateBr(endBB);
-                    }
-                    
-                    builder->SetInsertPoint(endBB);
-                    continue;
-                }
-                if (ty->isIntegerTy(32)) {
-                    llvm::Function* fn = module->getFunction("qc_print_int");
-                    if (!fn) {
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { builder->getInt32Ty() },
-                            false
-                        );
-                        fn = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_int",
-                            module.get()
-                        );
-                    }
-                    builder->CreateCall(fn, { v });
-                }
-                else if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
-                    std::string structName = structTy->getName().str();
-                    llvm::Function* reprFn = module->getFunction(structName + "_repr");
-                    
-                    if (reprFn) {
-                        llvm::Value* strVal = builder->CreateCall(reprFn, {v});
-                        
-                        llvm::Function* printFn = module->getFunction("qc_print");
-                        builder->CreateCall(printFn, {strVal});
-                        
-                        return;
-                    }
-                }
-                else if (ty->isFloatingPointTy()) {
-                    llvm::Value* d = v;
-                    if (ty->isFloatTy()) {
-                        d = builder->CreateFPExt(v, builder->getDoubleTy(), "f2d_qout");
-                    }
-
-                    llvm::Function* fn = module->getFunction("qc_print_double");
-                    if (!fn) {
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { builder->getDoubleTy() },
-                            false
-                        );
-                        fn = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_double",
-                            module.get()
-                        );
-                    }
-                    builder->CreateCall(fn, { d });
-                }
-                else if (ty->isIntegerTy(8)) {
-                    llvm::Function* fn = module->getFunction("qc_print_char");
-                    if (!fn) {
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { builder->getInt8Ty() },
-                            false
-                        );
-                        fn = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_char",
-                            module.get()
-                        );
-                    }
-                    builder->CreateCall(fn, { v });
-                }
-                else if (ty->isIntegerTy(1)) {
-                    llvm::Function* toStr = module->getFunction("qc_to_string_bool");
-                    if (!toStr) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fty = llvm::FunctionType::get(
-                            i8Ptr,
-                            { builder->getInt1Ty() },
-                            false
-                        );
-                        toStr = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_to_string_bool",
-                            module.get()
-                        );
-                    }
-                    llvm::Value* s = builder->CreateCall(toStr, { v }, "qout_bool_str");
-
-                    llvm::Function* printStr = module->getFunction("qc_print_string");
-                    if (!printStr) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { i8Ptr },
-                            false
-                        );
-                        printStr = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_string",
-                            module.get()
-                        );
-                    }
-                    builder->CreateCall(printStr, { s });
-                }
-                else if (ty->isIntegerTy(2)) {
-                    llvm::Function* toStr = module->getFunction("qc_to_string_qbool");
-                    if (!toStr) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* i2Ty  = builder->getIntNTy(2);
-                        auto* fty   = llvm::FunctionType::get(
-                            i8Ptr,
-                            { i2Ty },
-                            false
-                        );
-                        toStr = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_to_string_qbool",
-                            module.get()
-                        );
-                    }
-                    llvm::Value* s = builder->CreateCall(toStr, { v }, "qout_qb_str");
-
-                    llvm::Function* printStr = module->getFunction("qc_print_string");
-                    if (!printStr) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { i8Ptr },
-                            false
-                        );
-                        printStr = llvm::Function::Create(
-                            fty,
-                            llvm::Function::ExternalLinkage,
-                            "qc_print_string",
-                            module.get()
-                        );
-                    }
-                    builder->CreateCall(printStr, { s });
-                }
-                else if (ty->isArrayTy()) {
-                    
-                    std::vector<uint64_t> dimensions;
-                    llvm::Type* checkTy = ty;
-                    while (checkTy->isArrayTy()) {
-                        dimensions.push_back(checkTy->getArrayNumElements());
-                        checkTy = checkTy->getArrayElementType();
-                    }
-                    int elemTypeCode = -1;
-                    if (checkTy->isIntegerTy(32)) elemTypeCode = 0;
-                    else if (checkTy->isFloatTy()) elemTypeCode = 1;
-                    else if (checkTy->isDoubleTy()) elemTypeCode = 2;
-                    else if (checkTy->isIntegerTy(8)) elemTypeCode = 3;
-                    else if (checkTy->isIntegerTy(1)) elemTypeCode = 4;
-                    else if (checkTy->isIntegerTy(2)) elemTypeCode = 5;
-                    else if (checkTy->isPointerTy()) elemTypeCode = 6;
-                    else {
-                        cg_error(Position(), "Unsupported array element type");
-                        return;
-                    }
-                    
-                    llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(builder->getInt32Ty(), dimensions.size());
-                    llvm::AllocaInst* dimsAlloc = createEntryAlloca("dims_arr", dimsArrTy);
-                    
-                    for (size_t i = 0; i < dimensions.size(); i++) {
-                        std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
-                        llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
-                        builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
-                    }
-                    
-                    llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(context, 0));
-                    
-                    std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
-                    llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
-                    
-                    llvm::Function* fn = module->getFunction("qc_print_array_recursive");
-                    if (!fn) {
-                        auto* voidPtrTy = llvm::PointerType::get(context, 0);
-                        auto* intPtrTy = llvm::PointerType::get(context, 0);
-                        auto* fty = llvm::FunctionType::get(
-                            builder->getVoidTy(),
-                            { voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy },
-                            false
-                        );
-                        fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, "qc_print_array_recursive", module.get());
-                    }
-                    
-                    builder->CreateCall(fn, {
-                        arrPtr,
-                        builder->getInt32(elemTypeCode),
-                        builder->getInt32(dimensions.size()),
-                        dimsPtr
-                    });
-                }
-                else if (ty->isPointerTy()) {
-                    if (hasName) {
-                        std::string type = varTypes[name];
-                        if (type == "string") {
-                            llvm::Function* fn = module->getFunction("qc_print_string");
-                            if (!fn) {
-                                auto* i8Ptr = llvm::PointerType::get(context, 0);
-                                auto* fty = llvm::FunctionType::get(
-                                    builder->getVoidTy(),
-                                    { i8Ptr },
-                                    false
-                                );
-                                fn = llvm::Function::Create(
-                                    fty,
-                                    llvm::Function::ExternalLinkage,
-                                    "qc_print_string",
-                                    module.get()
-                                );
-                            }
-                            builder->CreateCall(fn, { v });
-                        } else {
-                            llvm::Function* printFn = module->getFunction("qc_print_ptr");
-                            if (!printFn) {
-                                auto* i8Ptr = llvm::PointerType::get(context, 0);
-                                auto* fty = llvm::FunctionType::get(
-                                    builder->getVoidTy(),
-                                    { i8Ptr },
-                                    false
-                                );
-                                printFn = llvm::Function::Create(
-                                    fty,
-                                    llvm::Function::ExternalLinkage,
-                                    "qc_print_ptr",
-                                    module.get()
-                                );
-                            }
-                            builder->CreateCall(printFn, { v });
-                        }
-                    } else if (std::holds_alternative<StringNode>((valNode))) {
-                        llvm::Function* printFn = module->getFunction("qc_print_string");
-                        if (!printFn) {
-                            auto* i8Ptr = llvm::PointerType::get(context, 0);
-                            auto* fty = llvm::FunctionType::get(
-                                builder->getVoidTy(),
-                                { i8Ptr },
-                                false
-                            );
-                            printFn = llvm::Function::Create(
-                                fty,
-                                llvm::Function::ExternalLinkage,
-                                "qc_print_string",
-                                module.get()
-                            );
-                        }
-                        builder->CreateCall(printFn, { v });
-                    } else {
-                        llvm::Function* printFn = module->getFunction("qc_print_ptr");
-                        if (!printFn) {
-                            auto* i8Ptr = llvm::PointerType::get(context, 0);
-                            auto* fty = llvm::FunctionType::get(
-                                builder->getVoidTy(),
-                                { i8Ptr },
-                                false
-                            );
-                            printFn = llvm::Function::Create(
-                                fty,
-                                llvm::Function::ExternalLinkage,
-                                "qc_print_ptr",
-                                module.get()
-                            );
-                        }
-                        builder->CreateCall(printFn, { v });
-                    }
-                }
-                else {
-                    cg_error(Position(), "std::qout: unsupported type in compiled mode");
-                    return;
-                }
-            }
-            return;
         }
         else if (auto mret = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
             llvm::Type* retTy = currentFunction->getReturnType();

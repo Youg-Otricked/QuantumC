@@ -1,26 +1,28 @@
-class Calculator {
-    auto add(auto a, auto b) {
-        return a + b;
+class simple {
+    int x;
+    simple(int x) {
+        this.x = x;
     }
-    
-    auto multiply(auto x, auto y) {
-        return x * y;
+    string repr() {
+        return f"simple({this.x})";
     }
 }
-
+struct test {
+    int x;
+    int y;
+}
 int main() {
-    Calculator calc = Calculator();
-    
-    int sum1 = calc.add(5, 3);           // Generates add_int_int
-    float sum2 = calc.add(2.5f, 3.7f);   // Generates add_float_float
-    
-    int prod1 = calc.multiply(4, 5);     // Generates multiply_int_int
-    float prod2 = calc.multiply(2.0f, 3.0f);  // Generates multiply_float_float
-    
-    println(to_string(sum1));   // 8
-    println(to_string(sum2));   // 6.2
-    println(to_string(prod1));  // 20
-    println(to_string(prod2));  // 6.0
+    int x = 12;
+    string s = "Hello, World!";
+    bool b = true;
+    float f = 0.12345f;
+    double d = 0.12345678910;
+    char c = '\t';
+    qbool q = both;
+    test tst = { 1, 123 };
+    tst.x = 1;
+    simple simp = simple(123);
+    qout("x = %010i, s = %s, f = %.3f, d = %d, c = %c, simp = %cs, b = %b, q = %q, tst = %st, hex x = %02x, octal x = %03o, scientific f = %e, addr of d = %p\n", x, s, f, d, c, simp, b, q, tst, x, x, f, &d);
     
     return 0;
 }

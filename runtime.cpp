@@ -1,4 +1,3 @@
-
 #include <cstring>
 #include <cstdlib>
 #include <cstdint>
@@ -6,7 +5,146 @@
 #include <cctype>
 #include <ctime>
 #include <ffi.h>
+
 extern "C" {
+    char* qc_fmt_int(int v, int width, int precision, int zero_pad) {
+        char fmt[32];
+        if (precision >= 0) {
+            if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%d.%dd", zero_pad ? "0" : "", width, precision);
+            else snprintf(fmt, sizeof(fmt), "%%.%dd", precision);
+        } else {
+            if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%dd", zero_pad ? "0" : "", width);
+            else snprintf(fmt, sizeof(fmt), "%%d");
+        }
+        int len = snprintf(nullptr, 0, fmt, v);
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, v);
+        return out;
+    }
+
+    char* qc_fmt_float(double v, int width, int precision, int zero_pad) {
+        char fmt[32];
+        if (precision >= 0) {
+            if (width > 0) {
+                snprintf(fmt, sizeof(fmt), "%%%s%d.%df", zero_pad ? "0" : "", width, precision);
+            } else {
+                snprintf(fmt, sizeof(fmt), "%%.%df", precision);
+            }
+        } else {
+            if (width > 0) {
+                snprintf(fmt, sizeof(fmt), "%%%s%df", zero_pad ? "0" : "", width);
+            } else {
+                snprintf(fmt, sizeof(fmt), "%%f");
+            }
+        }
+        int len = snprintf(NULL, 0, fmt, v);
+        if (len < 0) return NULL;
+        char* out = (char*)malloc((size_t)len + 1);
+        if (!out) return NULL;
+        snprintf(out, (size_t)len + 1, fmt, v);
+        return out;
+    }
+
+    char* qc_fmt_double(double v, int width, int precision, int zero_pad) {
+        return qc_fmt_float(v, width, precision, zero_pad);
+    }
+    char* qc_fmt_scientific(double v, int width, int precision, int zero_pad) {
+        char fmt[32];
+        if (precision >= 0) {
+            if (width > 0) {
+                snprintf(fmt, sizeof(fmt), "%%%s%d.%de", zero_pad ? "0" : "", width, precision);
+            } else {
+                snprintf(fmt, sizeof(fmt), "%%.%de", precision);
+            }
+        } else {
+            if (width > 0) {
+                snprintf(fmt, sizeof(fmt), "%%%s%de", zero_pad ? "0" : "", width);
+            } else {
+                snprintf(fmt, sizeof(fmt), "%%e");
+            }
+        }
+        int len = snprintf(nullptr, 0, fmt, v);
+        if (len < 0) return nullptr;
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, v);
+        return out;
+    }
+    char* qc_fmt_char(char c, int width, int zero_pad) {
+        char fmt[16];
+        if (width > 0) {
+            snprintf(fmt, sizeof(fmt), "%%%s%dc", zero_pad ? "0" : "", width);
+        } else {
+            snprintf(fmt, sizeof(fmt), "%%c");
+        }
+        int len = snprintf(nullptr, 0, fmt, c);
+        if (len < 0) return nullptr;
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, c);
+        return out;
+    }
+
+    char* qc_fmt_string(const char* s, int width, int zero_pad) {
+        if (!s) s = "";
+        char fmt[16];
+        if (width > 0) {
+            snprintf(fmt, sizeof(fmt), "%%%s%ds", zero_pad ? "0" : "", width);
+        } else {
+            snprintf(fmt, sizeof(fmt), "%%s");
+        }
+        int len = snprintf(nullptr, 0, fmt, s);
+        if (len < 0) return nullptr;
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, s);
+        return out;
+    }
+
+    char* qc_fmt_hex(int v, int width, int zero_pad) {
+        char fmt[32];
+        if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%dx", zero_pad ? "0" : "", width);
+        else snprintf(fmt, sizeof(fmt), "%%x");
+        int len = snprintf(nullptr, 0, fmt, v);
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, v);
+        return out;
+    }
+    char* qc_fmt_octal(int v, int width, int zero_pad) {
+        char fmt[32];
+        if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%do", zero_pad ? "0" : "", width);
+        else snprintf(fmt, sizeof(fmt), "%%o");
+        int len = snprintf(nullptr, 0, fmt, v);
+        char* out = (char*)malloc(len + 1);
+        if (!out) return nullptr;
+        snprintf(out, len + 1, fmt, v);
+        return out;
+    }
+    char* qc_fmt_bool(bool v, int width, int zero_pad) {
+        const char* s = v ? "true" : "false";
+        return qc_fmt_string(s, width, zero_pad);
+    }
+
+    char* qc_fmt_qbool(uint8_t q, int width, int zero_pad) {
+        const char* s;
+        switch (q & 0x3) {
+            case 0: s = "none"; break;
+            case 1: s = "qfalse"; break;
+            case 2: s = "qtrue"; break;
+            default: s = "both"; break;
+        }
+        return qc_fmt_string(s, width, zero_pad);
+    }
+
+    char* qc_fmt_ptr(void* p, int width, int zero_pad) {
+        char buf[64];
+        if (zero_pad && width > 0) snprintf(buf, sizeof(buf), "0x%0*jx", width, (uintmax_t)(uintptr_t)p);
+        else if (width > 0) snprintf(buf, sizeof(buf), "%*p", width, p);
+        else snprintf(buf, sizeof(buf), "%p", p);
+        return strdup(buf);
+    }
     int qc_powi_i32(int base, int exp) {
         if (exp < 0) return 0;
         int result = 1;
@@ -82,9 +220,9 @@ extern "C" {
         char buf[32];
         int n = snprintf(buf, sizeof(buf), "%d", x);
         if (n < 0) return nullptr;
-        char* out = (char*)std::malloc(n + 1);
+        char* out = (char*)malloc(n + 1);
         if (!out) return nullptr;
-        std::memcpy(out, buf, n + 1);
+        memcpy(out, buf, n + 1);
         return out;
     }
 
@@ -92,9 +230,9 @@ extern "C" {
         char buf[64];
         int n = snprintf(buf, sizeof(buf), "%g", (double)x);
         if (n < 0) return nullptr;
-        char* out = (char*)std::malloc(n + 1);
+        char* out = (char*)malloc(n + 1);
         if (!out) return nullptr;
-        std::memcpy(out, buf, n + 1);
+        memcpy(out, buf, n + 1);
         return out;
     }
     int qc_to_int_from_float(float x) { return (int)x; }
@@ -116,18 +254,18 @@ extern "C" {
         char buf[64];
         int n = snprintf(buf, sizeof(buf), "%g", x);
         if (n < 0) return nullptr;
-        char* out = (char*)std::malloc(n + 1);
+        char* out = (char*)malloc(n + 1);
         if (!out) return nullptr;
-        std::memcpy(out, buf, n + 1);
+        memcpy(out, buf, n + 1);
         return out;
     }
 
     char* qc_to_string_bool(bool b) {
         const char* s = b ? "true" : "false";
-        size_t len = std::strlen(s);
-        char* out = (char*)std::malloc(len + 1);
+        size_t len = strlen(s);
+        char* out = (char*)malloc(len + 1);
         if (!out) return nullptr;
-        std::memcpy(out, s, len + 1);
+        memcpy(out, s, len + 1);
         return out;
     }
     char* qc_to_string_qbool(uint8_t q) {
@@ -139,15 +277,15 @@ extern "C" {
             case 3: s = "both";   break;
             default: s = "none";  break;
         }
-        size_t len = std::strlen(s);
-        char* out = (char*)std::malloc(len + 1);
+        size_t len = strlen(s);
+        char* out = (char*)malloc(len + 1);
         if (!out) return nullptr;
-        std::memcpy(out, s, len + 1);
+        memcpy(out, s, len + 1);
         return out;
     }
 
     char* qc_to_string_char(char c) {
-        char* out = (char*)std::malloc(2);
+        char* out = (char*)malloc(2);
         if (!out) return nullptr;
         out[0] = c;
         out[1] = '\0';
@@ -156,19 +294,19 @@ extern "C" {
 
     void qc_print_string(const char* s) {
         if (!s) s = "";
-        std::fputs(s, stdout);
+        fputs(s, stdout);
     }
 
     void qc_print_int(int x) {
-        std::printf("%d", x);
+        printf("%d", x);
     }
 
     void qc_print_double(double x) {
-        std::printf("%g", x);
+        printf("%g", x);
     }
 
     void qc_print_char(char c) {
-        std::putchar(static_cast<unsigned char>(c));
+        putchar(static_cast<unsigned char>(c));
     }
 
     int qc_time() {

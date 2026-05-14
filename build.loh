@@ -1,0 +1,3 @@
+gmake[2]: *** No rule to make target 'runtime.ll', needed by 'runtime_embed.cpp'.  Stop.
+gmake[1]: *** [CMakeFiles/Makefile2:91: CMakeFiles/qc.dir/all] Error 2
+gmake: *** [Makefile:91: all] Error 2

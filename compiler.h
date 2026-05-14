@@ -72,10 +72,8 @@ namespace tkz {
     class WhileNode;
     class ForNode;
     class CallNode;
-    class QOutExprNode;
     class ContinueNode;
     class FuncDefNode;
-    class QOutNode;
     class QInNode;
     class ReturnNode;
     class MultiReturnNode;
@@ -107,7 +105,6 @@ namespace tkz {
         StringNode,
         CharNode,
         BoolNode,
-        QOutNode,
         QInNode,
         QBoolNode,
         RefVarDeclNode,
@@ -128,7 +125,6 @@ namespace tkz {
         std::unique_ptr<ContinueNode>,   
         std::unique_ptr<CallNode>,
         std::shared_ptr<FuncDefNode>,
-        std::unique_ptr<QOutExprNode>,
         std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>,
@@ -321,11 +317,6 @@ namespace tkz {
 // VALUE NODES //////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     std::string printAny(const AnyNode& node);
-    
-    class QOutNode {
-    public:
-        std::string print() { return "std::qout"; }
-    };
     class QInNode {
     public:
         QInNode() {}
@@ -479,18 +470,6 @@ namespace tkz {
         VarAccessNode(Token name) : var_name_tok(std::move(name)) {}
         
         std::string print() const;
-    };
-    
-    class QOutExprNode {
-    public:
-        std::vector<AnyNode> values;
-        
-        QOutExprNode(std::vector<AnyNode> vals) 
-            : values(std::move(vals)) {}
-        
-        std::string print() const {
-            return "std::qout << (values)";
-        }
     };
     
     class IfNode {
@@ -981,7 +960,7 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
     class ParseResult;
     using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<tkz::Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
-        std::shared_ptr<FuncDefNode>, QOutNode, std::unique_ptr<QOutExprNode>, std::unique_ptr<ReturnNode>,
+        std::shared_ptr<FuncDefNode>, std::unique_ptr<ReturnNode>,
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>,
         std::unique_ptr<ArrayDeclNode>,       
@@ -2007,12 +1986,10 @@ namespace tkz {
         NumberVariant operator()(CharNode& node);
         NumberVariant operator()(BoolNode& node);
         NumberVariant operator()(QBoolNode& node);
-        NumberVariant operator()(QOutNode& node);
         NumberVariant operator()(std::unique_ptr<NamespaceNode>& node);
         NumberVariant operator()(QInNode& node);
         NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
         NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
-        NumberVariant operator()(std::unique_ptr<QOutExprNode>& node);
         bool is_truthy(const NumberVariant& val);
         std::unordered_map<std::string, NumberVariant> make_instance_fields(const std::string& className);
         ClassMethodInfo* find_method_on_class(const std::string& className, const std::string& mname);
