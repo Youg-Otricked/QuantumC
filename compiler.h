@@ -3531,6 +3531,26 @@ namespace tkz {
             }
             return nullptr;
         }
+        llvm::Value* resolveGlobal(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                auto git = globals.find(name);
+                if (git != globals.end()) return git->second;
+                return nullptr;
+            }
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                auto git = globals.find(fullName);
+                if (git != globals.end()) return git->second;
+                
+                if (current.empty()) break;
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            auto git = globals.find(name);
+            if (git != globals.end()) return git->second;
+            return nullptr;
+        }
         llvm::Value* resolveVariable(const std::string& name) {
             if (name.find("::") != std::string::npos) {
                 auto it = locals.find(name);

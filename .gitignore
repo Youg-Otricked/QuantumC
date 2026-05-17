@@ -28,4 +28,4 @@ qc-*
 CMakeCache.txt
 CMakeFiles/
 qc
-*.ll
+*.llreview/*

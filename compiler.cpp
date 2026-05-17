@@ -15944,6 +15944,23 @@ namespace tkz {
             
             builder->CreateStore(rootVal, locAlloc);
             return nullptr;
+        } else if (auto ref = std::get_if<RefVarDeclNode>(&node)) {
+            /*Token type_tok;
+            Token var_name_tok;
+            Token target_tok;
+            Position pos;*/
+            std::string fullName = (getCurrentNamespace().empty() ? "" : getCurrentNamespace() + "::") + ref->var_name_tok.value;
+            varTypes[fullName] = ref->type_tok.value;
+            if (resolveVariable(ref->target_tok.value) != nullptr) {
+                cg_error(ref->target_tok.pos, ref->target_tok.value + " is a global. You cannot create references to globals because it is wasted memory and unnecessary indirection; globals already have global lifetime.");
+                return nullptr;
+            } else if (resolveVariable(ref->target_tok.value) != nullptr) {
+                locals[fullName] = llvm::dyn_cast<llvm::AllocaInst>(resolveVariable(ref->target_tok.value));
+            } else {
+                cg_error(ref->target_tok.pos, ref->target_tok.value + " is not defined when creating reference " + ref->var_name_tok.value);
+                return nullptr;
+            }
+            return nullptr;
         }
         return nullptr;
     }
@@ -16939,7 +16956,8 @@ namespace tkz {
             std::holds_alternative<std::shared_ptr<PropertyAccessNode>>(node) ||
             std::holds_alternative<std::unique_ptr<MethodCallNode>>(node) ||
             std::holds_alternative<std::unique_ptr<SpreadNode>>(node) ||
-            std::holds_alternative<std::unique_ptr<FieldAssignNode>>(node)) {
+            std::holds_alternative<std::unique_ptr<FieldAssignNode>>(node) ||
+            std::holds_alternative<RefVarDeclNode>(node)) {
             emitExpr(node);
         }
         else if (auto mret = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
@@ -18797,7 +18815,7 @@ namespace tkz {
                 auto oldThis = currentThis;
                 auto oldClassName = currentClassName;
                 auto oldFunction = currentFunction;
-                std::unordered_map<std::string, llvm::AllocaInst*> oldLocals = locals;
+                auto oldLocals = locals;
                 enterScope();
                 currentThis = fn->getArg(0);
                 varTypes["this"] = className;
