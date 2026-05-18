@@ -29,6 +29,6 @@ int main() {
     // but it wasn't pointer freindly becuase actualy it wasnt in a namespace it was a intrinsic and llvm pointers don't have types.\
     int& rf = x;
     rf = 12345;
-    qout("x is now %i, rf is %i", x, rf);
+    qout("%s", f"x is now {x}, rf is {rf}");
     return 0;
 }
