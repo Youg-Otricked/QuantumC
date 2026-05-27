@@ -251,8 +251,8 @@ namespace UnitTest {
                     qout("==============================\n");
                 }
                 
-                qout(f"Failed: {this.Failed}\n");
-                qout(f"Passed: {this.Passed}\n");
+                qout("%s", f"Failed: {this.Failed}\n");
+                qout("%s", f"Passed: {this.Passed}\n");
 
                 qout("==============================\n");
                 if (this.Failed > 0) {

@@ -401,12 +401,29 @@ namespace tkz {
         Token type;
         Token name;
         std::optional<AnyNode> default_value;
-
+        struct FunctionSignature {
+            std::vector<Token> return_types;
+            std::vector<Parameter> params;
+        };
+        std::optional<FunctionSignature> signature;
         Parameter() = default;
         Parameter(Parameter&&) = default;
         Parameter& operator=(Parameter&&) = default;
         Parameter(const Parameter&) = delete;
         Parameter& operator=(const Parameter&) = delete;
+    };
+    struct ParamTypeInfo {
+        Token type;
+        struct FunctionSignature {
+            std::vector<Token> return_types;
+            std::vector<ParamTypeInfo> params;
+        };
+        std::optional<FunctionSignature> signature;
+        ParamTypeInfo() = default;
+        ParamTypeInfo(ParamTypeInfo&&) = default;
+        ParamTypeInfo& operator=(ParamTypeInfo&&) = default;
+        ParamTypeInfo(const ParamTypeInfo&) = delete;
+        ParamTypeInfo& operator=(const ParamTypeInfo&) = delete;
     };
     class BinOpNode {
     public:
@@ -663,7 +680,11 @@ namespace tkz {
                     result += return_types[i].value;
                     if (i < return_types.size() - 1) result += ", ";
                 }
-                result += " " + (name_tok ? name_tok->value : "lambda") + "(params) {" + body->print() + "}";
+                result += " " + (name_tok ? name_tok->value : "lambda") + "(";
+                for (auto& param : params) {
+                    result += param.name.value;
+                }
+                result += "{" + body->print() + "}";
                 return result;
             }
             
@@ -1146,6 +1167,7 @@ namespace tkz {
                    std::initializer_list<TokenType> ops);
         Prs logical_and();
         Prs qif_expr();
+        
         Prs qout_expr();
         Prs qin_expr();
         Prs logical_or();
@@ -1160,7 +1182,7 @@ namespace tkz {
         Prs call(AnyNode node_to_call);
         Prs func_def(Token return_type, std::optional<Token> func_name);
         Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name);
-        
+        Parameter parse_parameter(bool type_only);
         inline AnyNode prs_to_anynode(Prs&& st) {
             return std::visit([](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
@@ -2084,7 +2106,6 @@ namespace tkz {
         llvm::BasicBlock* currentBreakBB = nullptr;
         llvm::BasicBlock* currentContinueBB = nullptr;
         std::unordered_map<std::string, std::vector<size_t>> autoMethodIndices;
-        std::unordered_map<std::string, llvm::FunctionType*> lambdaTypes;
         struct FunctionSignature {
             llvm::FunctionType* type;
             std::vector<llvm::Value*> defaultValues;
@@ -2197,6 +2218,7 @@ namespace tkz {
         std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
         std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
         std::unordered_map<std::string, llvm::AllocaInst*> runtimeArraySizes;
+        std::unordered_map<std::string, llvm::FunctionType*> lambdaTypes;
         int findUnionVariantTag(const std::string& unionName,  AnyNode& valueNode, llvm::Value* val);
         llvm::Value* storeAndGetPointer(llvm::Value* val);
         std::map<std::string, std::map<std::string, llvm::Function*>> specializedFunctions;
@@ -3551,6 +3573,26 @@ namespace tkz {
             if (git != globals.end()) return git->second;
             return nullptr;
         }
+        llvm::FunctionType* resolveLambdaType(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                auto it = lambdaTypes.find(name);
+                if (it != lambdaTypes.end()) return it->second;
+                return nullptr;
+            }
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                auto it = lambdaTypes.find(fullName);
+                if (it != lambdaTypes.end()) return it->second;
+                
+                if (current.empty()) break;
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            auto it = lambdaTypes.find(name);
+            if (it != lambdaTypes.end()) return it->second;
+            return nullptr;
+        }
         llvm::Value* resolveVariable(const std::string& name) {
             if (name.find("::") != std::string::npos) {
                 auto it = locals.find(name);
@@ -3761,7 +3803,9 @@ namespace tkz {
         llvm::Value* boolToQBool(llvm::Value* boolVal);
         void addRuntimeToModule();
         llvm::Function* emitFuncDef(const FuncDefNode& fn);
+        llvm::FunctionType* llvmFuncTypeForHelper(const std::vector<Token>& returnTypes, const std::vector<ParamTypeInfo>& params); 
         llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& retTypes, const std::list<Parameter>& params);
+        llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& returnTypes, const std::vector<Parameter>& params);
         llvm::Type* llvmTypeFor(const std::string& qcType);
         llvm::LLVMContext context;
         std::unique_ptr<llvm::Module> module;

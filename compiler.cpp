@@ -488,7 +488,11 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<MapLiteralNode>>) { 
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<NamespaceNode>>) { 
-                return arg->print();
+                std::string ret = arg->print() + "\n";
+                for (auto& stmt : arg->body) {
+                    ret += printAny(stmt);
+                }
+                return ret;
             } else {
                 return "<unknown>"; 
             }
@@ -866,9 +870,6 @@ namespace tkz {
             return AnyNode{BoolNode(Token(TokenType::BOOL, "false", pos))};
         if (type == "qbool")
             return AnyNode{QBoolNode(Token(TokenType::QBOOL, "none", pos))};
-        if (type == "function") {
-            return AnyNode{std::make_shared<FuncDefNode>(std::vector<Token>{}, std::nullopt, std::list<Parameter>{}, std::make_unique<StatementsNode>(std::vector<AnyNode>{}, true), currentNamespace)};
-        }
         return AnyNode{std::monostate{}};
     }
     Parser::Parser(std::vector<Token> tokens) {
@@ -1918,7 +1919,8 @@ namespace tkz {
             AnyNode base = std::make_unique<VarAccessNode>(ident);
 
             if (this->current_tok.type == TokenType::LPAREN) {
-                return this->call(std::move(base));
+                base = res.reg(this->call(std::move(base)));
+                if (res.error) return res.to_prs();
             }
 
             if (this->current_tok.type == TokenType::LBRACKET) {
@@ -2280,10 +2282,7 @@ namespace tkz {
                     return_types.push_back(this->current_tok);
                     this->advance();
                 }
-            } else {
-                return_types.push_back(Token(TokenType::KEYWORD, "auto", tok.pos));
             }
-            
             this->index = saved_index;
             this->current_tok = this->tokens[this->index];
             
@@ -2303,7 +2302,6 @@ namespace tkz {
 
             return res.success(std::move(fn_node));
         }
-
         res.failure(std::make_unique<InvalidSyntaxError>("QC-S054: Expected an atom", tok.pos));
         return res.to_prs();
     }
@@ -2701,265 +2699,121 @@ namespace tkz {
             }
         }, std::move(prs));
     }
-
-
-
-    Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
-        ParseResult res;
-        this->advance();
-        std::list<Parameter> params;
-        
-        if (this->current_tok.type != TokenType::RPAREN) {
-            Token param_type = this->current_tok;
+    Parameter Parser::parse_parameter(bool type_only = false) {
+        Parameter p;
+        if (this->current_tok.value == "fn" && this->current_tok.type == TokenType::KEYWORD) {
+            p.type = this->current_tok; 
             this->advance();
-            bool ran = false;
+
+            if (this->current_tok.type != TokenType::LPAREN) {
+                throw std::make_unique<InvalidSyntaxError>("Expected '(' after 'fn'", this->current_tok.pos);
+            }
+            this->advance();
+
+            Parameter::FunctionSignature sig;
+            if (this->current_tok.type != TokenType::RPAREN) {
+                while (true) {
+                    sig.params.push_back(std::move(this->parse_parameter()));
+                    if (this->current_tok.type == TokenType::COMMA) {
+                        this->advance();
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            if (this->current_tok.type != TokenType::RPAREN) {
+                throw std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos);
+            }
+            this->advance();
+            if (this->current_tok.type == TokenType::ARROW) {
+                this->advance();
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    this->advance();
+                    while (true) {
+                        sig.return_types.push_back(this->parse_parameter(true).type);
+                        if (this->current_tok.type != TokenType::COMMA) break;
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        throw std::make_unique<InvalidSyntaxError>("Expected ')'", this->current_tok.pos);
+                    }
+                    this->advance();
+                } else {
+                    auto temp_p = this->parse_parameter(true);
+                    sig.return_types.push_back(temp_p.type);
+                }
+            }
+            p.signature = std::move(sig);
+        } else {
+            p.type = this->current_tok;
+            this->advance();
+            
             while (this->current_tok.type == TokenType::SCOPE) {
                 this->advance();
-                param_type.value += "::" + this->current_tok.value;
+                p.type.value += "::" + this->current_tok.value;
                 this->advance();
             }
+
+            if ((p.type.value == "list" || p.type.value == "map") && this->current_tok.type == TokenType::LESS) {
+                this->advance();
+                p.type.value += "<" + this->parse_parameter().type.value;
+                if (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    p.type.value += ", " + this->parse_parameter().type.value;
+                }
+                if (this->current_tok.type != TokenType::MORE) {
+                    throw std::make_unique<InvalidSyntaxError>("Expected '>' after a list/map type", this->current_tok.pos);
+                }
+                this->advance();
+                p.type.value += ">";
+            }
+            
             if (this->current_tok.type == TokenType::AMPERSAND) {
                 this->advance();
-                param_type.value += "&";
+                p.type.value += "&";
             }
             while (this->current_tok.type == TokenType::MUL) {
                 this->advance();
-                param_type.value += "*";
-            }
-            if (param_type.value == "short" || param_type.value == "long") {
-                std::string modifier = param_type.value;
-
-                if (this->current_tok.type != TokenType::KEYWORD) {
-                    res.failure(std::make_unique<InvalidSyntaxError>("QC-S059: Expected type after 'short'/'long'", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token base_type = this->current_tok;
-                this->advance();
-                if (current_tok.type == TokenType::AMPERSAND) {
-                    this->advance();
-                    base_type.value += "&";
-                }
-                while (this->current_tok.type == TokenType::MUL) {
-                    this->advance();
-                    base_type.value += "*";
-                }
-                param_type.value = modifier + " " + base_type.value;
-                param_type.pos = base_type.pos;
-            }
-
-            if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
-                this->advance();
-
-                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S060: Expected element type in list<T>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token elem_type = this->current_tok;
-                this->advance();
-                while (this->current_tok.type == TokenType::SCOPE) {
-                    this->advance();
-                    elem_type.value += "::" + this->current_tok.value;
-                    this->advance();
-                }
-                if (current_tok.type == TokenType::AMPERSAND) {
-                    this->advance();
-                    elem_type.value += "&";
-                }
-                while (this->current_tok.type == TokenType::MUL) {
-                    this->advance();
-                    elem_type.value += "*";
-                }
-                if (this->current_tok.type != TokenType::MORE) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                this->advance();
-
-                param_type = Token(
-                    TokenType::KEYWORD,
-                    "list<" + elem_type.value + ">",
-                    param_type.pos
-                );
-            }
-            if (param_type.value == "map" && this->current_tok.type == TokenType::LESS) {
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S067: Expected key type in map<K, V>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token key_type = this->current_tok;
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::COMMA) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S068: Expected ',' in map<K, V>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S069: Expected value type in map<K, V>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token value_type = this->current_tok;
-                this->advance();
-                
-                if (this->current_tok.type != TokenType::MORE) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S070: Expected '>' in map<K, V>", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                this->advance();
-                
-                param_type = Token(
-                    TokenType::KEYWORD,
-                    "map<" + key_type.value + ", " + value_type.value + ">",
-                    param_type.pos
-                );
+                p.type.value += "*";
             }
             while (this->current_tok.type == TokenType::LBRACKET) {
                 this->advance();
                 if (this->current_tok.type != TokenType::RBRACKET) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S062: Expected ']' after '[' in parameter", this->current_tok.pos));
-                    return res.to_prs();
+                    throw std::make_unique<InvalidSyntaxError>("Expected ']' after '['", this->current_tok.pos);
                 }
                 this->advance();
-                param_type.value += "[]"; 
-            }
-            if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(std::make_unique<InvalidSyntaxError>(
-                    "QC-S063: Expected parameter name", this->current_tok.pos));
-                return res.to_prs();
-            }
-            Token param_name = this->current_tok;
-            this->advance();
-            
-            std::optional<AnyNode> default_val;
-            if (this->current_tok.type == TokenType::EQ) {
-                this->advance(); 
-                default_val = res.reg(this->logical_or());
-                if (res.error) return res.to_prs();
-            }
-            
-            Parameter p;
-            p.type = param_type;
-            p.name = param_name;
-            p.default_value = std::move(default_val);
-            params.push_back(std::move(p));
-            
-            while (this->current_tok.type == TokenType::COMMA) {
-                this->advance();
-                
-                Token param_type = this->current_tok;
-                this->advance();
-                while (this->current_tok.type == TokenType::SCOPE) {
-                    this->advance();
-                    param_type.value += "::" + this->current_tok.value;
-                    this->advance();
-                }
-                if (this->current_tok.type == TokenType::AMPERSAND) {
-                    this->advance();
-                    param_type.value += "&";
-                }
-                while (this->current_tok.type == TokenType::MUL) {
-                    this->advance();
-                    param_type.value += "*";
-                }
-                if (param_type.value == "short" || param_type.value == "long") {
-                    std::string modifier = param_type.value;
-
-                    if (this->current_tok.type != TokenType::KEYWORD) {
-                        res.failure(std::make_unique<InvalidSyntaxError>("QC-S059: Expected type after 'short'/'long'", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    Token base_type = this->current_tok;
-                    this->advance();
-                    if (current_tok.type == TokenType::AMPERSAND) {
-                        this->advance();
-                        base_type.value += "&";
-                    }
-                    while (this->current_tok.type == TokenType::MUL) {
-                        this->advance();
-                        base_type.value += "*";
-                    }
-                    param_type.value = modifier + " " + base_type.value;
-                    param_type.pos = base_type.pos;
-                }
-                if (param_type.value == "list" && this->current_tok.type == TokenType::LESS) {
-                    this->advance(); 
-
-                    if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S060: Expected element type in list<T>", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    Token elem_type = this->current_tok;
-                    this->advance();
-                    while (this->current_tok.type == TokenType::SCOPE) {
-                        this->advance();
-                        elem_type.value += "::" + this->current_tok.value;
-                        this->advance();
-                    }
-                    if (current_tok.type == TokenType::AMPERSAND) {
-                        this->advance();
-                        elem_type.value += "&";
-                    }
-                    while (this->current_tok.type == TokenType::MUL) {
-                        this->advance();
-                        elem_type.value += "*";
-                    }
-                    if (this->current_tok.type != TokenType::MORE) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S061: Expected '>' in list<T>", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance(); 
-
-                    param_type = Token(
-                        TokenType::KEYWORD,
-                        "list<" + elem_type.value + ">",
-                        param_type.pos
-                    );
-                }
-                while (this->current_tok.type == TokenType::LBRACKET) {
-                    this->advance();
-                    if (this->current_tok.type != TokenType::RBRACKET) {
-                        res.failure(std::make_unique<InvalidSyntaxError>(
-                            "QC-S061: Expected ']' after '[' in parameter", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    this->advance();
-                    param_type.value += "[]"; 
-                }
-                if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(std::make_unique<InvalidSyntaxError>(
-                        "QC-S063: Expected parameter name", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                Token param_name = this->current_tok;
-                this->advance();
-                
-                default_val = std::nullopt;
-                if (this->current_tok.type == TokenType::EQ) {
-                    this->advance();
-                    default_val = res.reg(this->logical_or());
-                    if (res.error) return res.to_prs();
-                }
-                
-                Parameter p;
-                p.type = param_type;
-                p.name = param_name;
-                p.default_value = std::move(default_val);
-                params.push_back(std::move(p));
+                p.type.value += "[]";
             }
         }
-        
+        if (!type_only) {
+            if (this->current_tok.type == TokenType::IDENTIFIER) {
+                p.name = this->current_tok;
+                this->advance();
+            }
+            if (this->current_tok.type == TokenType::EQ) {
+                this->advance();
+                Prs val = this->logical_or();
+                p.default_value = to_any_node(std::move(val)); 
+            }
+        }
+        return p;
+    }
+    Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
+        ParseResult res;
+        this->advance();
+        std::vector<Parameter> params;
+        if (this->current_tok.type != TokenType::RPAREN) {
+            while (true) {
+                params.push_back(std::move(this->parse_parameter()));
+                
+                if (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                } else {
+                    break;
+                }
+            }
+        }
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(std::make_unique<InvalidSyntaxError>(
                 "QC-S064: Expected ')' after parameters", this->current_tok.pos));
@@ -2973,12 +2827,13 @@ namespace tkz {
                 this->advance();
             }
             if (this->current_tok.type == TokenType::KEYWORD || this->user_types.count(this->current_tok.value) > 0) {
-                this->advance();
-                
+                this->parse_parameter(true);
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
+                    this->parse_parameter(true).type;
                     if (this->current_tok.type == TokenType::KEYWORD || this->user_types.count(this->current_tok.value) > 0) {
                         this->advance();
+                        this->parse_parameter(true);
                     }
                 }
             }
@@ -3030,7 +2885,18 @@ namespace tkz {
         
         auto body = std::make_unique<StatementsNode>(std::move(body_stmts), true);
         this->advance();
-        return res.success(std::make_unique<FuncDefNode>(return_types, func_name, std::move(params), std::move(body), currentNamespace));
+        std::list<Parameter> params_list(
+            std::make_move_iterator(params.begin()), 
+            std::make_move_iterator(params.end())
+        );
+
+        return res.success(std::make_unique<FuncDefNode>(
+            return_types, 
+            func_name, 
+            std::move(params_list), 
+            std::move(body), 
+            currentNamespace
+        ));
     }
     Prs Parser::statement() {
         ParseResult res;
@@ -3102,7 +2968,8 @@ namespace tkz {
 
             if (this->current_tok.type == TokenType::LPAREN)
                 return this->call(std::move(fn_node));
-
+            if (this->current_tok.type == TokenType::SEMICOLON)
+                this->advance();
             return res.success(std::move(fn_node));
         }
         if (tok.type == TokenType::KEYWORD && tok.value == "if") {
@@ -4990,8 +4857,8 @@ namespace tkz {
                             throw InvalidSyntaxError("the entrypoint must return int, not " + actual, 
                                                     arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
-                        if (!arg->params.empty()) {
-                            throw InvalidSyntaxError("the entrypoint must have no parameters", 
+                        if (!arg->params.empty() && arg->params.front().type.value != "string[]") {
+                            throw InvalidSyntaxError("the entrypoint must have no parameters or take a array of strings.", 
                                 arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
                         has_main = true;
@@ -6040,6 +5907,10 @@ namespace tkz {
                 else if (actual.find("list<") == 0) {
                     std::string inner = strip(actual);
                     if (strip(expected) == inner && expected != inner) {
+                        score += 100;
+                    }
+                } else if (expected == "fn") {
+                    if (std::holds_alternative<FunctionValue>(args[i])) {
                         score += 100;
                     }
                 }
@@ -8280,6 +8151,7 @@ namespace tkz {
                 }
 
                 std::string expected_type = it_param->type.value;
+                bool is_fn_type = (expected_type == "fn" && it_param->signature.has_value());
                 std::string actual_type   = context->get_type_name(value);
                 bool is_ref_param = false;
                 std::string base_expected = expected_type;
@@ -8315,10 +8187,17 @@ namespace tkz {
                     context->define_reference(it_param->name.value, lvalue_name, base_expected + "&", it_param->name.pos);
                     continue;
                 }
+                bool types_compatible = false;
                 if (is_ref_param && lvalue_name.empty()) {
                     expected_type = base_expected;
-                }
-                if (expected_type == "auto") {
+                } if (is_fn_type) {
+                    if (std::holds_alternative<FunctionValue>(value)) {
+                        types_compatible = true;
+                        actual_type = "fn";
+                    } else {
+                        types_compatible = false;
+                    }
+                } else if (expected_type == "auto") {
                     context->define(it_param->name.value, actual_type, value);
                 } else {
                     
@@ -10936,28 +10815,25 @@ namespace tkz {
                 
                 std::vector<llvm::Type*> paramTypes;
                 paramTypes.push_back(llvm::PointerType::get(context, 0));
-                
-                for (auto& param : method.params) {
-                    paramTypes.push_back(llvmTypeFor(param.type.value));
+                std::list<Parameter> tempParams(
+                    std::make_move_iterator(method.params.begin()), 
+                    std::make_move_iterator(method.params.end())
+                );
+                llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(
+                    method.return_types, 
+                    tempParams
+                );
+                method.params = std::vector<Parameter>(
+                    std::make_move_iterator(tempParams.begin()), 
+                    std::make_move_iterator(tempParams.end())
+                );
+                for (auto* paramTy : baseFuncTy->params()) {
+                    paramTypes.push_back(paramTy);
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                    llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module.get());
+                    
+                    classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
-                
-                llvm::Type* retTy = builder->getVoidTy();
-                if (!method.return_types.empty()) {
-                    if (method.return_types.size() == 1) {
-                        retTy = llvmTypeFor(method.return_types[0].value);
-                    } else {
-                        std::vector<llvm::Type*> retTypes;
-                        for (auto& rt : method.return_types) {
-                            retTypes.push_back(llvmTypeFor(rt.value));
-                        }
-                        retTy = llvm::StructType::get(context, retTypes);
-                    }
-                }
-                
-                llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
-                llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module.get());
-                
-                classMethods[mapKey][method.name_tok.value].push_back(fn);
             }
         }
         for (auto& [mapKey, info] : userTypes) {
@@ -10991,16 +10867,38 @@ namespace tkz {
         
         generateStructReprFunctions();
     }
-    llvm::FunctionType* LLVMCompiler::llvmFuncTypeFor(
+    ParamTypeInfo toTypeInfo(const Parameter& p) {
+        ParamTypeInfo out;
+
+        out.type = p.type;
+
+        if (p.signature.has_value()) {
+            ParamTypeInfo::FunctionSignature sig;
+
+            sig.return_types = p.signature->return_types;
+
+            sig.params.reserve(p.signature->params.size());
+            for (const auto& sub : p.signature->params) {
+                sig.params.push_back(toTypeInfo(sub));
+            }
+
+            out.signature = std::move(sig);
+        }
+
+        return out;
+    }
+    llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(
         const std::vector<Token>& returnTypes,
-        const std::list<Parameter>& params
+        const std::vector<ParamTypeInfo>& params
     ) {
         std::vector<llvm::Type*> paramTypes;
         for (auto& p : params) {
-            llvm::Type* ty = llvmTypeFor(p.type.value);
-            paramTypes.push_back(ty);
+            if (p.signature.has_value()) {
+                paramTypes.push_back(llvm::PointerType::getUnqual(context));
+            } else {
+                paramTypes.push_back(llvmTypeFor(p.type.value));
+            }
         }
-        
         if (returnTypes.empty()) {
             return llvm::FunctionType::get(builder->getVoidTy(), paramTypes, false);
         }
@@ -11026,6 +10924,30 @@ namespace tkz {
         }
         llvm::StructType* structTy = llvm::StructType::get(context, retTypes);
         return llvm::FunctionType::get(structTy, paramTypes, false);
+    }
+    llvm::FunctionType* LLVMCompiler::llvmFuncTypeFor(
+        const std::vector<Token>& returnTypes,
+        const std::list<Parameter>& params
+    ) {
+        std::vector<ParamTypeInfo> converted;
+
+        for (const auto& p : params) {
+            converted.push_back(toTypeInfo(p));
+        }
+
+        return llvmFuncTypeForHelper(returnTypes, converted);
+    }
+    llvm::FunctionType* LLVMCompiler::llvmFuncTypeFor(
+        const std::vector<Token>& returnTypes,
+        const std::vector<Parameter>& params
+    ) {
+        std::vector<ParamTypeInfo> converted;
+
+        for (const auto& p : params) {
+            converted.push_back(toTypeInfo(p));
+        }
+
+        return llvmFuncTypeForHelper(returnTypes, converted);
     }
     void LLVMCompiler::cg_error(const Position& pos, const std::string& msg) {
         errors.emplace_back(msg, pos);
@@ -13821,11 +13743,11 @@ namespace tkz {
                         return builder->CreateCall(fn, argValues);
                     }
                 }
-                auto classIt = userTypes.find(funcName);
+                resolvedName = resolveTypeName(funcName);
+                auto classIt = userTypes.find(resolvedName);
                 if (classIt != userTypes.end() && classIt->second.kind == UserTypeKind::Class) {
-                    llvm::StructType* classTy = classTypes[funcName];
-                    
-                    llvm::AllocaInst* temp = createEntryAlloca("temp_" + funcName, classTy);
+                    llvm::StructType* classTy = classTypes[resolvedName];
+                    llvm::AllocaInst* temp = createEntryAlloca("temp_" + resolvedName, classTy);
                     std::string ctorName = "";
                     for (auto& method : classIt->second.classMethods) {
                         if (method.is_constructor) {
@@ -13833,7 +13755,6 @@ namespace tkz {
                             break;
                         }
                     }
-                    
                     if (!ctorName.empty()) {
                         std::vector<llvm::Value*> ctorArgs;
                         for (auto& argNode : call.arg_nodes) {
@@ -13841,9 +13762,9 @@ namespace tkz {
                             if (!arg) return nullptr;
                             ctorArgs.push_back(arg);
                         }
-                        llvm::Function* ctor = findMethodOverload(funcName, ctorName, ctorArgs);
+                        llvm::Function* ctor = findMethodOverload(resolvedName, ctorName, ctorArgs);
                         if (!ctor) {
-                            cg_error((*varAccess)->var_name_tok.pos, "No matching constructor for " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "No matching constructor for " + resolvedName);
                             return nullptr;
                         }
                         std::vector<llvm::Value*> allArgs = {temp};
@@ -13852,8 +13773,7 @@ namespace tkz {
                     } else {
                         builder->CreateStore(llvm::Constant::getNullValue(classTy), temp);
                     }
-                    
-                    return builder->CreateLoad(classTy, temp, funcName + "_inst");
+                    return builder->CreateLoad(classTy, temp, resolvedName + "_inst");
                 }
                 static const std::unordered_map<std::string, std::string> builtins = {
                     {"time", "qc_time"},
@@ -14254,6 +14174,7 @@ namespace tkz {
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
                                     if (!itgVal->getType()->isIntegerTy(32)) {
                                         cg_error((*varAccess)->var_name_tok.pos, "i formater takes a int: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14265,6 +14186,7 @@ namespace tkz {
                                     current_arg++;
                                     if (goodArgs.size() - 1 < current_arg) {
                                         cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* stVal = emitExpr(goodArgs[current_arg]);
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -14296,10 +14218,12 @@ namespace tkz {
                                             }
                                         } else {
                                             cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct instance: " + funcName);
+                                            return nullptr;
                                         }
                                     } else {
                                         if (!stVal->getType()->isPointerTy()) {
                                             cg_error((*varAccess)->var_name_tok.pos, "s formater takes a string: " + funcName);
+                                            return nullptr;
                                         }
                                         builder->CreateCall(printString, { builder->CreateCall(fmtStr, { stVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                     }
@@ -14314,6 +14238,7 @@ namespace tkz {
                                     llvm::Value* floatVal = emitExpr(goodArgs[current_arg]);
                                     if (!floatVal->getType()->isFloatTy()) {
                                         cg_error((*varAccess)->var_name_tok.pos, "f formater takes a float: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14330,6 +14255,7 @@ namespace tkz {
                                     llvm::Value* doubVal = emitExpr(goodArgs[current_arg]);
                                     if (!doubVal->getType()->isDoubleTy()) {
                                         cg_error((*varAccess)->var_name_tok.pos, "d formater takes a double: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14372,10 +14298,12 @@ namespace tkz {
                                             }
                                         } else {
                                             cg_error((*varAccess)->var_name_tok.pos, "cs formater takes a class instance: " + funcName);
+                                            return nullptr;
                                         }
                                     } else {
                                         if (!cVal->getType()->isIntegerTy(8)) {
                                             cg_error((*varAccess)->var_name_tok.pos, "c formater takes a char: " + funcName);
+                                            return nullptr;
                                         }
                                         builder->CreateCall(printString, { builder->CreateCall(fmtChar, { cVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                         break;
@@ -14390,7 +14318,8 @@ namespace tkz {
                                     }
                                     llvm::Value* boolVal = emitExpr(goodArgs[current_arg]);
                                     if (!boolVal->getType()->isIntegerTy(1)) {
-                                        cg_error((*varAccess)->var_name_tok.pos, "b formater takes a bool: " + funcName);
+                                        cg_error((*varAccess)->var_name_tok.pos, "b formater takes a bool: " + funcName);\
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14407,6 +14336,7 @@ namespace tkz {
                                     llvm::Value* qboolVal = emitExpr(goodArgs[current_arg]);
                                     if (!qboolVal->getType()->isIntegerTy(2)) {
                                         cg_error((*varAccess)->var_name_tok.pos, "q formater takes a qbool: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14423,6 +14353,7 @@ namespace tkz {
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
                                     if (!itgVal->getType()->isIntegerTy(32)) {
                                         cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14439,6 +14370,7 @@ namespace tkz {
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
                                     if (!itgVal->getType()->isIntegerTy(32)) {
                                         cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
@@ -14450,6 +14382,7 @@ namespace tkz {
                                     current_arg++;
                                     if (goodArgs.size() - 1 < current_arg) {
                                         cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* ptVal = emitExpr(goodArgs[current_arg]);
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -14466,7 +14399,7 @@ namespace tkz {
                                     current_arg++;
                                     if (goodArgs.size() - 1 < current_arg) {
                                         cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
-                                        break;
+                                        return nullptr;
                                     }
                                     llvm::Value* decimalVal = emitExpr(goodArgs[current_arg]);
                                     if (!decimalVal->getType()->isFloatTy() && !decimalVal->getType()->isDoubleTy() && !decimalVal->getType()->isIntegerTy(32)) {
@@ -14489,6 +14422,7 @@ namespace tkz {
                                     current_arg++;
                                     if (goodArgs.size() - 1 < current_arg) {
                                         cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        return nullptr;
                                     }
                                     llvm::Value* val = emitExpr(goodArgs[current_arg]);
                                     llvm::Type* aTy = val->getType();
@@ -14622,43 +14556,29 @@ namespace tkz {
                 }
             }
             llvm::Value* calleeVal = nullptr;
-            if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
-                std::string funcName = (*varAccess)->var_name_tok.value;
-                llvm::Function* resolved = resolveFunction(funcName);
-                if (resolved) {
-                    calleeVal = resolved;
-                } else {
-                    llvm::Function* direct = module->getFunction(funcName);
-                    if (direct) {
-                        calleeVal = direct;
-                    } else {
-                        calleeVal = emitExpr(call.node_to_call);
-                    }
-                }
-            } else {
-                calleeVal = emitExpr(call.node_to_call);
-            }
-            if (!calleeVal) return nullptr;
-
             llvm::FunctionType* fnTy = nullptr;
             std::string funcName = "";
-            if (auto* func = llvm::dyn_cast<llvm::Function>(calleeVal)) {
-                fnTy = func->getFunctionType();
-                funcName = func->getName().str();
-            }
-            else if (calleeVal->getType()->isPointerTy()) {
-                if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
-                    std::string varName = (*varAccess)->var_name_tok.value;
-                    auto it = lambdaTypes.find(varName);
-                    if (it != lambdaTypes.end()) {
-                        fnTy = it->second;
-                    } else {
-                        cg_error(Position(), "Unknown lambda type");
-                        return nullptr;
+            if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
+                std::string name = (*varAccess)->var_name_tok.value;
+                llvm::Value* varAddr = resolveVariable(name); 
+                if (varAddr) {
+                    if (auto lmbt = resolveLambdaType(name)) {
+                        fnTy = lmbt;
+                        calleeVal = emitExpr(call.node_to_call);
+                    }
+                } else {
+                    llvm::Function* resolved = resolveFunction(name);
+                    if (resolved) {
+                        calleeVal = resolved;
+                        fnTy = resolved->getFunctionType();
                     }
                 }
+                if (!calleeVal) {
+                    cg_error((*varAccess)->var_name_tok.pos, "Undeclared function or variable: " + name);
+                    return nullptr;
+                }
+                funcName = name;
             }
-
             if (!fnTy) {
                 cg_error(Position(), "Could not determine function type");
                 return nullptr;
@@ -16838,11 +16758,8 @@ namespace tkz {
             name,
             module.get()
         );
-        jaggedArraysStack.push_back({});
-        arrayTypeStringsStack.push_back({});
-        listsStack.push_back({});
-        arrayLengthsStack.push_back({});
-        mapsStack.push_back({});
+        enterScope();
+        auto savedLambdaTypes = lambdaTypes;
         llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
         auto* entryBB = llvm::BasicBlock::Create(context, "entry", func);
         builder->SetInsertPoint(entryBB);
@@ -16859,36 +16776,40 @@ namespace tkz {
             auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
             builder->CreateStore(&arg, alloca);
             locals[param.name.value] = alloca;
-            std::string t = param.type.value;
-            if (t.find("list<") == 0) {
-                std::string inner = getElementType(t);
-                int code = getTypeCode(inner); 
-                lists[param.name.value] = code;
-            } 
-            else if (t.find("map<") == 0) {
-                auto [key, val] = splitMapTypes(t); 
-                maps[param.name.value] = std::make_pair(getTypeCode(key), getTypeCode(val));
-            }
-            else if (t.find("[]") != std::string::npos) {
-                int dims = 0;
-                size_t pos = t.find("[]");
-                while (pos != std::string::npos) {
-                    dims++;
-                    pos = t.find("[]", pos + 2);
-                }
-                if (dims > 1) {
-                    std::string base = t.substr(0, t.find("[]"));
-                    int baseTypeCode = getTypeCode(base);
-                    jaggedArrays[param.name.value] = {baseTypeCode, dims};
-                    arrayTypeStrings[param.name.value] = base;
-                } else {
-                    std::string base = t.substr(0, t.find("[]"));
-                    arrayTypeStrings[param.name.value] = base;
-                }
+            if (param.signature.has_value()) {
+                varTypes[param.name.value] = "fn";
+                lambdaTypes[param.name.value] = llvmFuncTypeFor(param.signature->return_types, param.signature->params);
             } else {
-                varTypes[param.name.value] = t;
+                std::string t = param.type.value;
+                if (t.find("list<") == 0) {
+                    std::string inner = getElementType(t);
+                    int code = getTypeCode(inner); 
+                    lists[param.name.value] = code;
+                } 
+                else if (t.find("map<") == 0) {
+                    auto [key, val] = splitMapTypes(t); 
+                    maps[param.name.value] = std::make_pair(getTypeCode(key), getTypeCode(val));
+                }
+                else if (t.find("[]") != std::string::npos) {
+                    int dims = 0;
+                    size_t pos = t.find("[]");
+                    while (pos != std::string::npos) {
+                        dims++;
+                        pos = t.find("[]", pos + 2);
+                    }
+                    if (dims > 1) {
+                        std::string base = t.substr(0, t.find("[]"));
+                        int baseTypeCode = getTypeCode(base);
+                        jaggedArrays[param.name.value] = {baseTypeCode, dims};
+                        arrayTypeStrings[param.name.value] = base;
+                    } else {
+                        std::string base = t.substr(0, t.find("[]"));
+                        arrayTypeStrings[param.name.value] = base;
+                    }
+                } else {
+                    varTypes[param.name.value] = t;
+                }
             }
-
             idx++;
         }
         
@@ -16921,11 +16842,8 @@ namespace tkz {
         currentFunction = oldFunction;
         locals = std::move(oldLocals);
         functions[name] = func;
-        jaggedArraysStack.pop_back();
-        arrayTypeStringsStack.pop_back();
-        listsStack.pop_back();
-        arrayLengthsStack.pop_back();
-        mapsStack.pop_back();
+        lambdaTypes = savedLambdaTypes;
+        exitScope();
         return func;
     }
     std::string LLVMCompiler::mangleName(const FuncDefNode& fn) {
@@ -18792,8 +18710,15 @@ namespace tkz {
                     if (overload->arg_size() - 1 == method.params.size()) {
                         bool matches = true;
                         for (size_t i = 0; i < method.params.size(); i++) {
-                            std::string resolvedType = resolveTypeName(method.params[i].type.value);
-                            llvm::Type* expectedType = llvmTypeFor(resolvedType);
+                            auto& param = method.params[i];
+                            llvm::Type* expectedType;
+                            if (param.signature.has_value()) {
+                                expectedType = llvm::PointerType::get(context, 0);
+                            } else {
+                                std::string resolvedType = resolveTypeName(param.type.value);
+                                expectedType = llvmTypeFor(resolvedType);
+                            }
+
                             llvm::Type* actualType = overload->getFunctionType()->getParamType(i + 1);
                             if (expectedType != actualType) {
                                 matches = false;
@@ -18824,14 +18749,21 @@ namespace tkz {
                 
                 for (size_t i = 0; i < method.params.size(); i++) {
                     auto& param = method.params[i];
-                    std::string resolvedType = resolveTypeName(param.type.value);
-                    llvm::Type* paramTy = llvmTypeFor(resolvedType);
+                    llvm::Type* paramTy;
+                    std::string typeDescriptor;
+
+                    if (param.signature.has_value()) {
+                        paramTy = llvm::PointerType::get(context, 0);
+                        typeDescriptor = "fn"; 
+                    } else {
+                        typeDescriptor = resolveTypeName(param.type.value);
+                        paramTy = llvmTypeFor(typeDescriptor);
+                    }
                     llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
                     builder->CreateStore(fn->getArg(i + 1), alloc);
                     locals[param.name.value] = alloc;
-                    varTypes[param.name.value] = resolvedType;
-                }
-                
+                    varTypes[param.name.value] = typeDescriptor;
+                }     
                 size_t bodyStartIdx = 0;
                 if (method.is_constructor && !info.baseClassName.empty()) {
                     if (method.body && !method.body->statements.empty()) {
@@ -19470,8 +19402,8 @@ namespace tkz {
             id == "return" || id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || 
             id == "const" || id == "default" || id == "class" || id == "struct" || id == "enum" || 
             id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || 
-            id == "list" || id == "foreach" || id == "do" || id == "in" || id == "function" ||
-            id == "map" || id == "type" || id == "public" || id == "protected" || id == "private" ||
+            id == "list" || id == "foreach" || id == "do" || id == "in" || id == "map" || 
+            id == "type" || id == "public" || id == "protected" || id == "private" || id == "function" ||
             id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" ||
             id == "final" ||id == "try" || id == "catch" || id == "nullptr") {
             return Token(TokenType::KEYWORD, id, start_pos);
