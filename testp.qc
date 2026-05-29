@@ -66,7 +66,7 @@ int main() {
     AdvQBool::AQB aqb = AdvQBool::AQB(75);  // 75% true
     qout("%s", f"AQB(75): {aqb.repr()}\n");
     
-    qout("Testing 10 evaluations of 75% true AQB:\n");
+    qout("Testing 10 evaluations of 75%% true AQB:\n");
     int trueCount = 0;
     for (int i = 0; i < 10; i++) {
         if (aqb.eval()) {

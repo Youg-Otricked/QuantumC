@@ -10812,28 +10812,16 @@ namespace tkz {
                     continue;
                 }
                 std::string methodName = mapKey + "_" + method.name_tok.value;
-                
                 std::vector<llvm::Type*> paramTypes;
                 paramTypes.push_back(llvm::PointerType::get(context, 0));
-                std::list<Parameter> tempParams(
-                    std::make_move_iterator(method.params.begin()), 
-                    std::make_move_iterator(method.params.end())
-                );
-                llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(
-                    method.return_types, 
-                    tempParams
-                );
-                method.params = std::vector<Parameter>(
-                    std::make_move_iterator(tempParams.begin()), 
-                    std::make_move_iterator(tempParams.end())
-                );
+                llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
                 for (auto* paramTy : baseFuncTy->params()) {
                     paramTypes.push_back(paramTy);
-                    llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
-                    llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module.get());
-                    
-                    classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module.get());
+
+classMethods[mapKey][method.name_tok.value].push_back(fn);
             }
         }
         for (auto& [mapKey, info] : userTypes) {
@@ -14189,6 +14177,10 @@ namespace tkz {
                                         return nullptr;
                                     }
                                     llvm::Value* stVal = emitExpr(goodArgs[current_arg]);
+                                    if (!stVal) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "Failed to resolve argument for formatter in " + funcName);
+                                        return nullptr;
+                                    }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
                                     to_print = "";
@@ -15871,7 +15863,7 @@ namespace tkz {
             Position pos;*/
             std::string fullName = (getCurrentNamespace().empty() ? "" : getCurrentNamespace() + "::") + ref->var_name_tok.value;
             varTypes[fullName] = ref->type_tok.value;
-            if (resolveVariable(ref->target_tok.value) != nullptr) {
+            if (resolveGlobal(ref->target_tok.value) != nullptr) {
                 cg_error(ref->target_tok.pos, ref->target_tok.value + " is a global. You cannot create references to globals because it is wasted memory and unnecessary indirection; globals already have global lifetime.");
                 return nullptr;
             } else if (resolveVariable(ref->target_tok.value) != nullptr) {

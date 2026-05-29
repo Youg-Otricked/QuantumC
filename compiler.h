@@ -2389,6 +2389,9 @@ namespace tkz {
                     std::string valType = codeToType(it->second.second);
                     return "map<" + keyType + "," + valType + ">";
                 }
+                if (auto* var = resolveVariable(varName)) {
+                    return getTypeName(var->getType());
+                }
             }
             else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {

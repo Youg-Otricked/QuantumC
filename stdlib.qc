@@ -94,7 +94,7 @@ namespace Utils {
         }
         return fin;
     }
-    void sleep(long int crr) {
+    void sleep(int crr) {
         crr += time();
         while (time() < crr) {
             for (int i = 0; i < 5000; i++) {}
