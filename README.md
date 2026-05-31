@@ -82,7 +82,11 @@ Current Version: v0.15.0 = "Compiler Is Mostly Done" (aparantly i've been using 
 | **Advanced**        | Structs, Classes, & Namespaces                                         | Done        |
 |                     | Union Types (TypeScript-style)                                         | DONE        |
 |                     | Advanced OOP & Operator Overloading                                    | Done        |
-|                     | Manual Memory Management                                               | Interpreted |
+|                     | Manual Memory Management                                               |             |
+|                     |    Refs                                                                | Done        |
+|                     |    Addr-of                                                             | Done        |
+|                     |    Pointers                                                            | Interp      |
+|                     |    Actual malloc/sizeof...                                             | Interp      | 
 | **System**          | F-Strings (Python-style interpolation)                                 | Done        |
 |                     | Random Number Generation                                               | Done        |
 |                     | Stdlib Part 1 & 2                                                      | Done        |
