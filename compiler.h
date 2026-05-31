@@ -2356,6 +2356,11 @@ namespace tkz {
             }
             else if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
                 std::string varName = (*varAcc)->var_name_tok.value;
+                if (!resolveVarType(varName).empty()) {
+                    std::string t = resolveVarType(varName);
+                    if (t.ends_with("&")) t.pop_back();  
+                    return t;
+                }
                 if (hasList(varName)) {
                     auto it = findList(varName);
                     int code = it->second;
@@ -2389,16 +2394,13 @@ namespace tkz {
                     std::string valType = codeToType(it->second.second);
                     return "map<" + keyType + "," + valType + ">";
                 }
-                if (auto* var = resolveVariable(varName)) {
+                if (auto* var = getVarAddress(varName)) {
                     return getTypeName(var->getType());
                 }
             }
             else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
-                    std::cerr << "DEBUG arrAcc getExprType: name=" << name 
-                    << " hasList=" << hasList(name)
-                    << " hasArray=" << hasArrayType(name) << "\n";
                     if (hasList(name)) {
                         auto it = findList(name);
                         int code = it->second;
@@ -2432,7 +2434,6 @@ namespace tkz {
                 }
                 return "unknown";
             }
-            std::cerr << "  -> UNKNOWN (node index " << node.index() << ")" << std::endl;
             return "unknown";
         }
         std::string getElementType(std::string fullType) {
@@ -2747,23 +2748,30 @@ namespace tkz {
         }
         std::vector<llvm::Value*> emitAdaptedArgs(
             const std::list<AnyNode>& argNodes,
-            llvm::FunctionType* fnTy
+            llvm::FunctionType* fnTy,
+            const std::vector<std::string>& paramTypeStrings
         ) {
             std::vector<llvm::Value*> args;
             size_t i = 0;
-
             for (auto it = argNodes.begin(); it != argNodes.end(); ++it, ++i) {
                 AnyNode& argNode = const_cast<AnyNode&>(*it);
-                llvm::Value* v = emitExpr(argNode);
+                llvm::Value* v = nullptr;
+                if (i < paramTypeStrings.size() && paramTypeStrings[i].ends_with("&")) {
+                    if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
+                        v = getVarAddress((*varAccess)->var_name_tok.value);
+                    } else {
+                        cg_error(Position(), "L-value required for reference parameter");
+                        return {};
+                    }
+                } else {
+                    v = emitExpr(argNode);
+                }
                 if (!v) return {};
-
                 llvm::Type* paramTy = fnTy->getParamType(i);
                 v = adaptArgumentForParam(v, argNode, paramTy, i);
                 if (!v) return {};
-
                 args.push_back(v);
             }
-
             return args;
         }
         std::pair<llvm::Function*, std::string> findMethodInHierarchy(const std::string& className, const std::string& methodName) {
@@ -2953,23 +2961,33 @@ namespace tkz {
                 if (classIt != classMethods.end()) {
                     auto methodIt = classIt->second.find(methodName);
                     if (methodIt != classIt->second.end()) {
+                        llvm::Function* bestMatch = nullptr;
+                        int bestScore = 999; 
                         for (auto* fn : methodIt->second) {
                             if (fn->arg_size() - 1 != args.size()) continue;
+                            int currentScore = 0;
                             bool matches = true;
                             for (size_t i = 0; i < args.size(); i++) {
-                                llvm::Type* expectedType = fn->getFunctionType()->getParamType(i + 1);
-                                llvm::Type* actualType = args[i]->getType();
+                                llvm::Type* expected = fn->getFunctionType()->getParamType(i + 1);
+                                llvm::Type* actual = args[i]->getType();
                                 
-                                if (expectedType != actualType) {
-                                    matches = false;
-                                    break;
+                                if (expected != actual) {
+                                    if (expected->isPointerTy() || actual->isPointerTy()) {
+                                        currentScore += 1;
+                                    } else {
+                                        matches = false;
+                                        break;
+                                    }
                                 }
                             }
                             
-                            if (matches) {
-                                return fn;
+                            if (matches && currentScore < bestScore) {
+                                bestMatch = fn;
+                                bestScore = currentScore;
+                                if (bestScore == 0) break;
                             }
                         }
+                        return bestMatch;
                     }
                 }
                 auto typeIt = userTypes.find(currentClass);
@@ -3229,10 +3247,8 @@ namespace tkz {
                 
                 if (paramType.starts_with("list<") && paramType.ends_with(">")) {
                     std::string elemType = paramType.substr(5, paramType.size() - 6);
-                    std::cerr << "DEBUG registering param: " << it->name.value << " as list<" << elemType << ">\n";
                     lists[it->name.value] = getTypeCode(elemType);
                 } else if (paramType.ends_with("[]")) {
-                    std::cerr << "DEBUG registering param: " << it->name.value << " as array\n";
                     arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
                 } else {
                     varTypes[it->name.value] = paramType;
@@ -3547,14 +3563,23 @@ namespace tkz {
             }
             return name;
         }
-        llvm::Type* getPointeeType(llvm::Value* ptr) {
-            if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr)) {
-                return alloca->getAllocatedType();
+        llvm::Type* getPointeeType(const std::string& name) {
+            std::string typeStr = resolveVarType(name);
+            if (typeStr.empty()) {
+                llvm::Value* ptr = resolveVariable(name);
+                if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr)) {
+                    return alloca->getAllocatedType();
+                }
+                if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) {
+                    return gv->getValueType();
+                }
+                return nullptr;
             }
-            if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) {
-                return gv->getValueType();
+            if (typeStr.ends_with("&")) {
+                typeStr.pop_back();
             }
-            return nullptr;
+
+            return llvmTypeFor(typeStr);
         }
         llvm::Value* resolveGlobal(const std::string& name) {
             if (name.find("::") != std::string::npos) {
@@ -3621,6 +3646,30 @@ namespace tkz {
             auto git = globals.find(name);
             if (git != globals.end()) return git->second;
             return nullptr;
+        }
+        std::string resolveVarType(const std::string& name) {
+            if (name.find("::") != std::string::npos) {
+                if (hasVarType(name)) return findVarType(name)->second;
+                return "";
+            }
+            std::string current = getCurrentNamespace();
+            while (true) {
+                std::string fullName = current.empty() ? name : current + "::" + name;
+                if (hasVarType(fullName)) return findVarType(fullName)->second;
+                if (current.empty()) break;
+                size_t pos = current.rfind("::");
+                current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+            }
+            if (hasVarType(name)) return findVarType(name)->second;
+            return "";
+        }
+
+        llvm::Value* getVarAddress(const std::string& name) {
+            llvm::Value* addr = resolveVariable(name); 
+            if (resolveVarType(name).ends_with("&")) {
+                return builder->CreateLoad(builder->getPtrTy(), addr);
+            }
+            return addr;
         }
         std::string resolveMetadataName(const std::string& name) {
             if (name.find("::") != std::string::npos) return name;

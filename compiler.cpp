@@ -7202,7 +7202,7 @@ namespace tkz {
                     else if (qbv->valname == "qfalse") val = 1;
                     else if (qbv->valname == "qtrue")  val = 2;
                     else if (qbv->valname == "both")   val = 3;
-                    else throw RTError("QC-WHAT: What the heck is that", qbv->pos);
+                    else throw RTError("QC-WHAT: T̴̨̲̑̈̽́͘ḣ̸̢̛̜͈͖͉͖̲̫̹̖͖̐̓͂͑͒͑̀̆͛͌͘͝e̵̛̬̪̾̉̍̀͜ ̶͈̟̳̞̭͙̺͋͌̓̃́͗͝m̷̢̝̹͔̓̐̓̽̔͗͒̏̚ó̶͈̙̞̫͎͎͛̔̕̚͜ş̴̣̰̻̺͎̥̠̟̮̟̳͙̗͎̉̾̓̐̈̇̒̈͘͠ť̷̙̘̃́̿̀̀̔ ̷̟̦̪̖͉̯͓̭̮̤̺̼͋m̵͔̫͚͇̯̭̹̼͔̘̐́̈̅͛͛͒̄͑̿́̋̑̽̋̕͝ḛ̷̛̳̙̺̭̟͉̫̳͖̭̫̰̖͐̇̎̑͆͑̅́̇͌̈̿͜͜ŕ̷͚̬͓̤̰̳͙̣̣̾̋̊̅̈́͆̅̇͘̚͠͝c̷̡̫̪͐̉̽̊́̐̂̅͛͋̕ͅi̵̡̘̮̺̥̪̝͕͎̖̘͓̔̚f̶̧̡̧̧̤̩̪̙̤̩͎̜̤̺̍͑͊̏͐͜͠ų̵̪̖̘͎͓̺̼͔̰̬̬̆͛͊̒̿̓͑̀͛͛̽͠l̸̢̨͍̙͕͈͇̤̜̖̖̫̘̮̦̓̋̀̊̀̅̐̓̕͠ ̵̧͇̼̲͓̞̹̱͔͙̦̊̓̊̅͊͋̎̌̾͊̾͌̒͐̓t̵̯̯̮͙̯̪͉̰̱̬̊̈́͌̉̇͜ḫ̴̠̻̠̙̤͎̇̈̒͊̂̓̔̽͆̋͌̆ḯ̶̡̡̧̗̟̼̙ņ̸̩̠̜̙̫̩̩̻̟̀̽͒͆͛͌̈́͂̉̈́͐͘̕ͅg̷̲͛͋̐ ̵͕͈͎͓̝̝͍̐̅͌̉̽̿̓͜į̴̪̣̭̞̩̩̰͔̦̫͚̄̚̕ͅͅn̴̨͇̊́͌́͗́̈͊̄̕͘ ̴̨͎͍̘̤̼̞̥̥͎̪̑̐̈̏͑̑̍̒̎̉͐̈́̂̇͗t̶̢̡̞̜͇̩͍͕͚̦̖̜̭̗̲̭͒̈͑̿̍̄̽̉̽̽̐̃̇̈́̕̕͜ḩ̶̨͍̬̯̫̯̙̥̜͓̻̝̘̩̰͛̂̈́̃͝e̷͚̻͗͒̓̌̎͛̊͗͒̉͗̕͝ ̸̢̜̼̗͓͚͒̄̐̉̒͠ͅw̷̻͒͗̉̾̉̍̕͠ő̴̻̭͆̇̈́̈̉́̀̓́͑̊̆͊̕r̷̛̜̹̰̺̄͋͂͌̏̀̾́͑̑̇̒̕͝͝l̴̡̻̹̰͈̖͖̹̩͎͚̩͆͒͐͆̔̅̑̒̈́̀̍̓̉̓̉̏͘͜ḑ̷̼͕̱̠̳̖̥̓́̒̈́̔̅͌͌̓͒̀̿͂̕͜͝,̸̛̬̞̭̬̾͊̽̿͝ ̵̡̧̭̪̦̟̞̱̗̤̻͖̪̓͗̍͌̀̈́͐͠Î̶̢̬̲̘̲̭̮̇̂̃̌̓̌̄̔̋̄̎͆͝ ̶̩͉̦̣̖̪̼͍̲͋̊̋̕͠t̸̛̙̫͛́̓͂̎̓͋̇̎̅̇̚͠ͅh̵̡̼̝̦̳̹͇̼̯̟͖̖͙̝̀̈i̶̢̜͔͇̰̭̯͖̼̗͋̑̾̊̈́͒͊͗̇̂͜͜͝ͅṉ̸̞̤͆͐̉̐̎̔̌̌̕̚͠ķ̴̡̧̧̨̯͖̤̖̰̹̗̬̫͓̔͜,̸̮͇̙͙̐̋̉̃͑̎̒͘̕ ̶̧̢̛̹̟͇̬̼̫̻͔̫̭̳͈̲̓́̅̑̒͛̊̋̃̚͘̚͝͝ͅ ̶̧̛̬̙̤̿̽̾̐̏̂̍̀̕͜͠ï̴̮̱̘͇̜̓͋̕ͅs̴̻̯͓̲̝̘̥̪̖̻͙͋̌͒̋̀̄̄̚͘͝͝ ̵̻̞̭̯̬̩̲̫̲͔͈̖̇̈́́̀̏̈́̀̎̃̍̏̓̈͜͝ͅt̴̨̘̠̫̳̲̝̤̺̿̊̉̅͘h̴̛̩͇̬͔̯̥̬̙̳̞̙̉̄̏͛͂̀̓̈́͋́͗͜͠ͅe̴͉͈̺̗̭͆̊̎̑̎̑̂̊͛͒̉̐̈́͝͠͠ ̸̩͖̤̻͔̻̲̤͙͎͒̾̂́͋̂̃̈̑͝į̷̳̠̖͈̥̲̎̔̌͂́͌̏̚̕͝ṉ̶̐̋̽ȁ̷͖̹̩̮̬̥̹̩̝̝͍̙̘̾̇̎͋̏͒̐̑̕͘b̸̢̧̨̯͈̤̲́̉i̴̡̨̧̢̳̼̞͙̺̭̮̹̺̪͖͎͠ͅl̶̨̮̫̻̻̱͔̔i̵̡̧̡͎̦̞̳̝̲̜̖̜̜̦͒͌͊̆͒̃̂̓̓̎̚t̸̢̢̞̫̺̱͈̦͍̜͚̦̫̰̬͂y̴͇͓̽ ̵̫̊͋ǫ̷̹̜̼̊͒͝f̷͉͚͕͕̲̗̻̲͛̉̌̈́̒̾͑̆̒͝ ̷̬̎̒̃t̷̢̳̹̙͉͙̖̪̏̾͊̾̓̂̑͌̈́͗͗̍͋͘̕̚h̴̨͔̠͇̖̠͇͖̻̩͔̹̜͂́̇ë̵̳̖̺́̋̈̊̕͘͠ ̵̛͍͚̩̇̆͆͊͐̉͠͠͠h̸̛̞̦̥̮́̐̈́̏͛̌͜ų̴̯̲̖͉͚͎͇͚̞̣͎̩̝̆̅͋̄̓͐̋́̌̄̿͐͛̈́́͝m̴͉̦̝̱̭̫̣̤̲̑̈̄̋̆̒̂̽̕͘͠ä̶̠̤͊͌̇̎̚n̵̢̛̝̮̮̻̠̫͓͚̻͎͆̓̈́̈͆̂̐̾̀̆̚͘ͅ ̶͍̰̥̳̅͊͆̆̅͒m̵̡̟͙̱̗͉͈̖̭̮͍̆͌̽̑͋̾̐̿̃́̄͒i̷̢̘̲̳͖̠̭͔̥͈̙̭̅̀͆̾̓͑̓̂̉̍́̚͠n̸̞̪̘̼̥̍̀̈͑̐́̐̈͐̾͂̈d̷̨̹͔͇͔̥̜̖̤͔̟̐͑͋͘͜ ̷̧̧̩̦̝̙̤̮̤̟͙̭̞̟̓͋͗̄̌͌́ͅţ̶͔̬͖͊̓̿ó̵̧̝̼͕͕̣͎̰̾͛̕ ̵͎͇̖̺͕̜͈̳̥̞̭̗̝̀c̵̭̭̺̜̆͛̕͜ŏ̸̢̗͕̂́͛̈̐̑̅͋́̈́̈́͘͠r̸̨̧͖̝̞̘̆̈̅͗̈́̂̂̍̀͊͑͆̀̓̄̍r̵̻̻̤̞̭̖̮͓̝̥̬̼̦͙̙͑̍̎͋͛̓̐͒̅̔͜ȩ̶̼̲̱̦̞̞̱̞͎̟̱̤̱͝ľ̵̗͈̮͔̭͔̼̻̓̄̓͋͂̌̓̓̎̉̈́̅͑̈́͘͜͝ͅa̵̛͓̪̫͌͘ț̴̛̳͚̖̟̖̱͒͗͐͛́̋̏̋̒͆̃̓͘ȩ̴͙̱͉̮̫̭̠̭̠͚̲̱̱̮̀̓͋ ̷̢̥̭̰̻͓̝̱̾̓̍͆͐̌͐̽̆͛͐̿̽̉̚ͅͅͅa̵̫̬͖̳̳̞̾̈́́̈̈́͗̎̆̾̀̎̀̾͘̕͜͝͝ͅḻ̸̡͔͖͇̟͉̦͉̤̣̟̩̪̺̅̉̄̾̍͒̕ͅl̸̙͕̼̘̩̳͎͙̤̗̐ ̷̜̲͌͜ơ̵̧͕̪̥̬͓̞͔͆̀͐̄̿͠ḟ̸̜̖̭̑̉̈́͂͌̍͐́̊̋͋̅̐͝͝ ̵̛̣̞̥̳͇͔͕̯̩̝̞͛̊̓̇́̐͐͆i̵̡̧͉̮͔̗̖̞͉̬̅͛̉̔̓̎̚ţ̷̰͔͖̬̝͍̪͐͆͒̾̇̑̿̿̾͘ş̸̣̗̰̗̬̂͋̚͘̚ ̵̧̡̬͕̙͇͔̙̠͎̞̫̺͎̌̂̀́̋̅͑͋͐͜͝͠c̴̡͍͎̘͖̰͍̥̪̬̝͉̒ͅơ̷̢̨͍͉̲̝̻͚̼̗̫̺̆̃̍̓̀̎̇̏̀͊͒̓̔͗͝͝n̴̢̰͙̪͙̲͍͐́͂̀̍́̈́͑̎̕̕͠ţ̵̛̘̬̺̥̣͍̦̣͖̼̗̳̭́̾̃͐̓̓̑̃̏̓̚̕ͅȇ̶͓̟̘̭̦̝̹̭̝͍͕̏̉̀̿n̷̘̲͎̙̰̐͜t̸̢̢̧̟̟͙̠͚̬̤͚̠̞̣̹̜̎s̶̢͍͕̲̺̰̲̳̒̊̊̆̎͗̈̍͝͝͠.̴̡̢̨̞̼̥͉̥̱̠̩͔͗͑̀̇̑̓̅̂͊̚͜͝ ̵̡̧̳͇͚̙̖̼̯͙̟̾̓̔͑̐́̚͝\nW̸̢̬̹̟͑̽͒̎͌̚͘ę̵͎̹̻̣͕̺͍̞̫̟̃̈́͒̉́̚̚͜͜͠͠͝ͅ ̵̭̖̮̦́̀͝͠l̴̡̛̟͇͓͚̘̄̒̓͠i̶̡̡̤̰̹̫̱̬͚̘̍͛̈́͑̓̕̚͝v̴̢̡̤͑͒͌̏̌̀̓̄͆̾̔͒̐͝͠͠ȇ̷̫̈̾̓̈̍͂͛̚ ̸̻̖̜̣̬̱̱̔͛͗̚͠ơ̶̮̥̈̄͋͆̿̋̀̏̍̇͊͘̚n̴̛̘̩͔̤̮͈̻͖̞̙̙̺̓̊̍̉̓̑̾̚ ̶̝̱͚̠̦̹̐̾̌͠à̶̞̦̖͇͙̟̳̥͊͊̾̽ ̸̡̛̛͈̦̖̻̭͍͖̩̋́̇̒̾̏̆̕͝p̶̧͈̳̪͈̘̣̺̙͔̥͓̠̠͇̩͋̈́̑̕͜l̶̡̹̱͓͖͇̮͌͆̇͐͐͂̓̑ǎ̴͚̞̫͎̬̙c̴̞̖̗̍̈́̕͝i̴͎̐̀̈́̑̀ḑ̸͉̜̬̼̼̬̃̈̈̍̔̌͒͌̌͝ͅ ̶̗́͆̽͆̀͛i̵̛͔͕̫͎͔̰̯̬̞͈s̸̭̳͍̖͓̼̩̺̘̖̗̀̾̈͂̈́l̵̡̙̫̣͉̱̼͖̔͑̃͌̿̍̔̊̈́́̈͘͝͠a̸̡̛͈̲͖̒̿̍͌͊̂̔̊͐̐̽͑͠n̵̨̡͇̩̱̤͉̭̖͓̗̤͎̦̍͆́̋̆̈́̽͒̔̀̂̓͛̂͜d̷̡͕̱͙͔̲͔̲̟̍̀͜͜ ̴͍͈̝̺̈̃̉͑̅͆ǫ̷̧̢̛͇̼̪͓̦͙͔͆̍f̵̡̲̠̲̤͖͙̭̫͎̈́ ̵̤̥͇̪̺̙̞̰̣̩̝͖̓̔̈́̈́̔̉̄̑̇̕ͅi̷̢̖̩̣̪̝͇͚̣͖̟͔̯͈̼͙̬̔̒ģ̴̨̛̦͕̼̦̹̻̜̜̃̍̇̈̉͝ͅͅͅň̸̢̢̛̯̟̹̤̘̬̟̝͉͆̀͊̄̾́͒̔̋͛̏̕͝͝ô̵͖̩̳͕͍̜̱͓̙̜̎r̷̺̟̊͌̆̆̂̈́̌̍͐̒̓̈́̐̄̕ả̷̛͙̙̥̣̜̘̖́̈̾̉̾̈́́͠n̸͉̩̺̣̙̳̣̲͙͖̋͋͆̍̅̇͆͐̌̏̾͜c̸͕̥̩̱̱͖̮͈̲͑̀̋͐̍̆̅͆e̵̯̖͔̓̄̓͆̎̆̒̀̑͝͝ ̶̦͖͒͌̌͋͘i̸̳͓̎̐n̸̝͊ ̷̨̧͈̮̲̘̪̉̐̀̈́́t̴̡̗̖̠̘͈͍̞̲̘́̓̈́̔̐͗̀͆͝ͅh̵̤̹̞̞͖̣̼̀́͐̔̏͘͠ͅe̶͍̫̫͔͊̑͝ ̷̧̥̥͙͒͗̐͘͠m̸̨̢̛͖̦͇̗͍̥͍̫̗͉̿̉̄͆͑̏͆̈́̿̊͘͠͠i̴̧͚͎̼̹͖̰̠̰̰̺̯̯͛̎͛́͑͑̈͛͋͆̍̾̈̂͜͜͠ͅd̴͙̹̝̣͇͐̑́̏͌̀͋̀̅͐̽̈̍́͊̚͝ͅs̸̢̢̥̜͖̻̺̪̹̝̫̈ẗ̶̡̤͓͇̙̯̟̤̻̜͈͙̼̦̭̥̟́̉̓́̉̉̑̑̊̇͋̉͌̓̚͝ ̵̠̥̆̐̔̅͂̂́̓̊̇͝͝ò̵͇͊̓͐͂͂̀͛f̴̨̹͍͎͒̐̃̈́̋̅̀͝ ̵̲̣̰̪̹̘̤̭̙͗̒b̴̲̙͕͖̦̙͍̪͍̉͒̔͗̎͂̈́́͊̌̅͆̍̂̕ļ̶̥͖̱̜͈̟͉̐͘a̴̟̹̫͂̊̎̄͐̂͠c̸̢͍͈͔̮̹͇̼̙̟͓̮̭̩̑͂́̏̍͛̿͋̎̌̌̕k̶̬̝̰̩͕̈̈̓̌̔̈̿́͒̍̔̐̅̓͘͝ ̸̢̢̡̛̟͍̤̥͙̝̘͍͇͓͔̣̭̜̊͊̎͂͆̓̃̎̿̕̕͘͝͝s̷̢͖͙̥͉̘̄̑͗̉̒̅́͋̏̾̆̅̔́̈́̕͝ͅͅê̶͇͉͈̰̭̼͎̔̿́̈́͆́͆́͘͘ͅā̸̜̠͇́̍̈͂͐͐͂̑̽͘͝s̵̢̳̆̆̑̉̔̑̊͌̂ͅ ̸͚̬͒̈́͛͗́̃̀͛̈́͆̃̀̂̀̕̚͘ố̸̡̡̹̼̙̤̘̱̪̻̒̿̿̈̂f̴̛̛̭̹̘́̐͐̈́̌͐̒̏͌̍͑͘͝ ̷̼̮̙̜̈̎͛̓͐͋̾͗̀́̂̇̇̅͝ͅī̴̤̥͇̲̣̙̦̩̜̼͈̲͓̼͔̌̏͗̀̀͐̕͠n̷̡̹̘̞̦̙̙̦̮̙͎͆͗̒̎̂̊̈͑̏̈́̑͋̃͋́̇̚ḟ̵̧̧͚̤͚̫͍̰̗͙͚̜̲̹̗̺͒̏͆͛͌̒̊͠i̷̢̛̛̲̥͚̳͚̟̼̲̤̦͕̻̪̐͊̄̈́͘̕͜n̵͎̘̳̘̟̕i̸̜̮̘̠̘̘̹̰̓̿̍̅̓̈́̊͗̇̊̚͝͝t̸̛̩͇̲̪̟̭̱̝̯͍̘̻̘͆͛̊̋̎̎̍̈́͊͊̽̊̽̊̚͠y̷̨̡̛̳͓͌͛͐̽̈́,̸̡̡̬͙̩͍̜̭͓̦͉̦̀̈́͐̏͊̌̅̀͑͘͘ͅ ̵̞̠̜͉̣̃̌͌̒͗̈̓̂̿͠a̶̭͚͚͓̳̼̎͒́̍̅͆̆̅̕n̵̹͌̿̆̎͐̒͂͆͛͆͒̍͊͗̕͠ḑ̴̺̟̳͎̩͉̮̈́̄ ̸͍̾̈ȉ̸̡̧̦̰͈͓͎̦̳̈̄̋̅̓͗̀̍͝t̵̰̊͌̓̅͠ ̵̦̰̰̬̏̌̅̀͆̑̔̀͒̿̚͠͝ẁ̸̱̄͋͛͆̊̕a̵̢̧̝͚͕̫̺͙̫̹̫͖̳͆́̓̈́͒͛͘̕͝s̵̨̗͔̦̻̘̙͕͓̠̓̈́̓̎͂͆̄̀̀̕ ̶̛̦̅̈́̈̋̆͆̄̆͑͝n̴̨͈̦̙̝͖̦͌̔̎̒̿͊̑́̽͋̈́̅̄̎͌̕͝ȏ̸̹͇̪͙̜̄̊̍̒̉͛̂͘͠ť̴͈́͛̇̿̀̄̈͛̾̈̀̀̏̕ ̸̢̢͍͍͉̫̰̱͎̣̲̻͆́m̷̢̝͖̩̖͉̹̯̂̅̓́̍̍̍̒̀̓̚͝e̷̛̻͎͕̙̰͎̟͚̜̮͐̑̄̚ả̴̢̨͉̮̫̩̹͖̭̞̓̈n̶̡̩͇̦͚͔͈̩̞̫͕̤̘̎ṯ̶̢̟͉͕̳͔̮̫͚̤̹̹̥̦͉͕͋͛̎͊́͋͛̚ ̸̛̛̛͇̲̪̲̬̼̝̋̄̈̑͛͐̎͒̒̾̉̑͘͜͠t̴̥͍̊͑̀̀́̉́̍̀̓́̾̓̕͘͘͠h̴̢̡͚̞̖̙͇̣͖̺̙̣̤͖͆͊͊̊͌͂̆́̉͌͐͘͠͝a̶̛̛͎̖̥̍͑͆̾̄͑̿̄͆̑́̕t̷̹̬̩̺̠͕̜̗̲̓̃̒̿͒ ̶̨̢͓̺̺̞̺̺͙̟̬͙̯̻̝͗͒̊̋͂́̕͠ẅ̷̛̳̠̤̲̻́ę̵̦̫̺̞͖͔̭̺̐͒̋̓͆̔́͑̿͛̈͊̿̿̀̕͜͠ ̵̡͚͇̗̞̺̗͎̪͚͋̋̽̈́̾̆͋̆̅͑̚͝s̷͓͈̰̹͓͕̖̜̞̼͙͕͚̬̖̦̩̓̌̿h̴͔̱͈̲̳̤̠͙̗̙̊̑͂͑̇̽̂̋̕̕͝o̵͙̞͚̺̅̃̈́͑̍͊̕͠ư̸͉̻̮̲͇͛̀̎͌l̷̠̇̋̀̕ͅd̴̻͕̑̔̌̾͗͗͒͌̒ ̵̺̹̥̞̯̠͕̘̳̪̄́̅͊̔͛́̀̈́̕͠͠v̵̧̀̆̊̄̊̌͠ỡ̴̹̒́̂͑̌̄̊͝͝ỳ̷̧͈͓̻̥̩̳̫̦̖̼͑̑̈́̉̀͌̈̄͘͠a̷̤̚g̶̡̨̣̗̣̰̬͈̗͖̩̖̭̋̆e̷̖̘͈͍̮̰͙͈͕̫̙͔͕̖̿́̋͒̒͊̌̚͠ ̵̨̢̧͈̳̹̣͉̞̺̤̞͊͜f̴̭̫̬͇̘͋̓̎̐̐̓̎̄̇a̵̩̲̺̝͚̫̥̹̜̤̙̘̫͓̙̓͊̇r̵̡̭͚̗͈̤̤͚̥͈͙̘͓͚͈͊͆̽̆͒̀͘ͅ.̷̮̀", qbv->pos);
 
                     return Number<int>(val).set_pos(qbv->pos);
                 } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
@@ -10651,6 +10651,9 @@ namespace tkz {
             llvm::Type* elemTy = llvmTypeFor(baseType);
             return llvm::PointerType::get(context, 0);
         }
+        if (type.ends_with("&")) {
+            return builder->getPtrTy();
+        }
         if (type.starts_with("list<") && type.ends_with(">")) {
             size_t start = 5;
             size_t end = qcType.length() - 1;
@@ -10682,6 +10685,9 @@ namespace tkz {
         }
         if (unionTypes.find(type) != unionTypes.end()) {
             return unionTypes[type];
+        }
+        if (type == "function" || type == "fn" || type.starts_with(("fn "))) {
+            return builder->getPtrTy();
         }
         return builder->getInt32Ty();
     }
@@ -11178,13 +11184,13 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->right_node)) {
                     std::string varName = (*varAccess)->var_name_tok.value;
-                    llvm::Value* alloc = resolveVariable(varName);
+                    llvm::Value* alloc = getVarAddress(varName);
                     if (!alloc) {
                         cg_error(Position(), "qin: variable not declared: " + varName);
                         return nullptr;
                     }
                     
-                    llvm::Type* varTy = getPointeeType(alloc);
+                    llvm::Type* varTy = getPointeeType(varName);
                     llvm::Value* converted = input;
                     
                     if (varTy->isIntegerTy(32)) {
@@ -11247,9 +11253,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             if (lty->isPointerTy()) {
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->left_node)) {
                     std::string varName = (*varAccess)->var_name_tok.value;
-                    llvm::Value* alloc = resolveVariable(varName);
+                    llvm::Value* alloc = getVarAddress(varName);
                     if (alloc) {
-                        llvm::Type* allocTy = getPointeeType(alloc);
+                        llvm::Type* allocTy = getPointeeType(varName);
                         
                         if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
                             if (structTy->hasName()) {
@@ -12749,7 +12755,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         std::string calledName = (*varAccess)->var_name_tok.value;
                         
                         if (calledName == qcType) {
-                            std::string ctorMethodName = "";
+                            std::string ctorMethodName = ""; // Ṱ̵̺̙̙͔̯̣͓̼̈́͜h̶̳͖̝̰͍̮͆̅̊e̶̡̧̮͍̘̘͍̮͎͎̺̗̦͕̾͗͐̽͑̔̅́̑̌̕ ̶̥̮̪͙̎͛̐͑̔̉́̂̂̐́̽̔̔͂̃d̴̛̪̦̞́́̎͊̌̈̍̓̓̔̑͑̒͘͝e̶͎̤̠̞̞͖̊ṽ̴̡͖̫̩̣̳̖̞̯̪͇̰̆͑͐͐̀̿͐̍̑̕͘̕͝͝ͅͅͅí̵̜̬͍̖̒͑̎͗l̸̛͍̰̜̞̩̜̘͈̯̬̇̀̋̈͐̔̿̓̅͌̉̅͂̌͘͜͝ ̷̡̣̰͙̰̪͈̪̣̺̺̤̦̰͌̊̀̀̑͑̅̈́ş̶̛̳̟̫͇̠͉͍̺̣̲̬̻̰͍̙̋̂͗̕͠ͅę̸̹̹̈́͒̐̃̋̓͐̓͆̉̀̊̀̏̿͘é̷͖͎̹̉́̈́͠͠͝s̸̡̢̢̩͍̹̼͈͕̘̖͋̋̃̓͗͆͌̕͠ͅͅͅ ̴̛̮͉̣̈́̒͋͐̿̾̐̽̚ḩ̶̨̧̺͉̹̩̙̫͇̰̫̯̬͐́̑͜i̶̠͖̠̟̻̭̫̙̳̪͆̄̿̈́̾̊̈́̒͑͊̆̋̃̎̿̂͗ş̴̥̤̜̦̗͍̟̈́̽̑̏ ̶̡̛̫̥̝̰̣̟͇͔̤̱̯͉̱̩̋̈̈́͐̓̑̋̎͝͝ͅö̷̡̝̣́̎̎͝ẘ̶̢̡̨̡̭̞̯̘̦̟̳̮̫͎̑͂̇̀͆̋̐̃̒́̏̓͒̅͜͝͝n̵̳͎̣̬̪̝̩͒͊̓̾̓̄̃̂͗̉͆̒̋̚͜͜͝ ̴͔̫̂̏ͅͅį̷̡̤̼͈̗̦̣̘̮̠̣͎̬̰̍͗ṉ̸̨̯̱̦͕͐̉̀͌͑̀͐̽̕͜ ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
                             for (auto& method : userTypeIt->second.classMethods) {
                                 if (method.is_constructor) {
                                     ctorMethodName = method.name_tok.value;
@@ -12878,7 +12884,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 builder->CreateStore(f, alloc);
                 return nullptr;
             }
-            llvm::Value* existingAlloc = resolveVariable(name);
+            llvm::Value* existingAlloc = getVarAddress(name);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
 
             if (!existingAlloc) {
@@ -12912,7 +12918,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return nullptr;
                 }
             }
-            llvm::Type* destTy = getPointeeType(alloc);
+            llvm::Type* destTy = getPointeeType(fullName);
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
                 cg_error((*va)->var_name_tok.pos,
@@ -12994,9 +13000,13 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return nullptr;
                 }
             }
-            llvm::Value* alloc = resolveVariable(name);
+            llvm::Value* alloc = getVarAddress(name);
             if (alloc) {
-                llvm::Type* ty = getPointeeType(alloc);
+                llvm::Type* ty = getPointeeType(name);
+                if (ty == nullptr) {
+                    cg_error((*acc)->var_name_tok.pos, "Could not resolve var type");
+                    return nullptr;
+                }
                 return builder->CreateLoad(ty, alloc, name);
             }
             
@@ -13056,20 +13066,20 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 }
                                 
                                 builder->CreateStore(rhsVal, fieldPtr);
-                                return nullptr;
+                                return rhsVal;
                             }
                         }
                         
                         cg_error(Position(), "Field not found: " + fieldName);
                         return nullptr;
                     }
-                    llvm::Value* locAlloc = resolveVariable(varName);
+                    llvm::Value* locAlloc = getVarAddress(varName);
                     if (!locAlloc) {
                         cg_error(Position(), "Unknown variable: " + varName);
                         return nullptr;
                     }
                     
-                    llvm::Type* allocTy = getPointeeType(locAlloc);
+                    llvm::Type* allocTy = getPointeeType(varName);
                     
                     auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
                     if (!structTy) {
@@ -13117,7 +13127,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     }
                     
                     builder->CreateStore(rhsVal, fieldPtr);
-                    return nullptr;
+                    return rhsVal;
                 }
             }
             auto lhsVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*asn)->target);
@@ -13128,20 +13138,24 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             }
 
             std::string name = (*lhsVar)->var_name_tok.value;
-            llvm::Value* alloc = resolveVariable(name);
+            llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
                 cg_error((*lhsVar)->var_name_tok.pos,
-                        "Assigning to undeclared variable '" + name + "' in compiled mode");
+                        "Assigning to undeclared variable '" + name + "'");
                 return nullptr;
             }
-            llvm::Type* destTy = getPointeeType(alloc);
+            llvm::Type* destTy = getPointeeType(name);
+            if (!destTy) {
+                cg_error((*lhsVar)->var_name_tok.pos, "Could not resolve type for assignment to " + name);
+                return nullptr;
+            }
             for (auto& [unionName, unionTy] : unionTypes) {
                 if (destTy == unionTy) {
                     llvm::Value* rhs = emitExpr((*asn)->value);
                     if (!rhs) return nullptr;
                     if (rhs->getType() == unionTy) {
                         builder->CreateStore(rhs, alloc);
-                        return nullptr;
+                        return rhs;
                     }
                     int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
                     
@@ -13171,7 +13185,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
                     
                     builder->CreateStore(unionVal, alloc);
-                    return nullptr;
+                    return unionVal;
                 }
             }
             for (auto& [enumName, enumTy] : enumTypes) {
@@ -13180,7 +13194,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     if (!rhs) return nullptr;
                     
                     builder->CreateStore(rhs, alloc);
-                    return nullptr;
+                    return rhs;
                 }
             }
             llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, name);
@@ -13242,6 +13256,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     else if (srcTy->isFloatingPointTy() && destTy->isIntegerTy()) {
                         rhsVal = builder->CreateFPToSI(rhsVal, destTy, "f2i");
                         srcTy = destTy;
+                    } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
+                        rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
+                        srcTy = rhsVal->getType();
                     }
                 }
             }
@@ -13281,6 +13298,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         cg_error((*asn)->op_tok.pos,
                                 "Cannot convert floating point to integer (loses precision)");
                         return nullptr;
+                    } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
+                        rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
+                        srcTy = rhsVal->getType();
                     }
                     else {
                         cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
@@ -13322,7 +13342,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     break;
                 default:
                     cg_error((*asn)->op_tok.pos,
-                            "Unsupported compound assignment in compiled mode");
+                            "Unsupported assignment operator.");
                     return nullptr;
             }
             if ((*asn)->op_tok.type == TokenType::EQ) {
@@ -13336,15 +13356,15 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             
                             if (opMethod) {
                                 std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
-                                builder->CreateCall(opMethod, allArgs);
-                                return nullptr;
+                                llvm::Value* callResult = builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
+                                return callResult; 
                             }
                         }
                     }
                 }
             }
             builder->CreateStore(newVal, alloc);
-            return nullptr;
+            return newVal;
         }
         else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
             TokenType op = (*unary)->op_tok.type;
@@ -13470,12 +13490,12 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
 
                 std::string name = (*varPtr)->var_name_tok.value;
-                llvm::Value* alloc = resolveVariable(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error((*varPtr)->var_name_tok.pos, "Use of undeclared variable '" + name + "'");
                     return nullptr;
                 }
-                llvm::Type* ty = getPointeeType(alloc);
+                llvm::Type* ty = getPointeeType(name);
 
                 if (!ty->isIntegerTy() || ty->getIntegerBitWidth() <= 2) {
                     cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like (not bool/qbool)");
@@ -13707,17 +13727,28 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         std::vector<llvm::Value*> argValues;
                         std::vector<std::string> argTypes;
                         
+                        auto paramIt = funcDef->params.begin();
                         for (auto& argNode : call.arg_nodes) {
-                            std::string argType = getExpressionType(argNode);
-                            llvm::Value* argVal = emitExpr(argNode);
-                            if (!argVal) return nullptr;
-                            
-                            argValues.push_back(argVal);
-                            argTypes.push_back(argType);
+                        std::string ptype = paramIt->type.value;
+                        llvm::Value* argVal;
+                        if (ptype.ends_with("&")) {
+                            auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                            if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                            argVal = getVarAddress((*va)->var_name_tok.value);
+                            argTypes.push_back(ptype);
+                        } else {
+                            argVal = emitExpr(argNode);
+                            argTypes.push_back(getExpressionType(argNode));
                         }
+                        argValues.push_back(argVal);
+                        ++paramIt;
+                    }
+                                            
                         std::string sig = makeTypeSignature(argTypes);
                         std::string specializedName = funcName + "_" + sig;
                         if (specializedFunctions[funcName].count(sig) == 0) {
+                            std::cout << "concreteTypes size=" << argTypes.size() << " specializedName=" << specializedName << "\n";
+                            for (auto& t : argTypes) std::cout << "  type=" << t << "\n";
                             llvm::Function* specializedFn = generateSpecializedFunction(
                                 funcDef, 
                                 argTypes, 
@@ -14540,7 +14571,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         return nullptr;
                     }
                     llvm::FunctionType* builtinFnTy = fn->getFunctionType();
-                    std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, builtinFnTy);
+                    std::vector<std::string> emptyMetadata; 
+                    std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, builtinFnTy, emptyMetadata);
                     if (call.arg_nodes.size() != args.size()) return nullptr;
 
                     llvm::Type* retTy = fn->getReturnType();
@@ -14552,7 +14584,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             std::string funcName = "";
             if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
                 std::string name = (*varAccess)->var_name_tok.value;
-                llvm::Value* varAddr = resolveVariable(name); 
+                llvm::Value* varAddr = getVarAddress(name); 
                 if (varAddr) {
                     if (auto lmbt = resolveLambdaType(name)) {
                         fnTy = lmbt;
@@ -14587,9 +14619,15 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 return emitSpreadFunctionCall(calleeVal, fnTy, call);
             }
             
-            std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, fnTy);
-            if (call.arg_nodes.size() != args.size()) return nullptr;
+            std::vector<std::string> paramTypeStrings;
             auto defIt = functionDefs.find(funcName);
+            if (defIt != functionDefs.end()) {
+                for (auto& p : defIt->second->params) {
+                    paramTypeStrings.push_back(p.type.value);
+                }
+            }
+            std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, fnTy, paramTypeStrings);
+            if (call.arg_nodes.size() != args.size()) return nullptr;
             if (defIt != functionDefs.end()) {
                 auto& fnDef = defIt->second;
                 size_t paramIdx = 0;
@@ -14623,7 +14661,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 std::string name = (*varAcc)->var_name_tok.value;
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
-                    llvm::Value* alloc = resolveVariable(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown jagged array: " + name);
                         return nullptr;
@@ -14685,7 +14723,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
                 if (hasList(name)) {
                     auto listIt = findList(name);
-                    llvm::Value* alloc = resolveVariable(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown list: " + name);
                         return nullptr;
@@ -14765,7 +14803,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
                 if (hasMap(name)) {
                     auto mapIt = findMap(name);
-                    llvm::Value* alloc = resolveVariable(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown map: " + name);
                         return nullptr;
@@ -14813,14 +14851,14 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         return builder->CreateLoad(valueTy, typedPtr, "map_val");
                     }
                 }
-                llvm::Value* alloc = resolveVariable(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error(Position(), "Unknown array: " + name);
                     return nullptr;
                 }
 
                 llvm::Value* arrAlloc = alloc;
-                llvm::Type* arrTy = getPointeeType(arrAlloc);
+                llvm::Type* arrTy = getPointeeType(name);
 
                 if (arrTy->isPointerTy()) {
                     llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
@@ -14930,9 +14968,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 }
                 auto it = locals.find(baseName);
                 if (it != locals.end()) {
-                    llvm::Value* alloc = it->second;
-                    llvm::Type* allocTy = getPointeeType(alloc);
-                    if (allocTy->isArrayTy()) {
+                    llvm::Type* allocTy = getPointeeType(baseName);
+                    if (allocTy && allocTy->isArrayTy()) {
                         return builder->getInt32(allocTy->getArrayNumElements());
                     }
                 }
@@ -14984,9 +15021,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             if (baseTy->isPointerTy()) {
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
                     std::string varName = (*varAccess)->var_name_tok.value;
-                    llvm::Value* locAlloc = resolveVariable(varName);
+                    llvm::Value* locAlloc = getVarAddress(varName);
                     if (locAlloc) {
-                        llvm::Type* allocTy = getPointeeType(locAlloc);
+                        llvm::Type* allocTy = getPointeeType(varName);
                         
                         if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
                             std::string structName = structTy->getName().str();
@@ -15087,7 +15124,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             if (fieldIdx != -1) {
                                 llvm::Value* varAlloc = nullptr;
                                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
-                                    varAlloc = resolveVariable((*varAcc)->var_name_tok.value);
+                                    varAlloc = getVarAddress((*varAcc)->var_name_tok.value);
                                 }
                                 if (!varAlloc) return nullptr;
                                 
@@ -15120,7 +15157,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             if (fieldIdx != -1) {
                                 llvm::Value* varAlloc = nullptr;
                                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&*(*propAccess)->base)) {
-                                    varAlloc = resolveVariable((*varAcc)->var_name_tok.value);
+                                    varAlloc = getVarAddress((*varAcc)->var_name_tok.value);
                                 }
                                 if (!varAlloc) return nullptr;
                                 
@@ -15159,6 +15196,11 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     if (autoMethodIndices.find(currentClassName) != autoMethodIndices.end()) {
                         for (size_t methodIdx : autoMethodIndices[currentClassName]) {
                             auto& autoMethod = userTypes[currentClassName].classMethods[methodIdx];
+                            
+                            std::cout << "  checking: methodName=" << methodName 
+                                    << " vs autoMethod=" << autoMethod.name_tok.value
+                                    << " | args=" << (*methodCall)->args.size()
+                                    << " vs params=" << autoMethod.params.size() << "\n";
                             if (autoMethod.name_tok.value == methodName && 
                                 autoMethod.params.size() == (*methodCall)->args.size()) {
                                 std::vector<std::string> argTypes;
@@ -15169,13 +15211,23 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 size_t argIdx = 0;
                                 for (auto it = autoMethod.params.begin(); it != autoMethod.params.end(); ++it, ++argIdx) {
                                     if (it->type.value != "auto") {
-                                        if (argTypes[argIdx] != it->type.value) {
+                                        std::string declared = it->type.value;
+                                        std::string argType = argIdx < argTypes.size() ? argTypes[argIdx] : "";
+                                        if (declared.ends_with("&")) declared.pop_back();
+                                        if (argType.ends_with("&")) argType.pop_back();
+                                        if (argIdx >= argTypes.size() || argType != declared) {
                                             paramsMatch = false;
                                             break;
                                         }
                                     }
                                 }
-                                
+                                size_t ardx = 0;
+                                for (auto& param : autoMethod.params) {
+                                    std::string argTy = ardx < argTypes.size() ? argTypes[ardx] : "?";
+                                    std::cout << "    param[" << ardx << "] declared=" << param.type.value 
+                                            << " argType=" << argTy << "\n";
+                                    ardx++;
+                                }
                                 if (!paramsMatch) {
                                     continue;
                                 }
@@ -15201,23 +15253,54 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                     }
                     if (!isAutoMethod) {
-                        std::vector<llvm::Value*> args;
-                        for (auto& argNode : (*methodCall)->args) {
-                            llvm::Value* arg = emitExpr(argNode);
-                            if (!arg) return nullptr;
-                            args.push_back(arg);
+                        ClassMethodInfo* methodInfo = nullptr;
+                        std::string currentClass = currentClassName;
+                        while (!currentClass.empty()) {
+                            for (auto& m : userTypes[currentClass].classMethods) {
+                                if (m.name_tok.value == methodName && 
+                                    m.params.size() == (*methodCall)->args.size()) {
+                                    methodInfo = &m;
+                                    break;
+                                }
+                            }
+                            if (methodInfo) break;
+                            currentClass = userTypes[currentClass].baseClassName;
                         }
-                        
+                        std::vector<llvm::Value*> args;
+                        for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                            auto& argNode = (*methodCall)->args[i];
+                            bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                            if (isRef) {
+                                auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                args.push_back(getVarAddress((*va)->var_name_tok.value));
+                            } else {
+                                llvm::Value* arg = emitExpr(argNode);
+                                if (!arg) return nullptr;
+                                args.push_back(arg);
+                            }
+                        }
                         llvm::Function* method = findMethodOverload(currentClassName, methodName, args);
                         if (!method) {
                             cg_error(Position(), "No matching overload for " + methodName);
                             return nullptr;
                         }
-                        
-                        std::vector<llvm::Value*> allArgs = {currentThis};
-                        allArgs.insert(allArgs.end(), args.begin(), args.end());
-                        
-                        return builder->CreateCall(method, allArgs, methodName + "_result");
+                        std::vector<llvm::Value*> reconciledArgs;
+                        reconciledArgs.push_back(currentThis);
+                        for (size_t i = 0; i < args.size(); i++) {
+                            llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                            llvm::Value* actual = args[i];
+                            if (actual->getType() != expected) {
+                                if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                    reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                } else {
+                                    reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                }
+                            } else {
+                                reconciledArgs.push_back(actual);
+                            }
+                        }
+                        return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                     }
                 }
             }
@@ -15227,16 +15310,19 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
                 if (structTy->hasName()) {
                     std::string structName = structTy->getName().str();
-                    
                     auto classIt = classTypes.find(structName);
                     if (classIt != classTypes.end()) {
                         bool isAutoMethod = false;
                         llvm::Function* specialized = nullptr;
+                        std::vector<std::string> paramDeclaredTypes;
                         if (autoMethodIndices.find(structName) != autoMethodIndices.end()) {
                             for (size_t methodIdx : autoMethodIndices[structName]) {
                                 auto& autoMethod = userTypes[structName].classMethods[methodIdx];
                                 if (autoMethod.name_tok.value == methodName && 
                                     autoMethod.params.size() == (*methodCall)->args.size()) {
+                                    for (auto& p : autoMethod.params) {
+                                        paramDeclaredTypes.push_back(p.type.value);
+                                    }
                                     std::vector<std::string> argTypes;
                                     for (auto& argNode : (*methodCall)->args) {
                                         std::string ty = getExpressionType(argNode);
@@ -15246,14 +15332,17 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     size_t argIdx = 0;
                                     for (auto& param : autoMethod.params) {
                                         if (param.type.value != "auto") {
-                                            if (argTypes[argIdx] != param.type.value) {
+                                            std::string declared = param.type.value;
+                                            std::string argType = argIdx < argTypes.size() ? argTypes[argIdx] : "";
+                                            if (declared.ends_with("&")) declared.pop_back();
+                                            if (argType.ends_with("&")) argType.pop_back();
+                                            if (argIdx >= argTypes.size() || argType != declared) {
                                                 paramsMatch = false;
                                                 break;
                                             }
                                         }
                                         argIdx++;
                                     }
-                                    
                                     if (!paramsMatch) {
                                         continue;
                                     }
@@ -15296,7 +15385,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             
                             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
                                 std::string varName = (*varAcc)->var_name_tok.value;
-                                llvm::Value* locAlloc = resolveVariable(varName);
+                                llvm::Value* locAlloc = getVarAddress(varName);
                                 if (locAlloc) {
                                     allArgs.push_back(locAlloc);
                                 }
@@ -15305,55 +15394,85 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 builder->CreateStore(baseVal, temp);
                                 allArgs.push_back(temp);
                             }
-                            
+                            size_t argIdx = 0;
                             for (auto& argNode : (*methodCall)->args) {
-                                allArgs.push_back(emitExpr(argNode));
+                                std::string ptype = paramDeclaredTypes[argIdx];
+                                if (ptype.ends_with("&")) {
+                                    auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                    if (!va) { cg_error(Position(), "L-value required"); return nullptr; }
+                                    allArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                } else {
+                                    allArgs.push_back(emitExpr(argNode));
+                                }
+                                argIdx++;
                             }
-                            
                             return builder->CreateCall(specialized, allArgs, methodName + "_result");
                         }
                         if (!isAutoMethod) {
-                            std::vector<llvm::Value*> methodArgs;
-                            for (auto& argNode : (*methodCall)->args) {
-                                llvm::Value* arg = emitExpr(argNode);
-                                if (!arg) return nullptr;
-                                methodArgs.push_back(arg);
+                            ClassMethodInfo* methodInfo = nullptr;
+                            std::string currentClass = structName;
+                            while (!currentClass.empty()) {
+                                for (auto& m : userTypes[currentClass].classMethods) {
+                                    if (m.name_tok.value == methodName && 
+                                        m.params.size() == (*methodCall)->args.size()) {
+                                        methodInfo = &m;
+                                        break;
+                                    }
+                                }
+                                if (methodInfo) break;
+                                currentClass = userTypes[currentClass].baseClassName;
                             }
-                            
+                            std::vector<llvm::Value*> methodArgs;
+                            for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                                auto& argNode = (*methodCall)->args[i];
+                                bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                                if (isRef) {
+                                    auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                    if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                    methodArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                } else {
+                                    llvm::Value* arg = emitExpr(argNode);
+                                    if (!arg) return nullptr;
+                                    methodArgs.push_back(arg);
+                                }
+                            }
                             llvm::Function* method = findMethodOverload(structName, methodName, methodArgs);
                             if (!method) {
                                 cg_error(Position(), "No matching overload for " + methodName);
                                 return nullptr;
                             }
-                            
-                            std::vector<llvm::Value*> allArgs;
-                            
+                            std::vector<llvm::Value*> reconciledArgs;
+                            llvm::Value* thisPtr = nullptr;
                             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
-                                std::string varName = (*varAcc)->var_name_tok.value;
-                                llvm::Value* locAlloc = resolveVariable(varName);
-                                if (locAlloc) {
-                                    allArgs.push_back(locAlloc);
-                                } else {
-                                    cg_error(Position(), "Unknown variable: " + varName);
-                                    return nullptr;
-                                }
+                                thisPtr = getVarAddress((*varAcc)->var_name_tok.value);
                             } else {
                                 llvm::AllocaInst* temp = createEntryAlloca("temp_this", baseTy);
                                 builder->CreateStore(baseVal, temp);
-                                allArgs.push_back(temp);
+                                thisPtr = temp;
                             }
-                            
-                            allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
-                            
-                            return builder->CreateCall(method, allArgs, methodName + "_result");
+                            reconciledArgs.push_back(thisPtr);
+                            for (size_t i = 0; i < methodArgs.size(); i++) {
+                                llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                                llvm::Value* actual = methodArgs[i];
+                                if (actual->getType() != expected) {
+                                    if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                        reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                    } else {
+                                        reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                    }
+                                } else {
+                                    reconciledArgs.push_back(actual);
+                                }
+                            }
+                            return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                         }
                     }
                 }
             }
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
-                llvm::Value* varAlloc = resolveVariable((*varAcc)->var_name_tok.value);
+                llvm::Value* varAlloc = getVarAddress((*varAcc)->var_name_tok.value);
                 if (varAlloc) {
-                    llvm::Type* allocTy = getPointeeType(varAlloc);
+                    llvm::Type* allocTy = getPointeeType((*varAcc)->var_name_tok.value);
                     for (auto& [unionName, unionTy] : unionTypes) {
                         if (allocTy == unionTy) {
                             auto& unionInfo = userTypes[unionName];
@@ -15365,20 +15484,54 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), dataFieldPtr, "union_data");
                                         llvm::StructType* classTy = classTypes[resolvedVariant];
                                         llvm::Value* castedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0), "union_as_" + resolvedVariant);
+                                        ClassMethodInfo* methodInfo = nullptr;
+                                        std::string currentClass = resolvedVariant;
+                                        while (!currentClass.empty()) {
+                                            for (auto& m : userTypes[currentClass].classMethods) {
+                                                if (m.name_tok.value == methodName && 
+                                                    m.params.size() == (*methodCall)->args.size()) {
+                                                    methodInfo = &m;
+                                                    break;
+                                                }
+                                            }
+                                            if (methodInfo) break;
+                                            currentClass = userTypes[currentClass].baseClassName;
+                                        }
                                         std::vector<llvm::Value*> methodArgs;
-                                        for (auto& argNode : (*methodCall)->args) {
-                                            llvm::Value* arg = emitExpr(argNode);
-                                            if (!arg) return nullptr;
-                                            methodArgs.push_back(arg);
+                                        for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                                            auto& argNode = (*methodCall)->args[i];
+                                            bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                                            if (isRef) {
+                                                auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                                if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                                methodArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                            } else {
+                                                llvm::Value* arg = emitExpr(argNode);
+                                                if (!arg) return nullptr;
+                                                methodArgs.push_back(arg);
+                                            }
                                         }
                                         llvm::Function* method = findMethodOverload(resolvedVariant, methodName, methodArgs);
                                         if (!method) {
-                                            cg_error(Position(), "No overload for " + methodName + " in " + resolvedVariant);
+                                            cg_error(Position(), "No matching overload for " + methodName);
                                             return nullptr;
                                         }
-                                        std::vector<llvm::Value*> allArgs = {castedPtr};
-                                        allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
-                                        return builder->CreateCall(method, allArgs, methodName + "_result");
+                                        std::vector<llvm::Value*> reconciledArgs;
+                                        reconciledArgs.push_back(castedPtr);
+                                        for (size_t i = 0; i < methodArgs.size(); i++) {
+                                            llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                                            llvm::Value* actual = methodArgs[i];
+                                            if (actual->getType() != expected) {
+                                                if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                                    reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                                } else {
+                                                    reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                                }
+                                            } else {
+                                                reconciledArgs.push_back(actual);
+                                            }
+                                        }
+                                        return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                                     }
                                 }
                             }
@@ -15389,7 +15542,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             std::string baseName = "";
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*methodCall)->base)) {
                 baseName = (*varAcc)->var_name_tok.value;
-                llvm::Value* resolved = resolveVariable(baseName);
+                llvm::Value* resolved = getVarAddress(baseName);
                 if (resolved) {
                     for (auto& [key, val] : locals) {
                         if (val == resolved) {
@@ -15431,29 +15584,62 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     
                                     if (classTypes.find(fieldClassName) != classTypes.end()) {
                                         llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx);
+                                        ClassMethodInfo* methodInfo = nullptr;
+                                        std::string currentClass = fieldClassName;
+                                        while (!currentClass.empty()) {
+                                            for (auto& m : userTypes[currentClass].classMethods) {
+                                                if (m.name_tok.value == methodName && 
+                                                    m.params.size() == (*methodCall)->args.size()) {
+                                                    methodInfo = &m;
+                                                    break;
+                                                }
+                                            }
+                                            if (methodInfo) break;
+                                            currentClass = userTypes[currentClass].baseClassName;
+                                        }
                                         std::vector<llvm::Value*> methodArgs;
-                                        for (auto& argNode : (*methodCall)->args) {
-                                            llvm::Value* arg = emitExpr(argNode);
-                                            if (!arg) return nullptr;
-                                            methodArgs.push_back(arg);
+                                        for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                                            auto& argNode = (*methodCall)->args[i];
+                                            bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                                            if (isRef) {
+                                                auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                                if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                                methodArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                            } else {
+                                                llvm::Value* arg = emitExpr(argNode);
+                                                if (!arg) return nullptr;
+                                                methodArgs.push_back(arg);
+                                            }
                                         }
                                         llvm::Function* method = findMethodOverload(fieldClassName, methodName, methodArgs);
                                         if (!method) {
-                                            cg_error(Position(), "No matching overload for " + methodName + " in class " + fieldClassName);
+                                            cg_error(Position(), "No matching overload for " + methodName);
                                             return nullptr;
                                         }
-                                        std::vector<llvm::Value*> allArgs = {fieldPtr};
-                                        allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
-                                        
-                                        return builder->CreateCall(method, allArgs, methodName + "_result");
+                                        std::vector<llvm::Value*> reconciledArgs;
+                                        reconciledArgs.push_back(fieldPtr);
+                                        for (size_t i = 0; i < methodArgs.size(); i++) {
+                                            llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                                            llvm::Value* actual = methodArgs[i];
+                                            if (actual->getType() != expected) {
+                                                if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                                    reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                                } else {
+                                                    reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                                }
+                                            } else {
+                                                reconciledArgs.push_back(actual);
+                                            }
+                                        }
+                                        return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                                     }
                                 }
                             }
                         }
                     } else {
-                        llvm::Value* varAlloc = resolveVariable(varName);
+                        llvm::Value* varAlloc = getVarAddress(varName);
                         if (varAlloc) {
-                            llvm::Type* varTy = getPointeeType(varAlloc);
+                            llvm::Type* varTy = getPointeeType(varName);
                             if (auto structTy = llvm::dyn_cast<llvm::StructType>(varTy)) {
                                 std::string typeName = structTy->getName().str();
                                 if (classTypes.find(typeName) != classTypes.end()) {
@@ -15467,21 +15653,54 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                                 
                                                 if (classTypes.find(fieldClassName) != classTypes.end()) {
                                                     llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, varAlloc, fieldIdx);
+                                                    ClassMethodInfo* methodInfo = nullptr;
+                                                    std::string currentClass = fieldClassName;
+                                                    while (!currentClass.empty()) {
+                                                        for (auto& m : userTypes[currentClass].classMethods) {
+                                                            if (m.name_tok.value == methodName && 
+                                                                m.params.size() == (*methodCall)->args.size()) {
+                                                                methodInfo = &m;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (methodInfo) break;
+                                                        currentClass = userTypes[currentClass].baseClassName;
+                                                    }
                                                     std::vector<llvm::Value*> methodArgs;
-                                                    for (auto& argNode : (*methodCall)->args) {
-                                                        llvm::Value* arg = emitExpr(argNode);
-                                                        if (!arg) return nullptr;
-                                                        methodArgs.push_back(arg);
+                                                    for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                                                        auto& argNode = (*methodCall)->args[i];
+                                                        bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                                                        if (isRef) {
+                                                            auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                                            if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                                            methodArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                                        } else {
+                                                            llvm::Value* arg = emitExpr(argNode);
+                                                            if (!arg) return nullptr;
+                                                            methodArgs.push_back(arg);
+                                                        }
                                                     }
                                                     llvm::Function* method = findMethodOverload(fieldClassName, methodName, methodArgs);
                                                     if (!method) {
                                                         cg_error(Position(), "No matching overload for " + methodName);
                                                         return nullptr;
                                                     }
-                                                    std::vector<llvm::Value*> allArgs = {fieldPtr};
-                                                    allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
-                                                    
-                                                    return builder->CreateCall(method, allArgs, methodName + "_result");
+                                                    std::vector<llvm::Value*> reconciledArgs;
+                                                    reconciledArgs.push_back(fieldPtr);
+                                                    for (size_t i = 0; i < methodArgs.size(); i++) {
+                                                        llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                                                        llvm::Value* actual = methodArgs[i];
+                                                        if (actual->getType() != expected) {
+                                                            if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                                                reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                                            } else {
+                                                                reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                                            }
+                                                        } else {
+                                                            reconciledArgs.push_back(actual);
+                                                        }
+                                                    }
+                                                    return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                                                 }
                                             }
                                         }
@@ -15503,27 +15722,56 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         if (auto fieldStructTy = llvm::dyn_cast<llvm::StructType>(fieldTy)) {
                                             if (fieldStructTy->hasName()) {
                                                 std::string fieldClassName = fieldStructTy->getName().str();
-                                                
                                                 if (classTypes.find(fieldClassName) != classTypes.end()) {
                                                     llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, varAlloc, fieldIdx);
-                                                    
-                                                    std::vector<llvm::Value*> methodArgs;
-                                                    for (auto& argNode : (*methodCall)->args) {
-                                                        llvm::Value* arg = emitExpr(argNode);
-                                                        if (!arg) return nullptr;
-                                                        methodArgs.push_back(arg);
+                                                    ClassMethodInfo* methodInfo = nullptr;
+                                                    std::string currentClass = fieldClassName;
+                                                    while (!currentClass.empty()) {
+                                                        for (auto& m : userTypes[currentClass].classMethods) {
+                                                            if (m.name_tok.value == methodName && 
+                                                                m.params.size() == (*methodCall)->args.size()) {
+                                                                methodInfo = &m;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (methodInfo) break;
+                                                        currentClass = userTypes[currentClass].baseClassName;
                                                     }
-                                                    
+                                                    std::vector<llvm::Value*> methodArgs;
+                                                    for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
+                                                        auto& argNode = (*methodCall)->args[i];
+                                                        bool isRef = methodInfo && methodInfo->params[i].type.value.ends_with("&");
+                                                        if (isRef) {
+                                                            auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                                            if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                                            methodArgs.push_back(getVarAddress((*va)->var_name_tok.value));
+                                                        } else {
+                                                            llvm::Value* arg = emitExpr(argNode);
+                                                            if (!arg) return nullptr;
+                                                            methodArgs.push_back(arg);
+                                                        }
+                                                    }
                                                     llvm::Function* method = findMethodOverload(fieldClassName, methodName, methodArgs);
                                                     if (!method) {
                                                         cg_error(Position(), "No matching overload for " + methodName);
                                                         return nullptr;
                                                     }
-                                                    
-                                                    std::vector<llvm::Value*> allArgs = {fieldPtr};
-                                                    allArgs.insert(allArgs.end(), methodArgs.begin(), methodArgs.end());
-                                                    
-                                                    return builder->CreateCall(method, allArgs, methodName + "_result");
+                                                    std::vector<llvm::Value*> reconciledArgs;
+                                                    reconciledArgs.push_back(fieldPtr);
+                                                    for (size_t i = 0; i < methodArgs.size(); i++) {
+                                                        llvm::Type* expected = method->getFunctionType()->getParamType(i + 1);
+                                                        llvm::Value* actual = methodArgs[i];
+                                                        if (actual->getType() != expected) {
+                                                            if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
+                                                                reconciledArgs.push_back(builder->CreateLoad(expected, actual));
+                                                            } else {
+                                                                reconciledArgs.push_back(builder->CreateBitCast(actual, expected));
+                                                            }
+                                                        } else {
+                                                            reconciledArgs.push_back(actual);
+                                                        }
+                                                    }
+                                                    return builder->CreateCall(method, reconciledArgs, methodName + "_result");
                                                 }
                                             }
                                         }
@@ -15789,13 +16037,13 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 return nullptr;
             }
             
-            llvm::Value* locAlloc = resolveVariable(path.rootVar);
+            llvm::Value* locAlloc = getVarAddress(path.rootVar);
             if (!locAlloc) {
                 cg_error(Position(), "Unknown variable: " + path.rootVar);
                 return nullptr;
             }
             
-            llvm::Type* allocTy = getPointeeType(locAlloc);
+            llvm::Type* allocTy = getPointeeType(path.rootVar);
             
             for (auto& [className, classTy] : classTypes) {
                 if (allocTy == classTy) {
@@ -15862,12 +16110,19 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             Token target_tok;
             Position pos;*/
             std::string fullName = (getCurrentNamespace().empty() ? "" : getCurrentNamespace() + "::") + ref->var_name_tok.value;
-            varTypes[fullName] = ref->type_tok.value;
+            varTypes[fullName] = ref->type_tok.value + "&";
             if (resolveGlobal(ref->target_tok.value) != nullptr) {
                 cg_error(ref->target_tok.pos, ref->target_tok.value + " is a global. You cannot create references to globals because it is wasted memory and unnecessary indirection; globals already have global lifetime.");
                 return nullptr;
-            } else if (resolveVariable(ref->target_tok.value) != nullptr) {
-                locals[fullName] = llvm::dyn_cast<llvm::AllocaInst>(resolveVariable(ref->target_tok.value));
+            } else if (getVarAddress(ref->target_tok.value) != nullptr) {
+                llvm::Value* destPtr = getVarAddress(ref->target_tok.value);
+                std::string varT = resolveVarType(ref->target_tok.value);
+                if (varT.ends_with("&")) {
+                    cg_error(ref->target_tok.pos, ref->target_tok.value + " is a reference, and you cannot create references-to-references");
+                }
+                llvm::AllocaInst* refStore = builder->CreateAlloca(builder->getPtrTy(), nullptr, fullName);
+                builder->CreateStore(destPtr, refStore);
+                locals[fullName] = refStore;
             } else {
                 cg_error(ref->target_tok.pos, ref->target_tok.value + " is not defined when creating reference " + ref->var_name_tok.value);
                 return nullptr;
@@ -16344,9 +16599,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             if (hasList(collName)) {
                 isList = true;
             } else {
-                auto locAlloc = resolveVariable(collName);
+                auto locAlloc = getVarAddress(collName);
                 if (locAlloc) {
-                    llvm::Type* allocTy = getPointeeType(locAlloc);
+                    llvm::Type* allocTy = getPointeeType(collName);
                     if (allocTy->isPointerTy()) {
                         actualCollVal = builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
                     } else if (allocTy->isArrayTy()) {
@@ -16469,9 +16724,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             llvm::Value* arrayPtr = collVal;
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
                 std::string collName = (*varAccess)->var_name_tok.value;
-                llvm::Value* locAlloc = resolveVariable(collName);
+                llvm::Value* locAlloc = getVarAddress(collName);
                 if (locAlloc) {
-                    llvm::Type* allocTy = getPointeeType(locAlloc);
+                    llvm::Type* allocTy = getPointeeType(collName);
                     if (allocTy->isPointerTy()) {
                         arrayPtr = builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
                     }
@@ -16527,9 +16782,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 auto arrLenIt = findArrayLength(collName);
                 return builder->getInt32(arrLenIt->second);
             }
-            llvm::Value* locAlloc = resolveVariable(collName);
+            llvm::Value* locAlloc = getVarAddress(collName);
             if (locAlloc) {
-                llvm::Type* allocTy = getPointeeType(locAlloc);
+                llvm::Type* allocTy = getPointeeType(collName);
                 
                 if (allocTy && allocTy->isArrayTy()) {
                     return builder->getInt32(allocTy->getArrayNumElements());
@@ -16777,10 +17032,12 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     std::string inner = getElementType(t);
                     int code = getTypeCode(inner); 
                     lists[param.name.value] = code;
+                    varTypes[param.name.value] = param.type.value;
                 } 
                 else if (t.find("map<") == 0) {
                     auto [key, val] = splitMapTypes(t); 
                     maps[param.name.value] = std::make_pair(getTypeCode(key), getTypeCode(val));
+                    varTypes[param.name.value] = param.type.value;
                 }
                 else if (t.find("[]") != std::string::npos) {
                     int dims = 0;
@@ -16794,9 +17051,11 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         int baseTypeCode = getTypeCode(base);
                         jaggedArrays[param.name.value] = {baseTypeCode, dims};
                         arrayTypeStrings[param.name.value] = base;
+                        varTypes[param.name.value] = param.type.value;
                     } else {
                         std::string base = t.substr(0, t.find("[]"));
                         arrayTypeStrings[param.name.value] = base;
+                        varTypes[param.name.value] = param.type.value;
                     }
                 } else {
                     varTypes[param.name.value] = t;
@@ -16884,9 +17143,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 llvm::Value* val = nullptr;
                 if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*mret)->values[i])) {
                     std::string name = (*varAccess)->var_name_tok.value;
-                    llvm::Value* alloc = resolveVariable(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (alloc) {
-                        llvm::Type* allocatedTy = getPointeeType(alloc);
+                        llvm::Type* allocatedTy = getPointeeType(name);
                         if (allocatedTy->isArrayTy()) {
                             val = builder->CreateBitCast(
                                 alloc,
@@ -17031,10 +17290,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
         else if (auto ret = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*ret)->value)) {
                 std::string name = (*varAccess)->var_name_tok.value;
-                llvm::Value* alloc = resolveVariable(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (alloc) {
-                    llvm::Type* allocatedTy = getPointeeType(alloc);
-                    if (allocatedTy->isArrayTy()) {
+                    llvm::Type* allocatedTy = getPointeeType(name);
+                    if (allocatedTy && allocatedTy->isArrayTy()) {
                         llvm::Value* arrayPtr = builder->CreateBitCast(
                             alloc,
                             llvm::PointerType::get(context, 0),
@@ -18094,7 +18353,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     }
                     if (hasList(name)) {
                         auto listIt = findList(name);
-                        llvm::Value* alloc = resolveVariable(name);
+                        llvm::Value* alloc = getVarAddress(name);
                         if (!alloc) {
                             cg_error(Position(), "Unknown list: " + name);
                             return;
@@ -18131,14 +18390,14 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         builder->CreateCall(setFn, {listPtr, indexVal, valPtr});
                         return;
                     }
-                    llvm::Value* alloc = resolveVariable(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown array: " + name);
                         return;
                     }
                     
                     llvm::Value* arrAlloc = alloc;
-                    llvm::Type* arrTy = getPointeeType(arrAlloc);
+                    llvm::Type* arrTy = getPointeeType(name);
                     
                     llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                     if (!indexVal) return;
@@ -18267,13 +18526,13 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             bool isArray = false;
             llvm::Value* arrayAlloc = nullptr;
             llvm::Type* arrayElemTy = nullptr;
-            
+            std::string collName = "";
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*foreach)->collection)) {
-                std::string collName = (*varAccess)->var_name_tok.value;
+                collName = (*varAccess)->var_name_tok.value;
                 
-                llvm::Value* alloc = resolveVariable(collName);
+                llvm::Value* alloc = getVarAddress(collName);
                 if (alloc) {
-                    llvm::Type* allocTy = getPointeeType(alloc);
+                    llvm::Type* allocTy = getPointeeType(collName);
                     
                     if (allocTy->isArrayTy()) {
                         isArray = true;
@@ -18327,10 +18586,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             llvm::Type* elemTy = llvmTypeFor((*foreach)->elem_type.value);
             llvm::AllocaInst* iterAlloc = createEntryAlloca(iterName, builder->getInt32Ty());
             llvm::AllocaInst* elemAlloc = createEntryAlloca(elemName, elemTy);
-            
             locals[iterName] = iterAlloc;
             locals[elemName] = elemAlloc;
-            
+            varTypes[elemName] = (*foreach)->elem_type.value; 
+            varTypes[iterName] = "int"; 
             builder->CreateStore(builder->getInt32(0), iterAlloc);
             
             llvm::BasicBlock* condBB = llvm::BasicBlock::Create(context, "foreach.cond", currentFunction);
@@ -18350,7 +18609,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             llvm::Value* elemVal = nullptr;
             
             if (isArray && arrayAlloc) {
-                llvm::Type* allocTy = getPointeeType(arrayAlloc);
+                llvm::Type* allocTy = getPointeeType(collName);
                 
                 if (allocTy->isArrayTy()) {
                     std::vector<llvm::Value*> indices = { builder->getInt32(0), iVal };
