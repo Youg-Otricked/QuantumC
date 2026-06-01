@@ -2307,7 +2307,7 @@ namespace tkz {
             }
             return false;
         }
-        std::string getExpressionType(AnyNode& node) {
+        std::string getExpressionType(AnyNode& node, bool strip = true) {
             if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
                 if (!(*arrLit)->elements.empty()) {
                     std::string elemType = getExpressionType((*arrLit)->elements[0]);
@@ -2316,7 +2316,13 @@ namespace tkz {
                 return "int[]";
             }
             else if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
-                return getExpressionType((*unaryOp)->node);
+                std::string type = getExpressionType((*unaryOp)->node, strip);
+                if ((*unaryOp)->op_tok.type == TokenType::MUL) {
+                    if (type.ends_with("*")) {
+                        type.pop_back();
+                    }
+                }
+                return type;
             }
             else if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
                 std::string leftType = getExpressionType((*binOp)->left_node);
@@ -2358,7 +2364,7 @@ namespace tkz {
                 std::string varName = (*varAcc)->var_name_tok.value;
                 if (!resolveVarType(varName).empty()) {
                     std::string t = resolveVarType(varName);
-                    if (t.ends_with("&")) t.pop_back();  
+                    if (t.ends_with("&") && strip) t.pop_back();  
                     return t;
                 }
                 if (hasList(varName)) {
@@ -2433,8 +2439,118 @@ namespace tkz {
                     }
                 }
                 return "unknown";
+            } else if (auto nullp = std::get_if<NullptrNode>(&node)) {
+                return "@nullptr";
+            } else if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
+                std::string currentType = getExpressionType(*((*propAcc)->base), true);
+                if (currentType.ends_with("*") || currentType.ends_with("&")) {
+                    currentType.pop_back();
+                }
+                std::string fieldName = (*propAcc)->property_name.value;
+                while (!currentType.empty() && userTypes.contains(currentType)) {
+                    auto& info = userTypes[currentType];
+                    for (const auto& f : info.fields) {
+                        if (f.name == fieldName) return f.type;
+                    }
+                    for (const auto& f : info.classFields) {
+                        if (f.name == fieldName) return f.type;
+                    }
+                    currentType = info.baseClassName;
+                }
+                return "unknown";
             }
             return "unknown";
+        }
+        llvm::Value* emitPropertyAddress(PropertyAccessNode& prop) {
+            std::string propName = prop.property_name.value;
+            llvm::Value* baseAddr = emitLValue(*prop.base);
+            if (!baseAddr) {
+                llvm::Value* rval = emitExpr(*prop.base);
+                baseAddr = createEntryAlloca("temp_lval_base", rval->getType());
+                builder->CreateStore(rval, baseAddr);
+            }
+            std::string typeName = getExpressionType(*prop.base, true);
+            if (classTypes.count(typeName)) {
+                int fieldIdx = getFlattenedFieldIndex(typeName, propName);
+                if (fieldIdx == -1) {
+                    cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
+                    return nullptr;
+                }
+                auto [fieldOwnerClass, fieldAccess] = getFieldOwner(typeName, propName);
+                if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
+                    cg_error(prop.property_name.pos, "Cannot access " + fieldAccess + " field: " + propName);
+                    return nullptr;
+                }
+                return builder->CreateStructGEP(classTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
+            }
+            if (structTypes.count(typeName)) {
+                auto& info = userTypes[typeName];
+                int fieldIdx = -1;
+                for (size_t i = 0; i < info.fields.size(); i++) {
+                    if (info.fields[i].name == propName) {
+                        fieldIdx = (int)i;
+                        break;
+                    }
+                }
+                if (fieldIdx == -1) {
+                    cg_error(prop.property_name.pos, "Field not found in struct " + typeName + ": " + propName);
+                    return nullptr;
+                }
+                return builder->CreateStructGEP(structTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
+            }
+            if (unionTypes.count(typeName)) {
+                auto& unionInfo = userTypes[typeName];
+                llvm::StructType* unionTy = unionTypes[typeName];
+                for (auto& member : unionInfo.members) {
+                    std::string variantName = resolveTypeName(member.type);
+                    int fieldIdx = getFlattenedFieldIndex(variantName, propName);
+                    if (fieldIdx == -1 && userTypes.count(variantName)) {
+                        auto& sInfo = userTypes[variantName];
+                        for (size_t i = 0; i < sInfo.fields.size(); i++) {
+                            if (sInfo.fields[i].name == propName) { fieldIdx = i; break; }
+                        }
+                    }
+                    if (fieldIdx != -1) {
+                        llvm::Value* dataFieldPtr = builder->CreateStructGEP(unionTy, baseAddr, 1);
+                        llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), dataFieldPtr);
+                        llvm::Type* varTy = nullptr;
+                        if (classTypes.count(variantName)) varTy = classTypes[variantName];
+                        else if (structTypes.count(variantName)) varTy = structTypes[variantName];
+                        if (!varTy) continue;
+                        return builder->CreateStructGEP(varTy, dataPtr, fieldIdx, propName + "_ptr");
+                    }
+                }
+            }
+            cg_error(prop.property_name.pos, "Cannot resolve address for property '" + propName + "' on type '" + typeName + "'");
+            return nullptr;
+        }
+        llvm::Value* emitLValue(AnyNode& node) {
+            if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+                std::string name = (*var)->var_name_tok.value;
+                llvm::Value* addr = getVarAddress(name);
+                return addr;
+            }
+            else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+                if ((*unary)->op_tok.type == TokenType::MUL) {
+                    return emitExpr((*unary)->node); 
+                }
+            } 
+            else if (auto prop = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
+                return emitPropertyAddress(**prop); 
+            } 
+            else if (auto call = std::get_if<std::unique_ptr<CallNode>>(&node)) {
+                std::string retType = getExpressionType(node, false);
+                if (retType.ends_with("&")) {
+                    return emitExpr(node);
+                }
+            }
+            else if (auto method = std::get_if<std::unique_ptr<MethodCallNode>>(&node)) {
+                std::string retType = getExpressionType(node, false);
+                if (retType.ends_with("&")) {
+                    return emitExpr(node);
+                }
+            }
+            return nullptr;
         }
         std::string getElementType(std::string fullType) {
             size_t start = fullType.find("<");
@@ -4056,58 +4172,6 @@ namespace tkz {
             }
             
             return std::nullopt;
-        }
-        struct FieldPath {
-            std::string rootVar;
-            std::vector<std::pair<std::string, int>> path;
-        };
-
-        FieldPath buildFieldPath(AnyNode& base, const std::string& finalField) {
-            FieldPath result;
-            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&base)) {
-                result.rootVar = (*varAccess)->var_name_tok.value;
-                
-                auto locIt = locals.find(result.rootVar);
-                if (locIt != locals.end()) {
-                    llvm::Type* allocTy = locIt->second->getAllocatedType();
-                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
-                        std::string structName = structTy->getName().str();
-                        
-                        auto typeIt = userTypes.find(structName);
-                        if (typeIt != userTypes.end()) {
-                            for (size_t i = 0; i < typeIt->second.fields.size(); i++) {
-                                if (typeIt->second.fields[i].name == finalField) {
-                                    result.path.push_back({structName, (int)i});
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                return result;
-            }
-            if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(&base)) {
-                result = buildFieldPath(*(*propAccess)->base, (*propAccess)->property_name.value);
-                if (!result.path.empty()) {
-                    std::string parentStruct = result.path.back().first;
-                    auto typeIt = userTypes.find(parentStruct);
-                    
-                    if (typeIt != userTypes.end()) {
-                        int parentFieldIdx = result.path.back().second;
-                        std::string fieldType = typeIt->second.fields[parentFieldIdx].type;
-                        auto fieldTypeIt = userTypes.find(fieldType);
-                        if (fieldTypeIt != userTypes.end()) {
-                            for (size_t i = 0; i < fieldTypeIt->second.fields.size(); i++) {
-                                if (fieldTypeIt->second.fields[i].name == finalField) {
-                                    result.path.push_back({fieldType, (int)i});
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }     
-            return result;
         }
         void emitStmt(AnyNode& node);
     };

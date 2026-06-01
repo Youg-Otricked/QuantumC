@@ -1517,6 +1517,7 @@ namespace tkz {
                 this->current_tok.value == "float" ||
                 this->current_tok.value == "double"||
                 this->current_tok.value == "bool"  ||
+                this->current_tok.value == "qbool"  ||
                 this->current_tok.value == "string"||
                 this->current_tok.value == "char")) {
 
@@ -10384,7 +10385,7 @@ namespace tkz {
         }
         if (auto ptr = std::get_if<PointerValue>(&base)) {
             if (!ptr->is_heap) {
-                this->errors.push_back({RTError("QC-B002: cannot assign through non-heap pointer", ptr->pos), "Error"});
+                this->errors.push_back({RTError("QC-B002: cannot assign through non-heap pointer in interpreter", ptr->pos), "Error"});
                 return VoidValue();
             }
 
@@ -10651,7 +10652,7 @@ namespace tkz {
             llvm::Type* elemTy = llvmTypeFor(baseType);
             return llvm::PointerType::get(context, 0);
         }
-        if (type.ends_with("&")) {
+        if (type.ends_with("&") || type.ends_with("*")) {
             return builder->getPtrTy();
         }
         if (type.starts_with("list<") && type.ends_with(">")) {
@@ -10673,7 +10674,7 @@ namespace tkz {
         if (type == "bool")        return builder->getInt1Ty();
         if (type == "qbool")       return builder->getIntNTy(2);
         if (type == "string")      return llvm::PointerType::get(context, 0);
-    
+        if (type == "@nullptr")     return builder->getPtrTy();
         if (classTypes.find(type) != classTypes.end()) {
             return classTypes[type];
         }
@@ -12122,17 +12123,6 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     }
                 }
             }
-            if (lty->isPointerTy() && rty->isPointerTy() && op == TokenType::PLUS) {
-                llvm::Function* concatFn = module->getFunction("qc_string_concat");
-                if (!concatFn) {
-                    llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
-                    std::vector<llvm::Type*> argTypes = { i8PtrTy, i8PtrTy };
-                    llvm::FunctionType* fnTy = llvm::FunctionType::get(i8PtrTy, argTypes, false);
-                    concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                                    "qc_string_concat", module.get());
-                }
-                return builder->CreateCall(concatFn, { L, R }, "str_concat");
-            }
             if ((lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) &&
                 (op == TokenType::PLUS || op == TokenType::MINUS)) {
                 if (lty == builder->getInt8Ty() && rty != builder->getInt8Ty()) {
@@ -12188,7 +12178,32 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         return nullptr;
                     }
                     if (lty->isPointerTy() || rty->isPointerTy()) {
-                        cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                        std::string lType = getExpressionType((*bin)->left_node);
+                        std::string rType = getExpressionType((*bin)->right_node);
+
+                        if (lType.ends_with("*") || lType == "@nullptr") {
+                            if (rType != "int") {
+                                cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on ptr lhs and int rhs, got " + lType + " and " + rType);
+                                return nullptr;
+                            }
+                            lType.pop_back();
+                            return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
+                        } else {
+                            if (lType != rType) {
+                                cg_error((*bin)->op_tok.pos, "You can only add string with string, got " + lType + " and " + rType);
+                                return nullptr;
+                            }
+                            llvm::Function* concatFn = module->getFunction("qc_string_concat");
+                            if (!concatFn) {
+                                llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
+                                std::vector<llvm::Type*> argTypes = { i8PtrTy, i8PtrTy };
+                                llvm::FunctionType* fnTy = llvm::FunctionType::get(i8PtrTy, argTypes, false);
+                                concatFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                                "qc_string_concat", module.get());
+                            }
+                            return builder->CreateCall(concatFn, { L, R }, "str_concat");
+                        }
+                        cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on types " + lType + " + " + " rType");
                         return nullptr;
                     }
                     if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
@@ -12209,7 +12224,29 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         return nullptr;
                     }
                     if (lty->isPointerTy() || rty->isPointerTy()) {
-                        cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                        std::string lType = getExpressionType((*bin)->left_node);
+                        std::string rType = getExpressionType((*bin)->right_node);
+
+                        if ((lType.ends_with("*") || lType == "@nullptr") && (rType.ends_with("*") || rType == "@nullptr")) {
+                            if (lType != rType) {
+                                cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on the same lhs and rhs type, got " + lType + " and " + rType);
+                                return nullptr;
+                            }
+                            std::string baseType = (lType == "@nullptr") ? rType : lType;
+                            if (baseType == "@nullptr") {
+                                return builder->getInt32(0); 
+                            }
+                            baseType.pop_back();
+                            llvm::Value* diff = builder->CreatePtrDiff(llvmTypeFor(baseType), L, R, "ptr_diff");
+                            return builder->CreateTrunc(diff, builder->getInt32Ty());
+                        } else if (lType.ends_with("*") && rType == "int") {
+                            std::string baseType = lType;
+                            baseType.pop_back(); 
+                            llvm::Value* negR = builder->CreateNeg(R, "neg_offset");
+                            return builder->CreateGEP(llvmTypeFor(baseType), L, {negR}, "ptr_arith_minus");
+                        }
+
+                        cg_error((*bin)->op_tok.pos, "Invalid pointer subtraction: " + lType + " - " + rType);
                         return nullptr;
                     }
                     if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
@@ -12368,15 +12405,25 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             : builder->CreateFCmpONE(L, R, "fcmpne");
                     }
                     if (lty->isPointerTy() && rty->isPointerTy()) {
-                        llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
-                        llvm::Value* result = builder->CreateCall(strcmp_fn, {L, R});
-                        if (op == TokenType::NOT_EQ) {
-                            result = builder->CreateNot(result);
+                        std::string lType = getExpressionType((*bin)->left_node);
+                        std::string rType = getExpressionType((*bin)->right_node);
+
+                        if (lType.ends_with("*") || rType.ends_with("*") || lType == "@nullptr" || rType == "@nullptr") {
+                            if (op == TokenType::EQ_TO) {
+                                return builder->CreateICmpEQ(L, R, "ptr_eq");
+                            } else {
+                                return builder->CreateICmpNE(L, R, "ptr_ne");
+                            }
+                        } else {
+                            llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                            llvm::Value* result = builder->CreateCall(strcmp_fn, {L, R});
+                            if (op == TokenType::NOT_EQ) {
+                                result = builder->CreateNot(result);
+                            }
+                            return result;
                         }
-                        return result;
                     }
-                    
-                     if (op == TokenType::EQ_TO) {
+                    if (op == TokenType::EQ_TO) {
                         return builder->getInt1(0);
                     } else {
                         return builder->getInt1(1);
@@ -13130,23 +13177,18 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return rhsVal;
                 }
             }
-            auto lhsVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*asn)->target);
-            if (!lhsVar) {
-                cg_error((*asn)->op_tok.pos,
-                        "Only simple variables are supported on left side in compiled mode");
-                return nullptr;
-            }
-
-            std::string name = (*lhsVar)->var_name_tok.value;
-            llvm::Value* alloc = getVarAddress(name);
+            llvm::Value* alloc = emitLValue((*asn)->target);
             if (!alloc) {
-                cg_error((*lhsVar)->var_name_tok.pos,
-                        "Assigning to undeclared variable '" + name + "'");
+                cg_error((*asn)->op_tok.pos, "Left side of assignment must be an L-value (variable, property, or dereference)");
                 return nullptr;
             }
-            llvm::Type* destTy = getPointeeType(name);
+            std::string lhsTypeStr = getExpressionType((*asn)->target, false);
+            
+            bool isReference = lhsTypeStr.ends_with("&");
+            if (isReference) lhsTypeStr.pop_back();
+            llvm::Type* destTy = llvmTypeFor(lhsTypeStr); 
             if (!destTy) {
-                cg_error((*lhsVar)->var_name_tok.pos, "Could not resolve type for assignment to " + name);
+                cg_error((*asn)->op_tok.pos, "Could not resolve type for assignment");
                 return nullptr;
             }
             for (auto& [unionName, unionTy] : unionTypes) {
@@ -13160,8 +13202,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
                     
                     if (tag == -1) {
-                        cg_error(Position(), 
-                                "Value does not match any variant of union " + unionName);
+                        cg_error((*asn)->op_tok.pos, "Value does not match any variant of union " + unionName);
                         return nullptr;
                     }
                     auto& member = userTypes[unionName].members[tag];
@@ -13175,8 +13216,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     llvm::Type* memberTy = llvmTypeFor(baseType);
 
                     if (rhsTy->getTypeID() != memberTy->getTypeID()) {
-                        cg_error((*asn)->op_tok.pos,
-                            "Union variant payload type mismatch");
+                        cg_error((*asn)->op_tok.pos, "Union variant payload type mismatch");
                         return nullptr;
                     }
                     llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
@@ -13197,11 +13237,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return rhs;
                 }
             }
-            llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, name);
+            llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, "assign_lhs_val");
             llvm::Value* rhsVal = emitExpr((*asn)->value);
             if (!rhsVal) {
-                cg_error((*asn)->op_tok.pos,
-                        "Failed to compile right-hand side of assignment");
+                cg_error((*asn)->op_tok.pos, "Failed to compile right-hand side of assignment");
                 return nullptr;
             }
             llvm::Type* srcTy = rhsVal->getType();
@@ -13524,17 +13563,21 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return nullptr;
                 }
                 std::string name = (*varPtr)->var_name_tok.value;
-                if (!locals[name] && !globals[name]) {
+                if (!(resolveVariable(name))) {
                     cg_error((*unary)->op_tok.pos, "cannot & something that doesn't exist.");
                     return nullptr;
                 }
-                if (locals[name]) {
-                    return locals[name];
-                } else {
-                    return globals[name];
-                }
+                return resolveVariable(name);
             }
             if ((*unary)->op_tok.type == TokenType::MUL) {
+                llvm::Value* val = emitExpr((*unary)->node);
+                std::string type = getExpressionType((*unary)->node);
+                if (!type.ends_with("*")) {
+                    cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
+                    return nullptr;
+                }
+                std::string baseType = type.substr(0, type.size() - 1);
+                return builder->CreateLoad(llvmTypeFor(baseType), val, "deref");
             }
         }
         else if (auto fnPtr = std::get_if<std::shared_ptr<FuncDefNode>>(&node)) {
@@ -13729,26 +13772,23 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         
                         auto paramIt = funcDef->params.begin();
                         for (auto& argNode : call.arg_nodes) {
-                        std::string ptype = paramIt->type.value;
-                        llvm::Value* argVal;
-                        if (ptype.ends_with("&")) {
-                            auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
-                            if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
-                            argVal = getVarAddress((*va)->var_name_tok.value);
-                            argTypes.push_back(ptype);
-                        } else {
-                            argVal = emitExpr(argNode);
-                            argTypes.push_back(getExpressionType(argNode));
-                        }
-                        argValues.push_back(argVal);
-                        ++paramIt;
-                    }
-                                            
+                            std::string ptype = paramIt->type.value;
+                            llvm::Value* argVal;
+                            if (ptype.ends_with("&")) {
+                                auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
+                                if (!va) { cg_error(Position(), "L-value required for ref param"); return nullptr; }
+                                argVal = getVarAddress((*va)->var_name_tok.value);
+                                argTypes.push_back(ptype);
+                            } else {
+                                argVal = emitExpr(argNode);
+                                argTypes.push_back(getExpressionType(argNode));
+                            }
+                            argValues.push_back(argVal);
+                            ++paramIt;
+                        }               
                         std::string sig = makeTypeSignature(argTypes);
                         std::string specializedName = funcName + "_" + sig;
                         if (specializedFunctions[funcName].count(sig) == 0) {
-                            std::cout << "concreteTypes size=" << argTypes.size() << " specializedName=" << specializedName << "\n";
-                            for (auto& t : argTypes) std::cout << "  type=" << t << "\n";
                             llvm::Function* specializedFn = generateSpecializedFunction(
                                 funcDef, 
                                 argTypes, 
@@ -14657,6 +14697,22 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             return retTy->isVoidTy() ? nullptr : callInst;
         }
         else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
+            std::string ptrTy = getExpressionType((*arrAcc)->base);
+            if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
+                if (ptrTy == "@nullptr") {
+                    cg_error(Position(), "Attempted to dereference nullptr");
+                    return nullptr;
+                }
+                std::string valueTy = getExpressionType((*arrAcc)->indices[0]);
+                if (valueTy != "int") {
+                    cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
+                    return nullptr;
+                }
+                llvm::Value* value = emitExpr((*arrAcc)->indices[0]);
+                ptrTy.pop_back();
+                llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy), emitExpr((*arrAcc)->base), value, "ptr_arr_addr");
+                return builder->CreateLoad(llvmTypeFor(ptrTy), addr, "ptr_arr_val");
+            }
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                 std::string name = (*varAcc)->var_name_tok.value;
                 if (hasJaggedArray(name)) {
@@ -15196,11 +15252,6 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     if (autoMethodIndices.find(currentClassName) != autoMethodIndices.end()) {
                         for (size_t methodIdx : autoMethodIndices[currentClassName]) {
                             auto& autoMethod = userTypes[currentClassName].classMethods[methodIdx];
-                            
-                            std::cout << "  checking: methodName=" << methodName 
-                                    << " vs autoMethod=" << autoMethod.name_tok.value
-                                    << " | args=" << (*methodCall)->args.size()
-                                    << " vs params=" << autoMethod.params.size() << "\n";
                             if (autoMethod.name_tok.value == methodName && 
                                 autoMethod.params.size() == (*methodCall)->args.size()) {
                                 std::vector<std::string> argTypes;
@@ -15222,12 +15273,6 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     }
                                 }
                                 size_t ardx = 0;
-                                for (auto& param : autoMethod.params) {
-                                    std::string argTy = ardx < argTypes.size() ? argTypes[ardx] : "?";
-                                    std::cout << "    param[" << ardx << "] declared=" << param.type.value 
-                                            << " argType=" << argTy << "\n";
-                                    ardx++;
-                                }
                                 if (!paramsMatch) {
                                     continue;
                                 }
@@ -16030,80 +16075,23 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return builder->getInt32(0);
                 }
             }
-            FieldPath path = buildFieldPath((*fieldAssign)->base, fieldName);
-            
-            if (path.rootVar.empty() || path.path.empty()) {
-                cg_error(Position(), "Invalid field assignment");
-                return nullptr;
-            }
-            
-            llvm::Value* locAlloc = getVarAddress(path.rootVar);
-            if (!locAlloc) {
-                cg_error(Position(), "Unknown variable: " + path.rootVar);
-                return nullptr;
-            }
-            
-            llvm::Type* allocTy = getPointeeType(path.rootVar);
-            
-            for (auto& [className, classTy] : classTypes) {
-                if (allocTy == classTy) {
-                    int fieldIdx = getFlattenedFieldIndex(className, fieldName);
-                    
-                    if (fieldIdx == -1) {
-                        cg_error(Position(), "Field not found: " + fieldName);
-                        return nullptr;
-                    }
-                    auto [fieldOwnerClass, fieldAccess] = getFieldOwner(className, fieldName);
-                    if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                        cg_error(Position(), "Cannot access " + fieldAccess + " field");
-                        return nullptr;
-                    }
-                    
-                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, locAlloc, fieldIdx);
-                    builder->CreateStore(valueVal, fieldPtr);
-                    return nullptr;
-                }
-            }
-            
-            auto rootStructTy = llvm::dyn_cast<llvm::StructType>(allocTy);
-            if (!rootStructTy) {
-                cg_error(Position(), "Not a struct or class");
-                return nullptr;
-            }
-            if (path.path.size() == 1) {
-                llvm::Value* fieldPtr = builder->CreateStructGEP(
-                    rootStructTy,
-                    locAlloc,
-                    path.path[0].second,
-                    fieldName + "_ptr"
-                );
-                builder->CreateStore(valueVal, fieldPtr);
-                return nullptr;
-            }
-            llvm::Value* rootVal = builder->CreateLoad(rootStructTy, locAlloc, "root");
-            
-            llvm::Value* currentVal = rootVal;
-            for (size_t i = 0; i < path.path.size() - 1; i++) {
-                currentVal = builder->CreateExtractValue(currentVal, path.path[i].second, "extract");
-            }
-            llvm::Value* modifiedParent = builder->CreateInsertValue(
-                currentVal,
-                valueVal,
-                path.path.back().second,
-                "insert"
+            PropertyAccessNode tempProp(
+                std::move((*fieldAssign)->base), 
+                Token(),
+                (*fieldAssign)->field_name
             );
-            for (int i = path.path.size() - 2; i >= 0; i--) {
-                rootVal = builder->CreateInsertValue(rootVal, modifiedParent, path.path[i].second, "insert_up");
-                if (i > 0) {
-                    modifiedParent = rootVal;
-                    for (int j = 0; j < i; j++) {
-                        modifiedParent = builder->CreateExtractValue(modifiedParent, path.path[j].second, "extract_parent");
-                    }
-                }
+            llvm::Value* fieldPtr = emitPropertyAddress(tempProp);
+            AnyNode tempVariant = std::make_shared<PropertyAccessNode>(std::move(tempProp));
+            std::string fieldTypeStr = getExpressionType(tempVariant, true);
+            if (auto propPtr = std::get_if<std::shared_ptr<PropertyAccessNode>>(&tempVariant)) {
+                (*fieldAssign)->base = std::move(*(*propPtr)->base);
             }
-            
-            builder->CreateStore(rootVal, locAlloc);
-            return nullptr;
+            if (!fieldPtr) return nullptr;
+            llvm::Type* destTy = llvmTypeFor(fieldTypeStr);
+            llvm::Value* rhsVal = emitExpr((*fieldAssign)->value);
+            if (!rhsVal) return nullptr;
+            builder->CreateStore(rhsVal, fieldPtr);
+            return rhsVal;
         } else if (auto ref = std::get_if<RefVarDeclNode>(&node)) {
             /*Token type_tok;
             Token var_name_tok;
@@ -16128,6 +16116,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                 return nullptr;
             }
             return nullptr;
+        } else if (auto ref = std::get_if<NullptrNode>(&node)) {
+            return llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0));
         }
         return nullptr;
     }
@@ -18225,8 +18215,24 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             return;
         }
         else if (auto arrAssign = std::get_if<std::unique_ptr<ArrayAssignNode>>(&node)) {
-            
             if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*arrAssign)->array_access)) {
+                std::string ptrTy = getExpressionType((*arrAcc)->base);
+                if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
+                    if (ptrTy == "@nullptr") {
+                        cg_error(Position(), "Attempted to dereference nullptr");
+                        return;
+                    }
+                    std::string valueTy = getExpressionType((*arrAcc)->indices[0]);
+                    if (valueTy != "int") {
+                        cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
+                        return;
+                    }
+                    llvm::Value* value = emitExpr((*arrAcc)->indices[0]);
+                    ptrTy.pop_back();
+                    llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy), emitExpr((*arrAcc)->base), value, "ptr_arr_asi");
+                    llvm::Value* valToStore = emitExpr((*arrAssign)->value);
+                    builder->CreateStore(valToStore, addr);
+                }
                 if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
                     if (hasJaggedArray(name)) {
