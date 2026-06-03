@@ -2184,7 +2184,7 @@ namespace tkz {
         llvm::Value* createEnumData(const std::string& type, const std::string& value) {
             if (type == "string") {
                 std::string str = value.substr(1, value.length() - 2);
-                return builder->CreateGlobalStringPtr(str);
+                return builder->CreateGlobalString(str);
             }
             else if (type == "int") {
                 int i = std::stoi(value);

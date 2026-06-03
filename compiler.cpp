@@ -9670,7 +9670,7 @@ namespace tkz {
                             std::is_same_v<T, Number<uintptr_t>> || 
                             std::is_same_v<T, Number<long long>> || 
                             std::is_same_v<T, Number<short>>) {
-                    return Number<decltype(arg.value)>{ ~arg.value };
+                    return Number<decltype(arg.value)>{ static_cast<decltype(arg.value)>(~arg.value) };
                 }
                 this->errors.push_back({RTError("Cannot perform ~ on non-int like", node->op_tok.pos)});
                 return VoidValue();
@@ -12263,7 +12263,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 }
                                 AnyNode fakeNode = std::monostate{};
                                 llvm::Value* strVal = toString(memberVal, pos);
-                                if (!strVal) strVal = builder->CreateGlobalStringPtr("?");
+                                if (!strVal) strVal = builder->CreateGlobalString("?");
                                 builder->CreateStore(strVal, resultAlloc);
                                 builder->CreateBr(endBB);
                             }
@@ -12346,7 +12346,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         case TokenType::L_ROT:
                         case TokenType::R_ROT: {
                             llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
-                            llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lhsVal->getType() });
+                            llvm::Function *rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module.get(), id, { lhsVal->getType() });
                             res = builder->CreateCall(rotFunc, { lhsVal, lhsVal, rhsVal });
                             break;
                         }
@@ -12460,7 +12460,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 return nullptr;
                             }
                             llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
-                            llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lhsVal->getType() });
+                            llvm::Function *rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module.get(), id, { lhsVal->getType() });
                             res = builder->CreateCall(rotFunc, { lhsVal, lhsVal, rhsVal });
                             break;
                         }
@@ -12755,7 +12755,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         llvm::Intrinsic::ID id = ((*bin)->op_tok.type == TokenType::L_ROT) 
                                                 ? llvm::Intrinsic::fshl 
                                                 : llvm::Intrinsic::fshr;
-                        llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lty });
+                        llvm::Function *rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module.get(), id, { lty });
                         return builder->CreateCall(rotFunc, { L, L, R }, "rottmp");
                     }
                 case TokenType::POWER: {
@@ -12796,7 +12796,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         return builder->CreateCall(qc_powi, { L, R }, "powi");
                     }
                     else if (ty->isFloatTy() || ty->isDoubleTy()) {
-                        llvm::Function* powFn = llvm::Intrinsic::getDeclaration(
+                        llvm::Function* powFn = llvm::Intrinsic::getOrInsertDeclaration(
                             module.get(),
                             llvm::Intrinsic::pow,
                             { ty }
@@ -12952,6 +12952,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             return isFloatTy ? builder->CreateFCmpOLE(L, R, "fcmple") : builder->CreateICmpSLE(L, R, "icmple");
                         case TokenType::MORE_EQ:
                             return isFloatTy ? builder->CreateFCmpOGE(L, R, "fcmpge") : builder->CreateICmpSGE(L, R, "icmpge");
+                        default:
+                            break;
                     }
                 }
                 case TokenType::AND:
@@ -13057,6 +13059,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     }
                     cg_error((*bin)->op_tok.pos, "|&| requires qbool operands");
                     return nullptr;
+                default:
+                    break;
             }
         }
         else if (auto va = std::get_if<std::unique_ptr<VarAssignNode>>(&node)) {
@@ -13543,6 +13547,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         case TokenType::MOD_EQ:
                                             rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal);
                                             break;
+                                        default:
+                                            break;
                                     }
                                 }
                                 
@@ -13603,6 +13609,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 break;
                             case TokenType::MOD_EQ:
                                 rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal);
+                                break;
+                            default:
                                 break;
                         }
                     }
@@ -14380,7 +14388,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         std::string baseType = members[i].type;
                                         size_t colonPos = baseType.find(':');
                                         if (colonPos != std::string::npos) baseType = baseType.substr(0, colonPos);
-                                        llvm::Value* variantName = builder->CreateGlobalStringPtr(baseType);
+                                        llvm::Value* variantName = builder->CreateGlobalString(baseType);
                                         builder->CreateStore(variantName, resultAlloc);
                                         builder->CreateBr(endBB);
                                         switchInst->addCase(builder->getInt32(i), caseBB);
@@ -14402,7 +14410,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     builder->SetInsertPoint(caseBB);
                                     size_t colonPos = entries[i].typeAtom.find(':');
                                     std::string type = entries[i].typeAtom.substr(0, colonPos);
-                                    llvm::Value* typeStr = builder->CreateGlobalStringPtr(type);
+                                    llvm::Value* typeStr = builder->CreateGlobalString(type);
                                     builder->CreateStore(typeStr, resultAlloc);
                                     builder->CreateBr(endBB);
                                     switchInst->addCase(builder->getInt32(i), caseBB);
@@ -14414,10 +14422,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
                             if (resolveVarType(varName) != "") {
-                                return builder->CreateGlobalStringPtr(resolveVarType(varName));
+                                return builder->CreateGlobalString(resolveVarType(varName));
                             }
                             if (hasArrayType(varName)) {
-                                return builder->CreateGlobalStringPtr(arrayTypeStrings[varName] + "[]");
+                                return builder->CreateGlobalString(arrayTypeStrings[varName] + "[]");
                             }
                             if (hasList(varName)) {
                                 if (lists.find(varName) != lists.end()) {
@@ -14431,7 +14439,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     else if (elemTypeCode == 5) elemType = "qbool";
                                     else if (elemTypeCode == 6) elemType = "string";
                                     else elemType = "auto";
-                                    return builder->CreateGlobalStringPtr("list<" + elemType + ">");
+                                    return builder->CreateGlobalString("list<" + elemType + ">");
                                 }
                             }
                         }
@@ -14446,7 +14454,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         else if (argTy->isIntegerTy(2)) typeName = "qbool";
                         else if (argTy->isPointerTy()) typeName = "string";
                         if (auto structTy = llvm::dyn_cast<llvm::StructType>(argTy)) typeName = structTy->getName().str();
-                        return builder->CreateGlobalStringPtr(typeName);
+                        return builder->CreateGlobalString(typeName);
                     }
                     if (funcName == "fopen") {
                         std::vector<llvm::Value*> args;
@@ -16820,14 +16828,14 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
             builder->SetInsertPoint(entryBB);
             llvm::Value* structArg = reprFn->arg_begin();
-            llvm::Value* result = builder->CreateGlobalStringPtr(name + "(");
+            llvm::Value* result = builder->CreateGlobalString(name + "(");
             for (size_t i = 0; i < info.fields.size(); i++) {
                 auto& field = info.fields[i];
                 if (i > 0) {
-                    llvm::Value* comma = builder->CreateGlobalStringPtr(", ");
+                    llvm::Value* comma = builder->CreateGlobalString(", ");
                     result = callStringConcat(result, comma);
                 }
-                llvm::Value* fieldLabel = builder->CreateGlobalStringPtr(field.name + "=");
+                llvm::Value* fieldLabel = builder->CreateGlobalString(field.name + "=");
                 result = callStringConcat(result, fieldLabel);
                 llvm::Value* fieldVal = builder->CreateExtractValue(structArg, i);
                 llvm::Value* fieldStr = nullptr;
@@ -16860,16 +16868,16 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     if (nestedReprFn) {
                         fieldStr = builder->CreateCall(nestedReprFn, {fieldVal});
                     } else {
-                        fieldStr = builder->CreateGlobalStringPtr("?");
+                        fieldStr = builder->CreateGlobalString("?");
                     }
                 }
                 else {
-                    fieldStr = builder->CreateGlobalStringPtr("?");
+                    fieldStr = builder->CreateGlobalString("?");
                 }
                 
                 result = callStringConcat(result, fieldStr);
             }
-            llvm::Value* closeParen = builder->CreateGlobalStringPtr(")");
+            llvm::Value* closeParen = builder->CreateGlobalString(")");
             result = callStringConcat(result, closeParen);
             
             builder->CreateRet(result);
