@@ -11,6 +11,7 @@ NAMESPCACES!!!!!!!!!!
 1/27/26: Current version: 10.0.0(i missed a lot of changelogs). Multifile, more stdlib, typing, trycatch
 1/28/26: Changed power operator from ** to ^*
 5/6/26: I haven't updated this change log in FOREVER. Refactord IO to make pointers in compielr easier. Input is now `qin` instead of `std::qin`, and instead of ouptut using C++ style << and being called `std::qout`, it is called `qout`, and uses the C-style formater.
+6/3/26: I still havent made good on updating this. Welp, i changed power for hopefully the final time-now it is #^
 # Features checklist (suitable for change(by adding more))
 
 - Interpreter
@@ -49,15 +50,15 @@ NAMESPCACES!!!!!!!!!!
         - [x] Namespace
         - [ ] Modifier
     )
-    - [ ] Manual Memory Managment (
-        - [ ] Pointers (\*)
+    - [x] Manual Memory Managment (
+        - [x] Pointers (\*)
         - [x] Address syntax (&)
-        - [ ] Malloc
-        - [ ] Free
-        - [ ] Realloc
-        - [ ] Calloc
-        - [ ] ->
-        - [ ] Deref
+        - [x] Malloc
+        - [x] Free
+        - [x] Realloc
+        - [x] Calloc
+        - [x] ->
+        - [x] Deref
     )
 - [x] Including other files (
     - [x] Include via namespace with syntax #include \<namespacename, path-to-file>

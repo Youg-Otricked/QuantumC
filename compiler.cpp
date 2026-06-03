@@ -165,7 +165,7 @@ namespace tkz {
             case TokenType::MUL:        return "*";
             case TokenType::DIV:        return "/";
             case TokenType::MOD:        return "%";
-            case TokenType::POWER:      return "^*";
+            case TokenType::POWER:      return "#^";
 
             case TokenType::PLUS_EQ:    return "+=";
             case TokenType::MINUS_EQ:   return "-=";
@@ -221,7 +221,7 @@ namespace tkz {
             case TokenType::LOGICAL_RSHIFT:     return ":>";
             case TokenType::AT:         return "@";
             case TokenType::PIPE:       return "|";
-
+            case TokenType::SIZEOF      return "sizeof";
             case TokenType::EOFT:       return "<eof>";
         }
 
@@ -3481,7 +3481,7 @@ namespace tkz {
                         case TokenType::LESS:        op_name = "operator<";    break;
                         case TokenType::MORE_EQ:     op_name = "operator>=";   break;
                         case TokenType::LESS_EQ:     op_name = "operator<=";   break;
-                        case TokenType::POWER:       op_name = "operator^*";   break;
+                        case TokenType::POWER:       op_name = "operator#^";   break;
                         case TokenType::MOD:         op_name = "operator%";    break;
                         case TokenType::XOR:         op_name = "operator^";    break;
                         case TokenType::QNOT:        op_name = "operator!!";   break;
@@ -3490,6 +3490,7 @@ namespace tkz {
                         case TokenType::QXOR:        op_name = "operator^^";   break;
                         case TokenType::COLLAPSE_OR: op_name = "operator|&|";  break;
                         case TokenType::COLLAPSE_AND:op_name = "operator&|&";  break;
+                        default: break;
                     }
 
                     name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
@@ -20733,15 +20734,19 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         break;
                     case '^':
                         this->advance();
-                        if (current_char == '*') {
-                            this->advance();
-                            tokens.push_back(Token(TokenType::POWER, "^*", start_pos));
-                            break;
-                        } else if (current_char == '^') {
+                        if (current_char == '^') {
                             this->advance();
                             tokens.push_back(Token(TokenType::QXOR, "^^", start_pos));
                         } else {
                             tokens.push_back(Token(TokenType::XOR, "^", start_pos));
+                        }
+                        break;
+                    case '#':
+                        this->advance();
+                        if (current_char == '^') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::POWER, "#^", start_pos));
+                            break;
                         }
                         break;
                     case ',':

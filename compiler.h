@@ -2007,7 +2007,7 @@ namespace tkz {
                 case TokenType::LESS: return "operator<";
                 case TokenType::MORE_EQ:  return "operator>=";
                 case TokenType::LESS_EQ: return "operator<=";
-                case TokenType::POWER:  return "operator^*";
+                case TokenType::POWER:  return "operator#^";
                 case TokenType::MOD: return "operator%";
                 case TokenType::QNOT:  return "operator!!";
                 case TokenType::QAND: return "operator&&&";
@@ -2396,6 +2396,8 @@ namespace tkz {
                         return "double";
                     case TokenType::ADDR_T:
                         return "addr_t";
+                    default:
+                        break;
                 }
             }
             else if (auto boolNode = std::get_if<BoolNode>(&node)) {
@@ -3929,7 +3931,7 @@ namespace tkz {
                 case TokenType::LESS: return "operator<";
                 case TokenType::MORE_EQ:  return "operator>=";
                 case TokenType::LESS_EQ: return "operator<=";
-                case TokenType::POWER:  return "operator^*";
+                case TokenType::POWER:  return "operator#^";
                 case TokenType::MOD: return "operator%";
                 case TokenType::QNOT:  return "operator!!";
                 case TokenType::QAND: return "operator&&&";
