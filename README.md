@@ -82,11 +82,7 @@ Current Version: v0.15.0 = "Compiler Is Mostly Done" (aparantly i've been using 
 | **Advanced**        | Structs, Classes, & Namespaces                                         | Done        |
 |                     | Union Types (TypeScript-style)                                         | DONE        |
 |                     | Advanced OOP & Operator Overloading                                    | Done        |
-|                     | Manual Memory Management                                               |             |
-|                     |    Refs                                                                | Done        |
-|                     |    Addr-of                                                             | Done        |
-|                     |    Pointers                                                            | Interp      |
-|                     |    Actual malloc/sizeof...                                             | Interp      | 
+|                     | Manual Memory Management                                               | DONE!       |
 | **System**          | F-Strings (Python-style interpolation)                                 | Done        |
 |                     | Random Number Generation                                               | Done        |
 |                     | Stdlib Part 1 & 2                                                      | Done        |
@@ -188,7 +184,7 @@ int, string GetStatus() {
 }
 int main() {
     int code, string alias = GetStatus();
-    qout(f"Code: {code}, AKA: {alias}\n);
+    qout("%s", f"Code: {code}, AKA: {alias}\n");
     return 0;
 }
 ```
@@ -197,9 +193,9 @@ int main() {
 
 ```cpp
 int main() {
-    int* ptr = malloc(sizeof("int"));
+    int* ptr = malloc(sizeof "int");
     *ptr = 42;
-    qout("%p", *ptr); 
+    qout("%p", ptr); 
     free(ptr);
 }
 ```
@@ -216,7 +212,7 @@ namespace Exported (file c)
 <imported namespace from file b>
 (rest of code)
 */
-    #include <Math, std> // std is a alias for /usr/share/bin/stdlib.qc. This line imports the Math namespace from the standered library.
+    #include <Math, std> // std is a alias for ~/.qc/lib/stdlib.qc. This line imports the Math namespace from the standered library.
 }
 
 int main() {
