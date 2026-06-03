@@ -8787,7 +8787,7 @@ namespace tkz {
                 } else if (auto lhs = std::get_if<Number<long long>>(&left)) {
                     return Number<long long>{ lhs->value >> *shift_amount };
                 } else if (auto lhs = std::get_if<Number<short>>(&left)) {
-                    return Number<short>{ lhs->value >> *shift_amount };
+                    return Number<short>{ static_cast<short>(lhs->value >> *shift_amount) };
                 } else {
                     this->errors.push_back({RTError("Cannot perform >> on non-int like", node->op_tok.pos)});
                 }
@@ -8817,7 +8817,7 @@ namespace tkz {
             } else if (auto lhs = std::get_if<Number<long long>>(&left)) {
                 return Number<long long>{ lhs->value << *shift_amount };
             } else if (auto lhs = std::get_if<Number<short>>(&left)) {
-                return Number<short>{ lhs->value >> *shift_amount };
+                return Number<short>{ static_cast<short>(lhs->value >> *shift_amount) };
             } else {
                 this->errors.push_back({RTError("Cannot perform << on non-int like", node->op_tok.pos), "error"});
             }
@@ -8920,9 +8920,9 @@ namespace tkz {
             NumberVariant right = std::move(this->process(node->right_node));
             auto perform_bit_op = [&](auto a, auto b, TokenType op) -> NumberVariant {
                 switch (op) {
-                    case TokenType::AMPERSAND:   return Number<decltype(a)>{ a & b };
-                    case TokenType::PIPE:        return Number<decltype(a)>{ a | b };
-                    case TokenType::BITWISE_XOR: return Number<decltype(a)>{ a ^ b };
+                    case TokenType::AMPERSAND:   return Number<decltype(a)>{ static_cast<decltype(a)>(a & b) };
+                    case TokenType::PIPE:        return Number<decltype(a)>{ static_cast<decltype(a)>(a | b) };
+                    case TokenType::BITWISE_XOR: return Number<decltype(a)>{ static_cast<decltype(a)>(a ^ b) };
                     default: return Number<int>{0}; 
                 }
             };
