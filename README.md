@@ -92,7 +92,7 @@ Current Version: v0.15.0 = "Compiler Is Mostly Done" (aparantly i've been using 
 |                     | Generics                                                               | Coming Soon |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Coming Soon |
 |                     | Extern                                                                 | Coming Soon |
-|                     | Bitwise Logic                                                          | Coming Soon |
+|                     | Bitwise Logic                                                          | Done!       |
 |                     | Reallly fancy operator overloads                                       | Coming Soon |
 
 # Contributing
@@ -171,7 +171,6 @@ qif (qb) {
 | **Compile Time**     | Slow    | Medium  | Medium         | Medium          |
 | **Runtime**          | Fast    | Medium  | Medium         | Fast            |
 | **Memory safety**    | Manual  | GPA     | Borrow checker | **C style!**    |
-| **Quantum booleans** | No      | No      | No             | **4 states!**   |
 | **Multi-return**     | Structs | Tuples  | Tuples         | **Native**      |
 
 ---
@@ -236,6 +235,137 @@ int main() {
     UserID myId = 5;
 }
 ```
+
+## Preformance Comparison:
+C^4 Code:
+```cpp
+int main() {
+    long int sum = 0;
+    for (int i = 0; i < 10000000; i++) {
+        sum += i % 7;
+        
+        if (i % 2000000 == 0) {
+            qout("%s\n", f"Checkpoint {i}, sum = {sum}");
+        }
+    }
+    
+    qout("%s", f"Final sum = {sum}");
+    return 0;
+}
+```
+C++ Code:
+```cpp
+#include <iostream>
+int main() {
+    long long sum = 0;
+    for (int i = 0; i < 10000000; i++) {
+        sum += i % 7;
+        
+        if (i % 2000000 == 0) {
+            std::cout << "Checkpoint " << i << ", sum = " << sum << '\n';
+        }
+    }
+    
+    std::cout << "Final sum = " << sum;
+    return 0;
+}
+```
+C++ Compile time:
+```bash
+$ /usr/bin/time g++ ./qc/in.cpp
+0.20 user 
+0.01 system 
+0:00.36 elapsed 
+62% CPU (0 avgtext+0 avgdata 68024 maxresident)
+0 inputs+32 outputs (0 major+6730 minor) pagefaults 0 swaps
+```
+C++ Runtime
+```bash
+$ /usr/bin/time ./a.out
+Checkpoint 0, sum = 0
+Checkpoint 2000000, sum = 5999997
+Checkpoint 4000000, sum = 11999998
+Checkpoint 6000000, sum = 18000003
+Checkpoint 8000000, sum = 23999998
+Final sum = 29999994
+0.02 user 
+0.00 system 
+0:00.03 elapsed 
+63% CPU (0 avgtext+0 avgdata 3656 maxresident)
+0 inputs+0 outputs (0 major+147 minor) pagefaults 0 swaps
+```
+C^4 Compile time (silencing output to be more fair (becuase g++ does not print diagnostics or anything)):
+```bash
+$ /usr/bin/time qc ./qc/in.qc -c > /dev/null
+0.16 user 
+0.01 system 
+0:00.31 elapsed 
+57% CPU (0 avgtext+0 avgdata 70920 maxresident)
+0 inputs+664 outputs (0 major+6374 minor) pagefaults 0 swaps
+```
+C^4 Runtime:
+```bash
+$ /usr/bin/time ./a.out
+Checkpoint 0, sum = 0
+Checkpoint 2000000, sum = 5999997
+Checkpoint 4000000, sum = 11999998
+Checkpoint 6000000, sum = 18000003
+Checkpoint 8000000, sum = 23999998
+Final sum = 29999994
+0.02 user 
+0.00 system 
+0:00.03 elapsed 
+55% CPU (0 avgtext+0 avgdata 1584 maxresident)
+0 inputs+0 outputs (0 major+84 minor) pagefaults 0 swaps
+```
+### Comparing the results: (Note that C^4 has ZERO optimizations)
+#### QuantumC Compile-time:
+QuantumC used about 20% less CPU time (0.04 seconds faster at compiling in userspace).
+QuantumC had 356 less minor pagefaults.
+QuantumC was about 14% faster in wall clock time (0.31 vs 0.36)
+#### QuantumC Runtime:
+EXACT SAME RUNTIME SPEED AS C++.
+QuantumC used roughly 57% less resident memory (used over 2000 less KB's of memory).
+QuantumC had nearly half as many minor pagefaults.
+In total: 
+QuantumC:
+consumes ~17% less CPU work overall.
+was approximately 13% faster overall.
+preformed identical to C++ during runtime.
+achieved this result despite having zero optimization passes.
+
+If compared to -O0 C++:
+```bash
+$ /usr/bin/time g++ ./qc/in.cpp -O0
+0.20 user 
+0.03 system 
+0:00.33 elapsed 
+70%CPU (0 avgtext+0 avgdata 66672 maxresident)
+0 inputs+32 outputs (0 major+14106 minor) pagefaults 0 swaps
+$ /usr/bin/time ./a.out
+Checkpoint 0, sum = 0
+Checkpoint 2000000, sum = 5999997
+Checkpoint 4000000, sum = 11999998
+Checkpoint 6000000, sum = 18000003
+Checkpoint 8000000, sum = 23999998
+Final sum = 29999994
+0.02 user 
+0.00 system 
+0:00.04 elapsed 
+52% CPU (0 avgtext+0 avgdata 3640 maxresident)
+0 inputs+0 outputs (0 major+145 minor) pagefaults 0 swaps
+```
+Compared to -O0:
+C^4:
+During Compilation:
+was 26% faster (0.06 seconds)
+had over half as many minor pagefaults.
+During Runtime:
+used roughly 57% less resident memory (used over 2000 less KB's of memory).
+had nearly half as many minor pagefaults.
+Overall:
+uses ~24% less CPU work.
+was ~8% faster end-to-end.
 
 ## Known limitations:
 

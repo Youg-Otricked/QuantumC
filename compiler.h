@@ -163,7 +163,8 @@ namespace tkz {
         INT, STRING, FLOAT, ADDR_T, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
         ARROW, AMPERSAND, STAR, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
         SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF, 
-        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR,
+        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR, BITWISE_NOT,
+        BITWISE_XOR, R_ROT, L_ROT, LOGICAL_RSHIFT,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
         FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, PIPE, EOFT
     };
@@ -1167,7 +1168,7 @@ namespace tkz {
                    std::initializer_list<TokenType> ops);
         Prs logical_and();
         Prs qif_expr();
-        
+        Prs bitwise();
         Prs qout_expr();
         Prs qin_expr();
         Prs logical_or();
@@ -2126,6 +2127,15 @@ namespace tkz {
 
     class LLVMCompiler {
     public:
+        bool startsWithQIn(const AnyNode& node) {
+            if (auto bin = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+                return startsWithQIn((*bin)->left_node);
+            }
+            if (auto qin = std::get_if<QInNode>(&node)) {
+                return true;
+            }
+            return false;
+        }
         void generateStructReprFunctions();
         llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
         void createUserTypes();
@@ -4227,8 +4237,9 @@ namespace tkz {
         Token make_string();
         Ler make_tokens();
         Token make_identifier();
-                Token make_number();
+        Token make_number();
         Token make_fstring();
+        Token make_raw_string();
     };
 }
 std::string trim(const std::string& str);

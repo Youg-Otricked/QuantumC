@@ -7,6 +7,7 @@
 #include <format>
 #include <iostream>
 #include <list>
+#include <bit>
 #include <memory>
 #include <variant>
 #include <functional>
@@ -213,6 +214,11 @@ namespace tkz {
             case TokenType::SCOPE:      return "::";
             case TokenType::LSHIFT:     return "<<";
             case TokenType::RSHIFT:     return ">>";
+            case TokenType::R_ROT:      return ">>>";
+            case TokenType::L_ROT:       return "<<<";
+            case TokenType::BITWISE_XOR:      return "$";
+            case TokenType::BITWISE_NOT:     return "~";
+            case TokenType::LOGICAL_RSHIFT:     return ":>";
             case TokenType::AT:         return "@";
             case TokenType::PIPE:       return "|";
 
@@ -819,6 +825,9 @@ namespace tkz {
             {"LIST", TokenType::LIST}, {"ARRAY", TokenType::ARRAY}, {"VOID", TokenType::VOID},
             {"ENUM", TokenType::ENUM}, {"CLASS", TokenType::CLASS}, {"STRUCT", TokenType::STRUCT},
             {"BOOL", TokenType::BOOL}, {"QBOOL", TokenType::QBOOL}, {"PLUS", TokenType::PLUS},
+            {"R_ROT", TokenType::R_ROT}, {"L_ROT", TokenType::L_ROT}, {"AMPERSAND", TokenType::AMPERSAND},
+            {"PIPE", TokenType::PIPE}, {"RSHIFT", TokenType::RSHIFT}, {"LSHIFT", TokenType::LSHIFT},
+            {"BITWISE_XOR", TokenType::BITWISE_XOR}, {"BITWISE_NOT", TokenType::BITWISE_NOT}, {"LOGICAL_RSHIFT", TokenType::LOGICAL_RSHIFT},
             {"MINUS", TokenType::MINUS}, {"MUL", TokenType::MUL}, {"DIV", TokenType::DIV}, {"SIZEOF", TokenType::SIZEOF},
             {"POWER", TokenType::POWER}, {"LPAREN", TokenType::LPAREN}, {"RPAREN", TokenType::RPAREN},
             {"SEMICOLON", TokenType::SEMICOLON}, {"DEF", TokenType::DEF}, {"INCREMENT", TokenType::INCREMENT},
@@ -2308,8 +2317,7 @@ namespace tkz {
 
             return res.success(std::move(fn_node));
         }
-        res.failure(std::make_unique<InvalidSyntaxError>("QC-S054: Expected an atom", tok.pos));
-        return res.to_prs();
+        return res.success(std::monostate{});
     }
 
     
@@ -2333,7 +2341,7 @@ namespace tkz {
         ParseResult res;
         Token tok = this->current_tok;
 
-        if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS ||
+        if (tok.type == TokenType::PLUS || tok.type == TokenType::MINUS || tok.type == TokenType::BITWISE_NOT ||
             tok.type == TokenType::NOT || tok.type == TokenType::QNOT || tok.type == TokenType::AMPERSAND || tok.type == TokenType::MUL) {
             
             this->advance();
@@ -2375,12 +2383,20 @@ namespace tkz {
                             TokenType::MUL, 
                             TokenType::MOD});
     }
+    Prs Parser::bitwise() {
+        return this->bin_op([this]() { return this->term(); }, 
+                            {TokenType::RSHIFT, 
+                            TokenType::LSHIFT,
+                            TokenType::R_ROT, 
+                            TokenType::L_ROT, 
+                            TokenType::LOGICAL_RSHIFT});
+    }
     Prs Parser::logical_and() {
         ParseResult res;
         AnyNode left = res.reg(this->comparison());
         if (res.error) return res.to_prs();
 
-        while (this->current_tok.type == TokenType::AND) {
+        while (this->current_tok.type == TokenType::AND || this->current_tok.type == TokenType::AMPERSAND) {
             Token op_tok = this->current_tok;
             this->advance();
             AnyNode right = res.reg(this->comparison());
@@ -2397,7 +2413,7 @@ namespace tkz {
         AnyNode left = res.reg(this->logical_and());
         if (res.error) return res.to_prs();
 
-        while (this->current_tok.type == TokenType::OR || this->current_tok.type == TokenType::XOR) {
+        while (this->current_tok.type == TokenType::OR || this->current_tok.type == TokenType::XOR || this->current_tok.type == TokenType::PIPE || this->current_tok.type == TokenType::BITWISE_XOR) {
             Token op_tok = this->current_tok;
             this->advance();
             AnyNode right = res.reg(this->logical_and());
@@ -2417,7 +2433,7 @@ namespace tkz {
             Token op_tok = current_tok;
             advance();
 
-            AnyNode right = res.reg(this->term());
+            AnyNode right = res.reg(this->bitwise());
             if (!std::holds_alternative<std::unique_ptr<VarAccessNode>>(right)) {
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "QC-S055: Right-hand side of >> must be a variable",
@@ -2462,7 +2478,7 @@ namespace tkz {
     }
     Prs Parser::expr() {
         ParseResult res;
-        AnyNode left = res.reg(this->term());
+        AnyNode left = res.reg(this->bitwise());
         if (res.error) return res.to_prs();
 
         while (
@@ -2473,7 +2489,7 @@ namespace tkz {
             Token op_tok = current_tok;
             advance();
 
-            AnyNode right = res.reg(this->term());
+            AnyNode right = res.reg(this->bitwise());
             if (res.error) return res.to_prs();
 
             left = std::make_unique<BinOpNode>(
@@ -5259,6 +5275,7 @@ namespace tkz {
             type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
             if (type == "long int")     type = "int";
             if (type == "short int")    type = "int";
+            if (type == "addr_t")      type = "int";
             if (type == "long double")  type = "double";
             return type;
         };
@@ -6187,11 +6204,16 @@ namespace tkz {
             }
             if (declaredType == "addr_t" && actualType == "int") {
                 if (auto int_val = std::get_if<Number<int>>(&value)) {
-                    value = Number<long long>(static_cast<uintptr_t>(int_val->value));
+                    value = Number<uintptr_t>(static_cast<uintptr_t>(int_val->value));
                     actualType = "addr_t";
                 }
             }
-            
+            if (declaredType == "addr_t" && actualType == "long int") {
+                if (auto int_val = std::get_if<Number<long long>>(&value)) {
+                    value = Number<uintptr_t>(static_cast<uintptr_t>(int_val->value));
+                    actualType = "addr_t";
+                }
+            }
             if (declaredType == "long double") {
                 if (actualType == "double") {
                     if (auto dbl_val = std::get_if<Number<double>>(&value)) {
@@ -7760,6 +7782,7 @@ namespace tkz {
                 this->errors.push_back({RTError("QC-B002: replace() requires (string, string, string)", get_pos(str_val)), "Error"});
             }
             if (func_name == "malloc") {
+                this->errors.push_back({RTError("Manual Memory Management is only fully supported in QuantumC's compiler, and thus, will be worse in the interpreter, such as malloc in interpreter taking a string, not a number.", Position()), "warning"});
                 if (node->arg_nodes.size() != 1) {
                     throw RTError("QC-B001: malloc expects exactly 1 argument (type name string)", Position());
                 }
@@ -7782,6 +7805,7 @@ namespace tkz {
                 return PointerValue::heap_ptr(type_name, heap_id).set_pos(get_pos(type_val));
             }
             if (func_name == "free") {
+                this->errors.push_back({RTError("Manual Memory Management is only fully supported in QuantumC's compiler, and thus, will be worse in the interpreter, such as malloc in interpreter taking a string, not a number.", Position()), "warning"});
                 if (node->arg_nodes.size() != 1) {
                     throw RTError("QC-B001: free expects exactly 1 argument (pointer)", Position("", "", 0, 0, 0));
                 }
@@ -7806,6 +7830,7 @@ namespace tkz {
                 return VoidValue();
             }
             if (func_name == "calloc") {
+                this->errors.push_back({RTError("Manual Memory Management is only fully supported in QuantumC's compiler, and thus, will be worse in the interpreter, such as malloc in interpreter taking a string, not a number.", Position()), "warning"});
                 if (node->arg_nodes.size() != 2) {
                     throw RTError("QC-B001: calloc expects 2 arguments (count, type name)", Position());
                 }
@@ -7852,6 +7877,7 @@ namespace tkz {
                 return PointerValue::heap_ptr(type_name, heap_id).set_pos(get_pos(type_val));
             }
             if (func_name == "realloc") {
+                this->errors.push_back({RTError("Manual Memory Management is only fully supported in QuantumC's compiler, and thus, will be worse in the interpreter, such as malloc in interpreter taking a string, not a number.", Position()), "warning"});
                 if (node->arg_nodes.size() != 2) {
                     throw RTError("QC-B001: realloc expects 2 arguments (ptr, new_size)", Position());
                 }
@@ -8739,8 +8765,188 @@ namespace tkz {
                     return VoidValue();
                 }
                 return VoidValue();
+            } else {
+                auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
+                    if (auto i = std::get_if<Number<int>>(&v)) return static_cast<size_t>(i->value);
+                    if (auto l = std::get_if<Number<long long>>(&v)) return static_cast<size_t>(l->value);
+                    if (auto s = std::get_if<Number<short>>(&v)) return static_cast<size_t>(s->value);
+                    if (auto u = std::get_if<Number<uintptr_t>>(&v)) return static_cast<size_t>(u->value);
+                    return std::nullopt;
+                };
+                NumberVariant left = this->process(node->left_node);
+                NumberVariant right = this->process(node->right_node);
+                auto shift_amount = to_size_t(right);
+                if (!shift_amount) {
+                    this->errors.push_back({RTError("Shift amount must be an integer", node->op_tok.pos)});
+                    return VoidValue();
+                }
+                if (auto lhs = std::get_if<Number<int>>(&left)) {
+                    return Number<int>{ lhs->value >> *shift_amount };
+                } else if (auto lhs = std::get_if<Number<uintptr_t>>(&left)) {
+                    return Number<uintptr_t>{ lhs->value >> *shift_amount };
+                } else if (auto lhs = std::get_if<Number<long long>>(&left)) {
+                    return Number<long long>{ lhs->value >> *shift_amount };
+                } else if (auto lhs = std::get_if<Number<short>>(&left)) {
+                    return Number<short>{ lhs->value >> *shift_amount };
+                } else {
+                    this->errors.push_back({RTError("Cannot perform >> on non-int like", node->op_tok.pos)});
+                }
+                return VoidValue();
             }
             return VoidValue();
+        }
+        if (node->op_tok.type == TokenType::LSHIFT) {
+            auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
+                if (auto i = std::get_if<Number<int>>(&v)) return static_cast<size_t>(i->value);
+                if (auto l = std::get_if<Number<long long>>(&v)) return static_cast<size_t>(l->value);
+                if (auto s = std::get_if<Number<short>>(&v)) return static_cast<size_t>(s->value);
+                if (auto u = std::get_if<Number<uintptr_t>>(&v)) return static_cast<size_t>(u->value);
+                return std::nullopt;
+            };
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            auto shift_amount = to_size_t(right);
+            if (!shift_amount) {
+                this->errors.push_back({RTError("Shift amount must be an integer", node->op_tok.pos)});
+                return VoidValue();
+            }
+            if (auto lhs = std::get_if<Number<int>>(&left)) {
+                return Number<int>{ lhs->value << *shift_amount };
+            } else if (auto lhs = std::get_if<Number<uintptr_t>>(&left)) {
+                return Number<uintptr_t>{ lhs->value << *shift_amount };
+            } else if (auto lhs = std::get_if<Number<long long>>(&left)) {
+                return Number<long long>{ lhs->value << *shift_amount };
+            } else if (auto lhs = std::get_if<Number<short>>(&left)) {
+                return Number<short>{ lhs->value >> *shift_amount };
+            } else {
+                this->errors.push_back({RTError("Cannot perform << on non-int like", node->op_tok.pos), "error"});
+            }
+            return VoidValue();
+        }
+        if (node->op_tok.type == TokenType::LOGICAL_RSHIFT) {
+            auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
+                if (auto i = std::get_if<Number<int>>(&v)) return static_cast<size_t>(i->value);
+                if (auto l = std::get_if<Number<long long>>(&v)) return static_cast<size_t>(l->value);
+                if (auto s = std::get_if<Number<short>>(&v)) return static_cast<size_t>(s->value);
+                if (auto u = std::get_if<Number<uintptr_t>>(&v)) return static_cast<size_t>(u->value);
+                return std::nullopt;
+            };
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            auto shift_amount = to_size_t(right);
+
+            if (!shift_amount) {
+                this->errors.push_back({RTError("Shift amount must be an integer", node->op_tok.pos)});
+                return VoidValue();
+            }
+
+            return std::visit([&, this](auto&& arg) -> NumberVariant {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>> || 
+                            std::is_same_v<T, Number<long long>> || 
+                            std::is_same_v<T, Number<short>> ||
+                            std::is_same_v<T, Number<uintptr_t>>) {
+                    using UnsignedT = std::make_unsigned_t<decltype(arg.value)>;
+                    auto result = static_cast<UnsignedT>(arg.value) >> *shift_amount;
+                    return Number<decltype(arg.value)>{ static_cast<decltype(arg.value)>(result) };
+                }
+                this->errors.push_back({RTError("Cannot shift non-ints", node->op_tok.pos)});
+                return VoidValue();
+            }, left);
+        }
+        if (node->op_tok.type == TokenType::L_ROT) {
+            auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
+                if (auto i = std::get_if<Number<int>>(&v)) return static_cast<size_t>(i->value);
+                if (auto l = std::get_if<Number<long long>>(&v)) return static_cast<size_t>(l->value);
+                if (auto s = std::get_if<Number<short>>(&v)) return static_cast<size_t>(s->value);
+                if (auto u = std::get_if<Number<uintptr_t>>(&v)) return static_cast<size_t>(u->value);
+                return std::nullopt;
+            };
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            auto shift_amount = to_size_t(right);
+            if (!shift_amount) {
+                this->errors.push_back({RTError("Shift amount must be an integer", node->op_tok.pos)});
+                return VoidValue();
+            }
+            return std::visit([&, this](auto&& arg) -> NumberVariant {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>> || 
+                            std::is_same_v<T, Number<long long>> || 
+                            std::is_same_v<T, Number<short>> ||
+                            std::is_same_v<T, Number<uintptr_t>>) {
+                    using UnsignedT = std::make_unsigned_t<decltype(arg.value)>;
+                    auto val = static_cast<UnsignedT>(arg.value);
+                    auto result = std::rotl(val, static_cast<int>(*shift_amount));
+                    return Number<decltype(arg.value)>{ static_cast<decltype(arg.value)>(result) };
+                }
+                this->errors.push_back({RTError("Cannot rotate non-ints", node->op_tok.pos)});
+                return VoidValue();
+            }, left);
+        }
+        if (node->op_tok.type == TokenType::R_ROT) {
+            auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
+                if (auto i = std::get_if<Number<int>>(&v)) return static_cast<size_t>(i->value);
+                if (auto l = std::get_if<Number<long long>>(&v)) return static_cast<size_t>(l->value);
+                if (auto s = std::get_if<Number<short>>(&v)) return static_cast<size_t>(s->value);
+                if (auto u = std::get_if<Number<uintptr_t>>(&v)) return static_cast<size_t>(u->value);
+                return std::nullopt;
+            };
+            NumberVariant left = this->process(node->left_node);
+            NumberVariant right = this->process(node->right_node);
+            auto shift_amount = to_size_t(right);
+
+            if (!shift_amount) {
+                this->errors.push_back({RTError("Shift amount must be an integer", node->op_tok.pos)});
+                return VoidValue();
+            }
+            return std::visit([&, this](auto&& arg) -> NumberVariant {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>> || 
+                            std::is_same_v<T, Number<long long>> || 
+                            std::is_same_v<T, Number<short>> ||
+                            std::is_same_v<T, Number<uintptr_t>>) {
+                    using UnsignedT = std::make_unsigned_t<decltype(arg.value)>;
+                    auto val = static_cast<UnsignedT>(arg.value);
+                    auto result = std::rotr(val, static_cast<int>(*shift_amount));
+                    return Number<decltype(arg.value)>{ static_cast<decltype(arg.value)>(result) };
+                }
+                this->errors.push_back({RTError("Cannot rotate non-ints", node->op_tok.pos)});
+                return VoidValue();
+            }, left);
+        }
+        if (node->op_tok.type == TokenType::PIPE || node->op_tok.type == TokenType::AMPERSAND || node->op_tok.type == TokenType::BITWISE_XOR) {
+            NumberVariant left = std::move(this->process(node->left_node));
+            NumberVariant right = std::move(this->process(node->right_node));
+            auto perform_bit_op = [&](auto a, auto b, TokenType op) -> NumberVariant {
+                switch (op) {
+                    case TokenType::AMPERSAND:   return Number<decltype(a)>{ a & b };
+                    case TokenType::PIPE:        return Number<decltype(a)>{ a | b };
+                    case TokenType::BITWISE_XOR: return Number<decltype(a)>{ a ^ b };
+                    default: return Number<int>{0}; 
+                }
+            };
+            if (auto lhs = std::get_if<Number<int>>(&left)) {
+                if (auto rhs = std::get_if<Number<int>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<uintptr_t>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+            } 
+            else if (auto lhs = std::get_if<Number<uintptr_t>>(&left)) {
+                if (auto rhs = std::get_if<Number<uintptr_t>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<int>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+            }
+            else if (auto lhs = std::get_if<Number<long long>>(&left)) {
+                if (auto rhs = std::get_if<Number<long long>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<uintptr_t>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+            }
+            else if (auto lhs = std::get_if<Number<short>>(&left)) {
+                if (auto rhs = std::get_if<Number<short>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<int>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<uintptr_t>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+                if (auto rhs = std::get_if<Number<long long>>(&right)) return perform_bit_op(lhs->value, rhs->value, node->op_tok.type);
+            }
+            else {
+                this->errors.push_back({RTError("Cannot perform bitwise op on non-int like types", node->op_tok.pos)});
+            }
         }
         if (node->op_tok.type == TokenType::AND) {
             NumberVariant left = std::move(this->process(node->left_node));
@@ -9365,6 +9571,7 @@ namespace tkz {
                     type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
                     if (type == "long int")    type = "int";
                     if (type == "short int")   type = "int";
+                    if (type == "addr_t")      type = "int";
                     if (type == "long double") type = "double";
                     return type;
                 };
@@ -9455,7 +9662,20 @@ namespace tkz {
                 return VoidValue();
             }, val);
         }
-        
+        if (node->op_tok.type == TokenType::BITWISE_NOT) {
+            NumberVariant operand = this->process(node->node);
+            return std::visit([&](auto&& arg) -> NumberVariant {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (std::is_same_v<T, Number<int>> || 
+                            std::is_same_v<T, Number<uintptr_t>> || 
+                            std::is_same_v<T, Number<long long>> || 
+                            std::is_same_v<T, Number<short>>) {
+                    return Number<decltype(arg.value)>{ ~arg.value };
+                }
+                this->errors.push_back({RTError("Cannot perform ~ on non-int like", node->op_tok.pos)});
+                return VoidValue();
+            }, operand);
+        }
         if (node->op_tok.type == TokenType::INCREMENT ||
             node->op_tok.type == TokenType::DECREMENT) {
             
@@ -11252,100 +11472,103 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             TokenType op = (*bin)->op_tok.type;
             if (op == TokenType::RSHIFT) {
                 llvm::Value* leftResult = nullptr;
-                
-                if (auto leftBin = std::get_if<std::unique_ptr<BinOpNode>>(&(*bin)->left_node)) {
-                    if ((*leftBin)->op_tok.type == TokenType::RSHIFT) {
-                        leftResult = emitExpr((*bin)->left_node);
+                if (startsWithQIn((*bin)->left_node)) {
+                    if (auto leftBin = std::get_if<std::unique_ptr<BinOpNode>>(&(*bin)->left_node)) {
+                        if ((*leftBin)->op_tok.type == TokenType::RSHIFT) {
+                            while (true) {
+                            }
+                            leftResult = emitExpr((*bin)->left_node);
+                        }
                     }
-                }
-                llvm::Function* qinFn = module->getFunction("qc_qin");
-                if (!qinFn) {
-                    auto* fnTy = llvm::FunctionType::get(
-                        llvm::PointerType::get(context, 0),
-                        {},
-                        false
-                    );
-                    qinFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_qin", module.get());
-                }
-                
-                llvm::Value* input = builder->CreateCall(qinFn, {}, "qin_input");
-                
-                if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->right_node)) {
-                    std::string varName = (*varAccess)->var_name_tok.value;
-                    llvm::Value* alloc = getVarAddress(varName);
-                    if (!alloc) {
-                        cg_error(Position(), "qin: variable not declared: " + varName);
-                        return nullptr;
+                    llvm::Function* qinFn = module->getFunction("qc_qin");
+                    if (!qinFn) {
+                        auto* fnTy = llvm::FunctionType::get(
+                            llvm::PointerType::get(context, 0),
+                            {},
+                            false
+                        );
+                        qinFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_qin", module.get());
                     }
                     
-                    llvm::Type* varTy = getPointeeType(varName);
-                    llvm::Value* converted = input;
+                    llvm::Value* input = builder->CreateCall(qinFn, {}, "qin_input");
                     
-                    if (varTy->isIntegerTy(32)) {
-                        llvm::Function* fn = module->getFunction("qc_to_int_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_int_from_string", module.get());
+                    if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*bin)->right_node)) {
+                        std::string varName = (*varAccess)->var_name_tok.value;
+                        llvm::Value* alloc = getVarAddress(varName);
+                        if (!alloc) {
+                            cg_error(Position(), "qin: variable not declared: " + varName);
+                            return nullptr;
                         }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isIntegerTy(16)) {
-                        llvm::Function* fn = module->getFunction("qc_to_short_int_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt16Ty(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_short_int_from_string", module.get());
+                        
+                        llvm::Type* varTy = getPointeeType(varName);
+                        llvm::Value* converted = input;
+                        
+                        if (varTy->isIntegerTy(32)) {
+                            llvm::Function* fn = module->getFunction("qc_to_int_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_int_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isIntegerTy(16)) {
+                            llvm::Function* fn = module->getFunction("qc_to_short_int_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt16Ty(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_short_int_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isIntegerTy(64)) {
+                            llvm::Function* fn = module->getFunction("qc_to_long_int_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt64Ty(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_long_int_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isFloatTy()) {
+                            llvm::Function* fn = module->getFunction("qc_to_float_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getFloatTy(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_float_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isDoubleTy()) {
+                            llvm::Function* fn = module->getFunction("qc_to_double_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getDoubleTy(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_double_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isIntegerTy(8)) {
+                            llvm::Function* fn = module->getFunction("qc_to_char_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt8Ty(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_char_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isIntegerTy(1)) {
+                            llvm::Function* fn = module->getFunction("qc_to_bool_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_bool_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
+                        } else if (varTy->isIntegerTy(2)) {
+                            llvm::Function* fn = module->getFunction("qc_to_qbool_from_string");
+                            if (!fn) {
+                                auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(2), {llvm::PointerType::get(context, 0)}, false);
+                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_qbool_from_string", module.get());
+                            }
+                            converted = builder->CreateCall(fn, {input});
                         }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isIntegerTy(64)) {
-                        llvm::Function* fn = module->getFunction("qc_to_long_int_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt64Ty(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_long_int_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isFloatTy()) {
-                        llvm::Function* fn = module->getFunction("qc_to_float_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getFloatTy(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_float_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isDoubleTy()) {
-                        llvm::Function* fn = module->getFunction("qc_to_double_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getDoubleTy(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_double_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isIntegerTy(8)) {
-                        llvm::Function* fn = module->getFunction("qc_to_char_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt8Ty(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_char_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isIntegerTy(1)) {
-                        llvm::Function* fn = module->getFunction("qc_to_bool_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_bool_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
-                    } else if (varTy->isIntegerTy(2)) {
-                        llvm::Function* fn = module->getFunction("qc_to_qbool_from_string");
-                        if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(2), {llvm::PointerType::get(context, 0)}, false);
-                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_qbool_from_string", module.get());
-                        }
-                        converted = builder->CreateCall(fn, {input});
+                        
+                        builder->CreateStore(converted, alloc);
+                        
+                        return builder->getInt32(0);
                     }
                     
-                    builder->CreateStore(converted, alloc);
-                    
-                    return builder->getInt32(0);
+                    cg_error(Position(), "qin: right side must be a variable");
+                    return nullptr;
                 }
-                
-                cg_error(Position(), "qin: right side must be a variable");
-                return nullptr;
             }
             llvm::Value* L = emitExpr((*bin)->left_node);
             llvm::Value* R = emitExpr((*bin)->right_node);
@@ -12114,6 +12337,19 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         case TokenType::MINUS:   res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
                         case TokenType::MUL:     res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
                         case TokenType::DIV:     res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
+                        case TokenType::AMPERSAND:      res = builder->CreateAnd(lhsVal, rhsVal); break;
+                        case TokenType::PIPE:           res = builder->CreateOr(lhsVal, rhsVal); break;
+                        case TokenType::BITWISE_XOR:    res = builder->CreateXor(lhsVal, rhsVal); break;
+                        case TokenType::LSHIFT:         res = builder->CreateShl(lhsVal, rhsVal); break;
+                        case TokenType::RSHIFT:         res = builder->CreateAShr(lhsVal, rhsVal); break;
+                        case TokenType::LOGICAL_RSHIFT: res = builder->CreateLShr(lhsVal, rhsVal); break;
+                        case TokenType::L_ROT:
+                        case TokenType::R_ROT: {
+                            llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
+                            llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lhsVal->getType() });
+                            res = builder->CreateCall(rotFunc, { lhsVal, lhsVal, rhsVal });
+                            break;
+                        }
                         default: res = lhsVal; break;
                     }
                     
@@ -12200,10 +12436,36 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         case TokenType::MINUS:   res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
                         case TokenType::MUL:     res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
                         case TokenType::DIV:     res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
+                        case TokenType::AMPERSAND:
+                        case TokenType::PIPE:
+                        case TokenType::BITWISE_XOR:
+                        case TokenType::LSHIFT:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                            if (isFP) {
+                                cg_error((*bin)->op_tok.pos, "Bitwise operations not allowed on floating-point union members");
+                                return nullptr;
+                            }
+                            if (op == TokenType::AMPERSAND)      res = builder->CreateAnd(lhsVal, rhsVal);
+                            else if (op == TokenType::PIPE)      res = builder->CreateOr(lhsVal, rhsVal);
+                            else if (op == TokenType::BITWISE_XOR) res = builder->CreateXor(lhsVal, rhsVal);
+                            else if (op == TokenType::LSHIFT)    res = builder->CreateShl(lhsVal, rhsVal);
+                            else if (op == TokenType::RSHIFT)    res = builder->CreateAShr(lhsVal, rhsVal);
+                            else                                 res = builder->CreateLShr(lhsVal, rhsVal);
+                            break;
+                        case TokenType::L_ROT:
+                        case TokenType::R_ROT: {
+                            if (isFP) {
+                                cg_error((*bin)->op_tok.pos, "Rotation not allowed on floating-point union members");
+                                return nullptr;
+                            }
+                            llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
+                            llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lhsVal->getType() });
+                            res = builder->CreateCall(rotFunc, { lhsVal, lhsVal, rhsVal });
+                            break;
+                        }
                         default: res = memberVal; break;
                     }
-                    
-                    // store result - cast to result alloc type if needed
                     llvm::Type* allocTy = resultAlloc->getAllocatedType();
                     if (res->getType() != allocTy) {
                         if (allocTy->isDoubleTy() && res->getType()->isIntegerTy())
@@ -12459,6 +12721,43 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     return isFloatTy
                         ? builder->CreateFRem(L, R, "frem")
                         : builder->CreateSRem(L, R, "srem");
+                case TokenType::AMPERSAND:
+                case TokenType::PIPE:
+                case TokenType::BITWISE_XOR:
+                    if (isFloatTy) {
+                        cg_error((*bin)->op_tok.pos, "Cannot perform bitwise operations on float/double types");
+                        return nullptr;
+                    }
+                    if (lty->isPointerTy() || rty->isPointerTy()) {
+                        cg_error((*bin)->op_tok.pos, "Cannot perform bitwise operations on string types");
+                        return nullptr;
+                    }
+                    if ((*bin)->op_tok.type == TokenType::AMPERSAND) return builder->CreateAnd(L, R, "andtmp");
+                    if ((*bin)->op_tok.type == TokenType::PIPE)      return builder->CreateOr(L, R, "ortmp");
+                    return builder->CreateXor(L, R, "xortmp");
+                case TokenType::RSHIFT:
+                case TokenType::LSHIFT:
+                case TokenType::LOGICAL_RSHIFT:
+                    if (isFloatTy) {
+                        cg_error((*bin)->op_tok.pos, "Cannot perform shifts on float/double types");
+                        return nullptr;
+                    }
+                    if ((*bin)->op_tok.type == TokenType::LSHIFT) return builder->CreateShl(L, R, "shltmp");
+                    if ((*bin)->op_tok.type == TokenType::RSHIFT) return builder->CreateAShr(L, R, "ashrtmp");
+                    return builder->CreateLShr(L, R, "lshrtmp");
+                case TokenType::L_ROT:
+                case TokenType::R_ROT:
+                    if (isFloatTy) {
+                        cg_error((*bin)->op_tok.pos, "Cannot perform rotations on float/double types");
+                        return nullptr;
+                    }
+                    {
+                        llvm::Intrinsic::ID id = ((*bin)->op_tok.type == TokenType::L_ROT) 
+                                                ? llvm::Intrinsic::fshl 
+                                                : llvm::Intrinsic::fshr;
+                        llvm::Function *rotFunc = llvm::Intrinsic::getDeclaration(module.get(), id, { lty });
+                        return builder->CreateCall(rotFunc, { L, L, R }, "rottmp");
+                    }
                 case TokenType::POWER: {
                     if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                         cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
@@ -13583,6 +13882,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     else if (op == TokenType::QNOT) {
                         targetTy = builder->getIntNTy(2);
                     }
+                    else if (op == TokenType::MUL) {
+                        targetTy = builder->getPtrTy();
+                    }
                     if (targetTy) {
                         llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
                         llvm::Value* typedPtr = builder->CreateBitCast(
@@ -13607,6 +13909,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     }
                     else if (op == TokenType::QNOT) {
                         targetTy = builder->getIntNTy(2);
+                    }
+                    else if (op == TokenType::MUL) {
+                        targetTy = builder->getPtrTy();
                     }
                     if (targetTy) {
                         llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
@@ -13649,6 +13954,15 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     cg_error((*unary)->op_tok.pos, "! requires bool operand");
                     return nullptr;
                 }
+            }
+            if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
+                llvm::Type* ty = operand->getType();
+                if (ty->isFloatingPointTy() || ty->isPointerTy()) {
+                    cg_error((*unary)->op_tok.pos, "Cannot perform bitwise NOT on non-integer type");
+                    return nullptr;
+                }
+                llvm::Value* allOnes = llvm::ConstantInt::get(ty, -1, true);
+                return builder->CreateXor(operand, allOnes, "nottmp");
             }
             if ((*unary)->op_tok.type == TokenType::QNOT) {
                 if (operand->getType() == builder->getIntNTy(2)) {
@@ -20132,10 +20446,40 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             encoded += parts[i];
             if (i < exprs.size()) encoded += "\x01" + exprs[i] + "\x01";
         }
-
         return Token(TokenType::FSTRING, encoded, start_pos);
     }
-
+    Token Lexer::make_raw_string() {
+        Position start_pos = this->pos.copy();
+        std::string start_delim = "";
+        while (this->current_char != '\0' && this->current_char != '"') {
+            start_delim += this->current_char;
+            this->advance();
+        }
+        start_delim += '"'; 
+        this->advance();
+        std::string end_marker = start_delim;
+        std::reverse(end_marker.begin(), end_marker.end());
+        for (char &c : end_marker) {
+            if (c == '(') c = ')';
+            else if (c == ')') c = '(';
+            else if (c == '[') c = ']';
+            else if (c == ']') c = '[';
+            else if (c == '{') c = '}';
+            else if (c == '}') c = '{';
+            else if (c == '<') c = '>';
+            else if (c == '>') c = '<';
+        }
+        std::string value = "";
+        while (this->current_char != '\0') {
+            value += this->current_char;
+            this->advance();
+            if (value.ends_with(end_marker)) {
+                value = value.substr(0, value.length() - end_marker.length());
+                break;
+            }
+        }
+        return Token(TokenType::STRING, value, start_pos);
+    }
     Ler Lexer::make_tokens() {
         std::vector<Token> tokens;
         tokens.reserve(256); 
@@ -20150,6 +20494,11 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             } else if (this->current_char == 'f' && this->text[this->pos.index + 1] == '"') {
                 this->advance();
                 tokens.push_back(this->make_fstring());
+                continue;
+            } else if (this->current_char == 'R' && this->text[this->pos.index + 1] == '(') {
+                this->advance();
+                tokens.push_back(this->make_raw_string());
+                continue;
             } else if (isCharInSet(this->current_char, LETTERS + "_")) {
                 tokens.push_back(this->make_identifier());
             } else if (this->current_char == '"') {
@@ -20265,7 +20614,12 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             tokens.push_back(Token(TokenType::MORE_EQ, ">=", start_pos));
                         } else if (this->current_char == '>') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::RSHIFT, ">>", start_pos));
+                            if (this->current_char == '>') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::R_ROT, ">>>", start_pos));
+                            } else {
+                                tokens.push_back(Token(TokenType::RSHIFT, ">>", start_pos));
+                            }
                         } else {
                             tokens.push_back(Token(TokenType::MORE, ">", start_pos));
                             break;
@@ -20275,7 +20629,12 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         this->advance();
                         if (current_char == '<') {
                             this->advance();
-                            tokens.push_back(Token(TokenType::LSHIFT, "<<", start_pos));
+                            if (current_char == '<') {
+                                this->advance();
+                                tokens.push_back(Token(TokenType::L_ROT, "<<<", start_pos));
+                            } else {
+                                tokens.push_back(Token(TokenType::LSHIFT, "<<", start_pos));
+                            }
                         } else if (current_char == '=') {
                             this->advance();
                             tokens.push_back(Token(TokenType::LESS_EQ, "<=", start_pos));
@@ -20387,6 +20746,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                             this->advance();
                             tokens.push_back(Token(TokenType::SCOPE, "::", start_pos));
                             break;
+                        } else if (current_char == '>') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::LOGICAL_RSHIFT, ":>", start_pos));
+                            break;
                         } else {
                             tokens.push_back(Token(TokenType::COLON, ":", start_pos));
                         }
@@ -20399,7 +20762,14 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         tokens.push_back(Token(TokenType::DOT, ".", start_pos));
                         this->advance();
                         break;
-                    
+                    case '$':
+                        tokens.push_back(Token(TokenType::BITWISE_XOR, "$", start_pos));
+                        this->advance();
+                        break;
+                    case '~':
+                        tokens.push_back(Token(TokenType::BITWISE_NOT, "~", start_pos));
+                        this->advance();
+                        break;
                     default:
                         std::string unknown = std::string(1, this->current_char);
                         return Ler {std::vector<Token>(), std::make_unique<IllegalCharError>("QC-IC03:" + unknown, this->pos)};
