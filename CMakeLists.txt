@@ -10,8 +10,13 @@ if(LLVM_VERSION_MAJOR LESS 21)
 endif()
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
-
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+    COMMAND clang++ -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
+    VERBATIM
+)
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
     COMMAND ${CMAKE_COMMAND}

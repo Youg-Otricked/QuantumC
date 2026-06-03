@@ -83,6 +83,13 @@ int TESTESTESTESTESTEST() {
     test.AssertEqual(20, nextVal, "pointer property access", "(*n1.next).value == 20");
     n1.next->value = 42;
     test.AssertEqual(42, n2.value, "pointer property update", "n2.value == 42");
+    int *ptr = nullptr;
+    int* *ptr_ptr = nullptr;
+    int** *ptr_ptr_ptr = nullptr;
+    ptr = &x;
+    ptr_ptr = &ptr;
+    ptr_ptr_ptr = &ptr_ptr;
+    qout("%p, %p, %p, %i", ptr_ptr_ptr, *ptr_ptr_ptr, **ptr_ptr_ptr, ***ptr_ptr_ptr);
     return 0;
 }
 class Node2 {

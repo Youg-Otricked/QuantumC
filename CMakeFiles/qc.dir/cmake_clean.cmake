@@ -8,6 +8,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/qc.dir/runtime_embed.cpp.o.d"
   "qc"
   "qc.pdb"
+  "runtime.ll"
   "runtime_embed.cpp"
 )
 

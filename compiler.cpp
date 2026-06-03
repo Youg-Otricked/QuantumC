@@ -132,6 +132,7 @@ namespace tkz {
         switch (tok) {
             case TokenType::INT:        return "int";
             case TokenType::STRING:     return "string";
+            case TokenType::ADDR_T:     return "addr_t";
             case TokenType::FLOAT:      return "float";
             case TokenType::DOUBLE:     return "double";
             case TokenType::CHAR:       return "char";
@@ -228,6 +229,7 @@ namespace tkz {
             using T = std::decay_t<decltype(x)>;
 
             if constexpr (std::is_same_v<T, Number<int>> ||
+                        std::is_same_v<T, Number<uintptr_t>> ||
                         std::is_same_v<T, Number<float>> ||
                         std::is_same_v<T, Number<double>> ||
                         std::is_same_v<T, Number<long long>> ||
@@ -817,10 +819,10 @@ namespace tkz {
             {"LIST", TokenType::LIST}, {"ARRAY", TokenType::ARRAY}, {"VOID", TokenType::VOID},
             {"ENUM", TokenType::ENUM}, {"CLASS", TokenType::CLASS}, {"STRUCT", TokenType::STRUCT},
             {"BOOL", TokenType::BOOL}, {"QBOOL", TokenType::QBOOL}, {"PLUS", TokenType::PLUS},
-            {"MINUS", TokenType::MINUS}, {"MUL", TokenType::MUL}, {"DIV", TokenType::DIV},
+            {"MINUS", TokenType::MINUS}, {"MUL", TokenType::MUL}, {"DIV", TokenType::DIV}, {"SIZEOF", TokenType::SIZEOF},
             {"POWER", TokenType::POWER}, {"LPAREN", TokenType::LPAREN}, {"RPAREN", TokenType::RPAREN},
             {"SEMICOLON", TokenType::SEMICOLON}, {"DEF", TokenType::DEF}, {"INCREMENT", TokenType::INCREMENT},
-            {"DECREMENT", TokenType::DECREMENT}, {"IDENTIFIER", TokenType::IDENTIFIER}, 
+            {"DECREMENT", TokenType::DECREMENT}, {"IDENTIFIER", TokenType::IDENTIFIER}, {"ADDR_T", TokenType::ADDR_T},
             {"KEYWORD", TokenType::KEYWORD}, {"EQ", TokenType::EQ}, {"EOFT", TokenType::EOFT}, {"ARROW", TokenType::ARROW}
         };
 
@@ -861,6 +863,9 @@ namespace tkz {
             return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
         if (type == "long double")
             return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
+        if (type == "addr_t")
+            return AnyNode{NumberNode(Token(TokenType::ADDR_T, "0", pos))};
+        
         
         if (type == "string")
             return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};
@@ -1859,7 +1864,7 @@ namespace tkz {
             return this->qin_expr(); 
         }
         
-        if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE) {
+        if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T) {
             this->advance();
             return res.success(NumberNode(tok));
         }
@@ -2349,7 +2354,18 @@ namespace tkz {
                 std::make_unique<UnaryOpNode>(op, std::move(operand), false) 
             );
         }
+        if (current_tok.type == TokenType::SIZEOF) {
 
+            Token op = current_tok;
+            advance();
+
+            AnyNode operand = res.reg(this->factor());
+            if (res.error) return res.to_prs();
+
+            return res.success(
+                std::make_unique<UnaryOpNode>(op, std::move(operand), false) 
+            );
+        }
 
         return this->power();
     }
@@ -3836,6 +3852,7 @@ namespace tkz {
                     case TokenType::INT:     return UnionMember{ "int:"    + first_tok.value };
                     case TokenType::FLOAT:   return UnionMember{ "float:"  + first_tok.value };
                     case TokenType::DOUBLE:  return UnionMember{ "double:" + first_tok.value };
+                    case TokenType::ADDR_T:  return UnionMember{ "addr_t:" + first_tok.value };
                     case TokenType::CHAR:    return UnionMember{ "char:"   + first_tok.value };
                     case TokenType::BOOL:    return UnionMember{ "bool:"   + first_tok.value };
                     case TokenType::QBOOL:   return UnionMember{ "qbool:"  + first_tok.value };
@@ -3871,6 +3888,7 @@ namespace tkz {
                     tt == TokenType::INT       ||
                     tt == TokenType::FLOAT     ||
                     tt == TokenType::DOUBLE    ||
+                    tt == TokenType::ADDR_T    ||
                     tt == TokenType::BOOL      ||
                     tt == TokenType::QBOOL     ||
                     tt == TokenType::CHAR;
@@ -3960,6 +3978,7 @@ namespace tkz {
                     case TokenType::INT:     return "int:" + tok.value;
                     case TokenType::FLOAT:   return "float:" + tok.value;
                     case TokenType::DOUBLE:  return "double:" + tok.value;
+                    case TokenType::ADDR_T:  return "addr_t:" + tok.value;
                     case TokenType::CHAR:    return "char:" + tok.value;
                     case TokenType::BOOL:    return "bool:" + tok.value;
                     case TokenType::QBOOL:   return "qbool:" + tok.value;
@@ -4935,7 +4954,9 @@ namespace tkz {
     template class Number<int>;
     template class Number<float>;
     template class Number<double>;
-
+    template class Number<long long>;
+    template class Number<uintptr_t>;
+    template class Number<long double>;
 //////////////////////////////////////////////////////////////////
 // INTERPRETER //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
@@ -4988,6 +5009,7 @@ namespace tkz {
             } else if constexpr (std::is_same_v<T, QBoolValue>) {
                 return v.tval;
             } else if constexpr (std::is_same_v<T, Number<int>> || 
+                                std::is_same_v<T, Number<uintptr_t>> || 
                                 std::is_same_v<T, Number<float>> || 
                                 std::is_same_v<T, Number<double>> ||
                                 std::is_same_v<T, Number<short>> || 
@@ -5069,6 +5091,13 @@ namespace tkz {
             if (lit_kind == "int" && actual_type == "int") {
                 if (auto iv = std::get_if<Number<int>>(&val)) {
                     int lit_int = std::stoi(lit_val);
+                    return iv->value == lit_int;
+                }
+                return false;
+            }
+            if (lit_kind == "addr_t" && actual_type == "addr_t") {
+                if (auto iv = std::get_if<Number<uintptr_t>>(&val)) {
+                    uintptr_t lit_int = std::stoull(lit_val);
                     return iv->value == lit_int;
                 }
                 return false;
@@ -5245,6 +5274,7 @@ namespace tkz {
     }
     NumberVariant def_value_for_type(const std::string& type_name) {
         if (type_name == "int")    return Number<int>(0);
+        else if (type_name == "addr_t") return Number<uintptr_t>(0);
         else if (type_name == "float")  return Number<float>(0.0f);
         else if (type_name == "double") return Number<double>(0.0);
         else if (type_name == "string") return StringValue("");
@@ -5445,6 +5475,7 @@ namespace tkz {
             } else if constexpr (
                 std::is_same_v<T, Number<int>> ||
                 std::is_same_v<T, Number<float>> ||
+                std::is_same_v<T, Number<uintptr_t>> ||
                 std::is_same_v<T, Number<double>> ||
                 std::is_same_v<T, Number<long long>> ||
                 std::is_same_v<T, Number<long double>> ||
@@ -6152,6 +6183,12 @@ namespace tkz {
                 if (auto int_val = std::get_if<Number<int>>(&value)) {
                     value = Number<long long>(static_cast<long long>(int_val->value));
                     actualType = "long int";
+                }
+            }
+            if (declaredType == "addr_t" && actualType == "int") {
+                if (auto int_val = std::get_if<Number<int>>(&value)) {
+                    value = Number<long long>(static_cast<uintptr_t>(int_val->value));
+                    actualType = "addr_t";
                 }
             }
             
@@ -6866,6 +6903,12 @@ namespace tkz {
                                 if (width >= 0) ss << std::setw(width);
                                 ss << is_intVal->value;
                                 to_print += ss.str();
+                            } else if (auto is_addrtVal = std::get_if<Number<uintptr_t>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << is_addrtVal->value;
+                                to_print += ss.str();
                             } else {
                                 this->errors.push_back({RTError("QC-B002: qout(): i formater takes a int", get_pos(target_val)), "Error"});
                             } 
@@ -6976,8 +7019,14 @@ namespace tkz {
                                 if (width >= 0) ss << std::setw(width);
                                 ss << std::showbase << std::hex << is_intVal->value;
                                 to_print += ss.str();
+                            } else if (auto is_addrVal = std::get_if<Number<uintptr_t>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << std::showbase << std::hex << is_addrVal->value;
+                                to_print += ss.str();
                             } else {
-                                this->errors.push_back({RTError("QC-B002: qout(): x formater takes a int", get_pos(target_val)), "Error"});
+                                this->errors.push_back({RTError("QC-B002: qout(): x formater takes a int or addr_t", get_pos(target_val)), "Error"});
                             }   
                             break;  
                         case 'o':
@@ -6989,8 +7038,14 @@ namespace tkz {
                                 if (width >= 0) ss << std::setw(width);
                                 ss << std::showbase << std::oct << is_intVal->value;
                                 to_print += ss.str();
+                            } else if (auto is_addrVal = std::get_if<Number<uintptr_t>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                ss << std::showbase << std::oct << is_addrVal->value;
+                                to_print += ss.str();
                             } else {
-                                this->errors.push_back({RTError("QC-B002: qout(): o formater takes a int", get_pos(target_val)), "Error"});
+                                this->errors.push_back({RTError("QC-B002: qout(): o formater takes a int or address", get_pos(target_val)), "Error"});
                             }   
                             break;
                         case 'e':
@@ -7002,6 +7057,13 @@ namespace tkz {
                                 if (width >= 0) ss << std::setw(width);
                                 if (precision >= 0) ss << std::setprecision(precision);
                                 ss << std::scientific << is_intVal->value;
+                                to_print += ss.str();
+                            } else if (auto is_addrVal = std::get_if<Number<uintptr_t>>(&args[current_arg])) {
+                                std::stringstream ss;
+                                if (zero_pad) ss << std::setfill('0');
+                                if (width >= 0) ss << std::setw(width);
+                                if (precision >= 0) ss << std::setprecision(precision);
+                                ss << std::scientific << is_addrVal->value;
                                 to_print += ss.str();
                             } else if (auto is_dobVal = std::get_if<Number<double>>(&args[current_arg])) {
                                 std::stringstream ss;
@@ -7186,6 +7248,8 @@ namespace tkz {
                     return Number<int>(static_cast<int>(fv->value)).set_pos(fv->pos);
                 } else if (auto dv = std::get_if<Number<double>>(&cur_val)) {
                     return Number<int>(static_cast<int>(dv->value)).set_pos(dv->pos);
+                } else if (auto av = std::get_if<Number<uintptr_t>>(&cur_val)) {
+                    return Number<int>(static_cast<int>(av->value)).set_pos(av->pos);
                 } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
                     return *iv;
                 } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
@@ -7229,6 +7293,8 @@ namespace tkz {
                     return Number<float>(static_cast<float>(dv->value)).set_pos(dv->pos);
                 } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
                     return Number<float>(static_cast<float>(iv->value)).set_pos(iv->pos);
+                } else if (auto av = std::get_if<Number<uintptr_t>>(&cur_val)) {
+                    return Number<float>(static_cast<float>(av->value)).set_pos(av->pos);
                 } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
                     try {
                         return Number<float>(std::stof(sv->value)).set_pos(sv->pos);
@@ -7259,6 +7325,8 @@ namespace tkz {
                     return *dv;
                 } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
                     return Number<double>(static_cast<double>(iv->value)).set_pos(iv->pos);
+                } else if (auto av = std::get_if<Number<uintptr_t>>(&cur_val)) {
+                    return Number<double>(static_cast<double>(av->value)).set_pos(av->pos);
                 } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
                     try {
                         return Number<double>(std::stod(sv->value)).set_pos(sv->pos);
@@ -7313,6 +7381,8 @@ namespace tkz {
                     return StringValue(std::to_string(dv->value)).set_pos(dv->pos);
                 } else if (auto iv = std::get_if<Number<int>>(&cur_val)) {
                     return StringValue(std::to_string(iv->value)).set_pos(iv->pos);
+                } else if (auto av = std::get_if<Number<uintptr_t>>(&cur_val)) {
+                    return StringValue(std::to_string(av->value)).set_pos(av->pos);
                 } else if (auto sv = std::get_if<StringValue>(&cur_val)) {
                     return *sv;
                 } else if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
@@ -7688,26 +7758,6 @@ namespace tkz {
                 }
 
                 this->errors.push_back({RTError("QC-B002: replace() requires (string, string, string)", get_pos(str_val)), "Error"});
-            }
-            if (func_name == "sizeof") {
-                if (node->arg_nodes.size() != 1) {
-                    throw RTError("QC-B001: sizeof expects exactly 1 argument", Position("", "", 0, 0, 0));
-                }
-                NumberVariant arg_val = this->process(node->arg_nodes.front());
-                
-                auto str_val = std::get_if<StringValue>(&arg_val);
-                if (!str_val) {
-                    throw RTError("QC-B002: sizeof expects a string argument (type name)", Position("", "", 0, 0, 0));
-                }
-                
-                std::string type = str_val->value;
-                size_t size = get_sizeof_type(type);
-                
-                if (size == 0) {
-                    throw RTError("QC-B002: Unknown type: " + type, Position("", "", 0, 0, 0));
-                }
-                
-                return Number<int>(size);
             }
             if (func_name == "malloc") {
                 if (node->arg_nodes.size() != 1) {
@@ -8423,7 +8473,9 @@ namespace tkz {
         if (node.tok.type == TokenType::DOUBLE) {
             return Number<double>(std::stod(node.tok.value));
         }
-        
+        if (node.tok.type == TokenType::ADDR_T) {
+            return Number<uintptr_t>(std::stoull(node.tok.value));
+        }
         return Number<int>(0);
     }
 
@@ -8630,13 +8682,16 @@ namespace tkz {
                     auto type = this->context->get_type_name(v);
                     NumberVariant val;
                     
-                    if (type == "int" || type == "short int" || type == "long int") {
+                    if (type == "int" || type == "short int" || type == "long int" || type == "addr_t") {
                         try {
                             if (type == "short int") {
                                 val = Number<short>(static_cast<short>(std::stoi(input)));
                             }
                             else if (type == "long int") {
                                 val = Number<long long>(std::stoll(input));
+                            }
+                            else if (type == "addr_t") {
+                                val = Number<uintptr_t>(std::stoull(input));
                             }
                             else {
                                 val = Number<int>(std::stoi(input));
@@ -9146,6 +9201,7 @@ namespace tkz {
                     std::is_same_v<TL, Number<int>>        ||
                     std::is_same_v<TL, Number<long long>>  ||
                     std::is_same_v<TL, Number<float>>      ||
+                    std::is_same_v<TL, Number<uintptr_t>>  ||
                     std::is_same_v<TL, Number<double>>     ||
                     std::is_same_v<TL, Number<long double>>
                 ) {
@@ -9154,6 +9210,7 @@ namespace tkz {
                         std::is_same_v<TR, Number<int>>        ||
                         std::is_same_v<TR, Number<long long>>  ||
                         std::is_same_v<TR, Number<float>>      ||
+                        std::is_same_v<TR, Number<uintptr_t>>  ||
                         std::is_same_v<TR, Number<double>>     ||
                         std::is_same_v<TR, Number<long double>>
                     ) {
@@ -9510,6 +9567,20 @@ namespace tkz {
                 "Error"});
             return VoidValue();
         }
+        if (node->op_tok.type == TokenType::SIZEOF) {
+            NumberVariant arg_val = this->process(node->node);
+            
+            auto str_val = std::get_if<StringValue>(&arg_val);
+            if (!str_val) {
+                throw RTError("QC-B002: sizeof expects a string argument (type name)", Position("", "", 0, 0, 0));
+            }
+            std::string type = str_val->value;
+            size_t size = get_sizeof_type(type);
+            if (size == 0) {
+                throw RTError("QC-B002: Unknown type: " + type, Position("", "", 0, 0, 0));
+            }
+            return Number<int>(size);
+        }
         NumberVariant number = std::move(this->process(node->node));
 
         return std::move(std::visit([&node, this](const auto& n) -> NumberVariant {
@@ -9829,6 +9900,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, Number<int>>)    return arg.value;
                 if constexpr (std::is_same_v<T, Number<float>>)  return (int)arg.value;
                 if constexpr (std::is_same_v<T, Number<double>>) return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<long long>>)    return arg.value;
+                if constexpr (std::is_same_v<T, Number<uintptr_t>>)  return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<long double>>) return (int)arg.value;
                 this->errors.push_back({RTError("Index must be a number", Position()), "Error"});
                 return 0;
             }, index_val);
@@ -9865,6 +9939,9 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, Number<int>>)    return arg.value;
                 if constexpr (std::is_same_v<T, Number<float>>)  return (int)arg.value;
                 if constexpr (std::is_same_v<T, Number<double>>) return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<long long>>)    return arg.value;
+                if constexpr (std::is_same_v<T, Number<uintptr_t>>)  return (int)arg.value;
+                if constexpr (std::is_same_v<T, Number<long double>>) return (int)arg.value;
                 this->errors.push_back({RTError("Index must be a number", Position()), "Error"});
                 return 0;
             }, index_val);
@@ -10134,6 +10211,9 @@ namespace tkz {
     NumberVariant make_value_from_type_atom(const std::string& atom) {
         if (atom.rfind("int:", 0) == 0) {
             return Number<int>(std::stoi(atom.substr(4)));
+        }
+        if (atom.rfind("addr_t:", 0) == 0) {
+            return Number<uintptr_t>(std::stoull(atom.substr(7)));
         }
 
         if (atom.rfind("float:", 0) == 0) {
@@ -10670,6 +10750,7 @@ namespace tkz {
         if (type == "float")        return builder->getFloatTy();
         if (type == "double")  return builder->getDoubleTy();
         if (type == "long double")   return builder->getDoubleTy();
+        if (type == "addr_t")      return builder->getIntNTy(getPtrSize());
         if (type == "char")        return builder->getInt8Ty();
         if (type == "bool")        return builder->getInt1Ty();
         if (type == "qbool")       return builder->getIntNTy(2);
@@ -11088,19 +11169,25 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
 
             switch (num->tok.type) {
             case TokenType::INT: {
-                int v = std::stoi(text);
-                return builder->getInt32(v);
+                long long v = std::stoll(text);
+                if (v >= std::numeric_limits<int32_t>::min() && v <= std::numeric_limits<int32_t>::max()) {
+                    return builder->getInt32(static_cast<int32_t>(v));
+                }
+                return builder->getInt64(static_cast<int64_t>(v));
+            }
+            case TokenType::ADDR_T: {
+                unsigned long long v = std::stoull(text);
+                return llvm::ConstantInt::get(builder->getContext(), llvm::APInt(getPtrSize(), v));
             }
             case TokenType::FLOAT: {
                 std::string t = text;
-                if (!t.empty() && (t.back() == 'f' || t.back() == 'F')) t.pop_back();
+                if (!t.empty() && (std::tolower(t.back()) == 'f')) t.pop_back();
                 float v = std::stof(t);
                 return llvm::ConstantFP::get(builder->getFloatTy(), v);
             }
             case TokenType::DOUBLE: {
-                double v = std::stod(text);
-                llvm::Type* ty = builder->getDoubleTy();
-                return llvm::ConstantFP::get(ty, v);
+                long double v = std::stold(text);
+                return llvm::ConstantFP::get(builder->getDoubleTy(), static_cast<double>(v));
             }
             default:
                 int v = std::stoi(text);
@@ -11199,6 +11286,20 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         if (!fn) {
                             auto* fnTy = llvm::FunctionType::get(builder->getInt32Ty(), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_int_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(16)) {
+                        llvm::Function* fn = module->getFunction("qc_to_short_int_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt16Ty(), {llvm::PointerType::get(context, 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_short_int_from_string", module.get());
+                        }
+                        converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(64)) {
+                        llvm::Function* fn = module->getFunction("qc_to_long_int_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getInt64Ty(), {llvm::PointerType::get(context, 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_to_long_int_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isFloatTy()) {
@@ -11757,6 +11858,26 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         return builder->CreateCall(fn, { v }, "fstr_i32");
                     }
+                    if (ty->isIntegerTy(16)) {
+                        auto* fn = module->getFunction("qc_to_string_short_int");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt16Ty() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_short_int", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_i16");
+                    }
+                    if (ty->isIntegerTy(64)) {
+                        auto* fn = module->getFunction("qc_to_string_long_int");
+                        if (!fn) {
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy  = llvm::FunctionType::get(i8Ptr, { builder->getInt64Ty() }, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                                                        "qc_to_string_long_int", module.get());
+                        }
+                        return builder->CreateCall(fn, { v }, "fstr_i64");
+                    }
                     if (ty->isDoubleTy()) {
                         auto* fn = module->getFunction("qc_to_string_double");
                         if (!fn) {
@@ -11820,6 +11941,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         int elemTypeCode = -1;
                         if (checkTy->isIntegerTy(32)) elemTypeCode = 0;
+                        else if (checkTy->isIntegerTy(64)) elemTypeCode = 0;
+                        else if (checkTy->isIntegerTy(16)) elemTypeCode = 0;
                         else if (checkTy->isFloatTy()) elemTypeCode = 1;
                         else if (checkTy->isDoubleTy()) elemTypeCode = 2;
                         else if (checkTy->isIntegerTy(8)) elemTypeCode = 3;
@@ -12182,6 +12305,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         std::string rType = getExpressionType((*bin)->right_node);
 
                         if (lType.ends_with("*") || lType == "@nullptr") {
+                            if (lType.starts_with("void*")) {
+                                cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
+                                return nullptr;
+                            }
                             if (rType != "int") {
                                 cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on ptr lhs and int rhs, got " + lType + " and " + rType);
                                 return nullptr;
@@ -12228,6 +12355,14 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         std::string rType = getExpressionType((*bin)->right_node);
 
                         if ((lType.ends_with("*") || lType == "@nullptr") && (rType.ends_with("*") || rType == "@nullptr")) {
+                            if (lType.starts_with("void*")) {
+                                cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
+                                return nullptr;
+                            }
+                            if (rType.starts_with("void*")) {
+                                cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
+                                return nullptr;
+                            }
                             if (lType != rType) {
                                 cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on the same lhs and rhs type, got " + lType + " and " + rType);
                                 return nullptr;
@@ -13239,6 +13374,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             }
             llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, "assign_lhs_val");
             llvm::Value* rhsVal = emitExpr((*asn)->value);
+            std::string rhsType = getExpressionType((*asn)->value);
             if (!rhsVal) {
                 cg_error((*asn)->op_tok.pos, "Failed to compile right-hand side of assignment");
                 return nullptr;
@@ -13296,8 +13432,21 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         rhsVal = builder->CreateFPToSI(rhsVal, destTy, "f2i");
                         srcTy = destTy;
                     } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
-                        rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
-                        srcTy = rhsVal->getType();
+                        if (lhsTypeStr.ends_with("&")) {
+                            rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
+                            srcTy = rhsVal->getType();
+                        } else {
+                            cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                            return nullptr;
+                        }
+                    } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
+                        if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr"){
+
+                        } else if (lhsTypeStr == rhsType) {
+                        } else {
+                            cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                            return nullptr;
+                        }
                     }
                 }
             }
@@ -13338,8 +13487,18 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 "Cannot convert floating point to integer (loses precision)");
                         return nullptr;
                     } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
-                        rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
-                        srcTy = rhsVal->getType();
+                        if (lhsTypeStr.ends_with("&")) {
+                            rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
+                            srcTy = rhsVal->getType();
+                        }
+                    } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
+                        if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr"){
+
+                        } else if (lhsTypeStr == rhsType) {
+                        } else {
+                            cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                            return nullptr;
+                        }
                     }
                     else {
                         cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
@@ -13576,8 +13735,24 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
                     return nullptr;
                 }
+                if (type.starts_with("void*")) {
+                    cg_error((*unary)->op_tok.pos, "you canot dereference void*");
+                    return nullptr;
+                }
                 std::string baseType = type.substr(0, type.size() - 1);
                 return builder->CreateLoad(llvmTypeFor(baseType), val, "deref");
+            }
+            if ((*unary)->op_tok.type == TokenType::SIZEOF) {
+                const llvm::DataLayout &dl = module->getDataLayout();
+                uint64_t size;
+                if (StringNode* val = std::get_if<StringNode>(&(*unary)->node)) {
+                    size = dl.getTypeAllocSize(llvmTypeFor(val->tok.value));
+                } else {
+                    size = dl.getTypeAllocSize(emitExpr((*unary)->node)->getType());
+                }
+                unsigned ptrBitWidth = dl.getPointerSizeInBits();
+                llvm::IntegerType* addrType = llvm::IntegerType::get(context, ptrBitWidth);
+                return llvm::ConstantInt::get(addrType, size);
             }
         }
         else if (auto fnPtr = std::get_if<std::shared_ptr<FuncDefNode>>(&node)) {
@@ -13859,6 +14034,11 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     {"fclose", "qc_fclose"},
                     {"fread", "qc_fread"},
                     {"fwrite", "qc_fwrite"},
+                    {"malloc", "qc_malloc"},
+                    {"calloc", "qc_calloc"},
+                    {"free", "qc_free"},
+                    {"realloc", "qc_realloc"},
+                    {"mapped_ptr", "qc_mapped_ptr"}
                 };
                 
                 auto it = builtins.find(funcName);
@@ -13919,6 +14099,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
+                            if (resolveVarType(varName) != "") {
+                                return builder->CreateGlobalStringPtr(resolveVarType(varName));
+                            }
                             if (hasArrayType(varName)) {
                                 return builder->CreateGlobalStringPtr(arrayTypeStrings[varName] + "[]");
                             }
@@ -13940,6 +14123,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         std::string typeName = "unknown";
                         if (argTy->isIntegerTy(32)) typeName = "int";
+                        else if (argTy->isIntegerTy(64)) typeName = "uintptr_t";
+                        if (argTy->isIntegerTy(16)) typeName = "short int";
                         else if (argTy->isFloatTy()) typeName = "float";
                         else if (argTy->isDoubleTy()) typeName = "double";
                         else if (argTy->isIntegerTy(8)) typeName = "char";
@@ -14068,13 +14253,23 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         llvm::Function* fmtInt = module->getFunction("qc_fmt_int");
                         if (!fmtInt) {
-                            llvm::FunctionType* fmtIntFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            llvm::FunctionType* fmtIntFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
                             fmtInt = llvm::Function::Create(
                                     fmtIntFnTy,
                                     llvm::Function::ExternalLinkage,
                                     "qc_fmt_int",
                                     module.get()
                                 );
+                        }
+                        llvm::Function* fmtUInt = module->getFunction("qc_fmt_unsigned_int");
+                        if (!fmtUInt) {
+                            llvm::FunctionType* fmtUIntFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt32Ty() }, false);
+                            fmtUInt = llvm::Function::Create(
+                                fmtUIntFnTy,
+                                llvm::Function::ExternalLinkage,
+                                "qc_fmt_unsigned_int",
+                                module.get()
+                            );
                         }
                         llvm::Function* fmtFloat = module->getFunction("qc_fmt_float");
                         if (!fmtFloat) {
@@ -14127,7 +14322,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                 );
                         }
                         llvm::Function* fmtPtr = module->getFunction("qc_fmt_ptr");
-                        if (!fmtStr) {
+                        if (!fmtPtr) {
                             llvm::FunctionType* fmtPtrFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { llvm::PointerType::get(context, 0), builder->getInt32Ty(), builder->getInt1Ty() }, false);
                             fmtPtr = llvm::Function::Create(
                                     fmtPtrFnTy,
@@ -14138,7 +14333,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         llvm::Function* fmtOctal = module->getFunction("qc_fmt_octal");
                         if (!fmtOctal) {
-                            llvm::FunctionType* fmtOctalFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            llvm::FunctionType* fmtOctalFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
                             fmtOctal = llvm::Function::Create(
                                     fmtOctalFnTy,
                                     llvm::Function::ExternalLinkage,
@@ -14148,7 +14343,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         }
                         llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
                         if (!fmtHex) {
-                            llvm::FunctionType* fmtHexFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
+                            llvm::FunctionType* fmtHexFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), { builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt1Ty() }, false);
                             fmtHex = llvm::Function::Create(
                                     fmtHexFnTy,
                                     llvm::Function::ExternalLinkage,
@@ -14231,14 +14426,53 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         break;
                                     }
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
-                                    if (!itgVal->getType()->isIntegerTy(32)) {
-                                        cg_error((*varAccess)->var_name_tok.pos, "i formater takes a int: " + funcName);
-                                        return nullptr;
+                                    llvm::Value* bigIntSigned = nullptr;
+                                    if (!itgVal->getType()->isIntegerTy()) { 
+                                        cg_error((*varAccess)->var_name_tok.pos, "%i formater takes an integer");
+                                        return nullptr; 
+                                    }
+                                    llvm::Type* i64Ty = builder->getInt64Ty();
+                                    unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
+
+                                    if (bitWidth < 64) {
+                                        bigIntSigned = builder->CreateSExt(itgVal, i64Ty);
+                                    } else if (bitWidth > 64) {
+                                        bigIntSigned = builder->CreateTrunc(itgVal, i64Ty);
+                                    } else {
+                                        bigIntSigned = itgVal;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
                                     to_print = "";
-                                    builder->CreateCall(printString, { builder->CreateCall(fmtInt, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtInt, { bigIntSigned, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    break;
+                                }
+                                case 'u': {
+                                    current_arg++;
+                                    if (goodArgs.size() - 1 < current_arg) {
+                                        cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                        break;
+                                    }
+                                    llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
+                                    llvm::Value* bigIntSigned = nullptr;
+                                    if (!itgVal->getType()->isIntegerTy()) { 
+                                        cg_error((*varAccess)->var_name_tok.pos, "%u formater takes an int-like (int, long int, short int, addr_t)");
+                                        return nullptr; 
+                                    }
+                                    llvm::Type* i64Ty = builder->getInt64Ty();
+                                    unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
+
+                                    if (bitWidth < 64) {
+                                        bigIntSigned = builder->CreateSExt(itgVal, i64Ty);
+                                    } else if (bitWidth > 64) {
+                                        bigIntSigned = builder->CreateTrunc(itgVal, i64Ty);
+                                    } else {
+                                        bigIntSigned = itgVal;
+                                    }
+                                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
+                                    builder->CreateCall(printString, { strVal });
+                                    to_print = "";
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtUInt, { bigIntSigned, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                     break;
                                 }
                                 case 's': {
@@ -14414,14 +14648,25 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         break;
                                     }
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
-                                    if (!itgVal->getType()->isIntegerTy(32)) {
+                                    llvm::Value* bigIntUnsigned;
+                                    if (!itgVal->getType()->isIntegerTy()) {
                                         cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName);
                                         return nullptr;
+                                    }
+                                    llvm::Type* i64Ty = builder->getInt64Ty();
+                                    unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
+
+                                    if (bitWidth < 64) {
+                                        bigIntUnsigned = builder->CreateZExt(itgVal, i64Ty);
+                                    } else if (bitWidth > 64) {
+                                        bigIntUnsigned = builder->CreateTrunc(itgVal, i64Ty);
+                                    } else {
+                                        bigIntUnsigned = itgVal;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
                                     to_print = "";
-                                    builder->CreateCall(printString, { builder->CreateCall(fmtHex, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtHex, { bigIntUnsigned, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                     break;
                                 }
                                 case 'o': {
@@ -14431,14 +14676,25 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         break;
                                     }
                                     llvm::Value* itgVal = emitExpr(goodArgs[current_arg]);
-                                    if (!itgVal->getType()->isIntegerTy(32)) {
+                                    if (!itgVal->getType()->isIntegerTy()) {
                                         cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName);
                                         return nullptr;
+                                    }
+                                    llvm::Type* i64Ty = builder->getInt64Ty();
+                                    llvm::Value* bigIntUnsigned;
+                                    unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
+
+                                    if (bitWidth < 64) {
+                                        bigIntUnsigned = builder->CreateZExt(itgVal, i64Ty);
+                                    } else if (bitWidth > 64) {
+                                        bigIntUnsigned = builder->CreateTrunc(itgVal, i64Ty);
+                                    } else {
+                                        bigIntUnsigned = itgVal;
                                     }
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
                                     to_print = "";
-                                    builder->CreateCall(printString, { builder->CreateCall(fmtOctal, { itgVal, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    builder->CreateCall(printString, { builder->CreateCall(fmtOctal, { bigIntUnsigned, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                     break;
                                 }
                                 case 'p': {
@@ -14465,7 +14721,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                         return nullptr;
                                     }
                                     llvm::Value* decimalVal = emitExpr(goodArgs[current_arg]);
-                                    if (!decimalVal->getType()->isFloatTy() && !decimalVal->getType()->isDoubleTy() && !decimalVal->getType()->isIntegerTy(32)) {
+                                    if (!decimalVal->getType()->isFloatTy() && !decimalVal->getType()->isDoubleTy() && !decimalVal->getType()->isIntegerTy()) {
                                         cg_error((*varAccess)->var_name_tok.pos, "e formater takes a number: " + funcName);
                                     }
                                     if (decimalVal->getType()->isIntegerTy()) {
@@ -14492,8 +14748,8 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
                                     builder->CreateCall(printString, { strVal });
                                     to_print = "";
-                                    if (aTy->isIntegerTy(32)) {
-                                        builder->CreateCall(printString, { builder->CreateCall(fmtInt, { val, llvm::ConstantInt::get(builder->getInt32Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
+                                    if (aTy->isIntegerTy(32) || aTy->isIntegerTy(64) || aTy->isIntegerTy(16)) {
+                                        builder->CreateCall(printString, { builder->CreateCall(fmtInt, { builder->CreateZExt(val, builder->getInt64Ty()), llvm::ConstantInt::get(builder->getInt64Ty(), width), llvm::ConstantInt::get(builder->getInt32Ty(), precision), llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                         break;
                                     }
                                     if (auto structTy = llvm::dyn_cast<llvm::StructType>(aTy)) {
@@ -14701,6 +14957,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
                 if (ptrTy == "@nullptr") {
                     cg_error(Position(), "Attempted to dereference nullptr");
+                    return nullptr;
+                }
+                if (ptrTy.starts_with("void*")) {
+                    cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
                     return nullptr;
                 }
                 std::string valueTy = getExpressionType((*arrAcc)->indices[0]);
@@ -18222,6 +18482,10 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         cg_error(Position(), "Attempted to dereference nullptr");
                         return;
                     }
+                    if (ptrTy.starts_with("void*")) {
+                        cg_error(Position(), "You cannot dereference or indice void*");
+                        return;
+                    }
                     std::string valueTy = getExpressionType((*arrAcc)->indices[0]);
                     if (valueTy != "int") {
                         cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
@@ -19619,22 +19883,70 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
         std::string num = "";
         int dot_count = 0;
         bool is_float = false;
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".f")) {
-            if (this->current_char == '.') {
-                if (dot_count == 1) {
+        bool is_octal = false;
+        bool is_binary = false;
+        bool is_hex = false;
+        if (this->current_char == '0') {
+            switch (this->text[this->pos.index + 1]) {
+                case 'x':
+                case 'X':
+                    is_hex = true;
+                    this->advance();
                     this->advance();
                     break;
-                }
-                dot_count ++;
-                num += ".";
-                this->advance();
-            } else if (this->current_char == 'f') {
-                is_float = true;
-                this->advance();
-                break;
-            } else {
+                case 'o':
+                case 'O':
+                    is_octal = true;
+                    this->advance();
+                    this->advance();
+                    break;
+                case 'b':
+                case 'B':
+                    is_binary = true;
+                    this->advance();
+                    this->advance();
+                    break;
+            }
+        }
+        if (is_hex) {
+            while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + "abcdefABCDEF")) {
                 num += this->current_char;
                 this->advance();
+            }
+            unsigned long long val = std::stoull(num, nullptr, 16);
+            return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
+        } else if (is_octal) {
+            while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 8) {
+                num += this->current_char;
+                this->advance();
+            }
+            unsigned long long val = std::stoull(num, nullptr, 8);
+            return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
+        } else if (is_binary) {
+            while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 2) {
+                num += this->current_char;
+                this->advance();
+            }
+            unsigned long long val = std::stoull(num, nullptr, 2);
+            return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
+        } else {
+            while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".f")) {
+                if (this->current_char == '.') {
+                    if (dot_count == 1 || is_hex || is_binary || is_octal) {
+                        this->advance();
+                        break;
+                    }
+                    dot_count ++;
+                    num += ".";
+                    this->advance();
+                } else if (this->current_char == 'f') {
+                    is_float = true;
+                    this->advance();
+                    break;
+                } else {
+                    num += this->current_char;
+                    this->advance();
+                }
             }
         }
         if (dot_count == 1) {
@@ -19662,7 +19974,7 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
             id == "list" || id == "foreach" || id == "do" || id == "in" || id == "map" || 
             id == "type" || id == "public" || id == "protected" || id == "private" || id == "function" ||
             id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" ||
-            id == "final" ||id == "try" || id == "catch" || id == "nullptr") {
+            id == "final" ||id == "try" || id == "catch" || id == "nullptr" || id == "addr_t") {
             return Token(TokenType::KEYWORD, id, start_pos);
         }
         if (id == "true" || id == "false") {
@@ -19670,6 +19982,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
         }
         if (id == "qtrue" || id == "qfalse" || id == "both" || id == "none") {
             return Token(TokenType::QBOOL, id, start_pos);
+        }
+        if (id == "sizeof") {
+            return Token(TokenType::SIZEOF, id, start_pos);
         }
         return Token(TokenType::IDENTIFIER, id, start_pos);
     }

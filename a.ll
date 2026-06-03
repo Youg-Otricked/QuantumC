@@ -97,81 +97,99 @@ target triple = "x86_64-pc-linux-gnu"
 @.str.64 = private constant [7 x i8] c"x == 2\00"
 @.str.65 = private constant [11 x i8] c"ref swap y\00"
 @.str.66 = private constant [7 x i8] c"y == 1\00"
-@.str.67 = private constant [24 x i8] c"pointer property access\00"
-@.str.68 = private constant [23 x i8] c"(*n1.next).value == 20\00"
-@.str.69 = private constant [24 x i8] c"pointer property update\00"
-@.str.70 = private constant [15 x i8] c"n2.value == 42\00"
-@.str.71 = private constant [19 x i8] c"Success: n is null\00"
-@5 = private unnamed_addr constant [20 x i8] c"Success: n is null\00\00", align 1
-@.str.72 = private constant [23 x i8] c"Fail: n is not nullptr\00"
-@6 = private unnamed_addr constant [24 x i8] c"Fail: n is not nullptr\00\00", align 1
-@.str.73 = private constant [31 x i8] c"Success: real_node is not null\00"
-@7 = private unnamed_addr constant [32 x i8] c"Success: real_node is not null\00\00", align 1
-@.str.74 = private constant [27 x i8] c"expected rx to equal 12345\00"
-@.str.75 = private constant [12 x i8] c"rx == 12345\00"
-@.str.76 = private constant [26 x i8] c"expected x to equal 12345\00"
-@.str.77 = private constant [22 x i8] c"x = 12345; x == 12345\00"
-@.str.78 = private constant [26 x i8] c"expected x to equal 13579\00"
-@.str.79 = private constant [11 x i8] c"x == 13579\00"
-@.str.80 = private constant [19 x i8] c"expected x = 12345\00"
-@.str.81 = private constant [11 x i8] c"x == 12345\00"
-@8 = private unnamed_addr constant [4 x i8] c"int\00", align 1
-@.str.82 = private constant [4 x i8] c"int\00"
-@9 = private unnamed_addr constant [4 x i8] c"int\00", align 1
-@.str.83 = private constant [4 x i8] c"int\00"
-@.str.84 = private constant [19 x i8] c"expected x = 14814\00"
-@.str.85 = private constant [11 x i8] c"x == 14814\00"
-@.str.86 = private constant [24 x i8] c"expected pnt.x to be 22\00"
-@.str.87 = private constant [12 x i8] c"pnt.x == 22\00"
-@.str.88 = private constant [31 x i8] c"expected ptr_deref to be 14814\00"
-@.str.89 = private constant [19 x i8] c"ptr_deref == 14814\00"
-@.str.90 = private constant [25 x i8] c"expected *py to be 14937\00"
-@.str.91 = private constant [19 x i8] c"ptr_deref == 14814\00"
-@.str.92 = private constant [32 x i8] c"==============================\0A\00"
-@10 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
-@.str.93 = private constant [4 x i8] c"%s\0A\00"
-@11 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@12 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.94 = private constant [32 x i8] c"==============================\0A\00"
-@13 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
-@.str.95 = private constant [3 x i8] c"%s\00"
-@.str.96 = private constant [9 x i8] c"Failed: \00"
-@.str.97 = private constant [2 x i8] c"\0A\00"
-@14 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@15 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
-@.str.98 = private constant [3 x i8] c"%s\00"
-@.str.99 = private constant [9 x i8] c"Passed: \00"
-@.str.100 = private constant [2 x i8] c"\0A\00"
-@16 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@17 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
-@.str.101 = private constant [32 x i8] c"==============================\0A\00"
-@18 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
-@.str.102 = private constant [8 x i8] c"[FAIL]\0A\00"
-@19 = private unnamed_addr constant [9 x i8] c"[FAIL]\0A\00\00", align 1
-@.str.103 = private constant [8 x i8] c"[PASS]\0A\00"
-@20 = private unnamed_addr constant [9 x i8] c"[PASS]\0A\00\00", align 1
-@.str.104 = private constant [4 x i8] c": [\00"
-@.str.105 = private constant [2 x i8] c"/\00"
-@.str.106 = private constant [2 x i8] c"]\00"
-@.str.107 = private constant [4 x i8] c": [\00"
-@.str.108 = private constant [2 x i8] c"/\00"
-@.str.109 = private constant [2 x i8] c"]\00"
-@.str.110 = private constant [1 x i8] zeroinitializer
-@.str.111 = private constant [16 x i8] c"[FAIL] On call \00"
-@.str.112 = private constant [34 x i8] c": Expected condition to be true. \00"
-@.str.113 = private constant [39 x i8] c"[FAIL] Expected condition to be true. \00"
-@.str.114 = private constant [1 x i8] zeroinitializer
-@.str.115 = private constant [19 x i8] c"[SUCCESS] on call \00"
-@.str.116 = private constant [21 x i8] c": Condition was true\00"
-@.str.117 = private constant [29 x i8] c"[SUCCESS] Condition was true\00"
+@.str.67 = private constant [18 x i8] c"auto ptr doubling\00"
+@.str.68 = private constant [13 x i8] c"magic == 100\00"
+@.str.69 = private constant [24 x i8] c"pointer property access\00"
+@.str.70 = private constant [23 x i8] c"(*n1.next).value == 20\00"
+@.str.71 = private constant [24 x i8] c"pointer property update\00"
+@.str.72 = private constant [15 x i8] c"n2.value == 42\00"
+@.str.73 = private constant [15 x i8] c"%p, %p, %p, %i\00"
+@5 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@6 = private unnamed_addr constant [3 x i8] c", \00", align 1
+@7 = private unnamed_addr constant [3 x i8] c", \00", align 1
+@8 = private unnamed_addr constant [3 x i8] c", \00", align 1
+@9 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.74 = private constant [19 x i8] c"Success: n is null\00"
+@10 = private unnamed_addr constant [20 x i8] c"Success: n is null\00\00", align 1
+@.str.75 = private constant [23 x i8] c"Fail: n is not nullptr\00"
+@11 = private unnamed_addr constant [24 x i8] c"Fail: n is not nullptr\00\00", align 1
+@.str.76 = private constant [31 x i8] c"Success: real_node is not null\00"
+@12 = private unnamed_addr constant [32 x i8] c"Success: real_node is not null\00\00", align 1
+@.str.77 = private constant [20 x i8] c"Success: p[0] is 10\00"
+@13 = private unnamed_addr constant [21 x i8] c"Success: p[0] is 10\00\00", align 1
+@.str.78 = private constant [34 x i8] c"Success: Offset assignment worked\00"
+@14 = private unnamed_addr constant [35 x i8] c"Success: Offset assignment worked\00\00", align 1
+@.str.79 = private constant [31 x i8] c"Success: Pointer distance is 5\00"
+@15 = private unnamed_addr constant [32 x i8] c"Success: Pointer distance is 5\00\00", align 1
+@.str.80 = private constant [34 x i8] c"Success: nullptr + 10 is not null\00"
+@16 = private unnamed_addr constant [35 x i8] c"Success: nullptr + 10 is not null\00\00", align 1
+@.str.81 = private constant [30 x i8] c"Success: Loop indexing worked\00"
+@17 = private unnamed_addr constant [31 x i8] c"Success: Loop indexing worked\00\00", align 1
+@.str.82 = private constant [27 x i8] c"expected rx to equal 12345\00"
+@.str.83 = private constant [12 x i8] c"rx == 12345\00"
+@.str.84 = private constant [26 x i8] c"expected x to equal 12345\00"
+@.str.85 = private constant [22 x i8] c"x = 12345; x == 12345\00"
+@.str.86 = private constant [26 x i8] c"expected x to equal 13579\00"
+@.str.87 = private constant [11 x i8] c"x == 13579\00"
+@.str.88 = private constant [19 x i8] c"expected x = 12345\00"
+@.str.89 = private constant [11 x i8] c"x == 12345\00"
+@18 = private unnamed_addr constant [4 x i8] c"int\00", align 1
+@.str.90 = private constant [4 x i8] c"int\00"
+@19 = private unnamed_addr constant [4 x i8] c"int\00", align 1
+@.str.91 = private constant [4 x i8] c"int\00"
+@.str.92 = private constant [19 x i8] c"expected x = 14814\00"
+@.str.93 = private constant [11 x i8] c"x == 14814\00"
+@.str.94 = private constant [24 x i8] c"expected pnt.x to be 22\00"
+@.str.95 = private constant [12 x i8] c"pnt.x == 22\00"
+@.str.96 = private constant [31 x i8] c"expected ptr_deref to be 14814\00"
+@.str.97 = private constant [19 x i8] c"ptr_deref == 14814\00"
+@.str.98 = private constant [25 x i8] c"expected *py to be 14937\00"
+@.str.99 = private constant [19 x i8] c"ptr_deref == 14814\00"
+@.str.100 = private constant [32 x i8] c"==============================\0A\00"
+@20 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.101 = private constant [4 x i8] c"%s\0A\00"
+@21 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@22 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.102 = private constant [32 x i8] c"==============================\0A\00"
+@23 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.103 = private constant [3 x i8] c"%s\00"
+@.str.104 = private constant [9 x i8] c"Failed: \00"
+@.str.105 = private constant [2 x i8] c"\0A\00"
+@24 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@25 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.106 = private constant [3 x i8] c"%s\00"
+@.str.107 = private constant [9 x i8] c"Passed: \00"
+@.str.108 = private constant [2 x i8] c"\0A\00"
+@26 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@27 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.109 = private constant [32 x i8] c"==============================\0A\00"
+@28 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.110 = private constant [8 x i8] c"[FAIL]\0A\00"
+@29 = private unnamed_addr constant [9 x i8] c"[FAIL]\0A\00\00", align 1
+@.str.111 = private constant [8 x i8] c"[PASS]\0A\00"
+@30 = private unnamed_addr constant [9 x i8] c"[PASS]\0A\00\00", align 1
+@.str.112 = private constant [4 x i8] c": [\00"
+@.str.113 = private constant [2 x i8] c"/\00"
+@.str.114 = private constant [2 x i8] c"]\00"
+@.str.115 = private constant [4 x i8] c": [\00"
+@.str.116 = private constant [2 x i8] c"/\00"
+@.str.117 = private constant [2 x i8] c"]\00"
 @.str.118 = private constant [1 x i8] zeroinitializer
 @.str.119 = private constant [16 x i8] c"[FAIL] On call \00"
-@.str.120 = private constant [35 x i8] c": Expected condition to be false. \00"
-@.str.121 = private constant [40 x i8] c"[FAIL] Expected condition to be false. \00"
+@.str.120 = private constant [34 x i8] c": Expected condition to be true. \00"
+@.str.121 = private constant [39 x i8] c"[FAIL] Expected condition to be true. \00"
 @.str.122 = private constant [1 x i8] zeroinitializer
 @.str.123 = private constant [19 x i8] c"[SUCCESS] on call \00"
-@.str.124 = private constant [22 x i8] c": Condition was false\00"
-@.str.125 = private constant [30 x i8] c"[SUCCESS] Condition was false\00"
+@.str.124 = private constant [21 x i8] c": Condition was true\00"
+@.str.125 = private constant [29 x i8] c"[SUCCESS] Condition was true\00"
+@.str.126 = private constant [1 x i8] zeroinitializer
+@.str.127 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.128 = private constant [35 x i8] c": Expected condition to be false. \00"
+@.str.129 = private constant [40 x i8] c"[FAIL] Expected condition to be false. \00"
+@.str.130 = private constant [1 x i8] zeroinitializer
+@.str.131 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.132 = private constant [22 x i8] c": Condition was false\00"
+@.str.133 = private constant [30 x i8] c"[SUCCESS] Condition was false\00"
 
 ; Function Attrs: mustprogress noinline nounwind optnone uwtable
 define dso_local ptr @qc_fmt_int(i32 noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) #0 {
@@ -7884,22 +7902,22 @@ ifcont2:                                          ; preds = %foreach.end, %then
   %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
   %Failed = load i32, ptr %6, align 4
   %fstr_i32 = call ptr @qc_to_string_int(i32 %Failed)
-  %fstr_concat = call ptr @qc_string_concat(ptr @.str.96, ptr %fstr_i32)
-  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.97)
-  call void @qc_print_string(ptr @14)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.104, ptr %fstr_i32)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.105)
+  call void @qc_print_string(ptr @24)
   %7 = call ptr @qc_fmt_string(ptr %fstr_concat7, i32 -1, i1 false)
   call void @qc_print_string(ptr %7)
-  call void @qc_print_string(ptr @15)
+  call void @qc_print_string(ptr @25)
   %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
   %Passed = load i32, ptr %8, align 4
   %fstr_i328 = call ptr @qc_to_string_int(i32 %Passed)
-  %fstr_concat9 = call ptr @qc_string_concat(ptr @.str.99, ptr %fstr_i328)
-  %fstr_concat10 = call ptr @qc_string_concat(ptr %fstr_concat9, ptr @.str.100)
-  call void @qc_print_string(ptr @16)
+  %fstr_concat9 = call ptr @qc_string_concat(ptr @.str.107, ptr %fstr_i328)
+  %fstr_concat10 = call ptr @qc_string_concat(ptr %fstr_concat9, ptr @.str.108)
+  call void @qc_print_string(ptr @26)
   %9 = call ptr @qc_fmt_string(ptr %fstr_concat10, i32 -1, i1 false)
   call void @qc_print_string(ptr %9)
-  call void @qc_print_string(ptr @17)
-  call void @qc_print_string(ptr @18)
+  call void @qc_print_string(ptr @27)
+  call void @qc_print_string(ptr @28)
   %10 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
   %Failed11 = load i32, ptr %10, align 4
   %icmpgt12 = icmp sgt i32 %Failed11, 0
@@ -7913,12 +7931,12 @@ foreach.cond:                                     ; preds = %foreach.inc, %then1
 foreach.body:                                     ; preds = %foreach.cond
   %elem_ptr = call ptr @qc_list_get(ptr %Messages3, i32 %__foreach_i_message4)
   store ptr %elem_ptr, ptr %message, align 8
-  call void @qc_print_string(ptr @10)
+  call void @qc_print_string(ptr @20)
   %message5 = load ptr, ptr %message, align 8
-  call void @qc_print_string(ptr @11)
+  call void @qc_print_string(ptr @21)
   %11 = call ptr @qc_fmt_string(ptr %message5, i32 -1, i1 false)
   call void @qc_print_string(ptr %11)
-  call void @qc_print_string(ptr @12)
+  call void @qc_print_string(ptr @22)
   br label %foreach.inc
 
 foreach.inc:                                      ; preds = %foreach.body
@@ -7928,18 +7946,18 @@ foreach.inc:                                      ; preds = %foreach.body
   br label %foreach.cond
 
 foreach.end:                                      ; preds = %foreach.cond
-  call void @qc_print_string(ptr @13)
+  call void @qc_print_string(ptr @23)
   br label %ifcont2
 
 then13:                                           ; preds = %ifcont2
-  call void @qc_print_string(ptr @19)
+  call void @qc_print_string(ptr @29)
   br label %ifcont14
 
 ifcont14:                                         ; preds = %else, %then13
   br label %ifcont
 
 else:                                             ; preds = %ifcont2
-  call void @qc_print_string(ptr @20)
+  call void @qc_print_string(ptr @30)
   br label %ifcont14
 }
 
@@ -7964,13 +7982,13 @@ entry:
   %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
   %Ran3 = load i32, ptr %7, align 4
   %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
-  %fstr_concat = call ptr @qc_string_concat(ptr @.str.104, ptr %fstr_i32)
-  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.105)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.112, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.113)
   %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
   %Total = load i32, ptr %8, align 4
   %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
   %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
-  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.106)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.114)
   %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
   store ptr %str_concat, ptr %push_arg, align 8
   call void @qc_list_push(ptr %Messages, ptr %push_arg, i32 6)
@@ -7999,13 +8017,13 @@ entry:
   %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
   %Ran3 = load i32, ptr %7, align 4
   %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
-  %fstr_concat = call ptr @qc_string_concat(ptr @.str.107, ptr %fstr_i32)
-  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.108)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.115, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.116)
   %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
   %Total = load i32, ptr %8, align 4
   %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
   %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
-  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.109)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.117)
   %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
   store ptr %str_concat, ptr %push_arg, align 8
   call void @qc_list_push(ptr %Messages, ptr %push_arg, i32 6)
@@ -8026,65 +8044,6 @@ entry:
   %cond1 = load i1, ptr %cond, align 1
   %not = xor i1 %cond1, true
   br i1 %not, label %then, label %else
-
-then:                                             ; preds = %entry
-  %Call2 = load ptr, ptr %Call, align 8
-  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.110)
-  %5 = xor i1 %4, true
-  br i1 %5, label %then3, label %else5
-
-ifcont:                                           ; preds = %ifcont15, %ifcont4
-  ret i32 0
-
-else:                                             ; preds = %entry
-  %Call13 = load ptr, ptr %Call, align 8
-  %6 = call i1 @qc_string_eq(ptr %Call13, ptr @.str.114)
-  %7 = xor i1 %6, true
-  br i1 %7, label %then14, label %else16
-
-then3:                                            ; preds = %then
-  %Call6 = load ptr, ptr %Call, align 8
-  %fstr_concat = call ptr @qc_string_concat(ptr @.str.111, ptr %Call6)
-  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.112)
-  %FailMessage8 = load ptr, ptr %FailMessage, align 8
-  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
-  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat9)
-  br label %ifcont4
-
-ifcont4:                                          ; preds = %else5, %then3
-  br label %ifcont
-
-else5:                                            ; preds = %then
-  %FailMessage10 = load ptr, ptr %FailMessage, align 8
-  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.113, ptr %FailMessage10)
-  %Fail_result12 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat11)
-  br label %ifcont4
-
-then14:                                           ; preds = %else
-  %Call17 = load ptr, ptr %Call, align 8
-  %fstr_concat18 = call ptr @qc_string_concat(ptr @.str.115, ptr %Call17)
-  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.116)
-  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat19)
-  br label %ifcont15
-
-ifcont15:                                         ; preds = %else16, %then14
-  br label %ifcont
-
-else16:                                           ; preds = %else
-  %Success_result20 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr @.str.117)
-  br label %ifcont15
-}
-
-define i32 @"UnitTest::Test_AssertFalse"(ptr %0, i1 %1, ptr %2, ptr %3) {
-entry:
-  %Call = alloca ptr, align 8
-  %FailMessage = alloca ptr, align 8
-  %cond = alloca i1, align 1
-  store i1 %1, ptr %cond, align 1
-  store ptr %2, ptr %FailMessage, align 8
-  store ptr %3, ptr %Call, align 8
-  %cond1 = load i1, ptr %cond, align 1
-  br i1 %cond1, label %then, label %else
 
 then:                                             ; preds = %entry
   %Call2 = load ptr, ptr %Call, align 8
@@ -8131,6 +8090,65 @@ ifcont15:                                         ; preds = %else16, %then14
 
 else16:                                           ; preds = %else
   %Success_result20 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr @.str.125)
+  br label %ifcont15
+}
+
+define i32 @"UnitTest::Test_AssertFalse"(ptr %0, i1 %1, ptr %2, ptr %3) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  br i1 %cond1, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.126)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont15, %ifcont4
+  ret i32 0
+
+else:                                             ; preds = %entry
+  %Call13 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call13, ptr @.str.130)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then14, label %else16
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.127, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.128)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.129, ptr %FailMessage10)
+  %Fail_result12 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then14:                                           ; preds = %else
+  %Call17 = load ptr, ptr %Call, align 8
+  %fstr_concat18 = call ptr @qc_string_concat(ptr @.str.131, ptr %Call17)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.132)
+  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat19)
+  br label %ifcont15
+
+ifcont15:                                         ; preds = %else16, %then14
+  br label %ifcont
+
+else16:                                           ; preds = %else
+  %Success_result20 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr @.str.133)
   br label %ifcont15
 }
 
@@ -8223,21 +8241,39 @@ entry:
   ret i32 0
 }
 
+define i32 @autoPointer(ptr %p) {
+entry:
+  %p1 = alloca ptr, align 8
+  store ptr %p, ptr %p1, align 8
+  %p2 = load ptr, ptr %p1, align 8
+  %assign_lhs_val = load i32, ptr %p2, align 4
+  %p3 = load ptr, ptr %p1, align 8
+  %p4 = load ptr, ptr %p1, align 8
+  %deref = load i32, ptr %p4, align 4
+  %mul = mul i32 %deref, 2
+  store i32 %mul, ptr %p2, align 4
+  ret i32 0
+}
+
 define i32 @TESTESTESTESTESTEST() {
 entry:
-  %temp_obj25 = alloca %Node, align 8
+  %ptr_ptr_ptr = alloca ptr, align 8
+  %ptr_ptr = alloca ptr, align 8
+  %ptr = alloca ptr, align 8
+  %temp_obj30 = alloca %Node, align 8
+  %temp_obj26 = alloca %Node, align 8
   %temp_obj21 = alloca %Node, align 8
-  %temp_obj16 = alloca %Node, align 8
   %nextVal = alloca i32, align 4
   %temp_obj = alloca %Node, align 8
   %temp = alloca ptr, align 8
   %n2 = alloca %Node, align 8
   %n1 = alloca %Node, align 8
+  %magic = alloca i32, align 4
   %y = alloca i32, align 4
   %x = alloca i32, align 4
   %val = alloca i32, align 4
   %test = alloca %"UnitTest::Test", align 8
-  call void @"UnitTest::Test_Test"(ptr %test, i32 5)
+  call void @"UnitTest::Test_Test"(ptr %test, i32 6)
   store i32 10, ptr %val, align 4
   %val1 = load i32, ptr %val, align 4
   %calltmp = call i32 @increment(ptr %val)
@@ -8253,38 +8289,95 @@ entry:
   %test8 = load %"UnitTest::Test", ptr %test, align 8
   %y9 = load i32, ptr %y, align 4
   %AssertEqual_result10 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 1, i32 %y9, ptr @.str.65, ptr @.str.66)
+  store i32 50, ptr %magic, align 4
+  %magic11 = load i32, ptr %magic, align 4
+  %calltmp12 = call i32 @autoPointer(ptr %magic)
+  %test13 = load %"UnitTest::Test", ptr %test, align 8
+  %magic14 = load i32, ptr %magic, align 4
+  %AssertEqual_result15 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 100, i32 %magic14, ptr @.str.67, ptr @.str.68)
   call void @Node_Node(ptr %n1, i32 10)
   call void @Node_Node(ptr %n2, i32 20)
-  %n111 = load %Node, ptr %n1, align 8
-  %n212 = load %Node, ptr %n2, align 8
+  %n116 = load %Node, ptr %n1, align 8
+  %n217 = load %Node, ptr %n2, align 8
   %setNext_result = call i32 @Node_setNext(ptr %n1, ptr %n2)
-  %n113 = load %Node, ptr %n1, align 8
-  store %Node %n113, ptr %temp_obj, align 8
+  %n118 = load %Node, ptr %n1, align 8
+  store %Node %n118, ptr %temp_obj, align 8
   %0 = getelementptr inbounds nuw %Node, ptr %temp_obj, i32 0, i32 1
   %next = load ptr, ptr %0, align 8
   store ptr %next, ptr %temp, align 8
-  %temp14 = load ptr, ptr %temp, align 8
-  %temp15 = load ptr, ptr %temp, align 8
-  %deref = load %Node, ptr %temp15, align 8
-  store %Node %deref, ptr %temp_obj16, align 8
-  %1 = getelementptr inbounds nuw %Node, ptr %temp_obj16, i32 0, i32 0
+  %temp19 = load ptr, ptr %temp, align 8
+  %temp20 = load ptr, ptr %temp, align 8
+  %deref = load %Node, ptr %temp20, align 8
+  store %Node %deref, ptr %temp_obj21, align 8
+  %1 = getelementptr inbounds nuw %Node, ptr %temp_obj21, i32 0, i32 0
   %value = load i32, ptr %1, align 4
   store i32 %value, ptr %nextVal, align 4
-  %test17 = load %"UnitTest::Test", ptr %test, align 8
-  %nextVal18 = load i32, ptr %nextVal, align 4
-  %AssertEqual_result19 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 20, i32 %nextVal18, ptr @.str.67, ptr @.str.68)
-  %n120 = load %Node, ptr %n1, align 8
-  store %Node %n120, ptr %temp_obj21, align 8
-  %2 = getelementptr inbounds nuw %Node, ptr %temp_obj21, i32 0, i32 1
-  %next22 = load ptr, ptr %2, align 8
-  %value_ptr = getelementptr inbounds nuw %Node, ptr %next22, i32 0, i32 0
+  %test22 = load %"UnitTest::Test", ptr %test, align 8
+  %nextVal23 = load i32, ptr %nextVal, align 4
+  %AssertEqual_result24 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 20, i32 %nextVal23, ptr @.str.69, ptr @.str.70)
+  %n125 = load %Node, ptr %n1, align 8
+  store %Node %n125, ptr %temp_obj26, align 8
+  %2 = getelementptr inbounds nuw %Node, ptr %temp_obj26, i32 0, i32 1
+  %next27 = load ptr, ptr %2, align 8
+  %value_ptr = getelementptr inbounds nuw %Node, ptr %next27, i32 0, i32 0
   store i32 42, ptr %value_ptr, align 4
-  %test23 = load %"UnitTest::Test", ptr %test, align 8
-  %n224 = load %Node, ptr %n2, align 8
-  store %Node %n224, ptr %temp_obj25, align 8
-  %3 = getelementptr inbounds nuw %Node, ptr %temp_obj25, i32 0, i32 0
-  %value26 = load i32, ptr %3, align 4
-  %AssertEqual_result27 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 42, i32 %value26, ptr @.str.69, ptr @.str.70)
+  %test28 = load %"UnitTest::Test", ptr %test, align 8
+  %n229 = load %Node, ptr %n2, align 8
+  store %Node %n229, ptr %temp_obj30, align 8
+  %3 = getelementptr inbounds nuw %Node, ptr %temp_obj30, i32 0, i32 0
+  %value31 = load i32, ptr %3, align 4
+  %AssertEqual_result32 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 42, i32 %value31, ptr @.str.71, ptr @.str.72)
+  store ptr null, ptr %ptr, align 8
+  store ptr null, ptr %ptr_ptr, align 8
+  store ptr null, ptr %ptr_ptr_ptr, align 8
+  %assign_lhs_val = load ptr, ptr %ptr, align 8
+  %x33 = load i32, ptr %x, align 4
+  store ptr %x, ptr %ptr, align 8
+  %assign_lhs_val34 = load ptr, ptr %ptr_ptr, align 8
+  %ptr35 = load ptr, ptr %ptr, align 8
+  store ptr %ptr, ptr %ptr_ptr, align 8
+  %assign_lhs_val36 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr37 = load ptr, ptr %ptr_ptr, align 8
+  store ptr %ptr_ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr38 = load ptr, ptr %ptr_ptr_ptr, align 8
+  call void @qc_print_string(ptr @5)
+  %4 = call ptr @qc_fmt_ptr(ptr %ptr_ptr_ptr38, i32 -1, i1 false)
+  call void @qc_print_string(ptr %4)
+  %ptr_ptr_ptr39 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr40 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref41 = load ptr, ptr %ptr_ptr_ptr40, align 8
+  call void @qc_print_string(ptr @6)
+  %5 = call ptr @qc_fmt_ptr(ptr %deref41, i32 -1, i1 false)
+  call void @qc_print_string(ptr %5)
+  %ptr_ptr_ptr42 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr43 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref44 = load ptr, ptr %ptr_ptr_ptr43, align 8
+  %ptr_ptr_ptr45 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr46 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref47 = load ptr, ptr %ptr_ptr_ptr46, align 8
+  %deref48 = load ptr, ptr %deref47, align 8
+  call void @qc_print_string(ptr @7)
+  %6 = call ptr @qc_fmt_ptr(ptr %deref48, i32 -1, i1 false)
+  call void @qc_print_string(ptr %6)
+  %ptr_ptr_ptr49 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr50 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref51 = load ptr, ptr %ptr_ptr_ptr50, align 8
+  %ptr_ptr_ptr52 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr53 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref54 = load ptr, ptr %ptr_ptr_ptr53, align 8
+  %deref55 = load ptr, ptr %deref54, align 8
+  %ptr_ptr_ptr56 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr57 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref58 = load ptr, ptr %ptr_ptr_ptr57, align 8
+  %ptr_ptr_ptr59 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %ptr_ptr_ptr60 = load ptr, ptr %ptr_ptr_ptr, align 8
+  %deref61 = load ptr, ptr %ptr_ptr_ptr60, align 8
+  %deref62 = load ptr, ptr %deref61, align 8
+  %deref63 = load i32, ptr %deref62, align 4
+  call void @qc_print_string(ptr @8)
+  %7 = call ptr @qc_fmt_int(i32 %deref63, i32 -1, i32 -1, i1 false)
+  call void @qc_print_string(ptr %7)
+  call void @qc_print_string(ptr @9)
   ret i32 0
 }
 
@@ -8396,7 +8489,7 @@ entry:
   br i1 %ptr_eq, label %then, label %else
 
 then:                                             ; preds = %entry
-  call void @qc_print_string(ptr @5)
+  call void @qc_print_string(ptr @10)
   br label %ifcont
 
 ifcont:                                           ; preds = %else, %then
@@ -8408,11 +8501,11 @@ ifcont:                                           ; preds = %else, %then
   br i1 %ptr_ne, label %then4, label %ifcont5
 
 else:                                             ; preds = %entry
-  call void @qc_print_string(ptr @6)
+  call void @qc_print_string(ptr @11)
   br label %ifcont
 
 then4:                                            ; preds = %ifcont
-  call void @qc_print_string(ptr @7)
+  call void @qc_print_string(ptr @12)
   br label %ifcont5
 
 ifcont5:                                          ; preds = %then4, %ifcont
@@ -8424,6 +8517,132 @@ ifcont5:                                          ; preds = %then4, %ifcont
   store ptr %real_node7, ptr %n, align 8
   %assign_lhs_val8 = load ptr, ptr %n, align 8
   store ptr null, ptr %n, align 8
+  ret i32 0
+}
+
+define i32 @final_ptr_test() {
+entry:
+  %i = alloca i32, align 4
+  %arr_ptr25 = alloca ptr, align 8
+  %val = alloca i32, align 4
+  %n2 = alloca ptr, align 8
+  %n = alloca ptr, align 8
+  %dist = alloca i32, align 4
+  %p_end = alloca ptr, align 8
+  %p_start = alloca ptr, align 8
+  %p23 = alloca ptr, align 8
+  %p = alloca ptr, align 8
+  %z = alloca i32, align 4
+  %y = alloca i32, align 4
+  %x = alloca i32, align 4
+  store i32 10, ptr %x, align 4
+  store i32 20, ptr %y, align 4
+  store i32 30, ptr %z, align 4
+  %x1 = load i32, ptr %x, align 4
+  store ptr %x, ptr %p, align 8
+  %p2 = load ptr, ptr %p, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %p2, i32 0
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  %icmpeq = icmp eq i32 %ptr_arr_val, 10
+  br i1 %icmpeq, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  call void @qc_print_string(ptr @13)
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  %p4 = load ptr, ptr %p, align 8
+  %ptr_arith_minus = getelementptr i32, ptr %p4, i32 -1
+  store ptr %ptr_arith_minus, ptr %p23, align 8
+  %p25 = load ptr, ptr %p23, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %p25, i32 0
+  store i32 99, ptr %ptr_arr_asi, align 4
+  %arr_ptr = load ptr, ptr %p23, align 8
+  %arr_elem_ptr = getelementptr i32, ptr %arr_ptr, i32 0
+  store i32 99, ptr %arr_elem_ptr, align 4
+  %y6 = load i32, ptr %y, align 4
+  %icmpeq7 = icmp eq i32 %y6, 99
+  %z8 = load i32, ptr %z, align 4
+  %icmpeq9 = icmp eq i32 %z8, 99
+  %or = or i1 %icmpeq7, %icmpeq9
+  br i1 %or, label %then10, label %ifcont11
+
+then10:                                           ; preds = %ifcont
+  call void @qc_print_string(ptr @14)
+  br label %ifcont11
+
+ifcont11:                                         ; preds = %then10, %ifcont
+  %x12 = load i32, ptr %x, align 4
+  store ptr %x, ptr %p_start, align 8
+  %p_start13 = load ptr, ptr %p_start, align 8
+  %ptr_arith_plus = getelementptr i32, ptr %p_start13, i32 5
+  store ptr %ptr_arith_plus, ptr %p_end, align 8
+  %p_end14 = load ptr, ptr %p_end, align 8
+  %p_start15 = load ptr, ptr %p_start, align 8
+  %0 = ptrtoint ptr %p_end14 to i64
+  %1 = ptrtoint ptr %p_start15 to i64
+  %2 = sub i64 %0, %1
+  %ptr_diff = sdiv exact i64 %2, ptrtoint (ptr getelementptr (i32, ptr null, i32 1) to i64)
+  %3 = trunc i64 %ptr_diff to i32
+  store i32 %3, ptr %dist, align 4
+  %dist16 = load i32, ptr %dist, align 4
+  %icmpeq17 = icmp eq i32 %dist16, 5
+  br i1 %icmpeq17, label %then18, label %ifcont19
+
+then18:                                           ; preds = %ifcont11
+  call void @qc_print_string(ptr @15)
+  br label %ifcont19
+
+ifcont19:                                         ; preds = %then18, %ifcont11
+  store ptr null, ptr %n, align 8
+  %n20 = load ptr, ptr %n, align 8
+  %ptr_arith_plus21 = getelementptr i32, ptr %n20, i32 10
+  store ptr %ptr_arith_plus21, ptr %n2, align 8
+  %n222 = load ptr, ptr %n2, align 8
+  %ptr_ne = icmp ne ptr %n222, null
+  br i1 %ptr_ne, label %then23, label %ifcont24
+
+then23:                                           ; preds = %ifcont19
+  call void @qc_print_string(ptr @16)
+  br label %ifcont24
+
+ifcont24:                                         ; preds = %then23, %ifcont19
+  store i32 0, ptr %val, align 4
+  %val26 = load i32, ptr %val, align 4
+  store ptr %val, ptr %arr_ptr25, align 8
+  store i32 0, ptr %i, align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %ifcont24
+  %i27 = load i32, ptr %i, align 4
+  %icmplt = icmp slt i32 %i27, 5
+  br i1 %icmplt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %arr_ptr28 = load ptr, ptr %arr_ptr25, align 8
+  %ptr_arr_asi29 = getelementptr i32, ptr %arr_ptr28, i32 0
+  %i30 = load i32, ptr %i, align 4
+  store i32 %i30, ptr %ptr_arr_asi29, align 4
+  %i31 = load i32, ptr %i, align 4
+  %arr_ptr32 = load ptr, ptr %arr_ptr25, align 8
+  %arr_elem_ptr33 = getelementptr i32, ptr %arr_ptr32, i32 0
+  store i32 %i31, ptr %arr_elem_ptr33, align 4
+  %assign_lhs_val = load i32, ptr %i, align 4
+  %i34 = load i32, ptr %i, align 4
+  %add = add i32 %i34, 1
+  store i32 %add, ptr %i, align 4
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  %val35 = load i32, ptr %val, align 4
+  %icmpeq36 = icmp eq i32 %val35, 4
+  br i1 %icmpeq36, label %then37, label %ifcont38
+
+then37:                                           ; preds = %while.end
+  call void @qc_print_string(ptr @17)
+  br label %ifcont38
+
+ifcont38:                                         ; preds = %then37, %while.end
   ret i32 0
 }
 
@@ -8448,16 +8667,16 @@ entry:
   %test1 = load %"UnitTest::Test", ptr %test, align 8
   %1 = load ptr, ptr %rx, align 8
   %rx2 = load i32, ptr %1, align 4
-  %AssertEqual_result = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %rx2, ptr @.str.74, ptr @.str.75)
+  %AssertEqual_result = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %rx2, ptr @.str.82, ptr @.str.83)
   %test3 = load %"UnitTest::Test", ptr %test, align 8
   %y4 = load i32, ptr %y, align 4
-  %AssertEqual_result5 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %y4, ptr @.str.76, ptr @.str.77)
+  %AssertEqual_result5 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %y4, ptr @.str.84, ptr @.str.85)
   store i32 1234, ptr %n, align 4
   %n6 = load i32, ptr %n, align 4
   %calltmp = call i32 @add(ptr %y, i32 %n6)
   %test7 = load %"UnitTest::Test", ptr %test, align 8
   %y8 = load i32, ptr %y, align 4
-  %AssertEqual_result9 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 13579, i32 %y8, ptr @.str.78, ptr @.str.79)
+  %AssertEqual_result9 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 13579, i32 %y8, ptr @.str.86, ptr @.str.87)
   call void @Refs_Refs(ptr %r, i32 12345)
   call void @Refs_Refs(ptr %z, i32 321)
   call void @Refs_Refs(ptr %x, i32 21)
@@ -8471,7 +8690,7 @@ entry:
   %getX_result = call i32 @Refs_getX(ptr %x, ptr %y)
   %test15 = load %"UnitTest::Test", ptr %test, align 8
   %y16 = load i32, ptr %y, align 4
-  %AssertEqual_result17 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %y16, ptr @.str.80, ptr @.str.81)
+  %AssertEqual_result17 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 12345, i32 %y16, ptr @.str.88, ptr @.str.89)
   %x18 = load %Refs, ptr %x, align 4
   %setXp1_result = call i32 @Refs_setXp1(ptr %x, ptr %y)
   %n19 = load i32, ptr %n, align 4
@@ -8481,13 +8700,13 @@ entry:
   %autoRet_result = call i32 @Refs_autoRet_int_int(ptr %x, ptr %y, i32 %n21)
   %test22 = load %"UnitTest::Test", ptr %test, align 8
   %y23 = load i32, ptr %y, align 4
-  %AssertEqual_result24 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14814, i32 %y23, ptr @.str.84, ptr @.str.85)
+  %AssertEqual_result24 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14814, i32 %y23, ptr @.str.92, ptr @.str.93)
   store %Point { i32 1, i32 3 }, ptr %pnt, align 4
   %calltmp25 = call i32 @addToX(ptr %pnt, i32 21)
   %test26 = load %"UnitTest::Test", ptr %test, align 8
   %pnt27 = load %Point, ptr %pnt, align 4
   %x28 = extractvalue %Point %pnt27, 0
-  %AssertEqual_result29 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 22, i32 %x28, ptr @.str.86, ptr @.str.87)
+  %AssertEqual_result29 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 22, i32 %x28, ptr @.str.94, ptr @.str.95)
   %y30 = load i32, ptr %y, align 4
   store ptr %y, ptr %py, align 8
   %py31 = load ptr, ptr %py, align 8
@@ -8496,7 +8715,7 @@ entry:
   store i32 %deref, ptr %ptr_deref, align 4
   %test33 = load %"UnitTest::Test", ptr %test, align 8
   %ptr_deref34 = load i32, ptr %ptr_deref, align 4
-  %AssertEqual_result35 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14814, i32 %ptr_deref34, ptr @.str.88, ptr @.str.89)
+  %AssertEqual_result35 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14814, i32 %ptr_deref34, ptr @.str.96, ptr @.str.97)
   %py36 = load ptr, ptr %py, align 8
   %assign_lhs_val37 = load i32, ptr %py36, align 4
   %add = add i32 %assign_lhs_val37, 123
@@ -8505,9 +8724,10 @@ entry:
   %py39 = load ptr, ptr %py, align 8
   %py40 = load ptr, ptr %py, align 8
   %deref41 = load i32, ptr %py40, align 4
-  %AssertEqual_result42 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14937, i32 %deref41, ptr @.str.90, ptr @.str.91)
+  %AssertEqual_result42 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 14937, i32 %deref41, ptr @.str.98, ptr @.str.99)
   %calltmp43 = call i32 @TESTESTESTESTESTEST()
   %calltmp44 = call i32 @test_nullptr()
+  %calltmp45 = call i32 @final_ptr_test()
   ret i32 0
 }
 
@@ -8518,7 +8738,7 @@ entry:
   store ptr %x1, ptr %x, align 8
   store i32 %y2, ptr %y, align 4
   %y3 = load i32, ptr %y, align 4
-  %0 = call i1 @qc_string_eq(ptr @8, ptr @.str.82)
+  %0 = call i1 @qc_string_eq(ptr @18, ptr @.str.90)
   br i1 %0, label %then, label %ifcont
 
 then:                                             ; preds = %entry
@@ -8540,7 +8760,7 @@ entry:
   store ptr %x1, ptr %x, align 8
   store i32 %y2, ptr %y, align 4
   %y3 = load i32, ptr %y, align 4
-  %1 = call i1 @qc_string_eq(ptr @9, ptr @.str.83)
+  %1 = call i1 @qc_string_eq(ptr @19, ptr @.str.91)
   br i1 %1, label %then, label %ifcont
 
 then:                                             ; preds = %entry

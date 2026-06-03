@@ -160,9 +160,9 @@ namespace tkz {
     inline std::string LETTERSDIGITS = LETTERS + DIGITS;
     
     enum class TokenType {
-        INT, STRING, FLOAT, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
+        INT, STRING, FLOAT, ADDR_T, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
         ARROW, AMPERSAND, STAR, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
-        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ,
+        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF, 
         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
         FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, PIPE, EOFT
@@ -1386,7 +1386,7 @@ namespace tkz {
     using NumberVariant = std::variant<
         Number<int>, Number<float>, Number<double>,
         Number<long long>, Number<long double>,
-        Number<short>,
+        Number<short>, Number<uintptr_t>,
         StringValue, CharValue, BoolValue, QBoolValue,
         FunctionValue, VoidValue, PointerValue, std::shared_ptr<MultiValue>, 
         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
@@ -1409,47 +1409,77 @@ namespace tkz {
         template <typename U>
         auto added_to(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            return Number<CommonT>(static_cast<CommonT>(this->value) + other.value);
+            using TargetT = std::conditional_t<
+                std::is_same_v<CommonT, unsigned long long>,
+                uintptr_t,
+                CommonT
+            >;
+
+            return Number<TargetT>(static_cast<TargetT>(this->value) + other.value);
         }
 
         template <typename U>
         auto subbed_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            return Number<CommonT>(static_cast<CommonT>(this->value) - other.value);
+            using TargetT = std::conditional_t<
+                std::is_same_v<CommonT, unsigned long long>,
+                uintptr_t,
+                CommonT
+            >;
+
+            return Number<TargetT>(static_cast<TargetT>(this->value) - other.value);
         }
 
         template <typename U>
         auto multed_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            return Number<CommonT>(static_cast<CommonT>(this->value) * other.value);
+            using TargetT = std::conditional_t<
+                std::is_same_v<CommonT, unsigned long long>,
+                uintptr_t,
+                CommonT
+            >;
+
+            return Number<TargetT>(static_cast<TargetT>(this->value) * other.value);
         }
 
         template <typename U>
         auto dived_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            return Number<CommonT>(static_cast<CommonT>(this->value) / other.value);
+            using TargetT = std::conditional_t<
+                std::is_same_v<CommonT, unsigned long long>,
+                uintptr_t,
+                CommonT
+            >;
+
+            return Number<TargetT>(static_cast<TargetT>(this->value) / other.value);
         }
         
         template <typename U>
         auto power_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            auto result = std::pow(this->value, other.value);
+            using TargetT = std::conditional_t<
+                std::is_same_v<CommonT, unsigned long long>,
+                uintptr_t,
+                CommonT
+            >;
+            auto result = std::pow(static_cast<double>(this->value), static_cast<double>(other.value));
             if (std::isinf(result)) {
                 throw RTError("Result too large (overflow)", pos);
             }
             if (std::isnan(result)) {
                 throw RTError("Invalid operation (NaN)", pos);
             }
-            return Number<CommonT>(static_cast<CommonT>(result));
+            return Number<TargetT>(static_cast<TargetT>(result));
         }
-        
         template <typename U>
         auto modded_by(const Number<U>& other) const {
             using CommonT = std::common_type_t<T, U>;
-            if constexpr (std::is_floating_point_v<CommonT>) {
-                return Number<CommonT>(std::fmod(static_cast<CommonT>(this->value), other.value));
+            using TargetT = std::conditional_t<std::is_same_v<CommonT, unsigned long long>, uintptr_t, CommonT>;
+            if (other.value == 0) throw RTError("Division by zero", pos);
+            if constexpr (std::is_floating_point_v<TargetT>) {
+                return Number<TargetT>(std::fmod(static_cast<TargetT>(this->value), static_cast<TargetT>(other.value)));
             } else {
-                return Number<CommonT>(static_cast<CommonT>(this->value) % other.value);
+                return Number<TargetT>(static_cast<TargetT>(this->value) % static_cast<TargetT>(other.value));
             }
         }
     };
@@ -1923,6 +1953,7 @@ namespace tkz {
                 if constexpr (std::is_same_v<T, Number<float>>)               return "float";
                 if constexpr (std::is_same_v<T, Number<double>>)              return "double";
                 if constexpr (std::is_same_v<T, Number<long double>>)         return "long double";
+                if constexpr (std::is_same_v<T, Number<uintptr_t>>)           return "addr_t";
                 if constexpr (std::is_same_v<T, StringValue>)                 return "string";
                 if constexpr (std::is_same_v<T, CharValue>)                   return "char";
                 if constexpr (std::is_same_v<T, BoolValue>)                   return "bool";
@@ -2232,6 +2263,10 @@ namespace tkz {
             }
             return false;
         }
+        unsigned getPtrSize() {
+            const llvm::DataLayout &DL = builder->GetInsertBlock()->getModule()->getDataLayout();
+            return DL.getPointerSizeInBits();
+        }
         #define hasVarType(name) foundInStack(varTypesStack, name)
         #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
         #define hasList(name) foundInStack(listsStack, name)
@@ -2349,6 +2384,8 @@ namespace tkz {
                         return "float";
                     case TokenType::DOUBLE:
                         return "double";
+                    case TokenType::ADDR_T:
+                        return "addr_t";
                 }
             }
             else if (auto boolNode = std::get_if<BoolNode>(&node)) {
@@ -3957,13 +3994,13 @@ namespace tkz {
             return -1;
         }
         int getTypeCodeFromLLVM(llvm::Type* ty) {
-            if (ty->isIntegerTy(32)) return 0;  // int
             if (ty->isFloatTy()) return 1;      // float
             if (ty->isDoubleTy()) return 2;     // double
             if (ty->isIntegerTy(8)) return 3;   // char
             if (ty->isIntegerTy(1)) return 4;   // bool
             if (ty->isIntegerTy(2)) return 5;   // qbool
             if (ty->isPointerTy()) return 6;    // string (or any pointer)
+            if (ty->isIntegerTy()) return 0;  // int
             return -1;
         }
         llvm::Value* createJaggedArray(AnyNode& literalNode,  int elemTypeCode, int depth);
@@ -4124,7 +4161,7 @@ namespace tkz {
                 
                 bool matches = false;
                 
-                if (type == "int") {
+                if (type == "int" || type == "float" || type == "double" || type == "addr_t") {
                     if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
                         if (numNode->tok.value == value) {
                             matches = true;
@@ -4135,13 +4172,6 @@ namespace tkz {
                     if (auto strNode = std::get_if<StringNode>(&valueNode)) {
                         std::string strValue = value.substr(1, value.length() - 2);
                         if (strNode->tok.value == strValue) {
-                            matches = true;
-                        }
-                    }
-                }
-                else if (type == "float" || type == "double") {
-                    if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
-                        if (numNode->tok.value == value) {
                             matches = true;
                         }
                     }
