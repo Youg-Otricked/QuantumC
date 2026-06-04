@@ -17269,9 +17269,15 @@ char kind;
             constraints += clobber;
             first = false;
           }
-          llvm::InlineAsm *asm_fn =
+          llvm::InlineAsm *asm_fn;
+          if (isATT) {
+             asm_fn =
+              llvm::InlineAsm::get(fn_ty, finalized, constraints, true);
+          } else {
+             asm_fn =
               llvm::InlineAsm::get(fn_ty, finalized, constraints, true, false,
                                    llvm::InlineAsm::AD_Intel);
+          }
 
           llvm::Value *result =
               builder->CreateCall(fn_ty, asm_fn, input_values);

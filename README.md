@@ -88,6 +88,7 @@ Current Version: v0.15.0 = "Compiler Is Mostly Done" (aparantly i've been using 
 |                     | Stdlib Part 1 & 2                                                      | Done        |
 | **Future**          | Stdlib Part 3                                                          | Coming Soon |
 |                     | Concurrency functions                                                  | Coming Soon |
+|                     | Inline ASM                                                             | Done!!!     |
 |                     | HTTP                                                                   | Coming Soon |
 |                     | Generics                                                               | Coming Soon |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Coming Soon |

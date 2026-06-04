@@ -415,32 +415,32 @@ CMakeFiles/qc.dir/compiler.cpp.o: /home/luca/C^4/compiler.cpp \
  /usr/lib/llvm-21/include/llvm/Support/MD5.h \
  /usr/lib/llvm-21/include/llvm/Support/Endian.h \
  /usr/lib/llvm-21/include/llvm/IR/IntrinsicsX86.h \
+ /usr/lib/llvm-21/include/llvm/IR/IRPrintingPasses.h \
+ /usr/lib/llvm-21/include/llvm/IR/InlineAsm.h \
+ /usr/lib/llvm-21/include/llvm/IR/IntrinsicInst.h \
+ /usr/lib/llvm-21/include/llvm/IR/DebugInfoMetadata.h \
+ /usr/lib/llvm-21/include/llvm/IR/PseudoProbe.h \
+ /usr/lib/llvm-21/include/llvm/Support/CommandLine.h \
+ /usr/lib/llvm-21/include/llvm/Support/StringSaver.h \
+ /usr/lib/llvm-21/include/llvm/Support/Allocator.h \
+ /usr/lib/llvm-21/include/llvm/Support/Discriminator.h \
+ /usr/lib/llvm-21/include/llvm/IR/DebugInfoFlags.def \
+ /usr/lib/llvm-21/include/llvm/IR/LegacyPassManager.h \
+ /usr/lib/llvm-21/include/llvm/IR/Mangler.h \
  /usr/lib/llvm-21/include/llvm/IR/Verifier.h \
  /usr/lib/llvm-21/include/llvm/IR/PassManager.h \
  /usr/lib/llvm-21/include/llvm/ADT/TinyPtrVector.h \
  /usr/lib/llvm-21/include/llvm/IR/Analysis.h \
  /usr/lib/llvm-21/include/llvm/IR/PassManagerInternal.h \
  /usr/lib/llvm-21/include/llvm/Support/TypeName.h \
- /usr/lib/llvm-21/include/llvm/Support/TargetSelect.h \
- /usr/lib/llvm-21/include/llvm/Config/Targets.def \
- /usr/lib/llvm-21/include/llvm/Config/AsmPrinters.def \
- /usr/lib/llvm-21/include/llvm/Config/AsmParsers.def \
- /usr/lib/llvm-21/include/llvm/Config/Disassemblers.def \
- /usr/lib/llvm-21/include/llvm/Config/TargetMCAs.def \
- /usr/lib/llvm-21/include/llvm/Target/TargetMachine.h \
- /usr/lib/llvm-21/include/llvm/Support/Allocator.h \
- /usr/lib/llvm-21/include/llvm/Support/CommandLine.h \
- /usr/lib/llvm-21/include/llvm/Support/StringSaver.h \
- /usr/lib/llvm-21/include/llvm/Support/PGOOptions.h \
- /usr/lib/llvm-21/include/llvm/ADT/IntrusiveRefCntPtr.h \
- /usr/include/c++/15/atomic \
- /usr/lib/llvm-21/include/llvm/Target/CGPassBuilderOption.h \
- /usr/lib/llvm-21/include/llvm/Target/TargetOptions.h \
- /usr/lib/llvm-21/include/llvm/MC/MCTargetOptions.h \
- /usr/lib/llvm-21/include/llvm/Support/Compression.h \
- /usr/lib/llvm-21/include/llvm/IR/LegacyPassManager.h \
- /usr/lib/llvm-21/include/llvm/IR/IRPrintingPasses.h \
- /usr/lib/llvm-21/include/llvm/TargetParser/Host.h \
+ /usr/lib/llvm-21/include/llvm/IRReader/IRReader.h \
+ /usr/lib/llvm-21/include/llvm/Bitcode/BitcodeReader.h \
+ /usr/lib/llvm-21/include/llvm/Bitstream/BitCodeEnums.h \
+ /usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h \
+ /usr/lib/llvm-21/include/llvm/Linker/Linker.h \
+ /usr/lib/llvm-21/include/llvm/ADT/StringSet.h \
+ /usr/lib/llvm-21/include/llvm/Linker/IRMover.h \
+ /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h \
  /usr/lib/llvm-21/include/llvm/MC/TargetRegistry.h \
  /usr/lib/llvm-21/include/llvm-c/DisassemblerTypes.h \
  /usr/lib/llvm-21/include/llvm/MC/MCObjectFileInfo.h \
@@ -453,20 +453,20 @@ CMakeFiles/qc.dir/compiler.cpp.o: /home/luca/C^4/compiler.cpp \
  /usr/lib/llvm-21/include/llvm/MC/MCRegister.h \
  /usr/lib/llvm-21/include/llvm/MC/SectionKind.h \
  /usr/lib/llvm-21/include/llvm/Support/FormattedStream.h \
- /usr/lib/llvm-21/include/llvm/IR/IntrinsicInst.h \
- /usr/lib/llvm-21/include/llvm/IR/DebugInfoMetadata.h \
- /usr/lib/llvm-21/include/llvm/IR/PseudoProbe.h \
- /usr/lib/llvm-21/include/llvm/Support/Discriminator.h \
- /usr/lib/llvm-21/include/llvm/IR/DebugInfoFlags.def \
- /usr/lib/llvm-21/include/llvm/IR/Mangler.h \
- /usr/lib/llvm-21/include/llvm/IRReader/IRReader.h \
- /usr/lib/llvm-21/include/llvm/Bitcode/BitcodeReader.h \
- /usr/lib/llvm-21/include/llvm/Bitstream/BitCodeEnums.h \
- /usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h \
  /usr/lib/llvm-21/include/llvm/Support/SourceMgr.h \
  /usr/lib/llvm-21/include/llvm/Support/MemoryBuffer.h \
- /usr/lib/llvm-21/include/llvm/Linker/Linker.h \
- /usr/lib/llvm-21/include/llvm/ADT/StringSet.h \
- /usr/lib/llvm-21/include/llvm/Linker/IRMover.h \
- /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h \
- /usr/lib/llvm-21/include/llvm/IR/InlineAsm.h
+ /usr/lib/llvm-21/include/llvm/Support/TargetSelect.h \
+ /usr/lib/llvm-21/include/llvm/Config/Targets.def \
+ /usr/lib/llvm-21/include/llvm/Config/AsmPrinters.def \
+ /usr/lib/llvm-21/include/llvm/Config/AsmParsers.def \
+ /usr/lib/llvm-21/include/llvm/Config/Disassemblers.def \
+ /usr/lib/llvm-21/include/llvm/Config/TargetMCAs.def \
+ /usr/lib/llvm-21/include/llvm/Target/TargetMachine.h \
+ /usr/lib/llvm-21/include/llvm/Support/PGOOptions.h \
+ /usr/lib/llvm-21/include/llvm/ADT/IntrusiveRefCntPtr.h \
+ /usr/include/c++/15/atomic \
+ /usr/lib/llvm-21/include/llvm/Target/CGPassBuilderOption.h \
+ /usr/lib/llvm-21/include/llvm/Target/TargetOptions.h \
+ /usr/lib/llvm-21/include/llvm/MC/MCTargetOptions.h \
+ /usr/lib/llvm-21/include/llvm/Support/Compression.h \
+ /usr/lib/llvm-21/include/llvm/TargetParser/Host.h
