@@ -221,7 +221,7 @@ namespace tkz {
             case TokenType::LOGICAL_RSHIFT:     return ":>";
             case TokenType::AT:         return "@";
             case TokenType::PIPE:       return "|";
-            case TokenType::SIZEOF      return "sizeof";
+            case TokenType::SIZEOF:      return "sizeof";
             case TokenType::EOFT:       return "<eof>";
         }
 
@@ -7934,6 +7934,22 @@ namespace tkz {
                 }
                 return *ptr;
             }
+            if (func_name == "ternary" && !node->arg_nodes.empty()) {
+                if (!node->arg_nodes.size() != 3) {
+                    throw RTError("QC-B001: ternary must be passed exactly 3 args", varacc->var_name_tok.pos);
+                }
+                auto it = std::next(node->arg_nodes.begin(), 1); 
+                NumberVariant is_tr = this->process(*it);
+                NumberVariant is_fl = this->process(node->arg_nodes.back());
+                if (this->context->get_type_name(is_tr) != this->context->get_type_name(is_fl)) {
+                    throw RTError("QC-B002: ternary arg 2 type must equal arg 3 type", varacc->var_name_tok.pos);
+                }
+                NumberVariant val = this->process(node->arg_nodes.front());
+                if (BoolValue* bo = std::get_if<BoolValue>(&val)) {
+                    return (bo->value ? is_tr : is_fl);
+                }
+                throw RTError("QC-B002: ternary arg 1 type must be boolean", varacc->var_name_tok.pos);
+            }
             auto ut_it = context->user_types.find(func_name);
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
@@ -14361,7 +14377,9 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                     {"calloc", "qc_calloc"},
                     {"free", "qc_free"},
                     {"realloc", "qc_realloc"},
-                    {"mapped_ptr", "qc_mapped_ptr"}
+                    {"mapped_ptr", ""},
+                    {"ternary", ""},
+                    {"to_address", ""}
                 };
                 
                 auto it = builtins.find(funcName);
@@ -15184,9 +15202,48 @@ classMethods[mapKey][method.name_tok.value].push_back(fn);
                         if (!arg) return nullptr;
                         return emitBuiltinConversion(arg, "char");
                     }
+                    if (funcName == "mapped_ptr" && !call.arg_nodes.empty()) {
+                        llvm::Value* val = emitExpr(call.arg_nodes.front());
+                        if (!(val->getType()->isIntegerTy())) {
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer: " + funcName);
+                            return nullptr;
+                        }
+                        if (!(val->getType()->isIntegerTy(getPtrSize()))) {
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer the size of a pointer (" + std::to_string(getPtrSize()) + ") (addr_t or " + (getPtrSize() == 32 ? "int" : "long long") + "), got a " + std::to_string(val->getType()->getIntegerBitWidth()) + " bit integer (" + ((val->getType()->getIntegerBitWidth() == 32) ? "int" : ((val->getType()->getIntegerBitWidth() == 64) ? "long int" : "short int")) + ": " + funcName);
+                            return nullptr;
+                        }
+                        return builder->CreateIntToPtr(val, builder->getPtrTy());
+                    }
+                    if (funcName == "to_address" && !call.arg_nodes.empty()) {
+                        llvm::Value* val = emitExpr(call.arg_nodes.front());
+                        if (!(val->getType()->isPointerTy())) {
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a pointer: " + funcName);
+                            return nullptr;
+                        }
+                        return builder->CreatePtrToInt(val, builder->getIntNTy(getPtrSize()), "addr");
+                    }
+                    if (funcName == "ternary" && !call.arg_nodes.empty()) {
+                        if (call.arg_nodes.size() != 3) {
+                            cg_error((*varAccess)->var_name_tok.pos, "must have exactly 3 args: " + funcName);
+                            return nullptr;
+                        }
+                        auto it = std::next(call.arg_nodes.begin(), 1); 
+                        llvm::Value* is_tr = emitExpr(*it);
+                        llvm::Value* is_fl = emitExpr(call.arg_nodes.back());
+                        if (is_tr->getType() != is_fl->getType()) {
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must be the same type: " + funcName);
+                            return nullptr;
+                        }
+                        llvm::Value* val = emitExpr(call.arg_nodes.front());
+                        if (val->getType()->isIntegerTy(1)) {
+                            return builder->CreateSelect(val, is_tr, is_fl, "select_val");
+                        }
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
+                        return nullptr;
+                    }
                     llvm::Function* fn = module->getFunction(runtimeName);
                     if (!fn) {
-                        cg_error(Position(), "Built-in function not found in runtime: " + runtimeName);
+                        cg_error((*varAccess)->var_name_tok.pos, "Built-in function not found in runtime: " + runtimeName);
                         return nullptr;
                     }
                     llvm::FunctionType* builtinFnTy = fn->getFunctionType();

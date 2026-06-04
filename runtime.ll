@@ -102,14 +102,8 @@ define dso_local noalias noundef ptr @qc_calloc(i64 noundef %0, i64 noundef %1) 
 ; Function Attrs: mustprogress nofree nounwind willreturn allockind("alloc,zeroed") allocsize(0,1) memory(inaccessiblemem: readwrite)
 declare noalias noundef ptr @calloc(i64 noundef, i64 noundef) local_unnamed_addr #5
 
-; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef ptr @qc_mapped_ptr(i64 noundef %0) local_unnamed_addr #6 {
-  %2 = inttoptr i64 %0 to ptr
-  ret ptr %2
-}
-
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
@@ -160,16 +154,16 @@ define dso_local noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1,
 }
 
 ; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
-declare void @llvm.lifetime.start.p0(i64 immarg, ptr captures(none)) #8
+declare void @llvm.lifetime.start.p0(i64 immarg, ptr captures(none)) #7
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @snprintf(ptr noalias noundef writeonly captures(none), i64 noundef, ptr noundef readonly captures(none), ...) local_unnamed_addr #9
+declare noundef i32 @snprintf(ptr noalias noundef writeonly captures(none), i64 noundef, ptr noundef readonly captures(none), ...) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
-declare void @llvm.lifetime.end.p0(i64 immarg, ptr captures(none)) #8
+declare void @llvm.lifetime.end.p0(i64 immarg, ptr captures(none)) #7
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %3) #37
   %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %3, i64 noundef 32, ptr noundef nonnull @.str.6) #37
@@ -195,7 +189,7 @@ define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 no
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
@@ -251,13 +245,13 @@ define dso_local noalias noundef ptr @qc_fmt_float(double noundef %0, i32 nounde
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_double(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_double(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
   %5 = tail call ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3)
   ret ptr %5
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
@@ -313,7 +307,7 @@ define dso_local noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 n
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
   %5 = icmp sgt i32 %1, 0
@@ -353,7 +347,7 @@ define dso_local noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 nou
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = icmp eq ptr %0, null
   %6 = select i1 %5, ptr @.str.2, ptr %0
@@ -394,7 +388,7 @@ define dso_local noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef 
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
   %5 = icmp sgt i32 %1, 0
@@ -428,7 +422,7 @@ define dso_local noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1,
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
   %5 = icmp sgt i32 %1, 0
@@ -462,7 +456,7 @@ define dso_local noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = select i1 %0, ptr @.str.23, ptr @.str.24
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
@@ -502,7 +496,7 @@ define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 nou
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = and i8 %0, 3
   %6 = zext nneg i8 %5 to i64
@@ -545,7 +539,7 @@ define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 no
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #7 {
+define dso_local noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
   %4 = alloca [64 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %4) #37
   %5 = icmp ne i32 %2, 0
@@ -576,10 +570,10 @@ define dso_local noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i32 nou
 }
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite)
-declare noalias ptr @strdup(ptr noundef readonly captures(none)) local_unnamed_addr #10
+declare noalias ptr @strdup(ptr noundef readonly captures(none)) local_unnamed_addr #9
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local i32 @qc_powi_i32(i32 noundef %0, i32 noundef %1) local_unnamed_addr #6 {
+define dso_local i32 @qc_powi_i32(i32 noundef %0, i32 noundef %1) local_unnamed_addr #10 {
   %3 = icmp slt i32 %1, 0
   br i1 %3, label %17, label %4
 
@@ -606,13 +600,13 @@ define dso_local i32 @qc_powi_i32(i32 noundef %0, i32 noundef %1) local_unnamed_
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_ptr(ptr noundef %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_ptr(ptr noundef %0) local_unnamed_addr #6 {
   %2 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.32, ptr noundef %0)
   ret void
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @printf(ptr noundef readonly captures(none), ...) local_unnamed_addr #9
+declare noundef i32 @printf(ptr noundef readonly captures(none), ...) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind willreturn uwtable
 define dso_local noalias noundef ptr @qc_string_concat(ptr noundef readonly captures(address_is_null) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #11 {
@@ -667,7 +661,7 @@ define dso_local zeroext i1 @qc_string_eq(ptr noundef readonly captures(address_
 declare i32 @strcmp(ptr noundef captures(none), ptr noundef captures(none)) local_unnamed_addr #12
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext range(i8 1, 4) i8 @qc_qand(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #6 {
+define dso_local noundef zeroext range(i8 1, 4) i8 @qc_qand(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #10 {
   %3 = icmp ult i8 %0, 2
   %4 = icmp ult i8 %1, 2
   %5 = or i1 %3, %4
@@ -680,7 +674,7 @@ define dso_local noundef zeroext range(i8 1, 4) i8 @qc_qand(i8 noundef zeroext %
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local zeroext range(i8 0, 4) i8 @qc_qor(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #6 {
+define dso_local zeroext range(i8 0, 4) i8 @qc_qor(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #10 {
   %3 = icmp eq i8 %0, 0
   %4 = icmp eq i8 %1, 0
   %5 = or i8 %1, %0
@@ -719,7 +713,7 @@ define dso_local zeroext range(i8 0, 4) i8 @qc_qor(i8 noundef zeroext %0, i8 nou
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local zeroext range(i8 0, 4) i8 @qc_qxor(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #6 {
+define dso_local zeroext range(i8 0, 4) i8 @qc_qxor(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #10 {
   %3 = or i8 %1, %0
   %4 = icmp ult i8 %3, 2
   br i1 %4, label %14, label %5
@@ -743,13 +737,13 @@ define dso_local zeroext range(i8 0, 4) i8 @qc_qxor(i8 noundef zeroext %0, i8 no
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i8 @qc_qnot(i8 noundef zeroext %0) local_unnamed_addr #6 {
+define dso_local noundef zeroext i8 @qc_qnot(i8 noundef zeroext %0) local_unnamed_addr #10 {
   %2 = sub i8 3, %0
   ret i8 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i1 @qc_qand_collapse(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #6 {
+define dso_local noundef zeroext i1 @qc_qand_collapse(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #10 {
   %3 = and i8 %0, 2
   %4 = and i8 %3, %1
   %5 = icmp ne i8 %4, 0
@@ -757,7 +751,7 @@ define dso_local noundef zeroext i1 @qc_qand_collapse(i8 noundef zeroext %0, i8 
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i1 @qc_qor_collapse(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #6 {
+define dso_local noundef zeroext i1 @qc_qor_collapse(i8 noundef zeroext %0, i8 noundef zeroext %1) local_unnamed_addr #10 {
   %3 = or i8 %1, %0
   %4 = and i8 %3, 2
   %5 = icmp ne i8 %4, 0
@@ -765,7 +759,7 @@ define dso_local noundef zeroext i1 @qc_qor_collapse(i8 noundef zeroext %0, i8 n
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_to_string_int(i32 noundef %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_to_string_int(i32 noundef %0) local_unnamed_addr #6 {
   %2 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #37
   %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.33, i32 noundef %0) #37
@@ -790,7 +784,7 @@ define dso_local noalias noundef ptr @qc_to_string_int(i32 noundef %0) local_unn
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_to_string_float(float noundef %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_to_string_float(float noundef %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
   %3 = fpext float %0 to double
@@ -816,7 +810,7 @@ define dso_local noalias noundef ptr @qc_to_string_float(float noundef %0) local
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_to_string_long_int(i64 noundef %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_to_string_long_int(i64 noundef %0) local_unnamed_addr #6 {
   %2 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #37
   %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.35, i64 noundef %0) #37
@@ -841,7 +835,7 @@ define dso_local noalias noundef ptr @qc_to_string_long_int(i64 noundef %0) loca
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_to_string_short_int(i16 noundef signext %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_to_string_short_int(i16 noundef signext %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
   %3 = sext i16 %0 to i32
@@ -867,73 +861,73 @@ define dso_local noalias noundef ptr @qc_to_string_short_int(i16 noundef signext
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local i32 @qc_to_int_from_float(float noundef %0) local_unnamed_addr #6 {
+define dso_local i32 @qc_to_int_from_float(float noundef %0) local_unnamed_addr #10 {
   %2 = fptosi float %0 to i32
   ret i32 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local i32 @qc_to_int_from_double(double noundef %0) local_unnamed_addr #6 {
+define dso_local i32 @qc_to_int_from_double(double noundef %0) local_unnamed_addr #10 {
   %2 = fptosi double %0 to i32
   ret i32 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local range(i32 -128, 128) i32 @qc_to_int_from_char(i8 noundef signext %0) local_unnamed_addr #6 {
+define dso_local range(i32 -128, 128) i32 @qc_to_int_from_char(i8 noundef signext %0) local_unnamed_addr #10 {
   %2 = sext i8 %0 to i32
   ret i32 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef float @qc_to_float_from_double(double noundef %0) local_unnamed_addr #6 {
+define dso_local noundef float @qc_to_float_from_double(double noundef %0) local_unnamed_addr #10 {
   %2 = fptrunc double %0 to float
   ret float %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef float @qc_to_float_from_bool(i1 noundef zeroext %0) local_unnamed_addr #6 {
+define dso_local noundef float @qc_to_float_from_bool(i1 noundef zeroext %0) local_unnamed_addr #10 {
   %2 = select i1 %0, float 1.000000e+00, float 0.000000e+00
   ret float %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef double @qc_to_double_from_float(float noundef %0) local_unnamed_addr #6 {
+define dso_local noundef double @qc_to_double_from_float(float noundef %0) local_unnamed_addr #10 {
   %2 = fpext float %0 to double
   ret double %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef double @qc_to_double_from_bool(i1 noundef zeroext %0) local_unnamed_addr #6 {
+define dso_local noundef double @qc_to_double_from_bool(i1 noundef zeroext %0) local_unnamed_addr #10 {
   %2 = select i1 %0, double 1.000000e+00, double 0.000000e+00
   ret double %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i1 @qc_to_bool_from_int(i32 noundef %0) local_unnamed_addr #6 {
+define dso_local noundef zeroext i1 @qc_to_bool_from_int(i32 noundef %0) local_unnamed_addr #10 {
   %2 = icmp ne i32 %0, 0
   ret i1 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i1 @qc_to_bool_from_float(float noundef %0) local_unnamed_addr #6 {
+define dso_local noundef zeroext i1 @qc_to_bool_from_float(float noundef %0) local_unnamed_addr #10 {
   %2 = fcmp une float %0, 0.000000e+00
   ret i1 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef zeroext i1 @qc_to_bool_from_double(double noundef %0) local_unnamed_addr #6 {
+define dso_local noundef zeroext i1 @qc_to_bool_from_double(double noundef %0) local_unnamed_addr #10 {
   %2 = fcmp une double %0, 0.000000e+00
   ret i1 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef signext i8 @qc_to_char_from_int(i32 noundef %0) local_unnamed_addr #6 {
+define dso_local noundef signext i8 @qc_to_char_from_int(i32 noundef %0) local_unnamed_addr #10 {
   %2 = trunc i32 %0 to i8
   ret i8 %2
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_to_string_double(double noundef %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_to_string_double(double noundef %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
   %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.34, double noundef %0) #37
@@ -1010,7 +1004,7 @@ define dso_local noalias noundef ptr @qc_to_string_char(i8 noundef signext %0) l
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_string(ptr noundef readonly captures(address_is_null) %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_string(ptr noundef readonly captures(address_is_null) %0) local_unnamed_addr #6 {
   %2 = icmp eq ptr %0, null
   %3 = select i1 %2, ptr @.str.2, ptr %0
   %4 = load ptr, ptr @stdout, align 8, !tbaa !10
@@ -1019,22 +1013,22 @@ define dso_local void @qc_print_string(ptr noundef readonly captures(address_is_
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @fputs(ptr noundef readonly captures(none), ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef i32 @fputs(ptr noundef readonly captures(none), ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_int(i32 noundef %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_int(i32 noundef %0) local_unnamed_addr #6 {
   %2 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.33, i32 noundef %0)
   ret void
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_double(double noundef %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_double(double noundef %0) local_unnamed_addr #6 {
   %2 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.34, double noundef %0)
   ret void
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_char(i8 noundef signext %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_char(i8 noundef signext %0) local_unnamed_addr #6 {
   %2 = zext i8 %0 to i32
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef %2, ptr noundef %3)
@@ -1296,7 +1290,7 @@ define dso_local range(i32 0, 2) i32 @qc_endswith(ptr noundef readonly captures(
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_float(float noundef %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_float(float noundef %0) local_unnamed_addr #6 {
   %2 = fpext float %0 to double
   %3 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.34, double noundef %2)
   ret void
@@ -1377,19 +1371,19 @@ define dso_local noalias ptr @qc_qin() local_unnamed_addr #21 {
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 
 declare i32 @__isoc23_scanf(ptr noundef, ...) local_unnamed_addr #22
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_bool(i1 noundef zeroext %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_bool(i1 noundef zeroext %0) local_unnamed_addr #6 {
   %2 = select i1 %0, ptr @.str.23, ptr @.str.24
   %3 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.38, ptr noundef nonnull %2)
   ret void
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr #6 {
   %2 = icmp eq ptr %0, null
   br i1 %2, label %40, label %3
 
@@ -1460,7 +1454,7 @@ define dso_local noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr
 declare i32 @isspace(i32 noundef) local_unnamed_addr #20
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noundef ptr @qc_replace(ptr noundef readonly %0, ptr noundef readonly captures(address_is_null) %1, ptr noundef readonly captures(address_is_null) %2) local_unnamed_addr #7 {
+define dso_local noundef ptr @qc_replace(ptr noundef readonly %0, ptr noundef readonly captures(address_is_null) %1, ptr noundef readonly captures(address_is_null) %2) local_unnamed_addr #6 {
   %4 = icmp ne ptr %0, null
   %5 = icmp ne ptr %1, null
   %6 = and i1 %4, %5
@@ -1670,25 +1664,25 @@ define dso_local signext i8 @qc_to_char_from_string(ptr noundef readonly capture
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local range(i32 0, 2) i32 @qc_to_int_from_bool(i1 noundef zeroext %0) local_unnamed_addr #6 {
+define dso_local range(i32 0, 2) i32 @qc_to_int_from_bool(i1 noundef zeroext %0) local_unnamed_addr #10 {
   %2 = zext i1 %0 to i32
   ret i32 %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef float @qc_to_float_from_int(i32 noundef %0) local_unnamed_addr #6 {
+define dso_local noundef float @qc_to_float_from_int(i32 noundef %0) local_unnamed_addr #10 {
   %2 = sitofp i32 %0 to float
   ret float %2
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local noundef double @qc_to_double_from_int(i32 noundef %0) local_unnamed_addr #6 {
+define dso_local noundef double @qc_to_double_from_int(i32 noundef %0) local_unnamed_addr #10 {
   %2 = sitofp i32 %0 to double
   ret double %2
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print(ptr noundef %0) local_unnamed_addr #7 {
+define dso_local void @qc_print(ptr noundef %0) local_unnamed_addr #6 {
   %2 = icmp eq ptr %0, null
   br i1 %2, label %5, label %3
 
@@ -1701,7 +1695,7 @@ define dso_local void @qc_print(ptr noundef %0) local_unnamed_addr #7 {
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_println(ptr noundef readonly captures(address_is_null) %0) local_unnamed_addr #7 {
+define dso_local void @qc_println(ptr noundef readonly captures(address_is_null) %0) local_unnamed_addr #6 {
   %2 = icmp eq ptr %0, null
   br i1 %2, label %5, label %3
 
@@ -1719,7 +1713,7 @@ define dso_local void @qc_println(ptr noundef readonly captures(address_is_null)
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_int(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_int(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1755,7 +1749,7 @@ define dso_local void @qc_print_array_int(ptr noundef readonly captures(none) %0
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_float(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_float(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1792,7 +1786,7 @@ define dso_local void @qc_print_array_float(ptr noundef readonly captures(none) 
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_double(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_double(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1828,7 +1822,7 @@ define dso_local void @qc_print_array_double(ptr noundef readonly captures(none)
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_string(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_string(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1864,7 +1858,7 @@ define dso_local void @qc_print_array_string(ptr noundef readonly captures(none)
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_char(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_char(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1901,7 +1895,7 @@ define dso_local void @qc_print_array_char(ptr noundef readonly captures(none) %
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_bool(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_bool(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1939,7 +1933,7 @@ define dso_local void @qc_print_array_bool(ptr noundef readonly captures(none) %
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_qbool(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_qbool(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = load ptr, ptr @stdout, align 8, !tbaa !10
   %4 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %3)
   %5 = icmp sgt i32 %1, 0
@@ -1979,7 +1973,7 @@ define dso_local void @qc_print_array_qbool(ptr noundef readonly captures(none) 
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local range(i32 1, 9) i32 @sizeof_type(i32 noundef %0) local_unnamed_addr #6 {
+define dso_local range(i32 1, 9) i32 @sizeof_type(i32 noundef %0) local_unnamed_addr #10 {
   %2 = add i32 %0, -2
   %3 = icmp ult i32 %2, 5
   br i1 %3, label %4, label %8
@@ -2239,7 +2233,7 @@ define dso_local noundef ptr @qc_array_to_string_recursive(ptr noundef readonly 
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_array_recursive(ptr noundef readonly captures(none) %0, i32 noundef %1, i32 noundef %2, ptr noundef readonly captures(none) %3) local_unnamed_addr #7 {
+define dso_local void @qc_print_array_recursive(ptr noundef readonly captures(none) %0, i32 noundef %1, i32 noundef %2, ptr noundef readonly captures(none) %3) local_unnamed_addr #6 {
   %5 = icmp eq i32 %2, 0
   br i1 %5, label %6, label %41
 
@@ -2511,7 +2505,7 @@ define dso_local void @qc_free_jagged_array(ptr noundef captures(none) %0) local
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_jagged_array_recursive(ptr noundef readonly captures(none) %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_jagged_array_recursive(ptr noundef readonly captures(none) %0) local_unnamed_addr #6 {
   %2 = load ptr, ptr @stdout, align 8, !tbaa !10
   %3 = tail call noundef i32 @putc(i32 noundef 91, ptr noundef %2)
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 16
@@ -4121,7 +4115,7 @@ define dso_local void @qc_map_remove(ptr noundef captures(none) %0, ptr noundef 
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_print_map(ptr noundef readonly captures(none) %0) local_unnamed_addr #7 {
+define dso_local void @qc_print_map(ptr noundef readonly captures(none) %0) local_unnamed_addr #6 {
   %2 = load ptr, ptr @stdout, align 8, !tbaa !10
   %3 = tail call noundef i32 @putc(i32 noundef 123, ptr noundef %2)
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 16
@@ -5126,16 +5120,16 @@ define dso_local ptr @qc_list_to_string(ptr noundef readonly captures(none) %0) 
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fopen(ptr noundef readonly captures(none) %0, ptr noundef readonly captures(none) %1) local_unnamed_addr #7 {
+define dso_local noalias noundef ptr @qc_fopen(ptr noundef readonly captures(none) %0, ptr noundef readonly captures(none) %1) local_unnamed_addr #6 {
   %3 = tail call noalias ptr @fopen(ptr noundef %0, ptr noundef %1)
   ret ptr %3
 }
 
 ; Function Attrs: nofree nounwind
-declare noalias noundef ptr @fopen(ptr noundef readonly captures(none), ptr noundef readonly captures(none)) local_unnamed_addr #9
+declare noalias noundef ptr @fopen(ptr noundef readonly captures(none), ptr noundef readonly captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_fclose(ptr noundef captures(address_is_null) %0) local_unnamed_addr #7 {
+define dso_local void @qc_fclose(ptr noundef captures(address_is_null) %0) local_unnamed_addr #6 {
   %2 = icmp eq ptr %0, null
   br i1 %2, label %5, label %3
 
@@ -5148,10 +5142,10 @@ define dso_local void @qc_fclose(ptr noundef captures(address_is_null) %0) local
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @fclose(ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef i32 @fclose(ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias ptr @qc_fread(ptr noundef captures(address_is_null) %0) local_unnamed_addr #7 {
+define dso_local noalias ptr @qc_fread(ptr noundef captures(address_is_null) %0) local_unnamed_addr #6 {
   %2 = alloca [1024 x i8], align 16
   %3 = icmp eq ptr %0, null
   br i1 %3, label %4, label %6
@@ -5194,10 +5188,10 @@ define dso_local noalias ptr @qc_fread(ptr noundef captures(address_is_null) %0)
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef ptr @fgets(ptr noundef writeonly, i32 noundef, ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef ptr @fgets(ptr noundef writeonly, i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local void @qc_fwrite(ptr noundef captures(address_is_null) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #7 {
+define dso_local void @qc_fwrite(ptr noundef captures(address_is_null) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #6 {
   %3 = icmp ne ptr %0, null
   %4 = icmp ne ptr %1, null
   %5 = and i1 %3, %4
@@ -5213,10 +5207,10 @@ define dso_local void @qc_fwrite(ptr noundef captures(address_is_null) %0, ptr n
 }
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: nofree nounwind
-declare noundef i32 @putc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #9
+declare noundef i32 @putc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nocallback nofree nounwind willreturn
 declare double @strtod(ptr noundef readonly, ptr noundef captures(none)) local_unnamed_addr #33
@@ -5233,11 +5227,11 @@ attributes #2 = { mustprogress nounwind willreturn memory(argmem: readwrite, ina
 attributes #3 = { mustprogress nounwind willreturn allockind("free") memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #4 = { mustprogress nounwind willreturn allockind("realloc") allocsize(1) memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #5 = { mustprogress nofree nounwind willreturn allockind("alloc,zeroed") allocsize(0,1) memory(inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #6 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #7 = { mustprogress nofree nounwind uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #8 = { mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
-attributes #9 = { nofree nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #10 = { mustprogress nofree nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #6 = { mustprogress nofree nounwind uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #7 = { mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite) }
+attributes #8 = { nofree nounwind "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #9 = { mustprogress nofree nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite) "alloc-family"="malloc" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #10 = { mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #11 = { mustprogress nofree nounwind willreturn uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #12 = { mustprogress nocallback nofree nounwind willreturn memory(argmem: read) "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #13 = { mustprogress nocallback nofree nounwind willreturn memory(argmem: readwrite) }

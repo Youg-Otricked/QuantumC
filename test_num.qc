@@ -20,5 +20,9 @@ int main() {
     addr_t aligned = ptr & ~7;
     qout("%s\n", f"Alignment (1031 & ~7): {aligned}");
     qout("--- Gauntlet Complete ---\n");
+    addr_t address = to_address(&a);
+    qout("The address of a is %x", address);
+    int* ptr_to_addr = mapped_ptr(address);
+    *ptr_to_addr = 5;
     return 0;
 }

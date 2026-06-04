@@ -20,9 +20,6 @@ extern "C" {
     void* qc_calloc(uintptr_t num, uintptr_t size) {
         return calloc(num, size);
     }
-    void* qc_mapped_ptr(uintptr_t addr) {
-        return (void*)addr;
-    }
     char* qc_fmt_int(long long v, int width, int precision, int zero_pad) {
         char fmt[32];
         if (precision >= 0) {
