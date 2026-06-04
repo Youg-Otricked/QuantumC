@@ -4,6 +4,7 @@ namespace Exported {
     #include <Collections, ./stdlib.qc>
     #include <Math, ./stdlib.qc>
     #include <UnitTest, ./stdlib.qc>
+    #include <OSInterop, ./stdlib.qc>
 }
 
 int main() {
@@ -79,7 +80,8 @@ int main() {
     qout("%s", f"\nAQB && test: {aqb.eval() && aqb2.eval()}\n");
     qout("%s", f"AQB || test: {aqb.eval() || aqb2.eval()}\n");
     qout("%s", f"!AQB test: {!aqb.eval()}\n");
-    
+    // TEST OS
+    OSInterop::system("ls -la");
     qout("\n=== ALL STDLIB TESTS COMPLETE ===\n");
     
     return 0;

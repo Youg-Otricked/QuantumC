@@ -467,6 +467,7 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/IR/IRBuilder.h \
   /usr/lib/llvm-21/include/llvm/IR/IRBuilderFolder.h \
   /usr/lib/llvm-21/include/llvm/IR/IRPrintingPasses.h \
+  /usr/lib/llvm-21/include/llvm/IR/InlineAsm.h \
   /usr/lib/llvm-21/include/llvm/IR/InstrTypes.h \
   /usr/lib/llvm-21/include/llvm/IR/Instruction.def \
   /usr/lib/llvm-21/include/llvm/IR/Instruction.h \
@@ -1403,6 +1404,8 @@ compiler_run.cpp:
 
 /usr/include/c++/15/pstl/glue_algorithm_defs.h:
 
+/usr/lib/llvm-21/include/llvm/IR/InlineAsm.h:
+
 /usr/lib/llvm-21/include/llvm/IR/Function.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/libgcc_s.so:
@@ -1478,6 +1481,10 @@ compiler_run.cpp:
 /usr/include/c++/15/bits/utility.h:
 
 /usr/include/x86_64-linux-gnu/bits/timesize.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ReverseIteration.h:
+
+/usr/include/x86_64-linux-gnu/c++/15/bits/cpu_defines.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/clock_t.h:
 
@@ -1662,10 +1669,6 @@ compiler_run.cpp:
 /usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h:
 
 /usr/include/asm-generic/errno-base.h:
-
-/usr/include/x86_64-linux-gnu/c++/15/bits/cpu_defines.h:
-
-/usr/lib/llvm-21/include/llvm/Support/ReverseIteration.h:
 
 /usr/include/c++/15/bits/stringfwd.h:
 

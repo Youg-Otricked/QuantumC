@@ -35,6 +35,9 @@ extern "C" {
         snprintf(out, len + 1, fmt, v);
         return out;
     }
+    void qc_flush() {
+        fflush(NULL);
+    }
     char* qc_fmt_unsigned_int(uintptr_t v, int zero_pad) {
         char fmt[32];
         if (zero_pad) {

@@ -468,4 +468,5 @@ CMakeFiles/qc.dir/compiler.cpp.o: /home/luca/C^4/compiler.cpp \
  /usr/lib/llvm-21/include/llvm/Linker/Linker.h \
  /usr/lib/llvm-21/include/llvm/ADT/StringSet.h \
  /usr/lib/llvm-21/include/llvm/Linker/IRMover.h \
- /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h
+ /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h \
+ /usr/lib/llvm-21/include/llvm/IR/InlineAsm.h

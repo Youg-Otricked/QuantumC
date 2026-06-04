@@ -9,7 +9,7 @@ int main() {
     int current = 3;
     int next = current + 1 << 3; 
     qout("%s\n", f"Precedence Test (3 + 1 << 3): {next}"); 
-    addr_t val = -8; 
+    addr_t val = -8;
     qout("%s\n", f"Arithmetic >>: {val >> 1}");
     qout("%s\n", f"Logical    :>: {val :> 1}");
     addr_t top_bit = 2147483648;
@@ -21,8 +21,17 @@ int main() {
     qout("%s\n", f"Alignment (1031 & ~7): {aligned}");
     qout("--- Gauntlet Complete ---\n");
     addr_t address = to_address(&a);
-    qout("The address of a is %x", address);
+    qout("The address of a is %x\n", address);
+    flush();
     int* ptr_to_addr = mapped_ptr(address);
     *ptr_to_addr = 5;
+    string str = "Hello, World!";
+    inline(R("
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, $0r
+    mov edx, $1r
+    syscall
+    "), str, len(str), "~{rax}~{rsi}~{rdi}");
     return 0;
 }

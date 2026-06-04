@@ -163,6 +163,15 @@ declare noundef i32 @snprintf(ptr noalias noundef writeonly captures(none), i64 
 declare void @llvm.lifetime.end.p0(i64 immarg, ptr captures(none)) #7
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
+define dso_local void @qc_flush() local_unnamed_addr #6 {
+  %1 = tail call i32 @fflush(ptr noundef null)
+  ret void
+}
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
+
+; Function Attrs: mustprogress nofree nounwind uwtable
 define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 noundef %1) local_unnamed_addr #6 {
   %3 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %3) #37
@@ -1369,9 +1378,6 @@ define dso_local noalias ptr @qc_qin() local_unnamed_addr #21 {
   call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %1) #37
   ret ptr %15
 }
-
-; Function Attrs: nofree nounwind
-declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 
 declare i32 @__isoc23_scanf(ptr noundef, ...) local_unnamed_addr #22
 

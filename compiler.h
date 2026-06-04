@@ -100,17 +100,14 @@ namespace tkz {
     class RefVarDeclNode;
     class NullptrNode;
     using AnyNode = std::variant<
-        std::monostate, 
-        NumberNode, 
-        StringNode,
+        std::monostate,         NumberNode,         StringNode,
         CharNode,
         BoolNode,
         QInNode,
         QBoolNode,
         RefVarDeclNode,
         NullptrNode,
-        std::unique_ptr<BinOpNode>, 
-        std::unique_ptr<UnaryOpNode>,
+        std::unique_ptr<BinOpNode>,         std::unique_ptr<UnaryOpNode>,
         std::unique_ptr<VarAccessNode>,
         std::unique_ptr<VarAssignNode>,
         std::unique_ptr<AssignExprNode>,
@@ -129,8 +126,7 @@ namespace tkz {
         std::unique_ptr<MultiReturnNode>,
         std::unique_ptr<MultiVarDeclNode>,
         std::unique_ptr<ArrayDeclNode>,  
-        std::unique_ptr<ListDeclNode>, 
-        std::unique_ptr<ArrayLiteralNode>,     
+        std::unique_ptr<ListDeclNode>,         std::unique_ptr<ArrayLiteralNode>,     
         std::unique_ptr<ArrayAccessNode>,
         std::unique_ptr<MethodCallNode>,
         std::shared_ptr<PropertyAccessNode>,
@@ -162,8 +158,7 @@ namespace tkz {
     enum class TokenType {
         INT, STRING, FLOAT, ADDR_T, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
         ARROW, AMPERSAND, STAR, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
-        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF, 
-        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR, BITWISE_NOT,
+        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF,         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR, BITWISE_NOT,
         BITWISE_XOR, R_ROT, L_ROT, LOGICAL_RSHIFT,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
         FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, PIPE, EOFT
@@ -434,9 +429,7 @@ namespace tkz {
         AnyNode right_node;
 
         BinOpNode(AnyNode left, Token op, AnyNode right, bool is_f = false) 
-            : left_node(std::move(left)), 
-            op_tok(std::move(op)), 
-            right_node(std::move(right)) {this->is_f = is_f;}
+            : left_node(std::move(left)),             op_tok(std::move(op)),             right_node(std::move(right)) {this->is_f = is_f;}
             
         std::string print() const;
     };
@@ -474,9 +467,7 @@ namespace tkz {
         
         VarAssignNode(bool is_const, Token type, Token name, AnyNode value)
             : is_const(is_const),
-            type_tok(std::move(type)), 
-            var_name_tok(std::move(name)), 
-            value_node(std::move(value)) {}
+            type_tok(std::move(type)),             var_name_tok(std::move(name)),             value_node(std::move(value)) {}
         
         std::string print() const;
     };
@@ -665,9 +656,7 @@ namespace tkz {
             std::string namespace_path;
             Position pos;
             
-            FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, 
-                        std::list<Parameter> parameters, 
-                        std::unique_ptr<StatementsNode> func_body,
+            FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name,                         std::list<Parameter> parameters,                         std::unique_ptr<StatementsNode> func_body,
                         std::string ns = "") 
                 : return_types(std::move(ret_types)),
                 name_tok(std::move(name)),
@@ -749,8 +738,7 @@ namespace tkz {
         int dimensions;
         std::vector<std::optional<int>> sizes;
 
-        ArrayDeclNode(bool is_const, Token type_tok, Token var_name_tok, 
-              AnyNode&& value,
+        ArrayDeclNode(bool is_const, Token type_tok, Token var_name_tok,               AnyNode&& value,
               int dims, std::vector<std::optional<int>> sizes)
             : is_const(is_const),
             type_tok(type_tok),
@@ -896,8 +884,7 @@ namespace tkz {
         AnyNode body;
         
         ForeachNode(Token type, Token name, AnyNode&& coll, AnyNode&& body_stmt)
-            : elem_type(type), elem_name(name), 
-            collection(std::move(coll)), body(std::move(body_stmt)) {}
+            : elem_type(type), elem_name(name),             collection(std::move(coll)), body(std::move(body_stmt)) {}
         
         std::string print() {
             return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)";
@@ -1164,8 +1151,7 @@ namespace tkz {
         Prs power();
         Prs if_expr();
         Prs return_stmt();
-        Prs bin_op(std::function<Prs()> func, 
-                   std::initializer_list<TokenType> ops);
+        Prs bin_op(std::function<Prs()> func,                    std::initializer_list<TokenType> ops);
         Prs logical_and();
         Prs qif_expr();
         Prs bitwise();
@@ -1272,6 +1258,7 @@ namespace tkz {
         }
     }; 
     
+
     class BoolValue {
         public:
         bool value;
@@ -1362,8 +1349,7 @@ namespace tkz {
         bool is_null = false;
         Position pos;
         PointerValue(std::string t, size_t fi, std::string key, bool n = false)
-            : pointee_type(t), frame_index(fi), symbol_key(key), 
-            is_heap(false), is_null(n), pos("", "", 0, 0, 0) {}
+            : pointee_type(t), frame_index(fi), symbol_key(key),             is_heap(false), is_null(n), pos("", "", 0, 0, 0) {}
         static PointerValue heap_ptr(std::string t, size_t hid) {
             PointerValue p("", 0, "", false);
             p.pointee_type = t;
@@ -1389,8 +1375,7 @@ namespace tkz {
         Number<long long>, Number<long double>,
         Number<short>, Number<uintptr_t>,
         StringValue, CharValue, BoolValue, QBoolValue,
-        FunctionValue, VoidValue, PointerValue, std::shared_ptr<MultiValue>, 
-        std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
+        FunctionValue, VoidValue, PointerValue, std::shared_ptr<MultiValue>,         std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
         std::shared_ptr<MapValue>, std::shared_ptr<StructValue>,
         std::shared_ptr<InstanceValue>
     >;
@@ -2075,9 +2060,7 @@ namespace tkz {
         bool struct_has_field(const std::shared_ptr<StructValue>& sv, const std::string& field);
         bool in_class_context(const std::string& class_name);
         NumberVariant convert_array_to_struct(
-            const std::shared_ptr<ArrayValue>& arr, 
-            const std::string& struct_type, 
-            Context* context
+            const std::shared_ptr<ArrayValue>& arr,             const std::string& struct_type,             Context* context
         );
         NumberVariant operator()(RefVarDeclNode& node);
         NumberVariant operator()(NullptrNode& node);
@@ -2124,7 +2107,11 @@ namespace tkz {
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
     #ifdef ENABLE_LLVM
-
+    struct AsmOp {
+        bool isOutput;
+        int index;
+        char kind;
+    };  
     class LLVMCompiler {
     public:
         bool startsWithQIn(const AnyNode& node) {
@@ -3029,9 +3016,7 @@ namespace tkz {
             
             return -1;
         }
-        bool canAccessMethod(const std::string& callerClass, 
-                            const std::string& methodClass, 
-                            const std::string& methodName) {
+        bool canAccessMethod(const std::string& callerClass,                             const std::string& methodClass,                             const std::string& methodName) {
             auto& classInfo = userTypes[methodClass];
             for (auto& method : classInfo.classMethods) {
                 if (method.name_tok.value == methodName) {
@@ -3324,10 +3309,7 @@ namespace tkz {
             }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
             llvm::Function* fn = llvm::Function::Create(
-                fnTy, 
-                llvm::Function::ExternalLinkage, 
-                specializedName, 
-                module.get()
+                fnTy,                 llvm::Function::ExternalLinkage,                 specializedName,                 module.get()
             );
             currentFunction = fn;
             currentClassName = className;
@@ -3632,10 +3614,7 @@ namespace tkz {
             }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
             llvm::Function* fn = llvm::Function::Create(
-                fnTy, 
-                llvm::Function::ExternalLinkage, 
-                specializedName, 
-                module.get()
+                fnTy,                 llvm::Function::ExternalLinkage,                 specializedName,                 module.get()
             );
             
             currentFunction = fn;

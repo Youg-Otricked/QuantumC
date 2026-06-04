@@ -109,6 +109,10 @@ target triple = "x86_64-pc-linux-gnu"
 @20 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
 @.str.64 = private constant [27 x i8] c"--- Gauntlet Complete ---\0A\00"
 @21 = private unnamed_addr constant [28 x i8] c"--- Gauntlet Complete ---\0A\00\00", align 1
+@.str.65 = private constant [24 x i8] c"The address of a is %x\0A\00"
+@22 = private unnamed_addr constant [21 x i8] c"The address of a is \00", align 1
+@23 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.66 = private constant [14 x i8] c"Hello, World!\00"
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define dso_local noalias noundef ptr @qc_malloc(i64 noundef %0) local_unnamed_addr #0 {
@@ -205,6 +209,15 @@ declare noundef i32 @snprintf(ptr noalias noundef writeonly captures(none), i64 
 
 ; Function Attrs: nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
 declare void @llvm.lifetime.end.p0(i64 immarg, ptr captures(none)) #7
+
+; Function Attrs: mustprogress nofree nounwind uwtable
+define dso_local void @qc_flush() local_unnamed_addr #6 {
+  %1 = tail call i32 @fflush(ptr noundef null)
+  ret void
+}
+
+; Function Attrs: nofree nounwind
+declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 noundef %1) local_unnamed_addr #6 {
@@ -1416,9 +1429,6 @@ define dso_local noalias ptr @qc_qin() local_unnamed_addr #21 {
   call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %1) #37
   ret ptr %15
 }
-
-; Function Attrs: nofree nounwind
-declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 
 declare i32 @__isoc23_scanf(ptr noundef, ...) local_unnamed_addr #22
 
@@ -5267,6 +5277,7 @@ declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unname
 
 define i32 @__user_entry() {
 entry:
+  %str = alloca ptr, align 8
   %ptr_to_addr = alloca ptr, align 8
   %address = alloca i64, align 8
   %aligned = alloca i64, align 8
@@ -5372,11 +5383,26 @@ entry:
   call void @qc_print_string(ptr %9)
   call void @qc_print_string(ptr @20)
   call void @qc_print_string(ptr @21)
-  store i64 140729889988800, ptr %address, align 8
-  store ptr inttoptr (i64 140729889988800 to ptr), ptr %ptr_to_addr, align 8
-  %ptr_to_addr34 = load ptr, ptr %ptr_to_addr, align 8
-  %assign_lhs_val = load i32, ptr %ptr_to_addr34, align 4
-  store i32 5, ptr %ptr_to_addr34, align 4
+  %a34 = load i32, ptr %a, align 4
+  %addr = ptrtoint ptr %a to i64
+  store i64 %addr, ptr %address, align 8
+  %address35 = load i64, ptr %address, align 8
+  call void @qc_print_string(ptr @22)
+  %10 = call ptr @qc_fmt_hex(i64 %address35, i32 -1, i1 false)
+  call void @qc_print_string(ptr %10)
+  call void @qc_print_string(ptr @23)
+  call void @qc_flush()
+  %address36 = load i64, ptr %address, align 8
+  %11 = inttoptr i64 %address36 to ptr
+  store ptr %11, ptr %ptr_to_addr, align 8
+  %ptr_to_addr37 = load ptr, ptr %ptr_to_addr, align 8
+  %assign_lhs_val = load i32, ptr %ptr_to_addr37, align 4
+  store i32 5, ptr %ptr_to_addr37, align 4
+  store ptr @.str.66, ptr %str, align 8
+  %str38 = load ptr, ptr %str, align 8
+  %str39 = load ptr, ptr %str, align 8
+  %builtin_call = call i32 @qc_len(ptr %str39)
+  call void asm sideeffect inteldialect "\0A    mov rax, 1\0A    mov rdi, 1\0A    mov rsi, $0\0A    mov edx, $1\0A    syscall\0A    ", "r,r,~{rax},~{rsi},~{rdi},~{rdi}"(ptr %str38, i32 %builtin_call)
   ret i32 0
 }
 

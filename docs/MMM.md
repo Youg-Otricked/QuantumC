@@ -84,3 +84,7 @@ Memory is a large region of addressable storage. Each location in memory has an 
 A memory address is a number (usually shown in hexadecimal) that identifies a specific location in memory.
 You can think of memory addresses as being analogous to real-world addresses. They are similar in the sense that both identify locations, but memory addresses refer to positions in a linear storage space.
 For example, a delivery driver uses a house address to find where to drop off a package. In a program, the cpu looks at the memory address to find the value.
+
+## Pointers
+
+Pointers just store a address. Simple! Or is it?... *queue vsauce intro*
