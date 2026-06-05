@@ -1383,4 +1383,20 @@ extern "C" {
             fputc('\n', (FILE*)file);
         }
     }
+    typedef struct {
+        void** items;
+        int count;
+        int current_index;
+    } qc_variadic;
+    bool qc_variadic_is_empty(qc_variadic* variadic) {
+        return variadic->current_index >= variadic->count;
+    }
+    void* qc_variadic_next(qc_variadic* variadic) {
+        if (qc_variadic_is_empty(variadic)) {
+            return nullptr;
+        }
+        void* data = variadic->items[variadic->current_index];
+        variadic->current_index++;
+        return data;
+    }
 }

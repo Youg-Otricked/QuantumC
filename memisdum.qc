@@ -161,6 +161,11 @@ void final_ptr_test() {
         qout("Success: Loop indexing worked");
     }
 }
+void testVarArgs(...args) {
+    int x = next(args, "int");
+    bool b = is_empty(args);
+    qout("Value is %i, and after getting that, it is %s", x, ternary(b, "empty", "not empty"));
+}
 int main() {
     UnitTest::Test test = UnitTest::Test(8);
     int y = 0;
@@ -192,5 +197,7 @@ int main() {
     TESTESTESTESTESTEST();
     test_nullptr();
     final_ptr_test();
+    flush();
+    testVarArgs(213);
     return 0;
 }

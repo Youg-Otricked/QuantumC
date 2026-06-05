@@ -5215,6 +5215,39 @@ define dso_local void @qc_fwrite(ptr noundef captures(address_is_null) %0, ptr n
 ; Function Attrs: nofree nounwind
 declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
+define dso_local zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(none) %0) local_unnamed_addr #25 {
+  %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
+  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
+  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %6 = icmp sge i32 %3, %5
+  ret i1 %6
+}
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable
+define dso_local ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnamed_addr #30 {
+  %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
+  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
+  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %6 = icmp slt i32 %3, %5
+  br i1 %6, label %7, label %13
+
+7:                                                ; preds = %1
+  %8 = load ptr, ptr %0, align 8, !tbaa !93
+  %9 = sext i32 %3 to i64
+  %10 = getelementptr inbounds ptr, ptr %8, i64 %9
+  %11 = load ptr, ptr %10, align 8, !tbaa !55
+  %12 = add nsw i32 %3, 1
+  store i32 %12, ptr %2, align 4, !tbaa !90
+  br label %13
+
+13:                                               ; preds = %1, %7
+  %14 = phi ptr [ %11, %7 ], [ null, %1 ]
+  ret ptr %14
+}
+
 ; Function Attrs: nofree nounwind
 declare noundef i32 @putc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
@@ -5362,3 +5395,7 @@ attributes #40 = { nounwind willreturn memory(read) }
 !87 = !{!"p1 _ZTS9_ffi_type", !12, i64 0}
 !88 = distinct !{!88, !6}
 !89 = distinct !{!89, !6}
+!90 = !{!91, !20, i64 12}
+!91 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
+!92 = !{!91, !20, i64 8}
+!93 = !{!91, !49, i64 0}

@@ -3102,46 +3102,49 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     } else {
         p.type = this->current_tok;
         this->advance();
-
-        while (this->current_tok.type == TokenType::SCOPE) {
-            this->advance();
-            p.type.value += "::" + this->current_tok.value;
-            this->advance();
-        }
-
-        if ((p.type.value == "list" || p.type.value == "map") &&
-            this->current_tok.type == TokenType::LESS) {
-            this->advance();
-            p.type.value += "<" + this->parse_parameter().type.value;
-            if (this->current_tok.type == TokenType::COMMA) {
+        if (!(p.type.type == TokenType::VARADIC)) {
+            while (this->current_tok.type == TokenType::SCOPE) {
                 this->advance();
-                p.type.value += ", " + this->parse_parameter().type.value;
+                p.type.value += "::" + this->current_tok.value;
+                this->advance();
             }
-            if (this->current_tok.type != TokenType::MORE) {
-                throw std::make_unique<InvalidSyntaxError>(
-                    "Expected '>' after a list/map type",
-                    this->current_tok.pos);
-            }
-            this->advance();
-            p.type.value += ">";
-        }
 
-        if (this->current_tok.type == TokenType::AMPERSAND) {
-            this->advance();
-            p.type.value += "&";
-        }
-        while (this->current_tok.type == TokenType::MUL) {
-            this->advance();
-            p.type.value += "*";
-        }
-        while (this->current_tok.type == TokenType::LBRACKET) {
-            this->advance();
-            if (this->current_tok.type != TokenType::RBRACKET) {
-                throw std::make_unique<InvalidSyntaxError>(
-                    "Expected ']' after '['", this->current_tok.pos);
+            if ((p.type.value == "list" || p.type.value == "map") &&
+                this->current_tok.type == TokenType::LESS) {
+                this->advance();
+                p.type.value += "<" + this->parse_parameter().type.value;
+                if (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    p.type.value += ", " + this->parse_parameter().type.value;
+                }
+                if (this->current_tok.type != TokenType::MORE) {
+                    throw std::make_unique<InvalidSyntaxError>(
+                        "Expected '>' after a list/map type",
+                        this->current_tok.pos);
+                }
+                this->advance();
+                p.type.value += ">";
             }
-            this->advance();
-            p.type.value += "[]";
+
+            if (this->current_tok.type == TokenType::AMPERSAND) {
+                this->advance();
+                p.type.value += "&";
+            }
+            while (this->current_tok.type == TokenType::MUL) {
+                this->advance();
+                p.type.value += "*";
+            }
+            while (this->current_tok.type == TokenType::LBRACKET) {
+                this->advance();
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    throw std::make_unique<InvalidSyntaxError>(
+                        "Expected ']' after '['", this->current_tok.pos);
+                }
+                this->advance();
+                p.type.value += "[]";
+            }
+        } else {
+            p.name == Token(TokenType::IDENTIFIER, "<varadic>", Position());
         }
     }
     if (!type_only) {
@@ -3165,7 +3168,9 @@ Prs Parser::func_def_multi(std::vector<Token> return_types,
     if (this->current_tok.type != TokenType::RPAREN) {
         while (true) {
             params.push_back(std::move(this->parse_parameter()));
-
+            if (params.back().type.type == TokenType::VARADIC) {
+                break;
+            }
             if (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
             } else {
@@ -12608,18 +12613,16 @@ llvm::Type *LLVMCompiler::llvmTypeFor(const std::string &qcType) {
     type = resolveTypeName(type);
     type = resolveType(type);
     type = resolveTypeName(type);
+    if (type == "...") {
+        return builder->getPtrTy();
+    }
     if (type.ends_with("[]")) {
-        std::string baseType = type.substr(0, type.length() - 2);
-        llvm::Type *elemTy = llvmTypeFor(baseType);
         return llvm::PointerType::get(context, 0);
     }
     if (type.ends_with("&") || type.ends_with("*")) {
         return builder->getPtrTy();
     }
     if (type.starts_with("list<") && type.ends_with(">")) {
-        size_t start = 5;
-        size_t end = qcType.length() - 1;
-        std::string elemType = type.substr(start, end - start);
         return llvm::PointerType::get(context, 0);
     }
     if (type.starts_with("map<") && type.ends_with(">")) {
@@ -12852,7 +12855,7 @@ ParamTypeInfo toTypeInfo(const Parameter &p) {
     ParamTypeInfo out;
 
     out.type = p.type;
-
+    out.name = p.name;
     if (p.signature.has_value()) {
         ParamTypeInfo::FunctionSignature sig;
 
@@ -12872,15 +12875,25 @@ llvm::FunctionType *
 LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
                                     const std::vector<ParamTypeInfo> &params) {
     std::vector<llvm::Type *> paramTypes;
+    bool is_c_varargs = false;
     for (auto &p : params) {
         if (p.signature.has_value()) {
             paramTypes.push_back(llvm::PointerType::getUnqual(context));
         } else {
-            paramTypes.push_back(llvmTypeFor(p.type.value));
+            if (p.type.type == TokenType::VARADIC) {
+                if (p.name.value == "<varadic>") {
+                    is_c_varargs = true;
+                } else {
+                    paramTypes.push_back(llvmTypeFor(p.type.value));
+                }
+                break;
+            } else {
+                paramTypes.push_back(llvmTypeFor(p.type.value));
+            }
         }
     }
     if (returnTypes.empty()) {
-        return llvm::FunctionType::get(builder->getVoidTy(), paramTypes, false);
+        return llvm::FunctionType::get(builder->getVoidTy(), paramTypes, is_c_varargs);
     }
 
     if (returnTypes.size() == 1) {
@@ -12890,7 +12903,7 @@ LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
             retTy = llvm::PointerType::get(context, 0);
         }
 
-        return llvm::FunctionType::get(retTy, paramTypes, false);
+        return llvm::FunctionType::get(retTy, paramTypes, is_c_varargs);
     }
 
     std::vector<llvm::Type *> retTypes;
@@ -12903,7 +12916,7 @@ LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
         retTypes.push_back(ty);
     }
     llvm::StructType *structTy = llvm::StructType::get(context, retTypes);
-    return llvm::FunctionType::get(structTy, paramTypes, false);
+    return llvm::FunctionType::get(structTy, paramTypes, is_c_varargs);
 }
 llvm::FunctionType *
 LLVMCompiler::llvmFuncTypeFor(const std::vector<Token> &returnTypes,
@@ -16573,8 +16586,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                  {"ternary", ""},
                  {"to_address", ""},
                  {"inline", ""},
-                 {"flush", "qc_flush"}};
-
+                 {"flush", "qc_flush"},
+                 {"next", ""},
+                 {"is_empty", ""}
+            };
             auto it = builtins.find(funcName);
 
             if (it != builtins.end()) {
@@ -18205,6 +18220,85 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         return result;
                     }
                 }
+                if (funcName == "next" && !call.arg_nodes.empty()) {
+                    if (auto acc = std::get_if<std::unique_ptr<VarAccessNode>>(&call.arg_nodes.front())) {
+                        std::string var_name = (*acc)->var_name_tok.value;
+                        if (resolveVarType(var_name) != "...") {
+                            cg_error((*varAccess)->var_name_tok.pos, "Argument one must be a variadic argument: " + funcName);
+                            return nullptr;
+                        }
+                        StringNode* expectedType = std::get_if<StringNode>(&call.arg_nodes.back());
+                        if (!expectedType) {
+                            cg_error((*varAccess)->var_name_tok.pos, "Argument two must be a string storing the type: " + funcName);
+                            return nullptr;
+                        }
+                        llvm::Value* ConvertedValue = nullptr;
+                        llvm::Function *nextElem = module->getFunction("qc_variadic_next");
+                        if (!nextElem) {
+                            llvm::FunctionType *nextElemFnTy =
+                                llvm::FunctionType::get(
+                                    llvm::PointerType::get(context, 0),
+                                    {llvm::PointerType::get(context, 0)},
+                                    false);
+                            nextElem = llvm::Function::Create(
+                                nextElemFnTy, llvm::Function::ExternalLinkage,
+                                "qc_variadic_next", module.get());
+                        }
+                        llvm::Value* VariableAddr = resolveVariable(var_name);
+                        llvm::Value* RawSlot = builder->CreateCall(nextElem, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"), "variadc_arg");
+
+                        llvm::Type* TargetType = llvmTypeFor(expectedType->tok.value);
+                        if (TargetType->isIntegerTy()) {
+                            ConvertedValue = builder->CreatePtrToInt(RawSlot, TargetType, "vararg_int");
+                        } 
+                        else if (TargetType->isPointerTy()) {
+                            ConvertedValue = builder->CreateBitCast(RawSlot, TargetType, "vararg_ptr");
+                        } 
+                        else if (TargetType->isFloatingPointTy()) {
+                            llvm::Type* Int64Ty = builder->getInt64Ty();
+                            llvm::Value* RawInt = builder->CreatePtrToInt(RawSlot, Int64Ty, "vararg_fp_bits");
+                            
+                            if (TargetType->isFloatTy()) {
+                                llvm::Value* Int32Trunc = builder->CreateTrunc(RawInt, builder->getInt32Ty());
+                                ConvertedValue = builder->CreateBitCast(Int32Trunc, TargetType, "vararg_float");
+                            } else {
+                                ConvertedValue = builder->CreateBitCast(RawInt, TargetType, "vararg_double");
+                            }
+                        } 
+                        else if (TargetType->isStructTy()) {
+                            ConvertedValue = builder->CreateLoad(TargetType, RawSlot, "vararg_struct");
+                        }
+                        return ConvertedValue;
+                    } else {
+                        cg_error((*varAccess)->var_name_tok.pos, "Argument one must be a direct variadic argument: " + funcName);
+                    }
+                    return nullptr;
+                }
+                if (funcName == "is_empty" && !call.arg_nodes.empty()) {
+                    if (auto acc = std::get_if<std::unique_ptr<VarAccessNode>>(&call.arg_nodes.back())) {
+                        std::string var_name = (*acc)->var_name_tok.value;
+                        if (resolveVarType(var_name) != "...") {
+                            cg_error((*acc)->var_name_tok.pos, "Argument must be a variadic argument: " + funcName);
+                            return nullptr;
+                        }
+                        llvm::Function *isEmpty = module->getFunction("qc_variadic_is_empty");
+                        if (!isEmpty) {
+                            llvm::FunctionType *isEmptyFnTy =
+                                llvm::FunctionType::get(
+                                    llvm::PointerType::get(context, 0),
+                                    {llvm::PointerType::get(context, 0)},
+                                    false);
+                            isEmpty = llvm::Function::Create(
+                                isEmptyFnTy, llvm::Function::ExternalLinkage,
+                                "qc_variadic_is_empty", module.get());
+                        }
+                        llvm::Value* VariableAddr = resolveVariable(var_name);
+                        return builder->CreateCall(isEmpty, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"), "variadc_is_empty");
+                    } else {
+                        cg_error((*acc)->var_name_tok.pos, "Argument must be a direct variadic argument: " + funcName);
+                    }
+                    return nullptr;
+                }
                 llvm::Function *fn = module->getFunction(runtimeName);
                 if (!fn) {
                     cg_error((*varAccess)->var_name_tok.pos,
@@ -18218,7 +18312,6 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     emitAdaptedArgs(call.arg_nodes, builtinFnTy, emptyMetadata);
                 if (call.arg_nodes.size() != args.size())
                     return nullptr;
-
                 llvm::Type *retTy = fn->getReturnType();
                 return builder->CreateCall(
                     fn, args, retTy->isVoidTy() ? "" : "builtin_call");
@@ -18275,8 +18368,46 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         std::vector<llvm::Value *> args =
             emitAdaptedArgs(call.arg_nodes, fnTy, paramTypeStrings);
-        if (call.arg_nodes.size() != args.size())
+        if (call.arg_nodes.size() < args.size()) {
+            cg_error(Position(), "Too few args to function.");
             return nullptr;
+        }
+        if (!paramTypeStrings.empty() && paramTypeStrings.back() == "...") {
+            size_t num_fixed_args = paramTypeStrings.size() - 1; 
+            std::vector<llvm::Value*> var_vals(args.begin() + num_fixed_args, args.end());
+            args.resize(num_fixed_args);
+            llvm::Value* args_cnt = builder->getInt32(var_vals.size());
+            llvm::Value* items_array = builder->CreateAlloca(builder->getPtrTy(), args_cnt, "varadics_array");
+            for (size_t i = 0; i < var_vals.size(); ++i) {
+                llvm::Value* index = builder->getInt32(i);
+                llvm::Value* element_ptr = builder->CreateGEP(builder->getPtrTy(), items_array, index);
+                llvm::Value* ValueToStore = var_vals[i];
+                llvm::Type* valTy = ValueToStore->getType();
+                if (valTy->isIntegerTy()) {
+                    ValueToStore = builder->CreateIntToPtr(ValueToStore, builder->getPtrTy(), "vararg_int_to_ptr");
+                }
+                else if (valTy->isFloatingPointTy()) {
+                    llvm::Value* Int64Bits = nullptr;
+                    if (valTy->isFloatTy()) {
+                        llvm::Value* Int32Bits = builder->CreateBitCast(ValueToStore, builder->getInt32Ty(), "float_to_i32");
+                        Int64Bits = builder->CreateZExt(Int32Bits, builder->getInt64Ty(), "i32_to_i64");
+                    } else {
+                        Int64Bits = builder->CreateBitCast(ValueToStore, builder->getInt64Ty(), "double_to_i64");
+                    }
+                    ValueToStore = builder->CreateIntToPtr(Int64Bits, builder->getPtrTy(), "fp_bits_to_ptr");
+                }
+                builder->CreateStore(ValueToStore, element_ptr);
+            }
+            llvm::StructType* VaradicStructTy = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty(), builder->getInt32Ty()});
+            llvm::Value* variadic_struct = builder->CreateAlloca(VaradicStructTy, nullptr, "variadic_struct");
+            llvm::Value* Field0Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 0);
+            builder->CreateStore(items_array, Field0Ptr);
+            llvm::Value* Field1Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 1);
+            builder->CreateStore(args_cnt, Field1Ptr);
+            llvm::Value* Field2Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 2);
+            builder->CreateStore(builder->getInt32(0), Field2Ptr);
+            args.push_back(variadic_struct);
+        }
         if (defIt != functionDefs.end()) {
             auto &fnDef = defIt->second;
             size_t paramIdx = 0;
@@ -20515,7 +20646,7 @@ llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
         builder->getInt32Ty(), totalArgsCount, "spread_types_array");
 
     llvm::Value *currentIndex = builder->getInt32(0);
-
+    
     for (auto &argNode : call.arg_nodes) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&argNode)) {
             llvm::Value *collVal = emitExpr((*spread)->expr);
@@ -20528,7 +20659,7 @@ llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
 
             argVal = normalizeValue(argVal, argNode);
             llvm::Type *ty = argVal->getType();
-
+            
             llvm::Value *argPtr;
             if (ty->isPointerTy()) {
                 argPtr = argVal;
@@ -20907,8 +21038,7 @@ LLVMCompiler::copySpreadToArray(llvm::Value *collVal, AnyNode &collExpr,
             std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
         std::string rawName = (*varAccess)->var_name_tok.value;
         std::string resolvedName =
-            resolveMetadataName(rawName); // Use the helper!
-
+            resolveMetadataName(rawName);
         if (hasList(resolvedName)) {
             isList = true;
         } else if (hasJaggedArray(resolvedName)) {
@@ -24615,8 +24745,16 @@ Ler Lexer::make_tokens() {
                 this->advance();
                 break;
             case '.':
-                tokens.push_back(Token(TokenType::DOT, ".", start_pos));
                 this->advance();
+                if (this->current_char == '.') {
+                    this->advance();
+                    if (this->current_char == '.') {
+                        this->advance();
+                        tokens.push_back(Token(TokenType::VARADIC, "...", start_pos));
+                        break;
+                    }
+                }
+                tokens.push_back(Token(TokenType::DOT, ".", start_pos));
                 break;
             case '$':
                 tokens.push_back(Token(TokenType::BITWISE_XOR, "$", start_pos));
@@ -24640,8 +24778,7 @@ Ler Lexer::make_tokens() {
 
 } // namespace tkz
 ///////////////////////////////////////////////////////////////////////////////////////////
-// PREPROCCESERS
-// /////////////////////////////////////////////////////////////////////////
+// PREPROCCESERS /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 std::string trim(const std::string &str) {
     size_t first = str.find_first_not_of(" \t\n\r");

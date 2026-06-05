@@ -158,8 +158,9 @@ namespace tkz {
     enum class TokenType {
         INT, STRING, FLOAT, ADDR_T, DOUBLE, CHAR, MAP, LIST, ARRAY, VOID, ENUM, CLASS, STRUCT,
         ARROW, AMPERSAND, STAR, BOOL, QBOOL, PLUS, MINUS, MUL, DIV, POWER, LPAREN, RPAREN, LSHIFT, RSHIFT,
-        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF,         MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR, BITWISE_NOT,
-        BITWISE_XOR, R_ROT, L_ROT, LOGICAL_RSHIFT,
+        SCOPE, SEMICOLON, DEF, INCREMENT, DECREMENT, IDENTIFIER, KEYWORD, PLUS_EQ, MINUS_EQ, SIZEOF,         
+        MUL_EQ, DIV_EQ, MOD, MOD_EQ, EQ_TO, NOT_EQ, MORE, LESS, MORE_EQ, LESS_EQ, AND, OR, XOR, BITWISE_NOT,
+        BITWISE_XOR, R_ROT, L_ROT, LOGICAL_RSHIFT, VARADIC,
         NOT, EQ, FSTRING, SWITCH, CASE, DEFAULT, IF, ELSE, LBRACE, RBRACE, LBRACKET, RBRACKET, COLON, BREAK,
         FUNC, COMMA, DOT, AT, QAND, QOR, COLLAPSE_AND, COLLAPSE_OR, QEQEQ, QNEQ, QNOT, QXOR, PIPE, EOFT
     };
@@ -414,6 +415,7 @@ namespace tkz {
             std::vector<Token> return_types;
             std::vector<ParamTypeInfo> params;
         };
+        Token name;
         std::optional<FunctionSignature> signature;
         ParamTypeInfo() = default;
         ParamTypeInfo(ParamTypeInfo&&) = default;

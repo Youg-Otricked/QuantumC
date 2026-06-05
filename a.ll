@@ -5,6 +5,10 @@ target triple = "x86_64-pc-linux-gnu"
 
 %struct._ffi_type = type { i64, i16, i16, ptr }
 %struct.ffi_cif = type { i32, i32, ptr, ptr, i32, i32 }
+%"UnitTest::Test" = type { i32, i32, i32, i32, ptr }
+%"AdvQBool::AQB" = type { i32, i32 }
+%"Math::Number" = type { i32, ptr }
+%"Math::Floating" = type { i32, ptr }
 
 @.str = private unnamed_addr constant [11 x i8] c"%%%s%d.%dd\00", align 1
 @.str.1 = private unnamed_addr constant [2 x i8] c"0\00", align 1
@@ -65,54 +69,256 @@ target triple = "x86_64-pc-linux-gnu"
 @switch.table.qc_map_set.53 = private unnamed_addr constant [4 x i64] [i64 8, i64 1, i64 1, i64 1], align 8
 @switch.table.qc_spread_call = private unnamed_addr constant [7 x ptr] [ptr @ffi_type_void, ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
 @switch.table.qc_spread_call.54 = private unnamed_addr constant [6 x ptr] [ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
-@.str.37 = private constant [46 x i8] c"--- Starting Bitwise & Rotation Gauntlet ---\0A\00"
-@0 = private unnamed_addr constant [47 x i8] c"--- Starting Bitwise & Rotation Gauntlet ---\0A\00\00", align 1
-@.str.39 = private constant [4 x i8] c"%s\0A\00"
-@.str.40 = private constant [14 x i8] c"AND: 5 & 3 = \00"
-@1 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@2 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.41 = private constant [4 x i8] c"%s\0A\00"
-@.str.43 = private constant [14 x i8] c"OR:  5 | 3 = \00"
-@3 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@4 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.47 = private constant [4 x i8] c"%s\0A\00"
-@.str.49 = private constant [14 x i8] c"XOR: 5 $ 3 = \00"
-@5 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@6 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.50 = private constant [4 x i8] c"%s\0A\00"
-@.str.51 = private constant [14 x i8] c"NOT: ~0    = \00"
-@7 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@8 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.52 = private constant [4 x i8] c"%s\0A\00"
-@.str.53 = private constant [31 x i8] c"Precedence Test (3 + 1 << 3): \00"
-@9 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@10 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.54 = private constant [4 x i8] c"%s\0A\00"
-@.str.55 = private constant [16 x i8] c"Arithmetic >>: \00"
+@.str.37 = private constant [35 x i8] c"=== TESTING QUANTUM C STDLIB ===\0A\0A\00"
+@0 = private unnamed_addr constant [36 x i8] c"=== TESTING QUANTUM C STDLIB ===\0A\0A\00\00", align 1
+@.str.39 = private constant [23 x i8] c"--- Testing Utils ---\0A\00"
+@1 = private unnamed_addr constant [24 x i8] c"--- Testing Utils ---\0A\00\00", align 1
+@.str.40 = private constant [4 x i8] c"%i\0A\00"
+@2 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@3 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.41 = private constant [3 x i8] c"%s\00"
+@.str.43 = private constant [18 x i8] c"range(0, 10, 2): \00"
+@.str.47 = private constant [3 x i8] c", \00"
+@.str.49 = private constant [3 x i8] c", \00"
+@.str.50 = private constant [3 x i8] c", \00"
+@.str.51 = private constant [3 x i8] c", \00"
+@.str.52 = private constant [2 x i8] c"\0A\00"
+@4 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@5 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.53 = private constant [3 x i8] c"%s\00"
+@.str.54 = private constant [26 x i8] c"range(10, 0, -1) length: \00"
+@.str.55 = private constant [2 x i8] c"\0A\00"
+@6 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@7 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.56 = private constant [21 x i8] c"Testing sleep(1)...\0A\00"
+@8 = private unnamed_addr constant [22 x i8] c"Testing sleep(1)...\0A\00\00", align 1
+@.str.57 = private constant [14 x i8] c"Sleep done!\0A\0A\00"
+@9 = private unnamed_addr constant [15 x i8] c"Sleep done!\0A\0A\00\00", align 1
+@.str.58 = private constant [22 x i8] c"--- Testing Math ---\0A\00"
+@10 = private unnamed_addr constant [23 x i8] c"--- Testing Math ---\0A\00\00", align 1
+@.str.59 = private constant [3 x i8] c"%s\00"
+@.str.60 = private constant [14 x i8] c"Math::pi() = \00"
+@.str.61 = private constant [2 x i8] c"\0A\00"
 @11 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@12 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.56 = private constant [4 x i8] c"%s\0A\00"
-@.str.57 = private constant [16 x i8] c"Logical    :>: \00"
+@12 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.62 = private constant [3 x i8] c"%s\00"
+@.str.63 = private constant [13 x i8] c"Math::e() = \00"
+@.str.64 = private constant [2 x i8] c"\0A\00"
 @13 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@14 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.58 = private constant [4 x i8] c"%s\0A\00"
-@.str.59 = private constant [15 x i8] c"Rotate Left:  \00"
+@14 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.65 = private constant [3 x i8] c"%s\00"
+@.str.66 = private constant [20 x i8] c"Math::max(5, 10) = \00"
+@.str.67 = private constant [2 x i8] c"\0A\00"
 @15 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@16 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.60 = private constant [4 x i8] c"%s\0A\00"
-@.str.61 = private constant [15 x i8] c"Rotate Right: \00"
+@16 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.68 = private constant [3 x i8] c"%s\00"
+@.str.69 = private constant [20 x i8] c"Math::min(5, 10) = \00"
+@.str.70 = private constant [2 x i8] c"\0A\00"
 @17 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@18 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.62 = private constant [4 x i8] c"%s\0A\00"
-@.str.63 = private constant [24 x i8] c"Alignment (1031 & ~7): \00"
+@18 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.71 = private constant [3 x i8] c"%s\00"
+@.str.72 = private constant [18 x i8] c"Math::sqrt(16) = \00"
+@.str.73 = private constant [2 x i8] c"\0A\00"
 @19 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@20 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.64 = private constant [27 x i8] c"--- Gauntlet Complete ---\0A\00"
-@21 = private unnamed_addr constant [28 x i8] c"--- Gauntlet Complete ---\0A\00\00", align 1
-@.str.65 = private constant [24 x i8] c"The address of a is %x\0A\00"
-@22 = private unnamed_addr constant [21 x i8] c"The address of a is \00", align 1
-@23 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
-@.str.66 = private constant [14 x i8] c"Hello, World!\00"
+@20 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.74 = private constant [3 x i8] c"%s\00"
+@.str.75 = private constant [18 x i8] c"Math::abs(-42) = \00"
+@.str.76 = private constant [2 x i8] c"\0A\00"
+@21 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@22 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.77 = private constant [3 x i8] c"%s\00"
+@.str.78 = private constant [19 x i8] c"Math::ceil(3.2) = \00"
+@.str.79 = private constant [2 x i8] c"\0A\00"
+@23 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@24 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.80 = private constant [3 x i8] c"%s\00"
+@.str.81 = private constant [20 x i8] c"Math::floor(3.8) = \00"
+@.str.82 = private constant [2 x i8] c"\0A\00"
+@25 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@26 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.83 = private constant [3 x i8] c"%s\00"
+@.str.84 = private constant [16 x i8] c"Math::sin(0) = \00"
+@.str.85 = private constant [2 x i8] c"\0A\00"
+@27 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@28 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.86 = private constant [3 x i8] c"%s\00"
+@.str.87 = private constant [16 x i8] c"Math::cos(0) = \00"
+@.str.88 = private constant [2 x i8] c"\0A\00"
+@29 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@30 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.89 = private constant [3 x i8] c"%s\00"
+@.str.90 = private constant [16 x i8] c"Math::tan(0) = \00"
+@.str.91 = private constant [2 x i8] c"\0A\00"
+@31 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@32 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.92 = private constant [3 x i8] c"%s\00"
+@.str.93 = private constant [20 x i8] c"Math::log(2.718) = \00"
+@.str.94 = private constant [3 x i8] c"\0A\0A\00"
+@33 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@34 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.95 = private constant [29 x i8] c"--- Testing Collections ---\0A\00"
+@35 = private unnamed_addr constant [30 x i8] c"--- Testing Collections ---\0A\00\00", align 1
+@.str.96 = private constant [3 x i8] c"%s\00"
+@.str.97 = private constant [23 x i8] c"has([1,2,3,4,5], 3) = \00"
+@.str.98 = private constant [2 x i8] c"\0A\00"
+@36 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@37 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.99 = private constant [3 x i8] c"%s\00"
+@.str.100 = private constant [24 x i8] c"has([1,2,3,4,5], 10) = \00"
+@.str.101 = private constant [2 x i8] c"\0A\00"
+@38 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@39 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.102 = private constant [3 x i8] c"%s\00"
+@.str.103 = private constant [28 x i8] c"index_of([1,2,3,4,5], 3) = \00"
+@.str.104 = private constant [2 x i8] c"\0A\00"
+@40 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@41 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.105 = private constant [3 x i8] c"%s\00"
+@.str.106 = private constant [20 x i8] c"sort([5,2,8,1,9]): \00"
+@.str.107 = private constant [3 x i8] c", \00"
+@.str.108 = private constant [3 x i8] c", \00"
+@.str.109 = private constant [3 x i8] c", \00"
+@.str.110 = private constant [3 x i8] c", \00"
+@.str.111 = private constant [2 x i8] c"\0A\00"
+@42 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@43 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.112 = private constant [3 x i8] c"%s\00"
+@.str.113 = private constant [23 x i8] c"reverse([1,2,3,4,5]): \00"
+@.str.114 = private constant [3 x i8] c", \00"
+@.str.115 = private constant [3 x i8] c", \00"
+@.str.116 = private constant [3 x i8] c", \00"
+@.str.117 = private constant [3 x i8] c", \00"
+@.str.118 = private constant [3 x i8] c"\0A\0A\00"
+@44 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@45 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.119 = private constant [3 x i8] c"%s\00"
+@.str.120 = private constant [25 x i8] c"remove([5,4,3,2,1], 2): \00"
+@.str.121 = private constant [3 x i8] c", \00"
+@.str.122 = private constant [3 x i8] c", \00"
+@.str.123 = private constant [3 x i8] c", \00"
+@.str.124 = private constant [3 x i8] c"\0A\0A\00"
+@46 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@47 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.125 = private constant [26 x i8] c"--- Testing UnitTest ---\0A\00"
+@48 = private unnamed_addr constant [27 x i8] c"--- Testing UnitTest ---\0A\00\00", align 1
+@.str.126 = private constant [1 x i8] zeroinitializer
+@.str.127 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.128 = private constant [12 x i8] c": Expected \00"
+@.str.129 = private constant [7 x i8] c", got \00"
+@.str.130 = private constant [3 x i8] c". \00"
+@.str.131 = private constant [17 x i8] c"[FAIL] Expected \00"
+@.str.132 = private constant [7 x i8] c", got \00"
+@.str.133 = private constant [3 x i8] c". \00"
+@.str.134 = private constant [1 x i8] zeroinitializer
+@.str.135 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.136 = private constant [3 x i8] c": \00"
+@.str.137 = private constant [15 x i8] c" was equal to \00"
+@.str.138 = private constant [11 x i8] c"[SUCCESS] \00"
+@.str.139 = private constant [15 x i8] c" was equal to \00"
+@.str.140 = private constant [1 x i8] zeroinitializer
+@.str.141 = private constant [8 x i8] c"5 == 5\0A\00"
+@.str.142 = private constant [1 x i8] zeroinitializer
+@.str.143 = private constant [11 x i8] c"10 == 5+5\0A\00"
+@.str.144 = private constant [1 x i8] zeroinitializer
+@.str.145 = private constant [14 x i8] c"true is true\0A\00"
+@.str.146 = private constant [1 x i8] zeroinitializer
+@.str.147 = private constant [16 x i8] c"false is false\0A\00"
+@.str.148 = private constant [1 x i8] zeroinitializer
+@.str.149 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.150 = private constant [12 x i8] c": Expected \00"
+@.str.151 = private constant [15 x i8] c" to not equal \00"
+@.str.152 = private constant [3 x i8] c". \00"
+@.str.153 = private constant [17 x i8] c"[FAIL] Expected \00"
+@.str.154 = private constant [15 x i8] c" to not equal \00"
+@.str.155 = private constant [3 x i8] c". \00"
+@.str.156 = private constant [1 x i8] zeroinitializer
+@.str.157 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.158 = private constant [3 x i8] c": \00"
+@.str.159 = private constant [18 x i8] c" wasn't equal to \00"
+@.str.160 = private constant [11 x i8] c"[SUCCESS] \00"
+@.str.161 = private constant [18 x i8] c" wasn't equal to \00"
+@.str.162 = private constant [1 x i8] zeroinitializer
+@.str.163 = private constant [9 x i8] c"5 != 10\0A\00"
+@.str.164 = private constant [27 x i8] c"\0A--- Testing AdvQBool ---\0A\00"
+@49 = private unnamed_addr constant [28 x i8] c"\0A--- Testing AdvQBool ---\0A\00\00", align 1
+@.str.165 = private constant [3 x i8] c"%s\00"
+@.str.166 = private constant [10 x i8] c"AQB(75): \00"
+@.str.167 = private constant [2 x i8] c"\0A\00"
+@50 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@51 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.168 = private constant [42 x i8] c"Testing 10 evaluations of 75%% true AQB:\0A\00"
+@52 = private unnamed_addr constant [42 x i8] c"Testing 10 evaluations of 75% true AQB:\0A\00\00", align 1
+@.str.169 = private constant [3 x i8] c"%s\00"
+@.str.170 = private constant [5 x i8] c"Got \00"
+@.str.171 = private constant [26 x i8] c"/10 true (expected ~7-8)\0A\00"
+@53 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@54 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.172 = private constant [3 x i8] c"%s\00"
+@.str.173 = private constant [15 x i8] c"\0AAQB && test: \00"
+@.str.174 = private constant [2 x i8] c"\0A\00"
+@55 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@56 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.175 = private constant [3 x i8] c"%s\00"
+@.str.176 = private constant [14 x i8] c"AQB || test: \00"
+@.str.177 = private constant [2 x i8] c"\0A\00"
+@57 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@58 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.178 = private constant [3 x i8] c"%s\00"
+@.str.179 = private constant [12 x i8] c"!AQB test: \00"
+@.str.180 = private constant [2 x i8] c"\0A\00"
+@59 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@60 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.181 = private constant [7 x i8] c"ls -la\00"
+@.str.182 = private constant [36 x i8] c"\0A=== ALL STDLIB TESTS COMPLETE ===\0A\00"
+@61 = private unnamed_addr constant [37 x i8] c"\0A=== ALL STDLIB TESTS COMPLETE ===\0A\00\00", align 1
+@.str.183 = private constant [32 x i8] c"==============================\0A\00"
+@62 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.184 = private constant [4 x i8] c"%s\0A\00"
+@63 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@64 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.185 = private constant [32 x i8] c"==============================\0A\00"
+@65 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.186 = private constant [3 x i8] c"%s\00"
+@.str.187 = private constant [9 x i8] c"Failed: \00"
+@.str.188 = private constant [2 x i8] c"\0A\00"
+@66 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@67 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.189 = private constant [3 x i8] c"%s\00"
+@.str.190 = private constant [9 x i8] c"Passed: \00"
+@.str.191 = private constant [2 x i8] c"\0A\00"
+@68 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@69 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.192 = private constant [32 x i8] c"==============================\0A\00"
+@70 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.193 = private constant [8 x i8] c"[FAIL]\0A\00"
+@71 = private unnamed_addr constant [9 x i8] c"[FAIL]\0A\00\00", align 1
+@.str.194 = private constant [8 x i8] c"[PASS]\0A\00"
+@72 = private unnamed_addr constant [9 x i8] c"[PASS]\0A\00\00", align 1
+@.str.195 = private constant [4 x i8] c": [\00"
+@.str.196 = private constant [2 x i8] c"/\00"
+@.str.197 = private constant [2 x i8] c"]\00"
+@.str.198 = private constant [4 x i8] c": [\00"
+@.str.199 = private constant [2 x i8] c"/\00"
+@.str.200 = private constant [2 x i8] c"]\00"
+@.str.201 = private constant [1 x i8] zeroinitializer
+@.str.202 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.203 = private constant [34 x i8] c": Expected condition to be true. \00"
+@.str.204 = private constant [39 x i8] c"[FAIL] Expected condition to be true. \00"
+@.str.205 = private constant [1 x i8] zeroinitializer
+@.str.206 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.207 = private constant [21 x i8] c": Condition was true\00"
+@.str.208 = private constant [29 x i8] c"[SUCCESS] Condition was true\00"
+@.str.209 = private constant [1 x i8] zeroinitializer
+@.str.210 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.211 = private constant [35 x i8] c": Expected condition to be false. \00"
+@.str.212 = private constant [40 x i8] c"[FAIL] Expected condition to be false. \00"
+@.str.213 = private constant [1 x i8] zeroinitializer
+@.str.214 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.215 = private constant [22 x i8] c": Condition was false\00"
+@.str.216 = private constant [30 x i8] c"[SUCCESS] Condition was false\00"
+@.str.217 = private constant [19 x i8] c"Advanced QBool is \00"
+@.str.218 = private constant [11 x i8] c" true and \00"
+@.str.219 = private constant [8 x i8] c" false.\00"
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define dso_local noalias noundef ptr @qc_malloc(i64 noundef %0) local_unnamed_addr #0 {
@@ -5275,142 +5481,2470 @@ define dso_local void @qc_fwrite(ptr noundef captures(address_is_null) %0, ptr n
 ; Function Attrs: nofree nounwind
 declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unnamed_addr #8
 
-define i32 @__user_entry() {
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
+define dso_local zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(none) %0) local_unnamed_addr #26 {
+  %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
+  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
+  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %6 = icmp sge i32 %3, %5
+  ret i1 %6
+}
+
+; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable
+define dso_local ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnamed_addr #33 {
+  %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
+  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
+  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %6 = icmp slt i32 %3, %5
+  br i1 %6, label %7, label %13
+
+7:                                                ; preds = %1
+  %8 = load ptr, ptr %0, align 8, !tbaa !93
+  %9 = sext i32 %3 to i64
+  %10 = getelementptr inbounds ptr, ptr %8, i64 %9
+  %11 = load ptr, ptr %10, align 8, !tbaa !55
+  %12 = add nsw i32 %3, 1
+  store i32 %12, ptr %2, align 4, !tbaa !90
+  br label %13
+
+13:                                               ; preds = %7, %1
+  %14 = phi ptr [ %11, %7 ], [ null, %1 ]
+  ret ptr %14
+}
+
+define void @"UnitTest::Test_Test"(ptr %0, i32 %1) {
 entry:
-  %str = alloca ptr, align 8
-  %ptr_to_addr = alloca ptr, align 8
-  %address = alloca i64, align 8
-  %aligned = alloca i64, align 8
-  %ptr = alloca i64, align 8
-  %one = alloca i64, align 8
-  %top_bit = alloca i64, align 8
-  %val = alloca i64, align 8
-  %next = alloca i32, align 4
-  %current = alloca i32, align 4
-  %b = alloca i32, align 4
-  %a = alloca i32, align 4
-  call void @qc_print_string(ptr @0)
-  store i32 5, ptr %a, align 4
-  store i32 3, ptr %b, align 4
-  %a1 = load i32, ptr %a, align 4
-  %b2 = load i32, ptr %b, align 4
-  %andtmp = and i32 %a1, %b2
-  %fstr_i32 = call ptr @qc_to_string_int(i32 %andtmp)
-  %fstr_concat = call ptr @qc_string_concat(ptr @.str.40, ptr %fstr_i32)
-  call void @qc_print_string(ptr @1)
-  %0 = call ptr @qc_fmt_string(ptr %fstr_concat, i32 -1, i1 false)
-  call void @qc_print_string(ptr %0)
-  call void @qc_print_string(ptr @2)
-  %a3 = load i32, ptr %a, align 4
-  %b4 = load i32, ptr %b, align 4
-  %ortmp = or i32 %a3, %b4
-  %fstr_i325 = call ptr @qc_to_string_int(i32 %ortmp)
-  %fstr_concat6 = call ptr @qc_string_concat(ptr @.str.43, ptr %fstr_i325)
-  call void @qc_print_string(ptr @3)
-  %1 = call ptr @qc_fmt_string(ptr %fstr_concat6, i32 -1, i1 false)
-  call void @qc_print_string(ptr %1)
-  call void @qc_print_string(ptr @4)
-  %a7 = load i32, ptr %a, align 4
-  %b8 = load i32, ptr %b, align 4
-  %xortmp = xor i32 %a7, %b8
-  %fstr_i329 = call ptr @qc_to_string_int(i32 %xortmp)
-  %fstr_concat10 = call ptr @qc_string_concat(ptr @.str.49, ptr %fstr_i329)
-  call void @qc_print_string(ptr @5)
-  %2 = call ptr @qc_fmt_string(ptr %fstr_concat10, i32 -1, i1 false)
-  call void @qc_print_string(ptr %2)
-  call void @qc_print_string(ptr @6)
-  %fstr_i3211 = call ptr @qc_to_string_int(i32 -1)
-  %fstr_concat12 = call ptr @qc_string_concat(ptr @.str.51, ptr %fstr_i3211)
-  call void @qc_print_string(ptr @7)
-  %3 = call ptr @qc_fmt_string(ptr %fstr_concat12, i32 -1, i1 false)
-  call void @qc_print_string(ptr %3)
-  call void @qc_print_string(ptr @8)
-  store i32 3, ptr %current, align 4
-  %current13 = load i32, ptr %current, align 4
-  %add = add i32 %current13, 8
-  store i32 %add, ptr %next, align 4
-  %next14 = load i32, ptr %next, align 4
-  %fstr_i3215 = call ptr @qc_to_string_int(i32 %next14)
-  %fstr_concat16 = call ptr @qc_string_concat(ptr @.str.53, ptr %fstr_i3215)
-  call void @qc_print_string(ptr @9)
-  %4 = call ptr @qc_fmt_string(ptr %fstr_concat16, i32 -1, i1 false)
-  call void @qc_print_string(ptr %4)
-  call void @qc_print_string(ptr @10)
-  store i64 -8, ptr %val, align 8
-  %val17 = load i64, ptr %val, align 8
-  %ashrtmp = ashr i64 %val17, 1
-  %fstr_i64 = call ptr @qc_to_string_long_int(i64 %ashrtmp)
-  %fstr_concat18 = call ptr @qc_string_concat(ptr @.str.55, ptr %fstr_i64)
-  call void @qc_print_string(ptr @11)
-  %5 = call ptr @qc_fmt_string(ptr %fstr_concat18, i32 -1, i1 false)
-  call void @qc_print_string(ptr %5)
-  call void @qc_print_string(ptr @12)
-  %val19 = load i64, ptr %val, align 8
-  %lshrtmp = lshr i64 %val19, 1
-  %fstr_i6420 = call ptr @qc_to_string_long_int(i64 %lshrtmp)
-  %fstr_concat21 = call ptr @qc_string_concat(ptr @.str.57, ptr %fstr_i6420)
-  call void @qc_print_string(ptr @13)
-  %6 = call ptr @qc_fmt_string(ptr %fstr_concat21, i32 -1, i1 false)
-  call void @qc_print_string(ptr %6)
-  call void @qc_print_string(ptr @14)
-  store i64 2147483648, ptr %top_bit, align 8
-  %top_bit22 = load i64, ptr %top_bit, align 8
-  %rottmp = call i64 @llvm.fshl.i64(i64 %top_bit22, i64 %top_bit22, i64 1)
-  %fstr_i6423 = call ptr @qc_to_string_long_int(i64 %rottmp)
-  %fstr_concat24 = call ptr @qc_string_concat(ptr @.str.59, ptr %fstr_i6423)
-  call void @qc_print_string(ptr @15)
-  %7 = call ptr @qc_fmt_string(ptr %fstr_concat24, i32 -1, i1 false)
+  %Ttl = alloca i32, align 4
+  store i32 %1, ptr %Ttl, align 4
+  %2 = call ptr @qc_create_list(i32 6)
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  store ptr %2, ptr %3, align 8
+  %Ttl1 = load i32, ptr %Ttl, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  store i32 %Ttl1, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 0, ptr %6, align 4
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 0, ptr %7, align 4
+  ret void
+}
+
+define i32 @"UnitTest::Test_Check"(ptr %0) {
+entry:
+  %message = alloca ptr, align 8
+  %__foreach_i_message = alloca i32, align 4
+  %1 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Ran = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %Total = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %Ran, %Total
+  br i1 %icmpge, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Messages = load ptr, ptr %4, align 8
+  %list_len = call i32 @qc_list_length(ptr %Messages)
+  %icmpgt = icmp sgt i32 %list_len, 0
+  br i1 %icmpgt, label %then1, label %ifcont2
+
+ifcont:                                           ; preds = %ifcont14, %entry
+  ret i32 0
+
+then1:                                            ; preds = %then
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Messages3 = load ptr, ptr %5, align 8
+  %coll_len = call i32 @qc_list_length(ptr %Messages3)
+  store i32 0, ptr %__foreach_i_message, align 4
+  br label %foreach.cond
+
+ifcont2:                                          ; preds = %foreach.end, %then
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Failed = load i32, ptr %6, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Failed)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.187, ptr %fstr_i32)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.188)
+  call void @qc_print_string(ptr @66)
+  %7 = call ptr @qc_fmt_string(ptr %fstr_concat7, i32 -1, i1 false)
   call void @qc_print_string(ptr %7)
-  call void @qc_print_string(ptr @16)
-  store i64 1, ptr %one, align 8
-  %one25 = load i64, ptr %one, align 8
-  %rottmp26 = call i64 @llvm.fshr.i64(i64 %one25, i64 %one25, i64 1)
-  %fstr_i6427 = call ptr @qc_to_string_long_int(i64 %rottmp26)
-  %fstr_concat28 = call ptr @qc_string_concat(ptr @.str.61, ptr %fstr_i6427)
-  call void @qc_print_string(ptr @17)
-  %8 = call ptr @qc_fmt_string(ptr %fstr_concat28, i32 -1, i1 false)
-  call void @qc_print_string(ptr %8)
-  call void @qc_print_string(ptr @18)
-  store i64 1031, ptr %ptr, align 8
-  %ptr29 = load i64, ptr %ptr, align 8
-  %andtmp30 = and i64 %ptr29, -8
-  store i64 %andtmp30, ptr %aligned, align 8
-  %aligned31 = load i64, ptr %aligned, align 8
-  %fstr_i6432 = call ptr @qc_to_string_long_int(i64 %aligned31)
-  %fstr_concat33 = call ptr @qc_string_concat(ptr @.str.63, ptr %fstr_i6432)
-  call void @qc_print_string(ptr @19)
-  %9 = call ptr @qc_fmt_string(ptr %fstr_concat33, i32 -1, i1 false)
+  call void @qc_print_string(ptr @67)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Passed = load i32, ptr %8, align 4
+  %fstr_i328 = call ptr @qc_to_string_int(i32 %Passed)
+  %fstr_concat9 = call ptr @qc_string_concat(ptr @.str.190, ptr %fstr_i328)
+  %fstr_concat10 = call ptr @qc_string_concat(ptr %fstr_concat9, ptr @.str.191)
+  call void @qc_print_string(ptr @68)
+  %9 = call ptr @qc_fmt_string(ptr %fstr_concat10, i32 -1, i1 false)
   call void @qc_print_string(ptr %9)
-  call void @qc_print_string(ptr @20)
-  call void @qc_print_string(ptr @21)
-  %a34 = load i32, ptr %a, align 4
-  %addr = ptrtoint ptr %a to i64
-  store i64 %addr, ptr %address, align 8
-  %address35 = load i64, ptr %address, align 8
-  call void @qc_print_string(ptr @22)
-  %10 = call ptr @qc_fmt_hex(i64 %address35, i32 -1, i1 false)
-  call void @qc_print_string(ptr %10)
-  call void @qc_print_string(ptr @23)
-  call void @qc_flush()
-  %address36 = load i64, ptr %address, align 8
-  %11 = inttoptr i64 %address36 to ptr
-  store ptr %11, ptr %ptr_to_addr, align 8
-  %ptr_to_addr37 = load ptr, ptr %ptr_to_addr, align 8
-  %assign_lhs_val = load i32, ptr %ptr_to_addr37, align 4
-  store i32 5, ptr %ptr_to_addr37, align 4
-  store ptr @.str.66, ptr %str, align 8
-  %str38 = load ptr, ptr %str, align 8
-  %str39 = load ptr, ptr %str, align 8
-  %builtin_call = call i32 @qc_len(ptr %str39)
-  call void asm sideeffect inteldialect "\0A    mov rax, 1\0A    mov rdi, 1\0A    mov rsi, $0\0A    mov edx, $1\0A    syscall\0A    ", "r,r,~{rax},~{rsi},~{rdi},~{rdi}"(ptr %str38, i32 %builtin_call)
+  call void @qc_print_string(ptr @69)
+  call void @qc_print_string(ptr @70)
+  %10 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Failed11 = load i32, ptr %10, align 4
+  %icmpgt12 = icmp sgt i32 %Failed11, 0
+  br i1 %icmpgt12, label %then13, label %else
+
+foreach.cond:                                     ; preds = %foreach.inc, %then1
+  %__foreach_i_message4 = load i32, ptr %__foreach_i_message, align 4
+  %foreach_cmp = icmp slt i32 %__foreach_i_message4, %coll_len
+  br i1 %foreach_cmp, label %foreach.body, label %foreach.end
+
+foreach.body:                                     ; preds = %foreach.cond
+  %elem_ptr = call ptr @qc_list_get(ptr %Messages3, i32 %__foreach_i_message4)
+  store ptr %elem_ptr, ptr %message, align 8
+  call void @qc_print_string(ptr @62)
+  %message5 = load ptr, ptr %message, align 8
+  call void @qc_print_string(ptr @63)
+  %11 = call ptr @qc_fmt_string(ptr %message5, i32 -1, i1 false)
+  call void @qc_print_string(ptr %11)
+  call void @qc_print_string(ptr @64)
+  br label %foreach.inc
+
+foreach.inc:                                      ; preds = %foreach.body
+  %__foreach_i_message6 = load i32, ptr %__foreach_i_message, align 4
+  %i_inc = add i32 %__foreach_i_message6, 1
+  store i32 %i_inc, ptr %__foreach_i_message, align 4
+  br label %foreach.cond
+
+foreach.end:                                      ; preds = %foreach.cond
+  call void @qc_print_string(ptr @65)
+  br label %ifcont2
+
+then13:                                           ; preds = %ifcont2
+  call void @qc_print_string(ptr @71)
+  br label %ifcont14
+
+ifcont14:                                         ; preds = %else, %then13
+  br label %ifcont
+
+else:                                             ; preds = %ifcont2
+  call void @qc_print_string(ptr @72)
+  br label %ifcont14
+}
+
+define i32 @"UnitTest::Test_Success"(ptr %0, ptr %1) {
+entry:
+  %push_arg = alloca ptr, align 8
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Passed = load i32, ptr %4, align 4
+  %add1 = add i32 %Passed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Messages = load ptr, ptr %6, align 8
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.195, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.196)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.197)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  store ptr %str_concat, ptr %push_arg, align 8
+  call void @qc_list_push(ptr %Messages, ptr %push_arg, i32 6)
+  %Check_result = call i32 @"UnitTest::Test_Check"(ptr %0)
   ret i32 0
 }
 
-; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare i64 @llvm.fshl.i64(i64, i64, i64) #28
+define i32 @"UnitTest::Test_Fail"(ptr %0, ptr %1) {
+entry:
+  %push_arg = alloca ptr, align 8
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Failed = load i32, ptr %4, align 4
+  %add1 = add i32 %Failed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Messages = load ptr, ptr %6, align 8
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.198, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.199)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.200)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  store ptr %str_concat, ptr %push_arg, align 8
+  call void @qc_list_push(ptr %Messages, ptr %push_arg, i32 6)
+  %Check_result = call i32 @"UnitTest::Test_Check"(ptr %0)
+  ret i32 0
+}
+
+declare i32 @"UnitTest::Test_AssertEqual"(ptr, i32, i32, ptr, ptr)
+
+define i32 @"UnitTest::Test_AssertTrue"(ptr %0, i1 %1, ptr %2, ptr %3) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  %not = xor i1 %cond1, true
+  br i1 %not, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.201)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont15, %ifcont4
+  ret i32 0
+
+else:                                             ; preds = %entry
+  %Call13 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call13, ptr @.str.205)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then14, label %else16
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.202, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.203)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.204, ptr %FailMessage10)
+  %Fail_result12 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then14:                                           ; preds = %else
+  %Call17 = load ptr, ptr %Call, align 8
+  %fstr_concat18 = call ptr @qc_string_concat(ptr @.str.206, ptr %Call17)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.207)
+  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat19)
+  br label %ifcont15
+
+ifcont15:                                         ; preds = %else16, %then14
+  br label %ifcont
+
+else16:                                           ; preds = %else
+  %Success_result20 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr @.str.208)
+  br label %ifcont15
+}
+
+define i32 @"UnitTest::Test_AssertFalse"(ptr %0, i1 %1, ptr %2, ptr %3) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  br i1 %cond1, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.209)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont15, %ifcont4
+  ret i32 0
+
+else:                                             ; preds = %entry
+  %Call13 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call13, ptr @.str.213)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then14, label %else16
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.210, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.211)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.212, ptr %FailMessage10)
+  %Fail_result12 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then14:                                           ; preds = %else
+  %Call17 = load ptr, ptr %Call, align 8
+  %fstr_concat18 = call ptr @qc_string_concat(ptr @.str.214, ptr %Call17)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.215)
+  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat19)
+  br label %ifcont15
+
+ifcont15:                                         ; preds = %else16, %then14
+  br label %ifcont
+
+else16:                                           ; preds = %else
+  %Success_result20 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr @.str.216)
+  br label %ifcont15
+}
+
+declare i32 @"UnitTest::Test_AssertNotEqual"(ptr, i32, i32, ptr, ptr)
+
+define void @"AdvQBool::AQB_AQB"(ptr %0, i32 %1) {
+entry:
+  %truth = alloca i32, align 4
+  store i32 %1, ptr %truth, align 4
+  %truth1 = load i32, ptr %truth, align 4
+  %icmpgt = icmp sgt i32 %truth1, 100
+  %truth2 = load i32, ptr %truth, align 4
+  %icmplt = icmp slt i32 %truth2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %truth3 = load i32, ptr %truth, align 4
+  %icmpgt4 = icmp sgt i32 %truth3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %truth8 = load i32, ptr %truth, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  store i32 %truth8, ptr %2, align 4
+  %truth9 = load i32, ptr %truth, align 4
+  %sub = sub i32 100, %truth9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %sub, ptr %3, align 4
+  ret void
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %truth, align 4
+  store i32 100, ptr %truth, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %truth, align 4
+  store i32 0, ptr %truth, align 4
+  br label %ifcont6
+}
+
+define i32 @"AdvQBool::AQB_operator="(ptr %0, i32 %1) {
+entry:
+  %other = alloca i32, align 4
+  store i32 %1, ptr %other, align 4
+  %other1 = load i32, ptr %other, align 4
+  %icmpgt = icmp sgt i32 %other1, 100
+  %other2 = load i32, ptr %other, align 4
+  %icmplt = icmp slt i32 %other2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load i32, ptr %other, align 4
+  %icmpgt4 = icmp sgt i32 %other3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %other8 = load i32, ptr %other, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  store i32 %other8, ptr %2, align 4
+  %other9 = load i32, ptr %other, align 4
+  %sub = sub i32 100, %other9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %sub, ptr %3, align 4
+  ret i32 0
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %other, align 4
+  store i32 100, ptr %other, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %other, align 4
+  store i32 0, ptr %other, align 4
+  br label %ifcont6
+}
+
+declare i1 @"AdvQBool::AQB_operator&&"(ptr, i32)
+
+declare i1 @"AdvQBool::AQB_operator||"(ptr, i32)
+
+declare i1 @"AdvQBool::AQB_operator^"(ptr, i32)
+
+define i1 @"AdvQBool::AQB_operator!"(ptr %0) {
+entry:
+  %eval_result = call i1 @"AdvQBool::AQB_eval"(ptr %0)
+  %not = xor i1 %eval_result, true
+  ret i1 %not
+}
+
+define i1 @"AdvQBool::AQB_eval"(ptr %0) {
+entry:
+  %builtin_call = call i32 @qc_random_range(i32 0, i32 100)
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  %FalseLevel = load i32, ptr %1, align 4
+  %icmplt = icmp slt i32 %builtin_call, %FalseLevel
+  br i1 %icmplt, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i1 false
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %entry
+  ret i1 true
+}
+
+define i32 @"AdvQBool::AQB_init"(ptr %0) {
+entry:
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  store i32 50, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 50, ptr %2, align 4
+  ret i32 0
+}
+
+define ptr @"AdvQBool::AQB_repr"(ptr %0) {
+entry:
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %TruthLevel = load i32, ptr %1, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %TruthLevel)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.217, ptr %fstr_i32)
+  %fstr_concat1 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.218)
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  %FalseLevel = load i32, ptr %2, align 4
+  %fstr_i322 = call ptr @qc_to_string_int(i32 %FalseLevel)
+  %fstr_concat3 = call ptr @qc_string_concat(ptr %fstr_concat1, ptr %fstr_i322)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat3, ptr @.str.219)
+  ret ptr %fstr_concat4
+}
+
+define ptr @"Utils::range"(i32 %start, i32 %stop, i32 %step) {
+entry:
+  %push_arg26 = alloca i32, align 4
+  %push_arg = alloca i32, align 4
+  %fin = alloca ptr, align 8
+  %step3 = alloca i32, align 4
+  %stop2 = alloca i32, align 4
+  %start1 = alloca i32, align 4
+  store i32 %start, ptr %start1, align 4
+  store i32 %stop, ptr %stop2, align 4
+  store i32 %step, ptr %step3, align 4
+  %list_ptr = call ptr @qc_create_list(i32 0)
+  store ptr %list_ptr, ptr %fin, align 8
+  %step4 = load i32, ptr %step3, align 4
+  %icmpgt = icmp sgt i32 %step4, 0
+  %start5 = load i32, ptr %start1, align 4
+  %stop6 = load i32, ptr %stop2, align 4
+  %icmple = icmp sle i32 %start5, %stop6
+  %and = and i1 %icmpgt, %icmple
+  br i1 %and, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  br label %for.cond
+
+ifcont:                                           ; preds = %for.end20, %for.end
+  %fin30 = load ptr, ptr %fin, align 8
+  ret ptr %fin30
+
+elif.cond:                                        ; preds = %entry
+  %step12 = load i32, ptr %step3, align 4
+  %icmplt13 = icmp slt i32 %step12, 0
+  %start14 = load i32, ptr %start1, align 4
+  %stop15 = load i32, ptr %stop2, align 4
+  %icmpge = icmp sge i32 %start14, %stop15
+  %and16 = and i1 %icmplt13, %icmpge
+  br i1 %and16, label %elif.body, label %else
+
+elif.body:                                        ; preds = %elif.cond
+  br label %for.cond17
+
+else:                                             ; preds = %elif.cond
+  %empty_arr = call ptr @malloc(i64 0)
+  ret ptr %empty_arr
+
+for.cond:                                         ; preds = %for.inc, %then
+  %start7 = load i32, ptr %start1, align 4
+  %stop8 = load i32, ptr %stop2, align 4
+  %icmplt = icmp slt i32 %start7, %stop8
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %fin9 = load ptr, ptr %fin, align 8
+  %start10 = load i32, ptr %start1, align 4
+  store i32 %start10, ptr %push_arg, align 4
+  call void @qc_list_push(ptr %fin9, ptr %push_arg, i32 0)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val = load i32, ptr %start1, align 4
+  %step11 = load i32, ptr %step3, align 4
+  %add = add i32 %assign_lhs_val, %step11
+  store i32 %add, ptr %start1, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  br label %ifcont
+
+for.cond17:                                       ; preds = %for.inc19, %elif.body
+  %start21 = load i32, ptr %start1, align 4
+  %stop22 = load i32, ptr %stop2, align 4
+  %icmpgt23 = icmp sgt i32 %start21, %stop22
+  br i1 %icmpgt23, label %for.body18, label %for.end20
+
+for.body18:                                       ; preds = %for.cond17
+  %fin24 = load ptr, ptr %fin, align 8
+  %start25 = load i32, ptr %start1, align 4
+  store i32 %start25, ptr %push_arg26, align 4
+  call void @qc_list_push(ptr %fin24, ptr %push_arg26, i32 0)
+  br label %for.inc19
+
+for.inc19:                                        ; preds = %for.body18
+  %assign_lhs_val27 = load i32, ptr %start1, align 4
+  %step28 = load i32, ptr %step3, align 4
+  %add29 = add i32 %assign_lhs_val27, %step28
+  store i32 %add29, ptr %start1, align 4
+  br label %for.cond17
+
+for.end20:                                        ; preds = %for.cond17
+  br label %ifcont
+}
+
+define i32 @"Utils::sleep"(i32 %crr) {
+entry:
+  %"Utils::i" = alloca i32, align 4
+  %crr1 = alloca i32, align 4
+  store i32 %crr, ptr %crr1, align 4
+  %assign_lhs_val = load i32, ptr %crr1, align 4
+  %builtin_call = call i32 @qc_time()
+  %add = add i32 %assign_lhs_val, %builtin_call
+  store i32 %add, ptr %crr1, align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %for.end, %entry
+  %builtin_call2 = call i32 @qc_time()
+  %crr3 = load i32, ptr %crr1, align 4
+  %icmplt = icmp slt i32 %builtin_call2, %crr3
+  br i1 %icmplt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  store i32 0, ptr %"Utils::i", align 4
+  br label %for.cond
+
+while.end:                                        ; preds = %while.cond
+  ret i32 0
+
+for.cond:                                         ; preds = %for.inc, %while.body
+  %i = load i32, ptr %"Utils::i", align 4
+  %icmplt4 = icmp slt i32 %i, 5000
+  br i1 %icmplt4, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val5 = load i32, ptr %"Utils::i", align 4
+  %i6 = load i32, ptr %"Utils::i", align 4
+  %i7 = load i32, ptr %"Utils::i", align 4
+  %inc = add i32 %i7, 1
+  store i32 %inc, ptr %"Utils::i", align 4
+  store i32 %inc, ptr %"Utils::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  br label %while.cond
+}
+
+define ptr @"Collections::sort"(ptr %collection) {
+entry:
+  %list_set_val22 = alloca i32, align 4
+  %list_set_val = alloca i32, align 4
+  %"Collections::iv" = alloca i32, align 4
+  %"Collections::i" = alloca i32, align 4
+  %"Collections::n" = alloca i32, align 4
+  %"Collections::swapped" = alloca i1, align 1
+  %collection1 = alloca ptr, align 8
+  store ptr %collection, ptr %collection1, align 8
+  store i1 true, ptr %"Collections::swapped", align 1
+  %collection2 = load ptr, ptr %collection1, align 8
+  %list_len = call i32 @qc_list_length(ptr %collection2)
+  store i32 %list_len, ptr %"Collections::n", align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %for.end, %entry
+  %swapped = load i1, ptr %"Collections::swapped", align 1
+  br i1 %swapped, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load i1, ptr %"Collections::swapped", align 1
+  store i1 false, ptr %"Collections::swapped", align 1
+  store i32 0, ptr %"Collections::i", align 4
+  br label %for.cond
+
+while.end:                                        ; preds = %while.cond
+  %collection29 = load ptr, ptr %collection1, align 8
+  ret ptr %collection29
+
+for.cond:                                         ; preds = %for.inc, %while.body
+  %i = load i32, ptr %"Collections::i", align 4
+  %n = load i32, ptr %"Collections::n", align 4
+  %sub = sub i32 %n, 1
+  %icmplt = icmp slt i32 %i, %sub
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %list_ptr = load ptr, ptr %collection1, align 8
+  %i3 = load i32, ptr %"Collections::i", align 4
+  %list_elem_ptr = call ptr @qc_list_get(ptr %list_ptr, i32 %i3)
+  %list_elem = load i32, ptr %list_elem_ptr, align 4
+  %list_ptr4 = load ptr, ptr %collection1, align 8
+  %i5 = load i32, ptr %"Collections::i", align 4
+  %add = add i32 %i5, 1
+  %list_elem_ptr6 = call ptr @qc_list_get(ptr %list_ptr4, i32 %add)
+  %list_elem7 = load i32, ptr %list_elem_ptr6, align 4
+  %icmpgt = icmp sgt i32 %list_elem, %list_elem7
+  br i1 %icmpgt, label %then, label %ifcont
+
+for.inc:                                          ; preds = %ifcont
+  %assign_lhs_val24 = load i32, ptr %"Collections::i", align 4
+  %i25 = load i32, ptr %"Collections::i", align 4
+  %i26 = load i32, ptr %"Collections::i", align 4
+  %inc = add i32 %i26, 1
+  store i32 %inc, ptr %"Collections::i", align 4
+  store i32 %inc, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %assign_lhs_val27 = load i32, ptr %"Collections::n", align 4
+  %sub28 = sub i32 %assign_lhs_val27, 1
+  store i32 %sub28, ptr %"Collections::n", align 4
+  br label %while.cond
+
+then:                                             ; preds = %for.body
+  %list_ptr8 = load ptr, ptr %collection1, align 8
+  %i9 = load i32, ptr %"Collections::i", align 4
+  %list_elem_ptr10 = call ptr @qc_list_get(ptr %list_ptr8, i32 %i9)
+  %list_elem11 = load i32, ptr %list_elem_ptr10, align 4
+  store i32 %list_elem11, ptr %"Collections::iv", align 4
+  %list_ptr12 = load ptr, ptr %collection1, align 8
+  %i13 = load i32, ptr %"Collections::i", align 4
+  %list_ptr14 = load ptr, ptr %collection1, align 8
+  %i15 = load i32, ptr %"Collections::i", align 4
+  %add16 = add i32 %i15, 1
+  %list_elem_ptr17 = call ptr @qc_list_get(ptr %list_ptr14, i32 %add16)
+  %list_elem18 = load i32, ptr %list_elem_ptr17, align 4
+  store i32 %list_elem18, ptr %list_set_val, align 4
+  call void @qc_list_set(ptr %list_ptr12, i32 %i13, ptr %list_set_val)
+  %list_ptr19 = load ptr, ptr %collection1, align 8
+  %i20 = load i32, ptr %"Collections::i", align 4
+  %add21 = add i32 %i20, 1
+  %iv = load i32, ptr %"Collections::iv", align 4
+  store i32 %iv, ptr %list_set_val22, align 4
+  call void @qc_list_set(ptr %list_ptr19, i32 %add21, ptr %list_set_val22)
+  %assign_lhs_val23 = load i1, ptr %"Collections::swapped", align 1
+  store i1 true, ptr %"Collections::swapped", align 1
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %for.body
+  br label %for.inc
+}
+
+define double @"Math::e"() {
+entry:
+  ret double 0x4005BF0A8B145769
+}
+
+define double @"Math::pi"() {
+entry:
+  ret double 0x400921FB54442D18
+}
+
+define %"Math::Number" @"Math::max"(%"Math::Number" %a, %"Math::Number" %b) {
+entry:
+  %union_op_result = alloca i1, align 1
+  %b2 = alloca %"Math::Number", align 8
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  store %"Math::Number" %b, ptr %b2, align 8
+  %a3 = load %"Math::Number", ptr %a1, align 8
+  %b4 = load %"Math::Number", ptr %b2, align 8
+  %ltag = extractvalue %"Math::Number" %a3, 0
+  %lpayload = extractvalue %"Math::Number" %a3, 1
+  %rpayload = extractvalue %"Math::Number" %b4, 1
+  switch i32 %ltag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result9 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result9, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %lmember = load i32, ptr %lpayload, align 4
+  %rmember = load i32, ptr %rpayload, align 4
+  %0 = icmp sgt i32 %lmember, %rmember
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %lmember5 = load float, ptr %lpayload, align 4
+  %rmember6 = load float, ptr %rpayload, align 4
+  %1 = fcmp ogt float %lmember5, %rmember6
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %lmember7 = load double, ptr %lpayload, align 8
+  %rmember8 = load double, ptr %rpayload, align 8
+  %2 = fcmp ogt double %lmember7, %rmember8
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %a10 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a10
+
+ifcont:                                           ; preds = %union_op_end
+  %b11 = load %"Math::Number", ptr %b2, align 8
+  ret %"Math::Number" %b11
+}
+
+define %"Math::Number" @"Math::min"(%"Math::Number" %a, %"Math::Number" %b) {
+entry:
+  %union_op_result = alloca i1, align 1
+  %b2 = alloca %"Math::Number", align 8
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  store %"Math::Number" %b, ptr %b2, align 8
+  %a3 = load %"Math::Number", ptr %a1, align 8
+  %b4 = load %"Math::Number", ptr %b2, align 8
+  %ltag = extractvalue %"Math::Number" %a3, 0
+  %lpayload = extractvalue %"Math::Number" %a3, 1
+  %rpayload = extractvalue %"Math::Number" %b4, 1
+  switch i32 %ltag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result9 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result9, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %lmember = load i32, ptr %lpayload, align 4
+  %rmember = load i32, ptr %rpayload, align 4
+  %0 = icmp sgt i32 %lmember, %rmember
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %lmember5 = load float, ptr %lpayload, align 4
+  %rmember6 = load float, ptr %rpayload, align 4
+  %1 = fcmp ogt float %lmember5, %rmember6
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %lmember7 = load double, ptr %lpayload, align 8
+  %rmember8 = load double, ptr %rpayload, align 8
+  %2 = fcmp ogt double %lmember7, %rmember8
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %b10 = load %"Math::Number", ptr %b2, align 8
+  ret %"Math::Number" %b10
+
+ifcont:                                           ; preds = %union_op_end
+  %a11 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a11
+}
+
+define %"Math::Number" @"Math::sqrt"(%"Math::Number" %val) {
+entry:
+  %val1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %val, ptr %val1, align 8
+  %val2 = load %"Math::Number", ptr %val1, align 8
+  %conv_tag = extractvalue %"Math::Number" %val2, 0
+  %conv_payload = extractvalue %"Math::Number" %val2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+    i32 2, label %conv_union_case_2
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_2, %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %to_double4, %conv_union_case_1 ], [ %conv_loaded5, %conv_union_case_2 ]
+  %pow = call double @llvm.pow.f64(double %conv_union_phi, double 5.000000e-01)
+  %union_heap = call ptr @malloc(i64 8)
+  store double %pow, ptr %union_heap, align 8
+  %0 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %0
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load i32, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_int(i32 %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load float, ptr %conv_payload, align 4
+  %to_double4 = call double @qc_to_double_from_float(float %conv_loaded3)
+  br label %conv_union_end
+
+conv_union_case_2:                                ; preds = %entry
+  %conv_loaded5 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
-declare i64 @llvm.fshr.i64(i64, i64, i64) #28
+declare double @llvm.pow.f64(double, double) #28
+
+define %"Math::Number" @"Math::root"(%"Math::Number" %val, %"Math::Number" %power) {
+entry:
+  %"Math::exp" = alloca double, align 8
+  %"Math::base" = alloca double, align 8
+  %power2 = alloca %"Math::Number", align 8
+  %val1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %val, ptr %val1, align 8
+  store %"Math::Number" %power, ptr %power2, align 8
+  %val3 = load %"Math::Number", ptr %val1, align 8
+  %conv_tag = extractvalue %"Math::Number" %val3, 0
+  %conv_payload = extractvalue %"Math::Number" %val3, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+    i32 2, label %conv_union_case_2
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_2, %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %to_double5, %conv_union_case_1 ], [ %conv_loaded6, %conv_union_case_2 ]
+  store double %conv_union_phi, ptr %"Math::base", align 8
+  %power7 = load %"Math::Number", ptr %power2, align 8
+  %conv_tag8 = extractvalue %"Math::Number" %power7, 0
+  %conv_payload9 = extractvalue %"Math::Number" %power7, 1
+  switch i32 %conv_tag8, label %conv_union_fail11 [
+    i32 0, label %conv_union_case_012
+    i32 1, label %conv_union_case_115
+    i32 2, label %conv_union_case_218
+  ]
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load i32, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_int(i32 %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded4 = load float, ptr %conv_payload, align 4
+  %to_double5 = call double @qc_to_double_from_float(float %conv_loaded4)
+  br label %conv_union_end
+
+conv_union_case_2:                                ; preds = %entry
+  %conv_loaded6 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+conv_union_end10:                                 ; preds = %conv_union_case_218, %conv_union_case_115, %conv_union_case_012
+  %conv_union_phi20 = phi double [ %to_double14, %conv_union_case_012 ], [ %to_double17, %conv_union_case_115 ], [ %conv_loaded19, %conv_union_case_218 ]
+  %fdiv = fdiv double 1.000000e+00, %conv_union_phi20
+  store double %fdiv, ptr %"Math::exp", align 8
+  %base = load double, ptr %"Math::base", align 8
+  %exp = load double, ptr %"Math::exp", align 8
+  %pow = call double @llvm.pow.f64(double %base, double %exp)
+  %union_heap = call ptr @malloc(i64 8)
+  store double %pow, ptr %union_heap, align 8
+  %0 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %0
+
+conv_union_fail11:                                ; preds = %conv_union_end
+  unreachable
+
+conv_union_case_012:                              ; preds = %conv_union_end
+  %conv_loaded13 = load i32, ptr %conv_payload9, align 4
+  %to_double14 = call double @qc_to_double_from_int(i32 %conv_loaded13)
+  br label %conv_union_end10
+
+conv_union_case_115:                              ; preds = %conv_union_end
+  %conv_loaded16 = load float, ptr %conv_payload9, align 4
+  %to_double17 = call double @qc_to_double_from_float(float %conv_loaded16)
+  br label %conv_union_end10
+
+conv_union_case_218:                              ; preds = %conv_union_end
+  %conv_loaded19 = load double, ptr %conv_payload9, align 8
+  br label %conv_union_end10
+}
+
+define i32 @"Math::ceil"(%"Math::Floating" %a) {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::d" = alloca double, align 8
+  %a1 = alloca %"Math::Floating", align 8
+  store %"Math::Floating" %a, ptr %a1, align 8
+  %a2 = load %"Math::Floating", ptr %a1, align 8
+  %conv_tag = extractvalue %"Math::Floating" %a2, 0
+  %conv_payload = extractvalue %"Math::Floating" %a2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %conv_loaded3, %conv_union_case_1 ]
+  store double %conv_union_phi, ptr %"Math::d", align 8
+  %d = load double, ptr %"Math::d", align 8
+  %to_int = call i32 @qc_to_int_from_double(double %d)
+  store i32 %to_int, ptr %"Math::i", align 4
+  %d4 = load double, ptr %"Math::d", align 8
+  %i = load i32, ptr %"Math::i", align 4
+  %to_double5 = call double @qc_to_double_from_int(i32 %i)
+  %fcmpeq = fcmp oeq double %d4, %to_double5
+  br i1 %fcmpeq, label %then, label %elif.cond
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load float, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_float(float %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+then:                                             ; preds = %conv_union_end
+  %i6 = load i32, ptr %"Math::i", align 4
+  ret i32 %i6
+
+ifcont:                                           ; No predecessors!
+  ret i32 0
+
+elif.cond:                                        ; preds = %conv_union_end
+  %d7 = load double, ptr %"Math::d", align 8
+  %fcmpgt = fcmp ogt double %d7, 0.000000e+00
+  br i1 %fcmpgt, label %elif.body, label %else
+
+elif.body:                                        ; preds = %elif.cond
+  %i8 = load i32, ptr %"Math::i", align 4
+  %add = add i32 %i8, 1
+  ret i32 %add
+
+else:                                             ; preds = %elif.cond
+  %i9 = load i32, ptr %"Math::i", align 4
+  ret i32 %i9
+}
+
+define i32 @"Math::floor"(%"Math::Floating" %a) {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::d" = alloca double, align 8
+  %a1 = alloca %"Math::Floating", align 8
+  store %"Math::Floating" %a, ptr %a1, align 8
+  %a2 = load %"Math::Floating", ptr %a1, align 8
+  %conv_tag = extractvalue %"Math::Floating" %a2, 0
+  %conv_payload = extractvalue %"Math::Floating" %a2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %conv_loaded3, %conv_union_case_1 ]
+  store double %conv_union_phi, ptr %"Math::d", align 8
+  %d = load double, ptr %"Math::d", align 8
+  %to_int = call i32 @qc_to_int_from_double(double %d)
+  store i32 %to_int, ptr %"Math::i", align 4
+  %d4 = load double, ptr %"Math::d", align 8
+  %fcmpge = fcmp oge double %d4, 0.000000e+00
+  br i1 %fcmpge, label %then, label %else
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load float, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_float(float %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+then:                                             ; preds = %conv_union_end
+  %i = load i32, ptr %"Math::i", align 4
+  ret i32 %i
+
+ifcont:                                           ; preds = %ifcont9
+  ret i32 0
+
+else:                                             ; preds = %conv_union_end
+  %d5 = load double, ptr %"Math::d", align 8
+  %i6 = load i32, ptr %"Math::i", align 4
+  %to_double7 = call double @qc_to_double_from_int(i32 %i6)
+  %fcmpeq = fcmp oeq double %d5, %to_double7
+  br i1 %fcmpeq, label %then8, label %else10
+
+then8:                                            ; preds = %else
+  %i11 = load i32, ptr %"Math::i", align 4
+  ret i32 %i11
+
+ifcont9:                                          ; No predecessors!
+  br label %ifcont
+
+else10:                                           ; preds = %else
+  %i12 = load i32, ptr %"Math::i", align 4
+  %sub = sub i32 %i12, 1
+  ret i32 %sub
+}
+
+define %"Math::Number" @"Math::abs"(%"Math::Number" %a) {
+entry:
+  %union_op_result10 = alloca double, align 8
+  %union_op_result = alloca i1, align 1
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  %a2 = load %"Math::Number", ptr %a1, align 8
+  %tag = extractvalue %"Math::Number" %a2, 0
+  %payload = extractvalue %"Math::Number" %a2, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result5 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result5, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %member = load i32, ptr %payload, align 4
+  %0 = icmp slt i32 %member, 0
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %member3 = load float, ptr %payload, align 4
+  %1 = fcmp olt float %member3, 0.000000e+00
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %member4 = load double, ptr %payload, align 8
+  %2 = fcmp olt double %member4, 0.000000e+00
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %a6 = load %"Math::Number", ptr %a1, align 8
+  %tag7 = extractvalue %"Math::Number" %a6, 0
+  %payload8 = extractvalue %"Math::Number" %a6, 1
+  switch i32 %tag7, label %union_op_end9 [
+    i32 0, label %union_op_case_011
+    i32 1, label %union_op_case_113
+    i32 2, label %union_op_case_215
+  ]
+
+ifcont:                                           ; preds = %union_op_end
+  %a18 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a18
+
+union_op_end9:                                    ; preds = %union_op_case_215, %union_op_case_113, %union_op_case_011, %then
+  %union_op_result17 = load double, ptr %union_op_result10, align 8
+  %union_heap = call ptr @malloc(i64 8)
+  store double %union_op_result17, ptr %union_heap, align 8
+  %3 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %3
+
+union_op_case_011:                                ; preds = %then
+  %member12 = load i32, ptr %payload8, align 4
+  %4 = mul i32 %member12, -1
+  %5 = sitofp i32 %4 to double
+  store double %5, ptr %union_op_result10, align 8
+  br label %union_op_end9
+
+union_op_case_113:                                ; preds = %then
+  %member14 = load float, ptr %payload8, align 4
+  %6 = fmul float %member14, -1.000000e+00
+  %7 = fpext float %6 to double
+  store double %7, ptr %union_op_result10, align 8
+  br label %union_op_end9
+
+union_op_case_215:                                ; preds = %then
+  %member16 = load double, ptr %payload8, align 8
+  %8 = fmul double %member16, -1.000000e+00
+  store double %8, ptr %union_op_result10, align 8
+  br label %union_op_end9
+}
+
+define double @"Math::sin"(double %x) {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::n" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::pi" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  store double 0x400921FB54442D18, ptr %"Math::pi", align 8
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %entry
+  %x2 = load double, ptr %x1, align 8
+  %pi = load double, ptr %"Math::pi", align 8
+  %fcmpgt = fcmp ogt double %x2, %pi
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %pi3 = load double, ptr %"Math::pi", align 8
+  %fmul = fmul double 2.000000e+00, %pi3
+  %fsub = fsub double %assign_lhs_val, %fmul
+  store double %fsub, ptr %x1, align 8
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond4
+
+while.cond4:                                      ; preds = %while.body5, %while.end
+  %x7 = load double, ptr %x1, align 8
+  %pi8 = load double, ptr %"Math::pi", align 8
+  %fneg = fneg double %pi8
+  %fcmplt = fcmp olt double %x7, %fneg
+  br i1 %fcmplt, label %while.body5, label %while.end6
+
+while.body5:                                      ; preds = %while.cond4
+  %assign_lhs_val9 = load double, ptr %x1, align 8
+  %pi10 = load double, ptr %"Math::pi", align 8
+  %fmul11 = fmul double 2.000000e+00, %pi10
+  %fadd = fadd double %assign_lhs_val9, %fmul11
+  store double %fadd, ptr %x1, align 8
+  br label %while.cond4
+
+while.end6:                                       ; preds = %while.cond4
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  %x12 = load double, ptr %x1, align 8
+  store double %x12, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::n", align 4
+  store i32 0, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end6
+  %i = load i32, ptr %"Math::i", align 4
+  %icmplt = icmp slt i32 %i, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val13 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %fadd14 = fadd double %assign_lhs_val13, %term
+  store double %fadd14, ptr %"Math::result", align 8
+  %assign_lhs_val15 = load double, ptr %"Math::term", align 8
+  %x16 = load double, ptr %x1, align 8
+  %fmul17 = fmul double -1.000000e+00, %x16
+  %x18 = load double, ptr %x1, align 8
+  %fmul19 = fmul double %fmul17, %x18
+  %n = load i32, ptr %"Math::n", align 4
+  %mul = mul i32 2, %n
+  %n20 = load i32, ptr %"Math::n", align 4
+  %mul21 = mul i32 2, %n20
+  %add = add i32 %mul21, 1
+  %mul22 = mul i32 %mul, %add
+  %int_to_float = sitofp i32 %mul22 to double
+  %fdiv = fdiv double %fmul19, %int_to_float
+  %fmul23 = fmul double %assign_lhs_val15, %fdiv
+  store double %fmul23, ptr %"Math::term", align 8
+  %assign_lhs_val24 = load i32, ptr %"Math::n", align 4
+  %n25 = load i32, ptr %"Math::n", align 4
+  %n26 = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %n26, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val27 = load i32, ptr %"Math::i", align 4
+  %i28 = load i32, ptr %"Math::i", align 4
+  %i29 = load i32, ptr %"Math::i", align 4
+  %inc30 = add i32 %i29, 1
+  store i32 %inc30, ptr %"Math::i", align 4
+  store i32 %inc30, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  ret double %result
+}
+
+define double @"Math::cos"(double %x) {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::n" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::pi" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  store double 0x400921FB54442D18, ptr %"Math::pi", align 8
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %entry
+  %x2 = load double, ptr %x1, align 8
+  %pi = load double, ptr %"Math::pi", align 8
+  %fcmpgt = fcmp ogt double %x2, %pi
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %pi3 = load double, ptr %"Math::pi", align 8
+  %fmul = fmul double 2.000000e+00, %pi3
+  %fsub = fsub double %assign_lhs_val, %fmul
+  store double %fsub, ptr %x1, align 8
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond4
+
+while.cond4:                                      ; preds = %while.body5, %while.end
+  %x7 = load double, ptr %x1, align 8
+  %pi8 = load double, ptr %"Math::pi", align 8
+  %fneg = fneg double %pi8
+  %fcmplt = fcmp olt double %x7, %fneg
+  br i1 %fcmplt, label %while.body5, label %while.end6
+
+while.body5:                                      ; preds = %while.cond4
+  %assign_lhs_val9 = load double, ptr %x1, align 8
+  %pi10 = load double, ptr %"Math::pi", align 8
+  %fmul11 = fmul double 2.000000e+00, %pi10
+  %fadd = fadd double %assign_lhs_val9, %fmul11
+  store double %fadd, ptr %x1, align 8
+  br label %while.cond4
+
+while.end6:                                       ; preds = %while.cond4
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  store double 1.000000e+00, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::n", align 4
+  store i32 0, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end6
+  %i = load i32, ptr %"Math::i", align 4
+  %icmplt = icmp slt i32 %i, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val12 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %fadd13 = fadd double %assign_lhs_val12, %term
+  store double %fadd13, ptr %"Math::result", align 8
+  %assign_lhs_val14 = load double, ptr %"Math::term", align 8
+  %x15 = load double, ptr %x1, align 8
+  %fmul16 = fmul double -1.000000e+00, %x15
+  %x17 = load double, ptr %x1, align 8
+  %fmul18 = fmul double %fmul16, %x17
+  %n = load i32, ptr %"Math::n", align 4
+  %mul = mul i32 2, %n
+  %sub = sub i32 %mul, 1
+  %n19 = load i32, ptr %"Math::n", align 4
+  %mul20 = mul i32 2, %n19
+  %mul21 = mul i32 %sub, %mul20
+  %int_to_float = sitofp i32 %mul21 to double
+  %fdiv = fdiv double %fmul18, %int_to_float
+  %fmul22 = fmul double %assign_lhs_val14, %fdiv
+  store double %fmul22, ptr %"Math::term", align 8
+  %assign_lhs_val23 = load i32, ptr %"Math::n", align 4
+  %n24 = load i32, ptr %"Math::n", align 4
+  %n25 = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %n25, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val26 = load i32, ptr %"Math::i", align 4
+  %i27 = load i32, ptr %"Math::i", align 4
+  %i28 = load i32, ptr %"Math::i", align 4
+  %inc29 = add i32 %i28, 1
+  store i32 %inc29, ptr %"Math::i", align 4
+  store i32 %inc29, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  ret double %result
+}
+
+define double @"Math::tan"(double %x) {
+entry:
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  %x2 = load double, ptr %x1, align 8
+  %calltmp = call double @"Math::sin"(double %x2)
+  %x3 = load double, ptr %x1, align 8
+  %calltmp4 = call double @"Math::cos"(double %x3)
+  %fdiv = fdiv double %calltmp, %calltmp4
+  ret double %fdiv
+}
+
+define double @"Math::log"(double %x) {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::y" = alloca double, align 8
+  %"Math::n" = alloca i32, align 4
+  %"Math::log2" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  %x2 = load double, ptr %x1, align 8
+  %fcmple = fcmp ole double %x2, 0.000000e+00
+  br i1 %fcmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  ret double 0.000000e+00
+
+ifcont:                                           ; preds = %entry
+  store double 0x3FE62E42FEFA39EF, ptr %"Math::log2", align 8
+  store i32 0, ptr %"Math::n", align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %ifcont
+  %x3 = load double, ptr %x1, align 8
+  %fcmpgt = fcmp ogt double %x3, 2.000000e+00
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %fdiv = fdiv double %assign_lhs_val, 2.000000e+00
+  store double %fdiv, ptr %x1, align 8
+  %assign_lhs_val4 = load i32, ptr %"Math::n", align 4
+  %n = load i32, ptr %"Math::n", align 4
+  %n5 = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %n5, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond6
+
+while.cond6:                                      ; preds = %while.body7, %while.end
+  %x9 = load double, ptr %x1, align 8
+  %fcmplt = fcmp olt double %x9, 5.000000e-01
+  br i1 %fcmplt, label %while.body7, label %while.end8
+
+while.body7:                                      ; preds = %while.cond6
+  %assign_lhs_val10 = load double, ptr %x1, align 8
+  %fmul = fmul double %assign_lhs_val10, 2.000000e+00
+  store double %fmul, ptr %x1, align 8
+  %assign_lhs_val11 = load i32, ptr %"Math::n", align 4
+  %n12 = load i32, ptr %"Math::n", align 4
+  %n13 = load i32, ptr %"Math::n", align 4
+  %dec = sub i32 %n13, 1
+  store i32 %dec, ptr %"Math::n", align 4
+  store i32 %dec, ptr %"Math::n", align 4
+  br label %while.cond6
+
+while.end8:                                       ; preds = %while.cond6
+  %x14 = load double, ptr %x1, align 8
+  %fsub = fsub double %x14, 1.000000e+00
+  store double %fsub, ptr %"Math::y", align 8
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  %y = load double, ptr %"Math::y", align 8
+  store double %y, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end8
+  %i = load i32, ptr %"Math::i", align 4
+  %icmple = icmp sle i32 %i, 20
+  br i1 %icmple, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val15 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %i16 = load i32, ptr %"Math::i", align 4
+  %to_double = call double @qc_to_double_from_int(i32 %i16)
+  %fdiv17 = fdiv double %term, %to_double
+  %fadd = fadd double %assign_lhs_val15, %fdiv17
+  store double %fadd, ptr %"Math::result", align 8
+  %assign_lhs_val18 = load double, ptr %"Math::term", align 8
+  %y19 = load double, ptr %"Math::y", align 8
+  %fneg = fneg double %y19
+  %fmul20 = fmul double %assign_lhs_val18, %fneg
+  store double %fmul20, ptr %"Math::term", align 8
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val21 = load i32, ptr %"Math::i", align 4
+  %i22 = load i32, ptr %"Math::i", align 4
+  %i23 = load i32, ptr %"Math::i", align 4
+  %inc24 = add i32 %i23, 1
+  store i32 %inc24, ptr %"Math::i", align 4
+  store i32 %inc24, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  %n25 = load i32, ptr %"Math::n", align 4
+  %log2 = load double, ptr %"Math::log2", align 8
+  %int_to_float = sitofp i32 %n25 to double
+  %fmul26 = fmul double %int_to_float, %log2
+  %fadd27 = fadd double %result, %fmul26
+  ret double %fadd27
+}
+
+define i32 @"OSInterop::system"(ptr %command) {
+entry:
+  %command1 = alloca ptr, align 8
+  store ptr %command, ptr %command1, align 8
+  call void @qc_flush()
+  %command2 = load ptr, ptr %command1, align 8
+  call void asm sideeffect inteldialect "\0A        mov rdi, $0\0A        call system\0A        ", "r,~{rdi}"(ptr %command2)
+  ret i32 0
+}
+
+define i32 @__user_entry() {
+entry:
+  %aqb2 = alloca %"AdvQBool::AQB", align 8
+  %i = alloca i32, align 4
+  %trueCount = alloca i32, align 4
+  %aqb = alloca %"AdvQBool::AQB", align 8
+  %test = alloca %"UnitTest::Test", align 8
+  %reversed = alloca ptr, align 8
+  %toReverse = alloca ptr, align 8
+  %temp_elem193 = alloca i32, align 4
+  %temp_elem192 = alloca i32, align 4
+  %temp_elem191 = alloca i32, align 4
+  %temp_elem190 = alloca i32, align 4
+  %temp_elem189 = alloca i32, align 4
+  %sorted = alloca ptr, align 8
+  %unsorted = alloca ptr, align 8
+  %temp_elem154 = alloca i32, align 4
+  %temp_elem153 = alloca i32, align 4
+  %temp_elem152 = alloca i32, align 4
+  %temp_elem151 = alloca i32, align 4
+  %temp_elem150 = alloca i32, align 4
+  %nums = alloca ptr, align 8
+  %temp_elem137 = alloca i32, align 4
+  %temp_elem136 = alloca i32, align 4
+  %temp_elem135 = alloca i32, align 4
+  %temp_elem134 = alloca i32, align 4
+  %temp_elem = alloca i32, align 4
+  %fstr_union_result94 = alloca ptr, align 8
+  %fstr_union_result76 = alloca ptr, align 8
+  %fstr_union_result58 = alloca ptr, align 8
+  %fstr_union_result = alloca ptr, align 8
+  %r2 = alloca ptr, align 8
+  %r1 = alloca ptr, align 8
+  call void @qc_print_string(ptr @0)
+  call void @qc_print_string(ptr @1)
+  %list_ptr = call ptr @qc_create_list(i32 0)
+  %calltmp = call ptr @"Utils::range"(i32 0, i32 10, i32 2)
+  store ptr %calltmp, ptr %r1, align 8
+  %r11 = load ptr, ptr %r1, align 8
+  %list_len = call i32 @qc_list_length(ptr %r11)
+  %0 = sext i32 %list_len to i64
+  call void @qc_print_string(ptr @2)
+  %1 = call ptr @qc_fmt_int(i64 %0, i32 -1, i32 -1, i1 false)
+  call void @qc_print_string(ptr %1)
+  call void @qc_print_string(ptr @3)
+  %list_ptr2 = load ptr, ptr %r1, align 8
+  %list_elem_ptr = call ptr @qc_list_get(ptr %list_ptr2, i32 0)
+  %list_elem = load i32, ptr %list_elem_ptr, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %list_elem)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.43, ptr %fstr_i32)
+  %fstr_concat3 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.47)
+  %list_ptr4 = load ptr, ptr %r1, align 8
+  %list_elem_ptr5 = call ptr @qc_list_get(ptr %list_ptr4, i32 1)
+  %list_elem6 = load i32, ptr %list_elem_ptr5, align 4
+  %fstr_i327 = call ptr @qc_to_string_int(i32 %list_elem6)
+  %fstr_concat8 = call ptr @qc_string_concat(ptr %fstr_concat3, ptr %fstr_i327)
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat8, ptr @.str.49)
+  %list_ptr10 = load ptr, ptr %r1, align 8
+  %list_elem_ptr11 = call ptr @qc_list_get(ptr %list_ptr10, i32 2)
+  %list_elem12 = load i32, ptr %list_elem_ptr11, align 4
+  %fstr_i3213 = call ptr @qc_to_string_int(i32 %list_elem12)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat9, ptr %fstr_i3213)
+  %fstr_concat15 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr @.str.50)
+  %list_ptr16 = load ptr, ptr %r1, align 8
+  %list_elem_ptr17 = call ptr @qc_list_get(ptr %list_ptr16, i32 3)
+  %list_elem18 = load i32, ptr %list_elem_ptr17, align 4
+  %fstr_i3219 = call ptr @qc_to_string_int(i32 %list_elem18)
+  %fstr_concat20 = call ptr @qc_string_concat(ptr %fstr_concat15, ptr %fstr_i3219)
+  %fstr_concat21 = call ptr @qc_string_concat(ptr %fstr_concat20, ptr @.str.51)
+  %list_ptr22 = load ptr, ptr %r1, align 8
+  %list_elem_ptr23 = call ptr @qc_list_get(ptr %list_ptr22, i32 4)
+  %list_elem24 = load i32, ptr %list_elem_ptr23, align 4
+  %fstr_i3225 = call ptr @qc_to_string_int(i32 %list_elem24)
+  %fstr_concat26 = call ptr @qc_string_concat(ptr %fstr_concat21, ptr %fstr_i3225)
+  %fstr_concat27 = call ptr @qc_string_concat(ptr %fstr_concat26, ptr @.str.52)
+  call void @qc_print_string(ptr @4)
+  %2 = call ptr @qc_fmt_string(ptr %fstr_concat27, i32 -1, i1 false)
+  call void @qc_print_string(ptr %2)
+  call void @qc_print_string(ptr @5)
+  %list_ptr28 = call ptr @qc_create_list(i32 0)
+  %calltmp29 = call ptr @"Utils::range"(i32 10, i32 0, i32 -1)
+  store ptr %calltmp29, ptr %r2, align 8
+  %r230 = load ptr, ptr %r2, align 8
+  %list_len31 = call i32 @qc_list_length(ptr %r230)
+  %fstr_i3232 = call ptr @qc_to_string_int(i32 %list_len31)
+  %fstr_concat33 = call ptr @qc_string_concat(ptr @.str.54, ptr %fstr_i3232)
+  %fstr_concat34 = call ptr @qc_string_concat(ptr %fstr_concat33, ptr @.str.55)
+  call void @qc_print_string(ptr @6)
+  %3 = call ptr @qc_fmt_string(ptr %fstr_concat34, i32 -1, i1 false)
+  call void @qc_print_string(ptr %3)
+  call void @qc_print_string(ptr @7)
+  call void @qc_print_string(ptr @8)
+  %calltmp35 = call i32 @"Utils::sleep"(i32 1)
+  call void @qc_print_string(ptr @9)
+  call void @qc_print_string(ptr @10)
+  %calltmp36 = call double @"Math::pi"()
+  %fstr_f64 = call ptr @qc_to_string_double(double %calltmp36)
+  %fstr_concat37 = call ptr @qc_string_concat(ptr @.str.60, ptr %fstr_f64)
+  %fstr_concat38 = call ptr @qc_string_concat(ptr %fstr_concat37, ptr @.str.61)
+  call void @qc_print_string(ptr @11)
+  %4 = call ptr @qc_fmt_string(ptr %fstr_concat38, i32 -1, i1 false)
+  call void @qc_print_string(ptr %4)
+  call void @qc_print_string(ptr @12)
+  %calltmp39 = call double @"Math::e"()
+  %fstr_f6440 = call ptr @qc_to_string_double(double %calltmp39)
+  %fstr_concat41 = call ptr @qc_string_concat(ptr @.str.63, ptr %fstr_f6440)
+  %fstr_concat42 = call ptr @qc_string_concat(ptr %fstr_concat41, ptr @.str.64)
+  call void @qc_print_string(ptr @13)
+  %5 = call ptr @qc_fmt_string(ptr %fstr_concat42, i32 -1, i1 false)
+  call void @qc_print_string(ptr %5)
+  call void @qc_print_string(ptr @14)
+  %union_heap = call ptr @malloc(i64 4)
+  store i32 5, ptr %union_heap, align 4
+  %6 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap, 1
+  %union_heap43 = call ptr @malloc(i64 4)
+  store i32 10, ptr %union_heap43, align 4
+  %7 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap43, 1
+  %calltmp44 = call %"Math::Number" @"Math::max"(%"Math::Number" %6, %"Math::Number" %7)
+  %union_tag = extractvalue %"Math::Number" %calltmp44, 0
+  %union_payload = extractvalue %"Math::Number" %calltmp44, 1
+  switch i32 %union_tag, label %fstr_union_end [
+    i32 0, label %fstr_union_case_0
+    i32 1, label %fstr_union_case_1
+    i32 2, label %fstr_union_case_2
+  ]
+
+fstr_union_end:                                   ; preds = %fstr_union_case_2, %fstr_union_case_1, %fstr_union_case_0, %entry
+  %fstr_union_result49 = load ptr, ptr %fstr_union_result, align 8
+  %fstr_concat50 = call ptr @qc_string_concat(ptr @.str.66, ptr %fstr_union_result49)
+  %fstr_concat51 = call ptr @qc_string_concat(ptr %fstr_concat50, ptr @.str.67)
+  call void @qc_print_string(ptr @15)
+  %8 = call ptr @qc_fmt_string(ptr %fstr_concat51, i32 -1, i1 false)
+  call void @qc_print_string(ptr %8)
+  call void @qc_print_string(ptr @16)
+  %union_heap52 = call ptr @malloc(i64 4)
+  store i32 5, ptr %union_heap52, align 4
+  %9 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap52, 1
+  %union_heap53 = call ptr @malloc(i64 4)
+  store i32 10, ptr %union_heap53, align 4
+  %10 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap53, 1
+  %calltmp54 = call %"Math::Number" @"Math::min"(%"Math::Number" %9, %"Math::Number" %10)
+  %union_tag55 = extractvalue %"Math::Number" %calltmp54, 0
+  %union_payload56 = extractvalue %"Math::Number" %calltmp54, 1
+  switch i32 %union_tag55, label %fstr_union_end57 [
+    i32 0, label %fstr_union_case_059
+    i32 1, label %fstr_union_case_162
+    i32 2, label %fstr_union_case_265
+  ]
+
+fstr_union_case_0:                                ; preds = %entry
+  %union_member = load i32, ptr %union_payload, align 4
+  %fstr_i3245 = call ptr @qc_to_string_int(i32 %union_member)
+  store ptr %fstr_i3245, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_case_1:                                ; preds = %entry
+  %union_member46 = load float, ptr %union_payload, align 4
+  %fstr_f32 = call ptr @qc_to_string_float(float %union_member46)
+  store ptr %fstr_f32, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_case_2:                                ; preds = %entry
+  %union_member47 = load double, ptr %union_payload, align 8
+  %fstr_f6448 = call ptr @qc_to_string_double(double %union_member47)
+  store ptr %fstr_f6448, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_end57:                                 ; preds = %fstr_union_case_265, %fstr_union_case_162, %fstr_union_case_059, %fstr_union_end
+  %fstr_union_result68 = load ptr, ptr %fstr_union_result58, align 8
+  %fstr_concat69 = call ptr @qc_string_concat(ptr @.str.69, ptr %fstr_union_result68)
+  %fstr_concat70 = call ptr @qc_string_concat(ptr %fstr_concat69, ptr @.str.70)
+  call void @qc_print_string(ptr @17)
+  %11 = call ptr @qc_fmt_string(ptr %fstr_concat70, i32 -1, i1 false)
+  call void @qc_print_string(ptr %11)
+  call void @qc_print_string(ptr @18)
+  %union_heap71 = call ptr @malloc(i64 4)
+  store i32 16, ptr %union_heap71, align 4
+  %12 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap71, 1
+  %calltmp72 = call %"Math::Number" @"Math::sqrt"(%"Math::Number" %12)
+  %union_tag73 = extractvalue %"Math::Number" %calltmp72, 0
+  %union_payload74 = extractvalue %"Math::Number" %calltmp72, 1
+  switch i32 %union_tag73, label %fstr_union_end75 [
+    i32 0, label %fstr_union_case_077
+    i32 1, label %fstr_union_case_180
+    i32 2, label %fstr_union_case_283
+  ]
+
+fstr_union_case_059:                              ; preds = %fstr_union_end
+  %union_member60 = load i32, ptr %union_payload56, align 4
+  %fstr_i3261 = call ptr @qc_to_string_int(i32 %union_member60)
+  store ptr %fstr_i3261, ptr %fstr_union_result58, align 8
+  br label %fstr_union_end57
+
+fstr_union_case_162:                              ; preds = %fstr_union_end
+  %union_member63 = load float, ptr %union_payload56, align 4
+  %fstr_f3264 = call ptr @qc_to_string_float(float %union_member63)
+  store ptr %fstr_f3264, ptr %fstr_union_result58, align 8
+  br label %fstr_union_end57
+
+fstr_union_case_265:                              ; preds = %fstr_union_end
+  %union_member66 = load double, ptr %union_payload56, align 8
+  %fstr_f6467 = call ptr @qc_to_string_double(double %union_member66)
+  store ptr %fstr_f6467, ptr %fstr_union_result58, align 8
+  br label %fstr_union_end57
+
+fstr_union_end75:                                 ; preds = %fstr_union_case_283, %fstr_union_case_180, %fstr_union_case_077, %fstr_union_end57
+  %fstr_union_result86 = load ptr, ptr %fstr_union_result76, align 8
+  %fstr_concat87 = call ptr @qc_string_concat(ptr @.str.72, ptr %fstr_union_result86)
+  %fstr_concat88 = call ptr @qc_string_concat(ptr %fstr_concat87, ptr @.str.73)
+  call void @qc_print_string(ptr @19)
+  %13 = call ptr @qc_fmt_string(ptr %fstr_concat88, i32 -1, i1 false)
+  call void @qc_print_string(ptr %13)
+  call void @qc_print_string(ptr @20)
+  %union_heap89 = call ptr @malloc(i64 4)
+  store i32 -42, ptr %union_heap89, align 4
+  %14 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap89, 1
+  %calltmp90 = call %"Math::Number" @"Math::abs"(%"Math::Number" %14)
+  %union_tag91 = extractvalue %"Math::Number" %calltmp90, 0
+  %union_payload92 = extractvalue %"Math::Number" %calltmp90, 1
+  switch i32 %union_tag91, label %fstr_union_end93 [
+    i32 0, label %fstr_union_case_095
+    i32 1, label %fstr_union_case_198
+    i32 2, label %fstr_union_case_2101
+  ]
+
+fstr_union_case_077:                              ; preds = %fstr_union_end57
+  %union_member78 = load i32, ptr %union_payload74, align 4
+  %fstr_i3279 = call ptr @qc_to_string_int(i32 %union_member78)
+  store ptr %fstr_i3279, ptr %fstr_union_result76, align 8
+  br label %fstr_union_end75
+
+fstr_union_case_180:                              ; preds = %fstr_union_end57
+  %union_member81 = load float, ptr %union_payload74, align 4
+  %fstr_f3282 = call ptr @qc_to_string_float(float %union_member81)
+  store ptr %fstr_f3282, ptr %fstr_union_result76, align 8
+  br label %fstr_union_end75
+
+fstr_union_case_283:                              ; preds = %fstr_union_end57
+  %union_member84 = load double, ptr %union_payload74, align 8
+  %fstr_f6485 = call ptr @qc_to_string_double(double %union_member84)
+  store ptr %fstr_f6485, ptr %fstr_union_result76, align 8
+  br label %fstr_union_end75
+
+fstr_union_end93:                                 ; preds = %fstr_union_case_2101, %fstr_union_case_198, %fstr_union_case_095, %fstr_union_end75
+  %fstr_union_result104 = load ptr, ptr %fstr_union_result94, align 8
+  %fstr_concat105 = call ptr @qc_string_concat(ptr @.str.75, ptr %fstr_union_result104)
+  %fstr_concat106 = call ptr @qc_string_concat(ptr %fstr_concat105, ptr @.str.76)
+  call void @qc_print_string(ptr @21)
+  %15 = call ptr @qc_fmt_string(ptr %fstr_concat106, i32 -1, i1 false)
+  call void @qc_print_string(ptr %15)
+  call void @qc_print_string(ptr @22)
+  %union_heap107 = call ptr @malloc(i64 8)
+  store double 3.200000e+00, ptr %union_heap107, align 8
+  %16 = insertvalue %"Math::Floating" { i32 1, ptr undef }, ptr %union_heap107, 1
+  %calltmp108 = call i32 @"Math::ceil"(%"Math::Floating" %16)
+  %fstr_i32109 = call ptr @qc_to_string_int(i32 %calltmp108)
+  %fstr_concat110 = call ptr @qc_string_concat(ptr @.str.78, ptr %fstr_i32109)
+  %fstr_concat111 = call ptr @qc_string_concat(ptr %fstr_concat110, ptr @.str.79)
+  call void @qc_print_string(ptr @23)
+  %17 = call ptr @qc_fmt_string(ptr %fstr_concat111, i32 -1, i1 false)
+  call void @qc_print_string(ptr %17)
+  call void @qc_print_string(ptr @24)
+  %union_heap112 = call ptr @malloc(i64 8)
+  store double 3.800000e+00, ptr %union_heap112, align 8
+  %18 = insertvalue %"Math::Floating" { i32 1, ptr undef }, ptr %union_heap112, 1
+  %calltmp113 = call i32 @"Math::floor"(%"Math::Floating" %18)
+  %fstr_i32114 = call ptr @qc_to_string_int(i32 %calltmp113)
+  %fstr_concat115 = call ptr @qc_string_concat(ptr @.str.81, ptr %fstr_i32114)
+  %fstr_concat116 = call ptr @qc_string_concat(ptr %fstr_concat115, ptr @.str.82)
+  call void @qc_print_string(ptr @25)
+  %19 = call ptr @qc_fmt_string(ptr %fstr_concat116, i32 -1, i1 false)
+  call void @qc_print_string(ptr %19)
+  call void @qc_print_string(ptr @26)
+  %calltmp117 = call double @"Math::sin"(double 0.000000e+00)
+  %fstr_f64118 = call ptr @qc_to_string_double(double %calltmp117)
+  %fstr_concat119 = call ptr @qc_string_concat(ptr @.str.84, ptr %fstr_f64118)
+  %fstr_concat120 = call ptr @qc_string_concat(ptr %fstr_concat119, ptr @.str.85)
+  call void @qc_print_string(ptr @27)
+  %20 = call ptr @qc_fmt_string(ptr %fstr_concat120, i32 -1, i1 false)
+  call void @qc_print_string(ptr %20)
+  call void @qc_print_string(ptr @28)
+  %calltmp121 = call double @"Math::cos"(double 0.000000e+00)
+  %fstr_f64122 = call ptr @qc_to_string_double(double %calltmp121)
+  %fstr_concat123 = call ptr @qc_string_concat(ptr @.str.87, ptr %fstr_f64122)
+  %fstr_concat124 = call ptr @qc_string_concat(ptr %fstr_concat123, ptr @.str.88)
+  call void @qc_print_string(ptr @29)
+  %21 = call ptr @qc_fmt_string(ptr %fstr_concat124, i32 -1, i1 false)
+  call void @qc_print_string(ptr %21)
+  call void @qc_print_string(ptr @30)
+  %calltmp125 = call double @"Math::tan"(double 0.000000e+00)
+  %fstr_f64126 = call ptr @qc_to_string_double(double %calltmp125)
+  %fstr_concat127 = call ptr @qc_string_concat(ptr @.str.90, ptr %fstr_f64126)
+  %fstr_concat128 = call ptr @qc_string_concat(ptr %fstr_concat127, ptr @.str.91)
+  call void @qc_print_string(ptr @31)
+  %22 = call ptr @qc_fmt_string(ptr %fstr_concat128, i32 -1, i1 false)
+  call void @qc_print_string(ptr %22)
+  call void @qc_print_string(ptr @32)
+  %calltmp129 = call double @"Math::log"(double 2.718000e+00)
+  %fstr_f64130 = call ptr @qc_to_string_double(double %calltmp129)
+  %fstr_concat131 = call ptr @qc_string_concat(ptr @.str.93, ptr %fstr_f64130)
+  %fstr_concat132 = call ptr @qc_string_concat(ptr %fstr_concat131, ptr @.str.94)
+  call void @qc_print_string(ptr @33)
+  %23 = call ptr @qc_fmt_string(ptr %fstr_concat132, i32 -1, i1 false)
+  call void @qc_print_string(ptr %23)
+  call void @qc_print_string(ptr @34)
+  call void @qc_print_string(ptr @35)
+  %list_ptr133 = call ptr @qc_create_list(i32 0)
+  store i32 1, ptr %temp_elem, align 4
+  call void @qc_list_push(ptr %list_ptr133, ptr %temp_elem, i32 0)
+  store i32 2, ptr %temp_elem134, align 4
+  call void @qc_list_push(ptr %list_ptr133, ptr %temp_elem134, i32 0)
+  store i32 3, ptr %temp_elem135, align 4
+  call void @qc_list_push(ptr %list_ptr133, ptr %temp_elem135, i32 0)
+  store i32 4, ptr %temp_elem136, align 4
+  call void @qc_list_push(ptr %list_ptr133, ptr %temp_elem136, i32 0)
+  store i32 5, ptr %temp_elem137, align 4
+  call void @qc_list_push(ptr %list_ptr133, ptr %temp_elem137, i32 0)
+  store ptr %list_ptr133, ptr %nums, align 8
+  %nums138 = load ptr, ptr %nums, align 8
+  %24 = call i1 @"Collections::has_list<int>_int"(ptr %nums138, i32 3)
+  %fstr_bool = call ptr @qc_to_string_bool(i1 %24)
+  %fstr_concat139 = call ptr @qc_string_concat(ptr @.str.97, ptr %fstr_bool)
+  %fstr_concat140 = call ptr @qc_string_concat(ptr %fstr_concat139, ptr @.str.98)
+  call void @qc_print_string(ptr @36)
+  %25 = call ptr @qc_fmt_string(ptr %fstr_concat140, i32 -1, i1 false)
+  call void @qc_print_string(ptr %25)
+  call void @qc_print_string(ptr @37)
+  %nums141 = load ptr, ptr %nums, align 8
+  %26 = call i1 @"Collections::has_list<int>_int"(ptr %nums141, i32 10)
+  %fstr_bool142 = call ptr @qc_to_string_bool(i1 %26)
+  %fstr_concat143 = call ptr @qc_string_concat(ptr @.str.100, ptr %fstr_bool142)
+  %fstr_concat144 = call ptr @qc_string_concat(ptr %fstr_concat143, ptr @.str.101)
+  call void @qc_print_string(ptr @38)
+  %27 = call ptr @qc_fmt_string(ptr %fstr_concat144, i32 -1, i1 false)
+  call void @qc_print_string(ptr %27)
+  call void @qc_print_string(ptr @39)
+  %nums145 = load ptr, ptr %nums, align 8
+  %28 = call i32 @"Collections::index_of_list<int>_int"(ptr %nums145, i32 3)
+  %fstr_i32146 = call ptr @qc_to_string_int(i32 %28)
+  %fstr_concat147 = call ptr @qc_string_concat(ptr @.str.103, ptr %fstr_i32146)
+  %fstr_concat148 = call ptr @qc_string_concat(ptr %fstr_concat147, ptr @.str.104)
+  call void @qc_print_string(ptr @40)
+  %29 = call ptr @qc_fmt_string(ptr %fstr_concat148, i32 -1, i1 false)
+  call void @qc_print_string(ptr %29)
+  call void @qc_print_string(ptr @41)
+  %list_ptr149 = call ptr @qc_create_list(i32 0)
+  store i32 5, ptr %temp_elem150, align 4
+  call void @qc_list_push(ptr %list_ptr149, ptr %temp_elem150, i32 0)
+  store i32 2, ptr %temp_elem151, align 4
+  call void @qc_list_push(ptr %list_ptr149, ptr %temp_elem151, i32 0)
+  store i32 8, ptr %temp_elem152, align 4
+  call void @qc_list_push(ptr %list_ptr149, ptr %temp_elem152, i32 0)
+  store i32 1, ptr %temp_elem153, align 4
+  call void @qc_list_push(ptr %list_ptr149, ptr %temp_elem153, i32 0)
+  store i32 9, ptr %temp_elem154, align 4
+  call void @qc_list_push(ptr %list_ptr149, ptr %temp_elem154, i32 0)
+  store ptr %list_ptr149, ptr %unsorted, align 8
+  %list_ptr155 = call ptr @qc_create_list(i32 0)
+  %unsorted156 = load ptr, ptr %unsorted, align 8
+  %calltmp157 = call ptr @"Collections::sort"(ptr %unsorted156)
+  store ptr %calltmp157, ptr %sorted, align 8
+  %list_ptr158 = load ptr, ptr %sorted, align 8
+  %list_elem_ptr159 = call ptr @qc_list_get(ptr %list_ptr158, i32 0)
+  %list_elem160 = load i32, ptr %list_elem_ptr159, align 4
+  %fstr_i32161 = call ptr @qc_to_string_int(i32 %list_elem160)
+  %fstr_concat162 = call ptr @qc_string_concat(ptr @.str.106, ptr %fstr_i32161)
+  %fstr_concat163 = call ptr @qc_string_concat(ptr %fstr_concat162, ptr @.str.107)
+  %list_ptr164 = load ptr, ptr %sorted, align 8
+  %list_elem_ptr165 = call ptr @qc_list_get(ptr %list_ptr164, i32 1)
+  %list_elem166 = load i32, ptr %list_elem_ptr165, align 4
+  %fstr_i32167 = call ptr @qc_to_string_int(i32 %list_elem166)
+  %fstr_concat168 = call ptr @qc_string_concat(ptr %fstr_concat163, ptr %fstr_i32167)
+  %fstr_concat169 = call ptr @qc_string_concat(ptr %fstr_concat168, ptr @.str.108)
+  %list_ptr170 = load ptr, ptr %sorted, align 8
+  %list_elem_ptr171 = call ptr @qc_list_get(ptr %list_ptr170, i32 2)
+  %list_elem172 = load i32, ptr %list_elem_ptr171, align 4
+  %fstr_i32173 = call ptr @qc_to_string_int(i32 %list_elem172)
+  %fstr_concat174 = call ptr @qc_string_concat(ptr %fstr_concat169, ptr %fstr_i32173)
+  %fstr_concat175 = call ptr @qc_string_concat(ptr %fstr_concat174, ptr @.str.109)
+  %list_ptr176 = load ptr, ptr %sorted, align 8
+  %list_elem_ptr177 = call ptr @qc_list_get(ptr %list_ptr176, i32 3)
+  %list_elem178 = load i32, ptr %list_elem_ptr177, align 4
+  %fstr_i32179 = call ptr @qc_to_string_int(i32 %list_elem178)
+  %fstr_concat180 = call ptr @qc_string_concat(ptr %fstr_concat175, ptr %fstr_i32179)
+  %fstr_concat181 = call ptr @qc_string_concat(ptr %fstr_concat180, ptr @.str.110)
+  %list_ptr182 = load ptr, ptr %sorted, align 8
+  %list_elem_ptr183 = call ptr @qc_list_get(ptr %list_ptr182, i32 4)
+  %list_elem184 = load i32, ptr %list_elem_ptr183, align 4
+  %fstr_i32185 = call ptr @qc_to_string_int(i32 %list_elem184)
+  %fstr_concat186 = call ptr @qc_string_concat(ptr %fstr_concat181, ptr %fstr_i32185)
+  %fstr_concat187 = call ptr @qc_string_concat(ptr %fstr_concat186, ptr @.str.111)
+  call void @qc_print_string(ptr @42)
+  %30 = call ptr @qc_fmt_string(ptr %fstr_concat187, i32 -1, i1 false)
+  call void @qc_print_string(ptr %30)
+  call void @qc_print_string(ptr @43)
+  %list_ptr188 = call ptr @qc_create_list(i32 0)
+  store i32 1, ptr %temp_elem189, align 4
+  call void @qc_list_push(ptr %list_ptr188, ptr %temp_elem189, i32 0)
+  store i32 2, ptr %temp_elem190, align 4
+  call void @qc_list_push(ptr %list_ptr188, ptr %temp_elem190, i32 0)
+  store i32 3, ptr %temp_elem191, align 4
+  call void @qc_list_push(ptr %list_ptr188, ptr %temp_elem191, i32 0)
+  store i32 4, ptr %temp_elem192, align 4
+  call void @qc_list_push(ptr %list_ptr188, ptr %temp_elem192, i32 0)
+  store i32 5, ptr %temp_elem193, align 4
+  call void @qc_list_push(ptr %list_ptr188, ptr %temp_elem193, i32 0)
+  store ptr %list_ptr188, ptr %toReverse, align 8
+  %list_ptr194 = call ptr @qc_create_list(i32 0)
+  %toReverse195 = load ptr, ptr %toReverse, align 8
+  %31 = call ptr @"Collections::reverse_list<int>"(ptr %toReverse195)
+  store ptr %31, ptr %reversed, align 8
+  %list_ptr196 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr197 = call ptr @qc_list_get(ptr %list_ptr196, i32 0)
+  %list_elem198 = load i32, ptr %list_elem_ptr197, align 4
+  %fstr_i32199 = call ptr @qc_to_string_int(i32 %list_elem198)
+  %fstr_concat200 = call ptr @qc_string_concat(ptr @.str.113, ptr %fstr_i32199)
+  %fstr_concat201 = call ptr @qc_string_concat(ptr %fstr_concat200, ptr @.str.114)
+  %list_ptr202 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr203 = call ptr @qc_list_get(ptr %list_ptr202, i32 1)
+  %list_elem204 = load i32, ptr %list_elem_ptr203, align 4
+  %fstr_i32205 = call ptr @qc_to_string_int(i32 %list_elem204)
+  %fstr_concat206 = call ptr @qc_string_concat(ptr %fstr_concat201, ptr %fstr_i32205)
+  %fstr_concat207 = call ptr @qc_string_concat(ptr %fstr_concat206, ptr @.str.115)
+  %list_ptr208 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr209 = call ptr @qc_list_get(ptr %list_ptr208, i32 2)
+  %list_elem210 = load i32, ptr %list_elem_ptr209, align 4
+  %fstr_i32211 = call ptr @qc_to_string_int(i32 %list_elem210)
+  %fstr_concat212 = call ptr @qc_string_concat(ptr %fstr_concat207, ptr %fstr_i32211)
+  %fstr_concat213 = call ptr @qc_string_concat(ptr %fstr_concat212, ptr @.str.116)
+  %list_ptr214 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr215 = call ptr @qc_list_get(ptr %list_ptr214, i32 3)
+  %list_elem216 = load i32, ptr %list_elem_ptr215, align 4
+  %fstr_i32217 = call ptr @qc_to_string_int(i32 %list_elem216)
+  %fstr_concat218 = call ptr @qc_string_concat(ptr %fstr_concat213, ptr %fstr_i32217)
+  %fstr_concat219 = call ptr @qc_string_concat(ptr %fstr_concat218, ptr @.str.117)
+  %list_ptr220 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr221 = call ptr @qc_list_get(ptr %list_ptr220, i32 4)
+  %list_elem222 = load i32, ptr %list_elem_ptr221, align 4
+  %fstr_i32223 = call ptr @qc_to_string_int(i32 %list_elem222)
+  %fstr_concat224 = call ptr @qc_string_concat(ptr %fstr_concat219, ptr %fstr_i32223)
+  %fstr_concat225 = call ptr @qc_string_concat(ptr %fstr_concat224, ptr @.str.118)
+  call void @qc_print_string(ptr @44)
+  %32 = call ptr @qc_fmt_string(ptr %fstr_concat225, i32 -1, i1 false)
+  call void @qc_print_string(ptr %32)
+  call void @qc_print_string(ptr @45)
+  %assign_lhs_val = load ptr, ptr %reversed, align 8
+  %reversed226 = load ptr, ptr %reversed, align 8
+  %33 = call ptr @"Collections::remove_list<int>_int"(ptr %reversed226, i32 2)
+  store ptr %33, ptr %reversed, align 8
+  %list_ptr227 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr228 = call ptr @qc_list_get(ptr %list_ptr227, i32 0)
+  %list_elem229 = load i32, ptr %list_elem_ptr228, align 4
+  %fstr_i32230 = call ptr @qc_to_string_int(i32 %list_elem229)
+  %fstr_concat231 = call ptr @qc_string_concat(ptr @.str.120, ptr %fstr_i32230)
+  %fstr_concat232 = call ptr @qc_string_concat(ptr %fstr_concat231, ptr @.str.121)
+  %list_ptr233 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr234 = call ptr @qc_list_get(ptr %list_ptr233, i32 1)
+  %list_elem235 = load i32, ptr %list_elem_ptr234, align 4
+  %fstr_i32236 = call ptr @qc_to_string_int(i32 %list_elem235)
+  %fstr_concat237 = call ptr @qc_string_concat(ptr %fstr_concat232, ptr %fstr_i32236)
+  %fstr_concat238 = call ptr @qc_string_concat(ptr %fstr_concat237, ptr @.str.122)
+  %list_ptr239 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr240 = call ptr @qc_list_get(ptr %list_ptr239, i32 2)
+  %list_elem241 = load i32, ptr %list_elem_ptr240, align 4
+  %fstr_i32242 = call ptr @qc_to_string_int(i32 %list_elem241)
+  %fstr_concat243 = call ptr @qc_string_concat(ptr %fstr_concat238, ptr %fstr_i32242)
+  %fstr_concat244 = call ptr @qc_string_concat(ptr %fstr_concat243, ptr @.str.123)
+  %list_ptr245 = load ptr, ptr %reversed, align 8
+  %list_elem_ptr246 = call ptr @qc_list_get(ptr %list_ptr245, i32 3)
+  %list_elem247 = load i32, ptr %list_elem_ptr246, align 4
+  %fstr_i32248 = call ptr @qc_to_string_int(i32 %list_elem247)
+  %fstr_concat249 = call ptr @qc_string_concat(ptr %fstr_concat244, ptr %fstr_i32248)
+  %fstr_concat250 = call ptr @qc_string_concat(ptr %fstr_concat249, ptr @.str.124)
+  call void @qc_print_string(ptr @46)
+  %34 = call ptr @qc_fmt_string(ptr %fstr_concat250, i32 -1, i1 false)
+  call void @qc_print_string(ptr %34)
+  call void @qc_print_string(ptr @47)
+  call void @qc_print_string(ptr @48)
+  call void @"UnitTest::Test_Test"(ptr %test, i32 5)
+  %test251 = load %"UnitTest::Test", ptr %test, align 8
+  %AssertEqual_result = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 5, i32 5, ptr @.str.140, ptr @.str.141)
+  %test252 = load %"UnitTest::Test", ptr %test, align 8
+  %AssertEqual_result253 = call i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 10, i32 10, ptr @.str.142, ptr @.str.143)
+  %test254 = load %"UnitTest::Test", ptr %test, align 8
+  %AssertTrue_result = call i32 @"UnitTest::Test_AssertTrue"(ptr %test, i1 true, ptr @.str.144, ptr @.str.145)
+  %test255 = load %"UnitTest::Test", ptr %test, align 8
+  %AssertFalse_result = call i32 @"UnitTest::Test_AssertFalse"(ptr %test, i1 false, ptr @.str.146, ptr @.str.147)
+  %test256 = load %"UnitTest::Test", ptr %test, align 8
+  %AssertNotEqual_result = call i32 @"UnitTest::Test_AssertNotEqual_int_int_string_string"(ptr %test, i32 5, i32 10, ptr @.str.162, ptr @.str.163)
+  call void @qc_print_string(ptr @49)
+  call void @"AdvQBool::AQB_AQB"(ptr %aqb, i32 75)
+  %aqb257 = load %"AdvQBool::AQB", ptr %aqb, align 4
+  %repr_result = call ptr @"AdvQBool::AQB_repr"(ptr %aqb)
+  %fstr_concat258 = call ptr @qc_string_concat(ptr @.str.166, ptr %repr_result)
+  %fstr_concat259 = call ptr @qc_string_concat(ptr %fstr_concat258, ptr @.str.167)
+  call void @qc_print_string(ptr @50)
+  %35 = call ptr @qc_fmt_string(ptr %fstr_concat259, i32 -1, i1 false)
+  call void @qc_print_string(ptr %35)
+  call void @qc_print_string(ptr @51)
+  call void @qc_print_string(ptr @52)
+  store i32 0, ptr %trueCount, align 4
+  store i32 0, ptr %i, align 4
+  br label %for.cond
+
+fstr_union_case_095:                              ; preds = %fstr_union_end75
+  %union_member96 = load i32, ptr %union_payload92, align 4
+  %fstr_i3297 = call ptr @qc_to_string_int(i32 %union_member96)
+  store ptr %fstr_i3297, ptr %fstr_union_result94, align 8
+  br label %fstr_union_end93
+
+fstr_union_case_198:                              ; preds = %fstr_union_end75
+  %union_member99 = load float, ptr %union_payload92, align 4
+  %fstr_f32100 = call ptr @qc_to_string_float(float %union_member99)
+  store ptr %fstr_f32100, ptr %fstr_union_result94, align 8
+  br label %fstr_union_end93
+
+fstr_union_case_2101:                             ; preds = %fstr_union_end75
+  %union_member102 = load double, ptr %union_payload92, align 8
+  %fstr_f64103 = call ptr @qc_to_string_double(double %union_member102)
+  store ptr %fstr_f64103, ptr %fstr_union_result94, align 8
+  br label %fstr_union_end93
+
+for.cond:                                         ; preds = %for.inc, %fstr_union_end93
+  %i260 = load i32, ptr %i, align 4
+  %icmplt = icmp slt i32 %i260, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %aqb261 = load %"AdvQBool::AQB", ptr %aqb, align 4
+  %eval_result = call i1 @"AdvQBool::AQB_eval"(ptr %aqb)
+  br i1 %eval_result, label %then, label %ifcont
+
+for.inc:                                          ; preds = %ifcont
+  %assign_lhs_val265 = load i32, ptr %i, align 4
+  %i266 = load i32, ptr %i, align 4
+  %i267 = load i32, ptr %i, align 4
+  %inc268 = add i32 %i267, 1
+  store i32 %inc268, ptr %i, align 4
+  store i32 %inc268, ptr %i, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %trueCount269 = load i32, ptr %trueCount, align 4
+  %fstr_i32270 = call ptr @qc_to_string_int(i32 %trueCount269)
+  %fstr_concat271 = call ptr @qc_string_concat(ptr @.str.170, ptr %fstr_i32270)
+  %fstr_concat272 = call ptr @qc_string_concat(ptr %fstr_concat271, ptr @.str.171)
+  call void @qc_print_string(ptr @53)
+  %36 = call ptr @qc_fmt_string(ptr %fstr_concat272, i32 -1, i1 false)
+  call void @qc_print_string(ptr %36)
+  call void @qc_print_string(ptr @54)
+  call void @"AdvQBool::AQB_AQB"(ptr %aqb2, i32 50)
+  %aqb273 = load %"AdvQBool::AQB", ptr %aqb, align 4
+  %eval_result274 = call i1 @"AdvQBool::AQB_eval"(ptr %aqb)
+  %aqb2275 = load %"AdvQBool::AQB", ptr %aqb2, align 4
+  %eval_result276 = call i1 @"AdvQBool::AQB_eval"(ptr %aqb2)
+  %and = and i1 %eval_result274, %eval_result276
+  %fstr_bool277 = call ptr @qc_to_string_bool(i1 %and)
+  %fstr_concat278 = call ptr @qc_string_concat(ptr @.str.173, ptr %fstr_bool277)
+  %fstr_concat279 = call ptr @qc_string_concat(ptr %fstr_concat278, ptr @.str.174)
+  call void @qc_print_string(ptr @55)
+  %37 = call ptr @qc_fmt_string(ptr %fstr_concat279, i32 -1, i1 false)
+  call void @qc_print_string(ptr %37)
+  call void @qc_print_string(ptr @56)
+  %aqb280 = load %"AdvQBool::AQB", ptr %aqb, align 4
+  %eval_result281 = call i1 @"AdvQBool::AQB_eval"(ptr %aqb)
+  %aqb2282 = load %"AdvQBool::AQB", ptr %aqb2, align 4
+  %eval_result283 = call i1 @"AdvQBool::AQB_eval"(ptr %aqb2)
+  %or = or i1 %eval_result281, %eval_result283
+  %fstr_bool284 = call ptr @qc_to_string_bool(i1 %or)
+  %fstr_concat285 = call ptr @qc_string_concat(ptr @.str.176, ptr %fstr_bool284)
+  %fstr_concat286 = call ptr @qc_string_concat(ptr %fstr_concat285, ptr @.str.177)
+  call void @qc_print_string(ptr @57)
+  %38 = call ptr @qc_fmt_string(ptr %fstr_concat286, i32 -1, i1 false)
+  call void @qc_print_string(ptr %38)
+  call void @qc_print_string(ptr @58)
+  %aqb287 = load %"AdvQBool::AQB", ptr %aqb, align 4
+  %eval_result288 = call i1 @"AdvQBool::AQB_eval"(ptr %aqb)
+  %not = xor i1 %eval_result288, true
+  %fstr_bool289 = call ptr @qc_to_string_bool(i1 %not)
+  %fstr_concat290 = call ptr @qc_string_concat(ptr @.str.179, ptr %fstr_bool289)
+  %fstr_concat291 = call ptr @qc_string_concat(ptr %fstr_concat290, ptr @.str.180)
+  call void @qc_print_string(ptr @59)
+  %39 = call ptr @qc_fmt_string(ptr %fstr_concat291, i32 -1, i1 false)
+  call void @qc_print_string(ptr %39)
+  call void @qc_print_string(ptr @60)
+  %calltmp292 = call i32 @"OSInterop::system"(ptr @.str.181)
+  call void @qc_print_string(ptr @61)
+  ret i32 0
+
+then:                                             ; preds = %for.body
+  %assign_lhs_val262 = load i32, ptr %trueCount, align 4
+  %trueCount263 = load i32, ptr %trueCount, align 4
+  %trueCount264 = load i32, ptr %trueCount, align 4
+  %inc = add i32 %trueCount264, 1
+  store i32 %inc, ptr %trueCount, align 4
+  store i32 %inc, ptr %trueCount, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %for.body
+  br label %for.inc
+}
+
+define i1 @"Collections::has_list<int>_int"(ptr %collection1, i32 %value2) {
+entry:
+  %val = alloca i32, align 4
+  %__foreach_i_val = alloca i32, align 4
+  %value = alloca i32, align 4
+  %collection = alloca ptr, align 8
+  store ptr %collection1, ptr %collection, align 8
+  store i32 %value2, ptr %value, align 4
+  %collection3 = load ptr, ptr %collection, align 8
+  %coll_len = call i32 @qc_list_length(ptr %collection3)
+  store i32 0, ptr %__foreach_i_val, align 4
+  br label %foreach.cond
+
+foreach.cond:                                     ; preds = %foreach.inc, %entry
+  %__foreach_i_val4 = load i32, ptr %__foreach_i_val, align 4
+  %foreach_cmp = icmp slt i32 %__foreach_i_val4, %coll_len
+  br i1 %foreach_cmp, label %foreach.body, label %foreach.end
+
+foreach.body:                                     ; preds = %foreach.cond
+  %elem_ptr = call ptr @qc_list_get(ptr %collection3, i32 %__foreach_i_val4)
+  %elem = load i32, ptr %elem_ptr, align 4
+  store i32 %elem, ptr %val, align 4
+  %val5 = load i32, ptr %val, align 4
+  %value6 = load i32, ptr %value, align 4
+  %icmpeq = icmp eq i32 %val5, %value6
+  br i1 %icmpeq, label %then, label %ifcont
+
+foreach.inc:                                      ; preds = %ifcont
+  %__foreach_i_val7 = load i32, ptr %__foreach_i_val, align 4
+  %i_inc = add i32 %__foreach_i_val7, 1
+  store i32 %i_inc, ptr %__foreach_i_val, align 4
+  br label %foreach.cond
+
+foreach.end:                                      ; preds = %foreach.cond
+  ret i1 false
+
+then:                                             ; preds = %foreach.body
+  ret i1 true
+
+ifcont:                                           ; preds = %foreach.body
+  br label %foreach.inc
+}
+
+define i32 @"Collections::index_of_list<int>_int"(ptr %collection1, i32 %value2) {
+entry:
+  %"Collections::i" = alloca i32, align 4
+  %value = alloca i32, align 4
+  %collection = alloca ptr, align 8
+  store ptr %collection1, ptr %collection, align 8
+  store i32 %value2, ptr %value, align 4
+  store i32 0, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Collections::i", align 4
+  %collection3 = load ptr, ptr %collection, align 8
+  %list_len = call i32 @qc_list_length(ptr %collection3)
+  %icmplt = icmp slt i32 %i, %list_len
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %list_ptr = load ptr, ptr %collection, align 8
+  %i4 = load i32, ptr %"Collections::i", align 4
+  %list_elem_ptr = call ptr @qc_list_get(ptr %list_ptr, i32 %i4)
+  %list_elem = load i32, ptr %list_elem_ptr, align 4
+  %value5 = load i32, ptr %value, align 4
+  %icmpeq = icmp eq i32 %list_elem, %value5
+  br i1 %icmpeq, label %then, label %ifcont
+
+for.inc:                                          ; preds = %ifcont
+  %assign_lhs_val = load i32, ptr %"Collections::i", align 4
+  %i7 = load i32, ptr %"Collections::i", align 4
+  %i8 = load i32, ptr %"Collections::i", align 4
+  %inc = add i32 %i8, 1
+  store i32 %inc, ptr %"Collections::i", align 4
+  store i32 %inc, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret i32 -1
+
+then:                                             ; preds = %for.body
+  %i6 = load i32, ptr %"Collections::i", align 4
+  ret i32 %i6
+
+ifcont:                                           ; preds = %for.body
+  br label %for.inc
+}
+
+define ptr @"Collections::reverse_list<int>"(ptr %collection1) {
+entry:
+  %list_set_val18 = alloca i32, align 4
+  %list_set_val = alloca i32, align 4
+  %temp = alloca i32, align 4
+  %"Collections::i" = alloca i32, align 4
+  %"Collections::n" = alloca i32, align 4
+  %collection = alloca ptr, align 8
+  store ptr %collection1, ptr %collection, align 8
+  %collection2 = load ptr, ptr %collection, align 8
+  %list_len = call i32 @qc_list_length(ptr %collection2)
+  store i32 %list_len, ptr %"Collections::n", align 4
+  store i32 0, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Collections::i", align 4
+  %n = load i32, ptr %"Collections::n", align 4
+  %sdiv = sdiv i32 %n, 2
+  %icmplt = icmp slt i32 %i, %sdiv
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %list_ptr = load ptr, ptr %collection, align 8
+  %i3 = load i32, ptr %"Collections::i", align 4
+  %list_elem_ptr = call ptr @qc_list_get(ptr %list_ptr, i32 %i3)
+  %list_elem = load i32, ptr %list_elem_ptr, align 4
+  store i32 %list_elem, ptr %temp, align 4
+  %list_ptr4 = load ptr, ptr %collection, align 8
+  %i5 = load i32, ptr %"Collections::i", align 4
+  %list_ptr6 = load ptr, ptr %collection, align 8
+  %n7 = load i32, ptr %"Collections::n", align 4
+  %sub = sub i32 %n7, 1
+  %i8 = load i32, ptr %"Collections::i", align 4
+  %sub9 = sub i32 %sub, %i8
+  %list_elem_ptr10 = call ptr @qc_list_get(ptr %list_ptr6, i32 %sub9)
+  %list_elem11 = load i32, ptr %list_elem_ptr10, align 4
+  store i32 %list_elem11, ptr %list_set_val, align 4
+  call void @qc_list_set(ptr %list_ptr4, i32 %i5, ptr %list_set_val)
+  %list_ptr12 = load ptr, ptr %collection, align 8
+  %n13 = load i32, ptr %"Collections::n", align 4
+  %sub14 = sub i32 %n13, 1
+  %i15 = load i32, ptr %"Collections::i", align 4
+  %sub16 = sub i32 %sub14, %i15
+  %temp17 = load i32, ptr %temp, align 4
+  store i32 %temp17, ptr %list_set_val18, align 4
+  call void @qc_list_set(ptr %list_ptr12, i32 %sub16, ptr %list_set_val18)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val = load i32, ptr %"Collections::i", align 4
+  %i19 = load i32, ptr %"Collections::i", align 4
+  %i20 = load i32, ptr %"Collections::i", align 4
+  %inc = add i32 %i20, 1
+  store i32 %inc, ptr %"Collections::i", align 4
+  store i32 %inc, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %collection21 = load ptr, ptr %collection, align 8
+  ret ptr %collection21
+}
+
+define ptr @"Collections::remove_list<int>_int"(ptr %collection1, i32 %value2) {
+entry:
+  %list_set_val = alloca i32, align 4
+  %"Collections::i" = alloca i32, align 4
+  %"Collections::index" = alloca i32, align 4
+  %value = alloca i32, align 4
+  %collection = alloca ptr, align 8
+  store ptr %collection1, ptr %collection, align 8
+  store i32 %value2, ptr %value, align 4
+  %collection3 = load ptr, ptr %collection, align 8
+  %value4 = load i32, ptr %value, align 4
+  %0 = call i32 @"Collections::index_of_list<int>_int"(ptr %collection3, i32 %value4)
+  store i32 %0, ptr %"Collections::index", align 4
+  %index = load i32, ptr %"Collections::index", align 4
+  %icmpne = icmp ne i32 %index, -1
+  br i1 %icmpne, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %index5 = load i32, ptr %"Collections::index", align 4
+  store i32 %index5, ptr %"Collections::i", align 4
+  br label %for.cond
+
+ifcont:                                           ; preds = %for.end, %entry
+  %collection13 = load ptr, ptr %collection, align 8
+  ret ptr %collection13
+
+for.cond:                                         ; preds = %for.inc, %then
+  %i = load i32, ptr %"Collections::i", align 4
+  %collection6 = load ptr, ptr %collection, align 8
+  %list_len = call i32 @qc_list_length(ptr %collection6)
+  %sub = sub i32 %list_len, 1
+  %icmplt = icmp slt i32 %i, %sub
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %list_ptr = load ptr, ptr %collection, align 8
+  %i7 = load i32, ptr %"Collections::i", align 4
+  %list_ptr8 = load ptr, ptr %collection, align 8
+  %i9 = load i32, ptr %"Collections::i", align 4
+  %add = add i32 %i9, 1
+  %list_elem_ptr = call ptr @qc_list_get(ptr %list_ptr8, i32 %add)
+  %list_elem = load i32, ptr %list_elem_ptr, align 4
+  store i32 %list_elem, ptr %list_set_val, align 4
+  call void @qc_list_set(ptr %list_ptr, i32 %i7, ptr %list_set_val)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val = load i32, ptr %"Collections::i", align 4
+  %i10 = load i32, ptr %"Collections::i", align 4
+  %i11 = load i32, ptr %"Collections::i", align 4
+  %inc = add i32 %i11, 1
+  store i32 %inc, ptr %"Collections::i", align 4
+  store i32 %inc, ptr %"Collections::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %collection12 = load ptr, ptr %collection, align 8
+  %list_pop = call ptr @qc_list_pop(ptr %collection12)
+  br label %ifcont
+}
+
+define i32 @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %0, i32 %expected1, i32 %result2, ptr %FailMessage3, ptr %Call4) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %result = alloca i32, align 4
+  %expected = alloca i32, align 4
+  store i32 %expected1, ptr %expected, align 4
+  store i32 %result2, ptr %result, align 4
+  store ptr %FailMessage3, ptr %FailMessage, align 8
+  store ptr %Call4, ptr %Call, align 8
+  %expected5 = load i32, ptr %expected, align 4
+  %result6 = load i32, ptr %result, align 4
+  %icmpne = icmp ne i32 %expected5, %result6
+  br i1 %icmpne, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call7 = load ptr, ptr %Call, align 8
+  %1 = call i1 @qc_string_eq(ptr %Call7, ptr @.str.126)
+  %2 = xor i1 %1, true
+  br i1 %2, label %then8, label %else10
+
+ifcont:                                           ; preds = %ifcont35, %ifcont9
+  ret i32 0
+
+else:                                             ; preds = %entry
+  %Call33 = load ptr, ptr %Call, align 8
+  %3 = call i1 @qc_string_eq(ptr %Call33, ptr @.str.134)
+  %4 = xor i1 %3, true
+  br i1 %4, label %then34, label %else36
+
+then8:                                            ; preds = %then
+  %Call11 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.127, ptr %Call11)
+  %fstr_concat12 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.128)
+  %expected13 = load i32, ptr %expected, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %expected13)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat12, ptr %fstr_i32)
+  %fstr_concat15 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr @.str.129)
+  %result16 = load i32, ptr %result, align 4
+  %fstr_i3217 = call ptr @qc_to_string_int(i32 %result16)
+  %fstr_concat18 = call ptr @qc_string_concat(ptr %fstr_concat15, ptr %fstr_i3217)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.130)
+  %FailMessage20 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr %fstr_concat19, ptr %FailMessage20)
+  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat21)
+  br label %ifcont9
+
+ifcont9:                                          ; preds = %else10, %then8
+  br label %ifcont
+
+else10:                                           ; preds = %then
+  %expected22 = load i32, ptr %expected, align 4
+  %fstr_i3223 = call ptr @qc_to_string_int(i32 %expected22)
+  %fstr_concat24 = call ptr @qc_string_concat(ptr @.str.131, ptr %fstr_i3223)
+  %fstr_concat25 = call ptr @qc_string_concat(ptr %fstr_concat24, ptr @.str.132)
+  %result26 = load i32, ptr %result, align 4
+  %fstr_i3227 = call ptr @qc_to_string_int(i32 %result26)
+  %fstr_concat28 = call ptr @qc_string_concat(ptr %fstr_concat25, ptr %fstr_i3227)
+  %fstr_concat29 = call ptr @qc_string_concat(ptr %fstr_concat28, ptr @.str.133)
+  %FailMessage30 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat31 = call ptr @qc_string_concat(ptr %fstr_concat29, ptr %FailMessage30)
+  %Fail_result32 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat31)
+  br label %ifcont9
+
+then34:                                           ; preds = %else
+  %Call37 = load ptr, ptr %Call, align 8
+  %fstr_concat38 = call ptr @qc_string_concat(ptr @.str.135, ptr %Call37)
+  %fstr_concat39 = call ptr @qc_string_concat(ptr %fstr_concat38, ptr @.str.136)
+  %result40 = load i32, ptr %result, align 4
+  %fstr_i3241 = call ptr @qc_to_string_int(i32 %result40)
+  %fstr_concat42 = call ptr @qc_string_concat(ptr %fstr_concat39, ptr %fstr_i3241)
+  %fstr_concat43 = call ptr @qc_string_concat(ptr %fstr_concat42, ptr @.str.137)
+  %expected44 = load i32, ptr %expected, align 4
+  %fstr_i3245 = call ptr @qc_to_string_int(i32 %expected44)
+  %fstr_concat46 = call ptr @qc_string_concat(ptr %fstr_concat43, ptr %fstr_i3245)
+  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat46)
+  br label %ifcont35
+
+ifcont35:                                         ; preds = %else36, %then34
+  br label %ifcont
+
+else36:                                           ; preds = %else
+  %result47 = load i32, ptr %result, align 4
+  %fstr_i3248 = call ptr @qc_to_string_int(i32 %result47)
+  %fstr_concat49 = call ptr @qc_string_concat(ptr @.str.138, ptr %fstr_i3248)
+  %fstr_concat50 = call ptr @qc_string_concat(ptr %fstr_concat49, ptr @.str.139)
+  %expected51 = load i32, ptr %expected, align 4
+  %fstr_i3252 = call ptr @qc_to_string_int(i32 %expected51)
+  %fstr_concat53 = call ptr @qc_string_concat(ptr %fstr_concat50, ptr %fstr_i3252)
+  %Success_result54 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat53)
+  br label %ifcont35
+}
+
+define i32 @"UnitTest::Test_AssertNotEqual_int_int_string_string"(ptr %0, i32 %notExpected1, i32 %result2, ptr %FailMessage3, ptr %Call4) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %result = alloca i32, align 4
+  %notExpected = alloca i32, align 4
+  store i32 %notExpected1, ptr %notExpected, align 4
+  store i32 %result2, ptr %result, align 4
+  store ptr %FailMessage3, ptr %FailMessage, align 8
+  store ptr %Call4, ptr %Call, align 8
+  %notExpected5 = load i32, ptr %notExpected, align 4
+  %result6 = load i32, ptr %result, align 4
+  %icmpeq = icmp eq i32 %notExpected5, %result6
+  br i1 %icmpeq, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call7 = load ptr, ptr %Call, align 8
+  %1 = call i1 @qc_string_eq(ptr %Call7, ptr @.str.148)
+  %2 = xor i1 %1, true
+  br i1 %2, label %then8, label %else10
+
+ifcont:                                           ; preds = %ifcont35, %ifcont9
+  ret i32 0
+
+else:                                             ; preds = %entry
+  %Call33 = load ptr, ptr %Call, align 8
+  %3 = call i1 @qc_string_eq(ptr %Call33, ptr @.str.156)
+  %4 = xor i1 %3, true
+  br i1 %4, label %then34, label %else36
+
+then8:                                            ; preds = %then
+  %Call11 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.149, ptr %Call11)
+  %fstr_concat12 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.150)
+  %result13 = load i32, ptr %result, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %result13)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat12, ptr %fstr_i32)
+  %fstr_concat15 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr @.str.151)
+  %notExpected16 = load i32, ptr %notExpected, align 4
+  %fstr_i3217 = call ptr @qc_to_string_int(i32 %notExpected16)
+  %fstr_concat18 = call ptr @qc_string_concat(ptr %fstr_concat15, ptr %fstr_i3217)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.152)
+  %FailMessage20 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr %fstr_concat19, ptr %FailMessage20)
+  %Fail_result = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat21)
+  br label %ifcont9
+
+ifcont9:                                          ; preds = %else10, %then8
+  br label %ifcont
+
+else10:                                           ; preds = %then
+  %result22 = load i32, ptr %result, align 4
+  %fstr_i3223 = call ptr @qc_to_string_int(i32 %result22)
+  %fstr_concat24 = call ptr @qc_string_concat(ptr @.str.153, ptr %fstr_i3223)
+  %fstr_concat25 = call ptr @qc_string_concat(ptr %fstr_concat24, ptr @.str.154)
+  %notExpected26 = load i32, ptr %notExpected, align 4
+  %fstr_i3227 = call ptr @qc_to_string_int(i32 %notExpected26)
+  %fstr_concat28 = call ptr @qc_string_concat(ptr %fstr_concat25, ptr %fstr_i3227)
+  %fstr_concat29 = call ptr @qc_string_concat(ptr %fstr_concat28, ptr @.str.155)
+  %FailMessage30 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat31 = call ptr @qc_string_concat(ptr %fstr_concat29, ptr %FailMessage30)
+  %Fail_result32 = call i32 @"UnitTest::Test_Fail"(ptr %0, ptr %fstr_concat31)
+  br label %ifcont9
+
+then34:                                           ; preds = %else
+  %Call37 = load ptr, ptr %Call, align 8
+  %fstr_concat38 = call ptr @qc_string_concat(ptr @.str.157, ptr %Call37)
+  %fstr_concat39 = call ptr @qc_string_concat(ptr %fstr_concat38, ptr @.str.158)
+  %result40 = load i32, ptr %result, align 4
+  %fstr_i3241 = call ptr @qc_to_string_int(i32 %result40)
+  %fstr_concat42 = call ptr @qc_string_concat(ptr %fstr_concat39, ptr %fstr_i3241)
+  %fstr_concat43 = call ptr @qc_string_concat(ptr %fstr_concat42, ptr @.str.159)
+  %notExpected44 = load i32, ptr %notExpected, align 4
+  %fstr_i3245 = call ptr @qc_to_string_int(i32 %notExpected44)
+  %fstr_concat46 = call ptr @qc_string_concat(ptr %fstr_concat43, ptr %fstr_i3245)
+  %Success_result = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat46)
+  br label %ifcont35
+
+ifcont35:                                         ; preds = %else36, %then34
+  br label %ifcont
+
+else36:                                           ; preds = %else
+  %result47 = load i32, ptr %result, align 4
+  %fstr_i3248 = call ptr @qc_to_string_int(i32 %result47)
+  %fstr_concat49 = call ptr @qc_string_concat(ptr @.str.160, ptr %fstr_i3248)
+  %fstr_concat50 = call ptr @qc_string_concat(ptr %fstr_concat49, ptr @.str.161)
+  %notExpected51 = load i32, ptr %notExpected, align 4
+  %fstr_i3252 = call ptr @qc_to_string_int(i32 %notExpected51)
+  %fstr_concat53 = call ptr @qc_string_concat(ptr %fstr_concat50, ptr %fstr_i3252)
+  %Success_result54 = call i32 @"UnitTest::Test_Success"(ptr %0, ptr %fstr_concat53)
+  br label %ifcont35
+}
 
 define i32 @main() {
 entry:
@@ -5553,3 +8087,7 @@ attributes #40 = { nounwind willreturn memory(read) }
 !87 = !{!"p1 _ZTS9_ffi_type", !12, i64 0}
 !88 = distinct !{!88, !6}
 !89 = distinct !{!89, !6}
+!90 = !{!91, !20, i64 12}
+!91 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
+!92 = !{!91, !20, i64 8}
+!93 = !{!91, !49, i64 0}

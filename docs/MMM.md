@@ -88,3 +88,24 @@ For example, a delivery driver uses a house address to find where to drop off a 
 ## Pointers
 
 Pointers just store a address. Simple! Or is it?... *queue vsauce intro*
+_Stack_ pointers are simple at the top level:
+```cpp
+int x = 123;
+int* p = &x; // & is the address of operator, and gets a pointer to the address of that variable
+```
+You can dereference pointers to get their value
+```cpp
+qout("%i", *p); // 123
+```
+However, you can also do addition, subtraction, and indicing on pointers!
+Arrays are just pointers.
+```cpp
+int x = 10;
+int y = 20;
+int z = 30;
+int* p = &x;
+int* p2 = p - 1; 
+p2[0] = 99;
+```
+In this example, it is dangerous because p is a _stack_ pointer. P points to x, and their is a liklyhood that x y and z are near eachother so that area of the stack is initialized.
+The line `int* p2 = p - 1;` subtracts 4 bytes from the position of p (becuase int is 4 bytes), and store it at p2. p2[0] is the equivelent of *p2, and p2[1] is equivelant to *(p2 + 4)
