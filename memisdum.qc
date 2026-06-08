@@ -33,6 +33,11 @@ class Refs {
             x += y;
         }
     }
+    void variadicMethod(int c, ...var) {
+        for (int i = 0; i < c; i++) {
+            qout("%i", next(var, "int"));
+        }
+    }
     Refs& operator=(Refs other) {
         this.x = other.x;
         return this;
@@ -199,5 +204,7 @@ int main() {
     final_ptr_test();
     flush();
     testVarArgs(213);
+    testVarArgs(213, 12);
+    x.variadicMethod(3, 123, 328, 50);
     return 0;
 }

@@ -59,17 +59,17 @@
 #include <print>
 #endif
 static bool random_seeded = false;
-bool isCharInSet(char c, const std::string &charSet) {
+bool isCharInSet(char c, const std::string& charSet) {
     return charSet.find(c) != std::string::npos;
 }
-std::string strip_brace(const std::string &s) {
+std::string strip_brace(const std::string& s) {
     std::string r = s;
     while (r.size() >= 2 && r.substr(r.size() - 2) == "[]")
         r = r.substr(0, r.size() - 2);
     return r;
 }
 
-std::string strip(const std::string &s) {
+std::string strip(const std::string& s) {
     std::string r = s;
     size_t pos;
     while ((pos = r.find("list<")) != std::string::npos && r.back() == '>')
@@ -122,7 +122,7 @@ std::string Position::arrow_string() const {
     return result;
 }
 Position::Position(std::string Filename, std::string Filetxt, int index,
-                   int line, int column) {
+    int line, int column) {
     this->Filename = Filename;
     this->Filetxt = Filetxt;
     this->index = index;
@@ -321,11 +321,11 @@ std::string get_token_name(TokenType tok) {
 }
 Position Position::copy() {
     return Position(this->Filename, this->Filetxt, this->index, this->line,
-                    this->column);
+        this->column);
 }
-Position get_pos(const NumberVariant &v) {
+Position get_pos(const NumberVariant& v) {
     return std::visit(
-        [](auto const &x) -> Position {
+        [](auto const& x) -> Position {
             using T = std::decay_t<decltype(x)>;
 
             if constexpr (std::is_same_v<T, Number<int>> ||
@@ -381,8 +381,8 @@ Error::Error(std::string err, std::string details, Position pos) {
 }
 std::string Error::as_string() {
     return std::format("{}: {} (File {}, Line {}:{})", this->error_name,
-                       this->details, this->pos.Filename, this->pos.line,
-                       this->pos.column);
+        this->details, this->pos.Filename, this->pos.line,
+        this->pos.column);
 }
 std::string RTError::as_string() {
     std::string result;
@@ -424,9 +424,9 @@ std::string IllegalCharError::as_string() {
 // NODES
 // ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-AnyNode clone_node(const AnyNode &node) {
+AnyNode clone_node(const AnyNode& node) {
     return std::visit(
-        [](auto &&arg) -> AnyNode {
+        [](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, NumberNode>) {
@@ -445,12 +445,12 @@ AnyNode clone_node(const AnyNode &node) {
                 return NullptrNode(arg.pos);
             } else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
                 return RefVarDeclNode(arg.type_tok, arg.var_name_tok,
-                                      arg.target_tok, arg.pos);
+                    arg.target_tok, arg.pos);
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<VarAccessNode>>) {
                 return std::make_unique<VarAccessNode>(arg->var_name_tok);
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<UnaryOpNode>>) {
+                                     std::unique_ptr<UnaryOpNode>>) {
                 return std::make_unique<UnaryOpNode>(
                     arg->op_tok, clone_node(arg->node), arg->is_postfix);
             } else if constexpr (std::is_same_v<
@@ -461,7 +461,7 @@ AnyNode clone_node(const AnyNode &node) {
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ArrayAccessNode>>) {
                 std::vector<AnyNode> cloned_indices;
-                for (auto &idx : arg->indices) {
+                for (auto& idx : arg->indices) {
                     cloned_indices.push_back(clone_node(idx));
                 }
                 return std::make_unique<ArrayAccessNode>(
@@ -472,9 +472,9 @@ AnyNode clone_node(const AnyNode &node) {
         },
         node);
 }
-std::string printAny(const AnyNode &node) {
+std::string printAny(const AnyNode& node) {
     return std::visit(
-        [](auto &&arg) -> std::string {
+        [](auto&& arg) -> std::string {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, NumberNode>) {
@@ -492,10 +492,10 @@ std::string printAny(const AnyNode &node) {
             } else if constexpr (std::is_same_v<T, NullptrNode>) {
                 return arg.print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BinOpNode>>) {
+                                     std::unique_ptr<BinOpNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<UnaryOpNode>>) {
+                                     std::unique_ptr<UnaryOpNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<StatementsNode>>) {
@@ -517,7 +517,7 @@ std::string printAny(const AnyNode &node) {
             } else if constexpr (std::is_same_v<T, std::monostate>) {
                 return "";
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<WhileNode>>) {
+                                     std::unique_ptr<WhileNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForNode>>) {
                 return arg->print();
@@ -525,18 +525,18 @@ std::string printAny(const AnyNode &node) {
                                      T, std::unique_ptr<ContinueNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BreakNode>>) {
+                                     std::unique_ptr<BreakNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SwitchNode>>) {
+                                     std::unique_ptr<SwitchNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<FuncDefNode>>) {
+                                     std::shared_ptr<FuncDefNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ReturnNode>>) {
+                                     std::unique_ptr<ReturnNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ArrayDeclNode>>) {
@@ -557,20 +557,20 @@ std::string printAny(const AnyNode &node) {
                                      T, std::shared_ptr<PropertyAccessNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SpreadNode>>) {
+                                     std::unique_ptr<SpreadNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ForeachNode>>) {
+                                     std::unique_ptr<ForeachNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<QSwitchNode>>) {
+                                     std::unique_ptr<QSwitchNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return arg.print();
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<MapDeclNode>>) {
+                                     std::unique_ptr<MapDeclNode>>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ArrayAssignNode>>) {
@@ -590,7 +590,7 @@ std::string printAny(const AnyNode &node) {
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<NamespaceNode>>) {
                 std::string ret = arg->print() + "\n";
-                for (auto &stmt : arg->body) {
+                for (auto& stmt : arg->body) {
                     ret += printAny(stmt);
                 }
                 return ret;
@@ -641,7 +641,7 @@ std::string IfNode::print() const {
         res += "init=" + printAny(init.value()) + "; ";
     }
     res += printAny(this->condition) + " " + this->then_branch->print();
-    for (auto &p : this->elif_branches) {
+    for (auto& p : this->elif_branches) {
         res += " elif " + printAny(p.first) + " " + p.second->print();
     }
     if (this->else_branch) {
@@ -665,7 +665,7 @@ AnyNode ParseResult::reg(Prs res_variant) {
         return std::monostate{};
     }
     return std::visit(
-        [this](auto &&arg) -> AnyNode {
+        [this](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, std::monostate> ||
                           std::is_same_v<T, std::unique_ptr<Error>> ||
@@ -685,7 +685,7 @@ AnyNode ParseResult::reg(Prs res_variant) {
 Prs ParseResult::success(AnyNode node) {
     this->node = std::move(node);
     return std::visit(
-        [](auto &&arg) -> Prs {
+        [](auto&& arg) -> Prs {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, std::monostate>) {
                 return Prs{std::monostate{}};
@@ -702,10 +702,10 @@ Prs ParseResult::success(AnyNode node) {
             } else if constexpr (std::is_same_v<T, NullptrNode>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BinOpNode>>) {
+                                     std::unique_ptr<BinOpNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<UnaryOpNode>>) {
+                                     std::unique_ptr<UnaryOpNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<VarAccessNode>>) {
@@ -725,13 +725,13 @@ Prs ParseResult::success(AnyNode node) {
                                      T, std::unique_ptr<TryCatchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BreakNode>>) {
+                                     std::unique_ptr<BreakNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SwitchNode>>) {
+                                     std::unique_ptr<SwitchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<WhileNode>>) {
+                                     std::unique_ptr<WhileNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForNode>>) {
                 return Prs{std::move(arg)};
@@ -739,12 +739,12 @@ Prs ParseResult::success(AnyNode node) {
                                      T, std::unique_ptr<ContinueNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<FuncDefNode>>) {
+                                     std::shared_ptr<FuncDefNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ReturnNode>>) {
+                                     std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<MultiVarDeclNode>>) {
@@ -774,22 +774,22 @@ Prs ParseResult::success(AnyNode node) {
                                      T, std::shared_ptr<PropertyAccessNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SpreadNode>>) {
+                                     std::unique_ptr<SpreadNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ForeachNode>>) {
+                                     std::unique_ptr<ForeachNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, QBoolNode>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<QSwitchNode>>) {
+                                     std::unique_ptr<QSwitchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<MapDeclNode>>) {
+                                     std::unique_ptr<MapDeclNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ArrayAssignNode>>) {
@@ -821,7 +821,7 @@ Prs ParseResult::to_prs() {
         return Prs{std::move(this->error)};
     }
     return std::visit(
-        [](auto &&arg) -> Prs {
+        [](auto&& arg) -> Prs {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_same_v<T, std::monostate>) {
                 return Prs{std::monostate{}};
@@ -836,10 +836,10 @@ Prs ParseResult::to_prs() {
             } else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BinOpNode>>) {
+                                     std::unique_ptr<BinOpNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<UnaryOpNode>>) {
+                                     std::unique_ptr<UnaryOpNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<VarAccessNode>>) {
@@ -859,13 +859,13 @@ Prs ParseResult::to_prs() {
                                      T, std::unique_ptr<TryCatchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BreakNode>>) {
+                                     std::unique_ptr<BreakNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SwitchNode>>) {
+                                     std::unique_ptr<SwitchNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<WhileNode>>) {
+                                     std::unique_ptr<WhileNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<ForNode>>) {
                 return Prs{std::move(arg)};
@@ -873,12 +873,12 @@ Prs ParseResult::to_prs() {
                                      T, std::unique_ptr<ContinueNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<FuncDefNode>>) {
+                                     std::shared_ptr<FuncDefNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, std::unique_ptr<CallNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ReturnNode>>) {
+                                     std::unique_ptr<ReturnNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<MultiVarDeclNode>>) {
@@ -908,10 +908,10 @@ Prs ParseResult::to_prs() {
                                      T, std::shared_ptr<PropertyAccessNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SpreadNode>>) {
+                                     std::unique_ptr<SpreadNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ForeachNode>>) {
+                                     std::unique_ptr<ForeachNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<T, QBoolNode>) {
                 return Prs{std::move(arg)};
@@ -920,7 +920,7 @@ Prs ParseResult::to_prs() {
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<MapDeclNode>>) {
+                                     std::unique_ptr<MapDeclNode>>) {
                 return Prs{std::move(arg)};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ArrayAssignNode>>) {
@@ -949,10 +949,10 @@ Prs ParseResult::to_prs() {
 void ParseResult::failure(std::unique_ptr<Error> error) {
     this->error = std::move(error);
 }
-TokenType stringToTokenType(const std::string &str) {
+TokenType stringToTokenType(const std::string& str) {
     std::string upperStr = str;
     std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(),
-                   ::toupper);
+        ::toupper);
 
     static const std::unordered_map<std::string, TokenType> stringToEnum = {
         {"INT", TokenType::INT},
@@ -1003,9 +1003,9 @@ TokenType stringToTokenType(const std::string &str) {
     throw std::invalid_argument("Unknown TokenType string: " + str);
 }
 struct ScopeGuard {
-    Context *ctx;
+    Context* ctx;
     bool active;
-    ScopeGuard(Context *c) : ctx(c), active(false) {
+    ScopeGuard(Context* c) : ctx(c), active(false) {
         if (ctx) {
             ctx->push_scope();
             active = true;
@@ -1021,8 +1021,8 @@ struct ScopeGuard {
 // PARSER
 // ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-AnyNode Parser::default_value_for_type(const Token &type_tok,
-                                       const Position &pos) {
+AnyNode Parser::default_value_for_type(const Token& type_tok,
+    const Position& pos) {
     std::string type = type_tok.value;
 
     if (type == "short int")
@@ -1067,11 +1067,11 @@ Token Parser::advance() {
     }
     return this->current_tok;
 }
-std::string Parser::qualify_name(const std::string &name) {
+std::string Parser::qualify_name(const std::string& name) {
     if (namespaceStack.empty())
         return name;
     std::string q;
-    for (auto &ns : namespaceStack) {
+    for (auto& ns : namespaceStack) {
         if (!q.empty())
             q += "::";
         q += ns;
@@ -1193,7 +1193,7 @@ Prs Parser::qif_expr() {
             return res.to_prs();
 
         qelif_branches.emplace_back(std::move(qelif_cond),
-                                    std::move(qelif_body));
+            std::move(qelif_body));
     }
 
     std::unique_ptr<StatementsNode> qelse_branch = nullptr;
@@ -1238,7 +1238,7 @@ Prs Parser::if_expr() {
         size_t idx = index;
         int depth = 0;
         for (size_t i = idx; i < this->tokens.size(); ++i) {
-            const Token &t = this->tokens[i];
+            const Token& t = this->tokens[i];
             if (t.type == TokenType::LPAREN) {
                 ++depth;
             } else if (t.type == TokenType::RPAREN) {
@@ -1254,7 +1254,7 @@ Prs Parser::if_expr() {
     };
     ParseResult res;
     if (!(this->current_tok.type == TokenType::KEYWORD &&
-          this->current_tok.value == "if")) {
+            this->current_tok.value == "if")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S009: Expected 'if'", this->current_tok.pos));
         return res.to_prs();
@@ -1273,12 +1273,12 @@ Prs Parser::if_expr() {
     if (has_semicolon_before_closing_paren()) {
         if (this->current_tok.type == TokenType::KEYWORD &&
             (this->current_tok.value == "const" ||
-             this->current_tok.value == "int" ||
-             this->current_tok.value == "float" ||
-             this->current_tok.value == "double" ||
-             this->current_tok.value == "bool" ||
-             this->current_tok.value == "string" ||
-             this->current_tok.value == "char")) {
+                this->current_tok.value == "int" ||
+                this->current_tok.value == "float" ||
+                this->current_tok.value == "double" ||
+                this->current_tok.value == "bool" ||
+                this->current_tok.value == "string" ||
+                this->current_tok.value == "char")) {
 
             bool is_const = false;
             Token tok = this->current_tok;
@@ -1417,7 +1417,7 @@ Prs Parser::if_expr() {
 Prs Parser::try_catch_expr() {
     ParseResult res;
     if (!(this->current_tok.type == TokenType::KEYWORD &&
-          this->current_tok.value == "try")) {
+            this->current_tok.value == "try")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S030: Expected 'try'", this->current_tok.pos));
         return res.to_prs();
@@ -1428,7 +1428,7 @@ Prs Parser::try_catch_expr() {
     if (!parse_block_into(try_body, res))
         return res.to_prs();
     if (!(this->current_tok.type == TokenType::KEYWORD &&
-          this->current_tok.value == "catch")) {
+            this->current_tok.value == "catch")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S031: Expected 'catch' after try block",
             this->current_tok.pos));
@@ -1488,7 +1488,7 @@ Prs Parser::try_catch_expr() {
 Prs Parser::switch_stmt() {
     ParseResult res;
     if (!(current_tok.type == TokenType::KEYWORD &&
-          current_tok.value == "switch")) {
+            current_tok.value == "switch")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S019: Expected 'switch'", current_tok.pos));
         return res.to_prs();
@@ -1528,7 +1528,7 @@ Prs Parser::switch_stmt() {
         bool saw_label = false;
         while (this->current_tok.type == TokenType::KEYWORD &&
                (this->current_tok.value == "case" ||
-                this->current_tok.value == "default")) {
+                   this->current_tok.value == "default")) {
 
             saw_label = true;
 
@@ -1567,8 +1567,8 @@ Prs Parser::switch_stmt() {
         std::vector<AnyNode> stmts;
         while (current_tok.type != TokenType::RBRACE &&
                !(current_tok.type == TokenType::KEYWORD &&
-                 (current_tok.value == "case" ||
-                  current_tok.value == "default"))) {
+                   (current_tok.value == "case" ||
+                       current_tok.value == "default"))) {
 
             Prs st = this->statement();
             if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
@@ -1576,7 +1576,7 @@ Prs Parser::switch_stmt() {
                 return res.to_prs();
             }
             AnyNode any_stmt = std::visit(
-                [](auto &&arg) -> AnyNode {
+                [](auto&& arg) -> AnyNode {
                     using T = std::decay_t<decltype(arg)>;
                     if constexpr (std::is_constructible_v<AnyNode, T>) {
                         return AnyNode(std::move(arg));
@@ -1663,7 +1663,7 @@ Prs Parser::qswitch_stmt() {
         std::vector<AnyNode> case_stmts;
         while (this->current_tok.type != TokenType::KEYWORD ||
                (this->current_tok.value != "case" &&
-                this->current_tok.value != "break")) {
+                   this->current_tok.value != "break")) {
 
             if (this->current_tok.type == TokenType::RBRACE)
                 break;
@@ -1717,7 +1717,7 @@ Prs Parser::qswitch_stmt() {
 Prs Parser::while_stmt() {
     ParseResult res;
     if (!(current_tok.type == TokenType::KEYWORD &&
-          current_tok.value == "while")) {
+            current_tok.value == "while")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S032: Expected 'while'", current_tok.pos));
         return res.to_prs();
@@ -1753,7 +1753,7 @@ Prs Parser::for_stmt() {
     ParseResult res;
     Token type_tok;
     if (!(this->current_tok.type == TokenType::KEYWORD &&
-          current_tok.value == "for")) {
+            current_tok.value == "for")) {
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S035: Expected 'for'", current_tok.pos));
         return res.to_prs();
@@ -1774,13 +1774,13 @@ Prs Parser::for_stmt() {
     if (this->current_tok.type != TokenType::SEMICOLON) {
         if (this->current_tok.type == TokenType::KEYWORD &&
             (this->current_tok.value == "const" ||
-             this->current_tok.value == "int" ||
-             this->current_tok.value == "float" ||
-             this->current_tok.value == "double" ||
-             this->current_tok.value == "bool" ||
-             this->current_tok.value == "qbool" ||
-             this->current_tok.value == "string" ||
-             this->current_tok.value == "char")) {
+                this->current_tok.value == "int" ||
+                this->current_tok.value == "float" ||
+                this->current_tok.value == "double" ||
+                this->current_tok.value == "bool" ||
+                this->current_tok.value == "qbool" ||
+                this->current_tok.value == "string" ||
+                this->current_tok.value == "char")) {
 
             bool is_const = false;
             Token tok = current_tok;
@@ -1882,7 +1882,7 @@ Prs Parser::for_stmt() {
     }
     this->advance();
 
-    auto parse_block = [&](std::unique_ptr<StatementsNode> &out_block) -> bool {
+    auto parse_block = [&](std::unique_ptr<StatementsNode>& out_block) -> bool {
         if (this->current_tok.type == TokenType::LBRACE) {
             this->advance();
             std::vector<AnyNode> stmts;
@@ -1895,7 +1895,7 @@ Prs Parser::for_stmt() {
                     return false;
                 }
                 AnyNode any_stmt = std::visit(
-                    [](auto &&arg) -> AnyNode {
+                    [](auto&& arg) -> AnyNode {
                         using T = std::decay_t<decltype(arg)>;
                         if constexpr (std::is_constructible_v<AnyNode, T>) {
                             return AnyNode(std::move(arg));
@@ -1922,7 +1922,7 @@ Prs Parser::for_stmt() {
                 return false;
             }
             AnyNode any_stmt = std::visit(
-                [](auto &&arg) -> AnyNode {
+                [](auto&& arg) -> AnyNode {
                     using T = std::decay_t<decltype(arg)>;
                     if constexpr (std::is_constructible_v<AnyNode, T>) {
                         return AnyNode(std::move(arg));
@@ -1943,7 +1943,7 @@ Prs Parser::for_stmt() {
         return res.to_prs();
 
     auto fn = std::make_unique<ForNode>(std::move(init), std::move(condition),
-                                        std::move(update), std::move(body));
+        std::move(update), std::move(body));
     return res.success(std::move(fn));
 }
 Prs Parser::func_def(Token return_type, std::optional<Token> func_name) {
@@ -2087,7 +2087,7 @@ Prs Parser::atom() {
 
             std::vector<std::pair<AnyNode, AnyNode>> pairs;
             pairs.emplace_back(std::move(first_key_expr),
-                               std::move(first_val_expr));
+                std::move(first_val_expr));
 
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
@@ -2232,7 +2232,7 @@ Prs Parser::atom() {
             }
 
             base = std::make_unique<ArrayAccessNode>(std::move(base),
-                                                     std::move(indices));
+                std::move(indices));
         }
 
         while (this->current_tok.type == TokenType::DOT ||
@@ -2422,7 +2422,7 @@ Prs Parser::atom() {
                             base_name_tok = (*var)->var_name_tok;
                         } else {
                             base_name_tok = Token(TokenType::IDENTIFIER, "",
-                                                  property_name.pos);
+                                property_name.pos);
                         }
                     } else {
                         base_name_tok =
@@ -2628,7 +2628,7 @@ Prs Parser::power() {
         if (res.error)
             return res.to_prs();
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2679,12 +2679,12 @@ Prs Parser::factor() {
 }
 Prs Parser::term() {
     return this->bin_op([this]() { return this->factor(); },
-                        {TokenType::DIV, TokenType::MUL, TokenType::MOD});
+        {TokenType::DIV, TokenType::MUL, TokenType::MOD});
 }
 Prs Parser::bitwise() {
     return this->bin_op([this]() { return this->term(); },
-                        {TokenType::RSHIFT, TokenType::LSHIFT, TokenType::R_ROT,
-                         TokenType::L_ROT, TokenType::LOGICAL_RSHIFT});
+        {TokenType::RSHIFT, TokenType::LSHIFT, TokenType::R_ROT,
+            TokenType::L_ROT, TokenType::LOGICAL_RSHIFT});
 }
 Prs Parser::logical_and() {
     ParseResult res;
@@ -2701,7 +2701,7 @@ Prs Parser::logical_and() {
             return res.to_prs();
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2724,7 +2724,7 @@ Prs Parser::logical_or() {
             return res.to_prs();
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2747,7 +2747,7 @@ Prs Parser::qin_expr() {
         }
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2779,7 +2779,7 @@ Prs Parser::comparison() {
             return res.to_prs();
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2792,7 +2792,7 @@ Prs Parser::expr() {
 
     while (current_tok.type != TokenType::SEMICOLON &&
            (current_tok.type == TokenType::PLUS ||
-            current_tok.type == TokenType::MINUS)) {
+               current_tok.type == TokenType::MINUS)) {
         Token op_tok = current_tok;
         advance();
 
@@ -2801,13 +2801,13 @@ Prs Parser::expr() {
             return res.to_prs();
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
 }
 Prs Parser::bin_op(std::function<Prs()> func,
-                   std::initializer_list<TokenType> ops) {
+    std::initializer_list<TokenType> ops) {
     ParseResult res;
     AnyNode left = res.reg(func());
     if (res.error)
@@ -2823,7 +2823,7 @@ Prs Parser::bin_op(std::function<Prs()> func,
             return res.to_prs();
 
         left = std::make_unique<BinOpNode>(std::move(left), op_tok,
-                                           std::move(right));
+            std::move(right));
     }
 
     return res.success(std::move(left));
@@ -2921,7 +2921,7 @@ Prs Parser::assignment_expr() {
         if (res.error)
             return res.to_prs();
         if (is_prop) {
-            auto &prop = std::get<std::shared_ptr<PropertyAccessNode>>(left);
+            auto& prop = std::get<std::shared_ptr<PropertyAccessNode>>(left);
             Token field = prop->property_name;
 
             TokenType binop_type;
@@ -2986,9 +2986,9 @@ Prs Parser::assignment_expr() {
 
     return res.success(std::move(left));
 }
-static bool is_statement_node(const Prs &st) {
+static bool is_statement_node(const Prs& st) {
     return std::visit(
-        [](auto &&arg) -> bool {
+        [](auto&& arg) -> bool {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, std::unique_ptr<Error>>) {
@@ -3004,9 +3004,9 @@ static bool is_statement_node(const Prs &st) {
         },
         st);
 }
-AnyNode to_any_node(Prs &&prs) {
+AnyNode to_any_node(Prs&& prs) {
     return std::visit(
-        [](auto &&arg) -> AnyNode {
+        [](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
 
             if constexpr (std::is_same_v<T, std::unique_ptr<Error>>) {
@@ -3074,7 +3074,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
 
         if (this->current_tok.type != TokenType::RPAREN) {
             throw std::make_unique<InvalidSyntaxError>("Expected ')'",
-                                                       this->current_tok.pos);
+                this->current_tok.pos);
         }
         this->advance();
         if (this->current_tok.type == TokenType::ARROW) {
@@ -3161,7 +3161,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     return p;
 }
 Prs Parser::func_def_multi(std::vector<Token> return_types,
-                           std::optional<Token> func_name) {
+    std::optional<Token> func_name) {
     ParseResult res;
     this->advance();
     std::vector<Parameter> params;
@@ -3252,7 +3252,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types,
     auto body = std::make_unique<StatementsNode>(std::move(body_stmts), true);
     this->advance();
     std::list<Parameter> params_list(std::make_move_iterator(params.begin()),
-                                     std::make_move_iterator(params.end()));
+        std::make_move_iterator(params.end()));
 
     return res.success(std::make_unique<FuncDefNode>(
         return_types, func_name, std::move(params_list), std::move(body),
@@ -3509,10 +3509,10 @@ Prs Parser::statement() {
             advance();
         }
         if (!baseName.empty()) {
-            auto *base_ptr = find_type(baseName);
+            auto* base_ptr = find_type(baseName);
             if (base_ptr && base_ptr->kind == UserTypeKind::Class &&
                 base_ptr->is_final_class) {
-                auto &baseInfo = *base_ptr;
+                auto& baseInfo = *base_ptr;
                 res.failure(std::make_unique<InvalidSyntaxError>(
                     "Cannot inherit from final class '" + baseName + "'",
                     class_name.pos));
@@ -3562,8 +3562,8 @@ Prs Parser::statement() {
             }
             if (this->current_tok.type == TokenType::KEYWORD &&
                 (this->current_tok.value == "public" ||
-                 this->current_tok.value == "private" ||
-                 this->current_tok.value == "protected")) {
+                    this->current_tok.value == "private" ||
+                    this->current_tok.value == "protected")) {
                 access = this->current_tok.value;
                 this->advance();
             }
@@ -3613,7 +3613,7 @@ Prs Parser::statement() {
                     mi.params.clear();
                     mi.params.reserve(fn->params.size());
                     for (auto it = fn->params.begin(); it != fn->params.end();
-                         ++it) {
+                        ++it) {
                         mi.params.push_back(std::move(*it));
                     }
                     mi.return_types = {};
@@ -3635,7 +3635,7 @@ Prs Parser::statement() {
 
             std::vector<Token> type_list;
 
-            auto parse_one_type_into = [&](Token &out_tok) -> bool {
+            auto parse_one_type_into = [&](Token& out_tok) -> bool {
                 std::string field_type;
                 bool is_user_type = false;
 
@@ -3764,7 +3764,7 @@ Prs Parser::statement() {
                 }
 
                 out_tok = Token(TokenType::KEYWORD, field_type,
-                                this->current_tok.pos);
+                    this->current_tok.pos);
                 return true;
             };
             {
@@ -3907,11 +3907,11 @@ Prs Parser::statement() {
                 ClassMethodInfo mi;
                 mi.name_tok = name_tok;
                 if (!info.baseClassName.empty()) {
-                    auto *base_ptr = find_type(baseName);
+                    auto* base_ptr = find_type(baseName);
                     if (base_ptr && base_ptr->kind == UserTypeKind::Class &&
                         base_ptr->is_final_class) {
-                        auto &baseInfo = *base_ptr;
-                        for (auto &bm : baseInfo.classMethods) {
+                        auto& baseInfo = *base_ptr;
+                        for (auto& bm : baseInfo.classMethods) {
                             if (bm.name_tok.value == mi.name_tok.value &&
                                 bm.is_final) {
                                 res.failure(
@@ -3928,7 +3928,7 @@ Prs Parser::statement() {
                 }
 
                 auto m_pr = this->func_def_multi(type_list,
-                                                 std::make_optional(name_tok));
+                    std::make_optional(name_tok));
                 if (std::holds_alternative<std::unique_ptr<Error>>(m_pr))
                     return m_pr;
 
@@ -3938,7 +3938,7 @@ Prs Parser::statement() {
                 mi.params.clear();
                 mi.params.reserve(fn->params.size());
                 for (auto it = fn->params.begin(); it != fn->params.end();
-                     ++it) {
+                    ++it) {
                     mi.params.push_back(std::move(*it));
                 }
                 mi.return_types = fn->return_types;
@@ -4619,8 +4619,8 @@ Prs Parser::statement() {
 
             type_tok =
                 Token(TokenType::KEYWORD,
-                      "map<" + key_type.value + ", " + value_type.value + ">",
-                      type_tok.pos);
+                    "map<" + key_type.value + ", " + value_type.value + ">",
+                    type_tok.pos);
             if (this->current_tok.type == TokenType::IDENTIFIER) {
                 Token var_name = this->current_tok;
 
@@ -4659,7 +4659,7 @@ Prs Parser::statement() {
                                 return res.to_prs();
 
                             init_pairs.emplace_back(std::move(key),
-                                                    std::move(value));
+                                std::move(value));
 
                             while (this->current_tok.type == TokenType::COMMA) {
                                 this->advance();
@@ -4686,7 +4686,7 @@ Prs Parser::statement() {
                                     return res.to_prs();
 
                                 init_pairs.emplace_back(std::move(key),
-                                                        std::move(value));
+                                    std::move(value));
                             }
                         }
 
@@ -4742,7 +4742,7 @@ Prs Parser::statement() {
             this->advance();
 
             type_tok = Token(TokenType::KEYWORD,
-                             "list<" + elem_type.value + ">", type_tok.pos);
+                "list<" + elem_type.value + ">", type_tok.pos);
             is_list = true;
         }
 
@@ -4911,7 +4911,7 @@ Prs Parser::statement() {
 
                     Token type =
                         Token(TokenType::KEYWORD,
-                              "list<" + elem_type.value + ">", list_tok.pos);
+                            "list<" + elem_type.value + ">", list_tok.pos);
                     return_types.push_back(type);
                 } else if (this->current_tok.type != TokenType::KEYWORD) {
                     res.failure(std::make_unique<InvalidSyntaxError>(
@@ -5055,7 +5055,7 @@ Prs Parser::statement() {
                 }
                 this->advance();
                 auto ref_node = RefVarDeclNode(type_tok, var_names[0], target,
-                                               type_tok.pos);
+                    type_tok.pos);
                 return res.success(std::move(ref_node));
             }
             value = res.reg(this->qout_expr());
@@ -5089,7 +5089,7 @@ Prs Parser::statement() {
             std::string qualified_name = *maybe_qualified;
             std::string type_name = qualified_name;
             bool is_type = false;
-            auto *type_ptr = find_type(qualified_name);
+            auto* type_ptr = find_type(qualified_name);
             if (type_ptr) {
                 is_type = true;
             }
@@ -5151,7 +5151,7 @@ Prs Parser::statement() {
                                 }
                                 is_multi_return =
                                     (find_type(base_name) != nullptr ||
-                                     is_known_type(*peek_qual));
+                                        is_known_type(*peek_qual));
                             }
 
                             this->index = saved;
@@ -5194,7 +5194,7 @@ Prs Parser::statement() {
                                         return_types.push_back(t);
                                     } else {
                                         res.failure(std::make_unique<
-                                                    InvalidSyntaxError>(
+                                            InvalidSyntaxError>(
                                             "Expected return type after ','",
                                             this->current_tok.pos));
                                         return res.to_prs();
@@ -5371,11 +5371,11 @@ Prs Parser::statement() {
         size_t next_i = index + 1;
         if (next_i < tokens.size() &&
             (tokens[next_i].type == TokenType::EQ ||
-             tokens[next_i].type == TokenType::PLUS_EQ ||
-             tokens[next_i].type == TokenType::MINUS_EQ ||
-             tokens[next_i].type == TokenType::MUL_EQ ||
-             tokens[next_i].type == TokenType::DIV_EQ ||
-             tokens[next_i].type == TokenType::MOD_EQ)) {
+                tokens[next_i].type == TokenType::PLUS_EQ ||
+                tokens[next_i].type == TokenType::MINUS_EQ ||
+                tokens[next_i].type == TokenType::MUL_EQ ||
+                tokens[next_i].type == TokenType::DIV_EQ ||
+                tokens[next_i].type == TokenType::MOD_EQ)) {
 
             AnyNode assign_node = res.reg(this->assignment_expr());
             if (res.error)
@@ -5416,11 +5416,11 @@ Aer Parser::parse() {
 
         if (std::holds_alternative<std::unique_ptr<Error>>(result)) {
             return Aer{nullptr,
-                       std::get<std::unique_ptr<Error>>(std::move(result))};
+                std::get<std::unique_ptr<Error>>(std::move(result))};
         }
 
         AnyNode stmt = std::visit(
-            [&has_main, &main_func_ptr](auto &&arg) -> AnyNode {
+            [&has_main, &main_func_ptr](auto&& arg) -> AnyNode {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<FuncDefNode>>) {
                     if (arg->name_tok.has_value() &&
@@ -5464,17 +5464,17 @@ Aer Parser::parse() {
 
     if (!has_main) {
         return Aer{nullptr,
-                   std::make_unique<Error>(
-                       "Missing the entrypoint function",
-                       "Program must have an 'int entrypointname()' function",
-                       Position())};
+            std::make_unique<Error>(
+                "Missing the entrypoint function",
+                "Program must have an 'int entrypointname()' function",
+                Position())};
     }
-    for (auto &[name, ut] : user_types) {
+    for (auto& [name, ut] : user_types) {
         if (ut.kind == UserTypeKind::Class && !ut.baseClassName.empty()) {
             std::string baseKey = ut.baseClassName;
             if (baseKey.find("::") == std::string::npos) {
                 bool found = false;
-                for (auto &[key, info] : user_types) {
+                for (auto& [key, info] : user_types) {
                     if (key.find(baseKey) != std::string::npos &&
                         info.kind == UserTypeKind::Class) {
                         baseKey = key;
@@ -5485,7 +5485,7 @@ Aer Parser::parse() {
                 if (!found) {
                     throw InvalidSyntaxError("Base class '" + ut.baseClassName +
                                                  "' not found",
-                                             Position());
+                        Position());
                 }
             }
 
@@ -5499,7 +5499,7 @@ Aer Parser::parse() {
         }
     }
     return Aer{std::make_unique<StatementsNode>(std::move(stmts), true),
-               nullptr, std::move(this->user_types)};
+        nullptr, std::move(this->user_types)};
 }
 //////////////////////////////////////////////////////////////////////////////////////////////
 // VALUES
@@ -5508,12 +5508,14 @@ Aer Parser::parse() {
 template <typename T>
 Number<T>::Number(T val) : value(val), pos("", "", 0, 0, 0) {}
 
-template <typename T> Number<T> &Number<T>::set_pos(Position p) {
+template <typename T>
+Number<T>& Number<T>::set_pos(Position p) {
     this->pos = p;
     return *this;
 }
 
-template <typename T> std::string Number<T>::print() const {
+template <typename T>
+std::string Number<T>::print() const {
     return std::to_string(this->value);
 }
 
@@ -5527,15 +5529,15 @@ template class Number<long double>;
 //////////////////////////////////////////////////////////////////
 // INTERPRETER //////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
-ClassMethodInfo *Interpreter::find_method_on_class(const std::string &className,
-                                                   const std::string &mname) {
+ClassMethodInfo* Interpreter::find_method_on_class(const std::string& className,
+    const std::string& mname) {
     auto it = context->user_types.find(className);
     if (it == context->user_types.end())
         return nullptr;
 
-    UserTypeInfo *cur = &it->second;
+    UserTypeInfo* cur = &it->second;
     while (cur) {
-        for (auto &m : cur->classMethods) {
+        for (auto& m : cur->classMethods) {
             if (!m.is_constructor && m.name_tok.value == mname) {
                 return &m;
             }
@@ -5552,26 +5554,26 @@ ClassMethodInfo *Interpreter::find_method_on_class(const std::string &className,
     }
     return nullptr;
 }
-std::string PointerValue::print(Context *ctx) const {
+std::string PointerValue::print(Context* ctx) const {
     if (this->is_null)
         return "nullptr";
     if (!ctx || frame_index >= ctx->frames.size()) {
         return "&<dangling>";
     }
-    auto &frame = ctx->frames[frame_index];
+    auto& frame = ctx->frames[frame_index];
     auto it = frame.find(symbol_key);
     if (it == frame.end()) {
         return "&<dangling>";
     }
 
-    const void *addr = static_cast<const void *>(&(it->second.value));
+    const void* addr = static_cast<const void*>(&(it->second.value));
     std::ostringstream oss;
     oss << "0x" << std::hex << reinterpret_cast<std::uintptr_t>(addr);
     return oss.str();
 }
-bool Interpreter::is_truthy(const NumberVariant &val) {
+bool Interpreter::is_truthy(const NumberVariant& val) {
     return std::visit(
-        [this](auto &&v) -> bool {
+        [this](auto&& v) -> bool {
             using T = std::decay_t<decltype(v)>;
             if constexpr (std::is_same_v<T, BoolValue>) {
                 return v.value;
@@ -5594,9 +5596,9 @@ bool Interpreter::is_truthy(const NumberVariant &val) {
             } else if constexpr (std::is_same_v<
                                      T, std::shared_ptr<InstanceValue>>) {
                 auto inst = v;
-                const std::string &className = inst->class_name;
+                const std::string& className = inst->class_name;
 
-                ClassMethodInfo *method =
+                ClassMethodInfo* method =
                     find_method_on_class(className, "eval");
                 if (!method) {
                     this->errors.push_back(
@@ -5605,7 +5607,7 @@ bool Interpreter::is_truthy(const NumberVariant &val) {
                                  "' used as condition but is missing eval(): "
                                  "defaulting true",
                              Position()),
-                         "Warning"});
+                            "Warning"});
                     return true;
                 }
                 NumberVariant result = call_instance_method(
@@ -5617,17 +5619,17 @@ bool Interpreter::is_truthy(const NumberVariant &val) {
                 this->errors.push_back(
                     {RTError("eval() on class '" + className +
                                  "' must return bool",
-                             get_pos(result)),
-                     "Error"});
+                         get_pos(result)),
+                        "Error"});
                 return false;
             }
             return false;
         },
         val);
 }
-bool value_matches_union_member(const std::string &member_type,
-                                const std::string &actual_type,
-                                const NumberVariant &val) {
+bool value_matches_union_member(const std::string& member_type,
+    const std::string& actual_type,
+    const NumberVariant& val) {
     auto colon_pos = member_type.find(':');
     if (colon_pos != std::string::npos) {
         std::string lit_kind = member_type.substr(0, colon_pos);
@@ -5732,8 +5734,8 @@ bool value_matches_union_member(const std::string &member_type,
 
     return actual_type == member_type;
 }
-void Context::set(const std::string &name, NumberVariant new_val,
-                  Position pos) {
+void Context::set(const std::string& name, NumberVariant new_val,
+    Position pos) {
     auto loc_opt = find_any_symbol(name);
     if (!loc_opt.has_value()) {
         throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
@@ -5746,18 +5748,18 @@ void Context::set(const std::string &name, NumberVariant new_val,
         throw RTError("Dangling reference: invalid frame index", pos);
     }
 
-    auto &frame = frames[t_fi];
+    auto& frame = frames[t_fi];
     auto sym_it = frame.find(t_key);
     if (sym_it == frame.end()) {
         throw RTError("Dangling reference: symbol '" + t_key + "' not found",
-                      pos);
+            pos);
     }
 
-    Symbol &sym = sym_it->second;
+    Symbol& sym = sym_it->second;
 
     if (sym.is_const) {
         throw RTError("QC-T001: Cannot assign to const variable '" + name + "'",
-                      pos);
+            pos);
     }
 
     std::string expected = sym.declared_type;
@@ -5769,7 +5771,7 @@ void Context::set(const std::string &name, NumberVariant new_val,
         size_t last_colon = lookup_type.rfind("::");
         if (last_colon == std::string::npos && !namespaceStack.empty()) {
             std::string qualified;
-            for (auto &ns : namespaceStack) {
+            for (auto& ns : namespaceStack) {
                 if (!qualified.empty())
                     qualified += "::";
                 qualified += ns;
@@ -5780,7 +5782,7 @@ void Context::set(const std::string &name, NumberVariant new_val,
     }
 
     if (ut_it == user_types.end()) {
-        for (auto &[type_name, info] : user_types) {
+        for (auto& [type_name, info] : user_types) {
             if (type_name == expected ||
                 type_name.find("::" + expected) != std::string::npos) {
                 ut_it = user_types.find(type_name);
@@ -5792,10 +5794,10 @@ void Context::set(const std::string &name, NumberVariant new_val,
     if (ut_it != user_types.end() &&
         ut_it->second.kind == UserTypeKind::Union) {
 
-        auto &members = ut_it->second.members;
+        auto& members = ut_it->second.members;
         bool ok = false;
 
-        for (auto &m : members) {
+        for (auto& m : members) {
             if (value_matches_union_member(m.type, actual, new_val)) {
                 ok = true;
                 break;
@@ -5806,7 +5808,7 @@ void Context::set(const std::string &name, NumberVariant new_val,
             throw RTError("QC-T004: Type mismatch: value of type " + actual +
                               " is not assignable to union type '" + expected +
                               "'",
-                          pos);
+                pos);
         }
 
         sym.value = std::move(new_val);
@@ -5832,7 +5834,7 @@ void Context::set(const std::string &name, NumberVariant new_val,
         }
     }
 
-    auto normalize_type = [](const std::string &t) {
+    auto normalize_type = [](const std::string& t) {
         std::string type = t;
         size_t pos = type.rfind("::");
         type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
@@ -5854,12 +5856,12 @@ void Context::set(const std::string &name, NumberVariant new_val,
         expected != actual) {
         throw RTError("QC-T003: Type mismatch: cannot assign " + actual +
                           " to " + expected,
-                      pos);
+            pos);
     }
 
     sym.value = std::move(new_val);
 }
-NumberVariant def_value_for_type(const std::string &type_name) {
+NumberVariant def_value_for_type(const std::string& type_name) {
     if (type_name == "int")
         return Number<int>(0);
     else if (type_name == "addr_t")
@@ -5885,7 +5887,7 @@ NumberVariant def_value_for_type(const std::string &type_name) {
     if (type_name.rfind("list<", 0) == 0 && type_name.back() == '>') {
         std::string elem_type = type_name.substr(5, type_name.size() - 6);
         auto list = std::make_shared<ListValue>(elem_type,
-                                                std::vector<NumberVariant>{});
+            std::vector<NumberVariant>{});
         return list;
     }
     if (type_name.rfind("map<", 0) == 0 && type_name.back() == '>') {
@@ -5907,15 +5909,15 @@ NumberVariant def_value_for_type(const std::string &type_name) {
             elem_type = elem_type.substr(0, elem_type.size() - 2);
         }
         auto arr = std::make_shared<ArrayValue>(elem_type,
-                                                std::vector<NumberVariant>{});
+            std::vector<NumberVariant>{});
         return arr;
     }
 
     return VoidValue();
 }
-std::string Interpreter::value_to_string(const NumberVariant &val) {
+std::string Interpreter::value_to_string(const NumberVariant& val) {
     return std::visit(
-        [this](auto const &v) -> std::string {
+        [this](auto const& v) -> std::string {
             using T = std::decay_t<decltype(v)>;
 
             if constexpr (std::is_same_v<T, std::monostate>) {
@@ -5932,9 +5934,9 @@ std::string Interpreter::value_to_string(const NumberVariant &val) {
             } else if constexpr (std::is_same_v<
                                      T, std::shared_ptr<InstanceValue>>) {
                 auto inst = v;
-                const std::string &className = inst->class_name;
+                const std::string& className = inst->class_name;
 
-                ClassMethodInfo *method =
+                ClassMethodInfo* method =
                     find_method_on_class(className, "repr");
                 if (!method) {
                     this->errors.push_back(
@@ -5942,8 +5944,8 @@ std::string Interpreter::value_to_string(const NumberVariant &val) {
                                      "' printed, but missing repr function. "
                                      "Printing "
                                      "(reprless class)",
-                                 Position()),
-                         "Warning"});
+                             Position()),
+                            "Warning"});
                     return "(reprless class)";
                 }
                 NumberVariant result = call_instance_method(
@@ -5955,8 +5957,8 @@ std::string Interpreter::value_to_string(const NumberVariant &val) {
                 this->errors.push_back(
                     {RTError("repr() on class '" + className +
                                  "' must return string",
-                             get_pos(result)),
-                     "Error"});
+                         get_pos(result)),
+                        "Error"});
                 return v->print();
             } else if constexpr (std::is_same_v<T, PointerValue>) {
                 return v.print(this->context);
@@ -5966,9 +5968,9 @@ std::string Interpreter::value_to_string(const NumberVariant &val) {
         },
         val);
 }
-std::string value_to_string(const NumberVariant &val) {
+std::string value_to_string(const NumberVariant& val) {
     return std::visit(
-        [](auto const &v) -> std::string {
+        [](auto const& v) -> std::string {
             using T = std::decay_t<decltype(v)>;
 
             if constexpr (std::is_same_v<T, std::monostate>) {
@@ -5994,7 +5996,7 @@ std::string value_to_string(const NumberVariant &val) {
 std::string InstanceValue::print() const {
     std::string out = class_name + "{";
     bool first = true;
-    for (auto &[k, v] : fields) {
+    for (auto& [k, v] : fields) {
         if (!first)
             out += ", ";
         out += k + ": " + value_to_string(v);
@@ -6006,7 +6008,7 @@ std::string InstanceValue::print() const {
 std::string MapValue::print() const {
     std::string result = "{";
     bool first = true;
-    for (auto &[key, val] : data) {
+    for (auto& [key, val] : data) {
         if (!first)
             result += ", ";
         result += key + ": " + value_to_string(val);
@@ -6018,7 +6020,7 @@ std::string MapValue::print() const {
 std::string StructValue::print() const {
     std::string out = type_name + "{";
     bool first = true;
-    for (auto &[name, val] : fields) {
+    for (auto& [name, val] : fields) {
         if (!first)
             out += ", ";
         out += name + ": " + value_to_string(val);
@@ -6027,10 +6029,10 @@ std::string StructValue::print() const {
     out += "}";
     return out;
 }
-bool values_equal(const NumberVariant &a, const NumberVariant &b,
-                  const Position &pos) {
+bool values_equal(const NumberVariant& a, const NumberVariant& b,
+    const Position& pos) {
     auto get_elements =
-        [](const NumberVariant &v) -> const std::vector<NumberVariant> * {
+        [](const NumberVariant& v) -> const std::vector<NumberVariant>* {
         if (auto list_ptr = std::get_if<std::shared_ptr<ListValue>>(&v)) {
             return &((*list_ptr)->elements);
         }
@@ -6063,7 +6065,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
     }
 
     return std::visit(
-        [&](auto &&v) -> bool {
+        [&](auto&& v) -> bool {
             using T = std::decay_t<decltype(v)>;
 
             if constexpr (std::is_same_v<T, StringValue>) {
@@ -6084,9 +6086,9 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
                 return static_cast<double>(v.value) ==
                        static_cast<double>(std::get<T>(b).value);
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<ListValue>> ||
+                                     std::shared_ptr<ListValue>> ||
                                  std::is_same_v<T,
-                                                std::shared_ptr<ArrayValue>>) {
+                                     std::shared_ptr<ArrayValue>>) {
                 return false;
             } else if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
                 auto map_a = v;
@@ -6096,7 +6098,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
                     return false;
                 }
 
-                for (const auto &[key, value] : map_a->data) {
+                for (const auto& [key, value] : map_a->data) {
                     if (map_b->data.find(key) == map_b->data.end()) {
                         return false;
                     }
@@ -6107,7 +6109,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
 
                 return true;
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<StructValue>>) {
+                                     std::shared_ptr<StructValue>>) {
                 auto struct_a = v;
                 auto struct_b = std::get<std::shared_ptr<StructValue>>(b);
 
@@ -6119,7 +6121,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
                     return false;
                 }
 
-                for (const auto &[field_name, value] : struct_a->fields) {
+                for (const auto& [field_name, value] : struct_a->fields) {
                     auto it = struct_b->fields.find(field_name);
                     if (it == struct_b->fields.end()) {
                         return false;
@@ -6143,7 +6145,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
                     return false;
                 }
 
-                for (const auto &[field_name, value] : inst_a->fields) {
+                for (const auto& [field_name, value] : inst_a->fields) {
                     auto it = inst_b->fields.find(field_name);
                     if (it == inst_b->fields.end()) {
                         return false;
@@ -6155,7 +6157,7 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
 
                 return true;
             } else if constexpr (std::is_same_v<T,
-                                                std::shared_ptr<MultiValue>>) {
+                                     std::shared_ptr<MultiValue>>) {
                 throw RTError("Cannot compare multi-values", pos);
             } else if constexpr (std::is_same_v<T, VoidValue>) {
                 return true;
@@ -6167,28 +6169,28 @@ bool values_equal(const NumberVariant &a, const NumberVariant &b,
         },
         a);
 }
-NumberVariant Interpreter::operator()(NullptrNode &node) {
+NumberVariant Interpreter::operator()(NullptrNode& node) {
     PointerValue pv("void", 0, "", true);
     pv.pos = node.pos;
     return pv;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<NamespaceNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<NamespaceNode>& node) {
     context->push_namespace(node->name);
 
-    for (auto &stmt : node->body) {
+    for (auto& stmt : node->body) {
         this->process(stmt);
     }
 
     context->pop_namespace();
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode>& node) {
     try {
         if (node->try_body) {
             AnyNode try_node = std::move(node->try_body);
             this->process(try_node);
         }
-    } catch (const NumberVariant &thrown_value) {
+    } catch (const NumberVariant& thrown_value) {
         std::string thrown_type = context->get_type_name(thrown_value);
 
         bool type_matches = false;
@@ -6220,7 +6222,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode> &node) {
         if (type_matches) {
             context->push_scope();
             context->define(node->catch_var_name, node->catch_var_type,
-                            thrown_value, false);
+                thrown_value, false);
 
             if (node->catch_body) {
                 AnyNode catch_node = std::move(node->catch_body);
@@ -6231,12 +6233,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode> &node) {
         } else {
             throw;
         }
-    } catch (const RTError &e) {
+    } catch (const RTError& e) {
         if (node->catch_var_type == "string" ||
             node->catch_var_type == "auto") {
             context->push_scope();
             context->define(node->catch_var_name, "string",
-                            StringValue(e.details), false);
+                StringValue(e.details), false);
 
             if (node->catch_body) {
                 AnyNode catch_node = std::move(node->catch_body);
@@ -6251,31 +6253,31 @@ NumberVariant Interpreter::operator()(std::unique_ptr<TryCatchNode> &node) {
 
     return VoidValue();
 }
-NumberVariant Interpreter::process(AnyNode &node) {
+NumberVariant Interpreter::process(AnyNode& node) {
     try {
         if (this->errors.size() > 50) {
             throw RTError("Too many errors! Execution stopped.",
-                          Position("", "", 0, 0, 0));
+                Position("", "", 0, 0, 0));
         }
         return std::visit(
-            [this](auto &n) -> NumberVariant {
+            [this](auto& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 return (*this)(n);
             },
             node);
-    } catch (RTError &e) {
+    } catch (RTError& e) {
         throw e;
     }
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<BreakNode>& node) {
     this->errors.push_back(
         {RTError("QC-SW01: Unexpected 'break' outside loop or switch",
-                 node->tok.pos),
-         "Warning"});
+             node->tok.pos),
+            "Warning"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode> &node) {
+NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
 
@@ -6287,15 +6289,15 @@ NumberVariant Interpreter::operator()(std::shared_ptr<FuncDefNode> &node) {
     FunctionValue fv(node);
     return std::move(fv);
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode &node) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode& node) {
     return std::visit(
-        [this](auto &n) -> ExecResult {
+        [this](auto& n) -> ExecResult {
             using T = std::decay_t<decltype(n)>;
 
             if constexpr (std::is_same_v<T, std::monostate>) {
                 return {};
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<BreakNode>>) {
+                                     std::unique_ptr<BreakNode>>) {
                 return {Number<int>(0), true, false, false};
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<ContinueNode>>) {
@@ -6306,18 +6308,18 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode &node) {
             } else if constexpr (std::is_same_v<T, std::unique_ptr<IfNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<SwitchNode>>) {
+                                     std::unique_ptr<SwitchNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             } else if constexpr (std::is_same_v<T, std::unique_ptr<QIfNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<QSwitchNode>>) {
+                                     std::unique_ptr<QSwitchNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             } else if constexpr (std::is_same_v<
                                      T, std::unique_ptr<TryCatchNode>>) {
                 return exec_stmt_in_loop_or_switch(*n);
             } else if constexpr (std::is_same_v<T,
-                                                std::unique_ptr<ReturnNode>>) {
+                                     std::unique_ptr<ReturnNode>>) {
                 NumberVariant v;
                 if (!n)
                     v = Number<int>(0);
@@ -6337,10 +6339,10 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(AnyNode &node) {
         node);
     return {};
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(StatementsNode &block) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(StatementsNode& block) {
     NumberVariant last = Number<int>(0);
 
-    for (auto &stmt : block.statements) {
+    for (auto& stmt : block.statements) {
         ExecResult r = exec_stmt_in_loop_or_switch(stmt);
         last = std::move(r.value);
 
@@ -6350,7 +6352,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(StatementsNode &block) {
     return {std::move(last), false, false, false};
 }
 static std::pair<std::string, std::string>
-parse_map_type(const std::string &s) {
+parse_map_type(const std::string& s) {
     auto inside = s.substr(4, s.size() - 5);
     auto comma = inside.find(',');
     if (comma == std::string::npos)
@@ -6360,25 +6362,25 @@ parse_map_type(const std::string &s) {
     return {key, value};
 }
 NumberVariant
-Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
-                                     const std::string &struct_type,
-                                     Context *context) {
-    const auto &info = context->user_types[struct_type];
-    const auto &fields = info.fields;
+Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue>& arr,
+    const std::string& struct_type,
+    Context* context) {
+    const auto& info = context->user_types[struct_type];
+    const auto& fields = info.fields;
 
     if (arr->elements.size() != fields.size()) {
         this->errors.push_back(
             {RTError("Nested struct initializer size mismatch for '" +
                          struct_type + "'",
-                     Position("", "", 0, 0, 0)),
-             "Error"});
+                 Position("", "", 0, 0, 0)),
+                "Error"});
     }
 
     auto sv = std::make_shared<StructValue>(struct_type);
 
     for (size_t i = 0; i < fields.size(); ++i) {
         NumberVariant elemVal = arr->elements[i];
-        const auto &field = fields[i];
+        const auto& field = fields[i];
 
         if (context->user_types.contains(field.type)) {
             auto nestedArr = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
@@ -6386,14 +6388,14 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
                 this->errors.push_back(
                     {RTError("Expected struct initializer for nested struct '" +
                                  field.type + "'",
-                             Position("", "", 0, 0, 0)),
-                     "Error"});
+                         Position("", "", 0, 0, 0)),
+                        "Error"});
             }
             elemVal = convert_array_to_struct(*nestedArr, field.type, context);
         } else if ((field.type.size() >= 2 &&
-                    field.type.substr(field.type.size() - 2) == "[]") ||
+                       field.type.substr(field.type.size() - 2) == "[]") ||
                    (field.type.size() > 5 &&
-                    field.type.substr(0, 5) == "list<")) {
+                       field.type.substr(0, 5) == "list<")) {
 
             auto arrVal = std::get_if<std::shared_ptr<ArrayValue>>(&elemVal);
             if (!arrVal) {
@@ -6402,7 +6404,7 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
                          "Expected array initializer for list/array field '" +
                              field.name + "'",
                          Position("", "", 0, 0, 0)),
-                     "Error"});
+                        "Error"});
             }
 
             std::string elemType;
@@ -6420,8 +6422,8 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
                 this->errors.push_back(
                     {RTError("QC-E001: Expected map initializer for field '" +
                                  field.name + "' of type '" + field.type + "'",
-                             Position("", "", 0, 0, 0)),
-                     "Error"});
+                         Position("", "", 0, 0, 0)),
+                        "Error"});
             }
 
             auto inside = field.type.substr(4, field.type.size() - 5);
@@ -6429,8 +6431,8 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
             std::string expectedKey = inside.substr(0, comma);
             std::string expectedValue = inside.substr(comma + 1);
 
-            const std::string &actualKey = (*mapVal)->key_type;
-            const std::string &actualValue = (*mapVal)->value_type;
+            const std::string& actualKey = (*mapVal)->key_type;
+            const std::string& actualValue = (*mapVal)->value_type;
 
             if (expectedKey != actualKey || expectedValue != actualValue) {
                 this->errors.push_back(
@@ -6438,8 +6440,8 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
                                  field.name + "': expected " + field.type +
                                  ", got map<" + actualKey + "," + actualValue +
                                  ">",
-                             Position("", "", 0, 0, 0)),
-                     "Error"});
+                         Position("", "", 0, 0, 0)),
+                        "Error"});
             }
         }
 
@@ -6448,17 +6450,17 @@ Interpreter::convert_array_to_struct(const std::shared_ptr<ArrayValue> &arr,
 
     return sv;
 }
-NumberVariant Interpreter::operator()(RefVarDeclNode &node) {
+NumberVariant Interpreter::operator()(RefVarDeclNode& node) {
     std::string target_name = node.target_tok.value;
     NumberVariant target_value;
     try {
         target_value = context->get(target_name, Position("", "", 0, 0, 0));
-    } catch (RTError &e) {
+    } catch (RTError& e) {
         errors.push_back(
             {RTError("Cannot create reference to undefined variable '" +
                          target_name + "'",
-                     Position("", "", 0, 0, 0)),
-             "Error"});
+                 Position("", "", 0, 0, 0)),
+                "Error"});
         return VoidValue();
     }
     std::string target_type = context->get_type_name(target_value);
@@ -6466,27 +6468,27 @@ NumberVariant Interpreter::operator()(RefVarDeclNode &node) {
     if (ref_type != target_type) {
         errors.push_back({RTError("Reference type mismatch: cannot bind " +
                                       ref_type + "& to " + target_type,
-                                  Position("", "", 0, 0, 0)),
-                          "Error"});
+                              Position("", "", 0, 0, 0)),
+            "Error"});
         return VoidValue();
     }
     std::string ref_name = node.var_name_tok.value;
     context->define_reference(ref_name, target_name, ref_type + "&",
-                              node.var_name_tok.pos);
+        node.var_name_tok.pos);
     return VoidValue();
 }
-ClassMethodInfo *
-Interpreter::find_method_with_args(const std::string &className,
-                                   const std::string &mname,
-                                   const std::vector<NumberVariant> &args) {
+ClassMethodInfo*
+Interpreter::find_method_with_args(const std::string& className,
+    const std::string& mname,
+    const std::vector<NumberVariant>& args) {
     auto it = context->user_types.find(className);
     if (it == context->user_types.end())
         return nullptr;
 
-    UserTypeInfo *cur = &it->second;
-    std::vector<ClassMethodInfo *> candidates;
+    UserTypeInfo* cur = &it->second;
+    std::vector<ClassMethodInfo*> candidates;
     while (cur) {
-        for (auto &m : cur->classMethods) {
+        for (auto& m : cur->classMethods) {
             if (m.name_tok.value == mname ||
                 (m.is_constructor && mname == className)) {
                 candidates.push_back(&m);
@@ -6503,10 +6505,10 @@ Interpreter::find_method_with_args(const std::string &className,
 
     if (candidates.empty())
         return nullptr;
-    ClassMethodInfo *best = nullptr;
+    ClassMethodInfo* best = nullptr;
     int best_score = -1;
 
-    for (auto *m : candidates) {
+    for (auto* m : candidates) {
         if (m->params.size() != args.size())
             continue;
 
@@ -6573,7 +6575,7 @@ Interpreter::find_method_with_args(const std::string &className,
     }
     return nullptr;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
     NumberVariant value = this->process(node->value_node);
@@ -6585,7 +6587,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
     if (ut_it == context->user_types.end() &&
         !context->namespaceStack.empty()) {
         std::string qualified = "";
-        for (auto &ns : context->namespaceStack) {
+        for (auto& ns : context->namespaceStack) {
             if (!qualified.empty())
                 qualified += "::";
             qualified += ns;
@@ -6594,7 +6596,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
         ut_it = context->user_types.find(lookup_type);
     }
     if (ut_it == context->user_types.end()) {
-        for (auto &[name, info] : context->user_types) {
+        for (auto& [name, info] : context->user_types) {
             if (name == declaredType ||
                 name.find("::" + declaredType) != std::string::npos) {
                 ut_it = context->user_types.find(name);
@@ -6603,19 +6605,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
         }
     }
     if (ut_it != context->user_types.end()) {
-        UserTypeInfo &ut = ut_it->second;
+        UserTypeInfo& ut = ut_it->second;
 
         if (ut.kind == UserTypeKind::Struct) {
             if (std::holds_alternative<VoidValue>(value)) {
                 auto sv = std::make_shared<StructValue>(declaredType);
                 sv->set_pos(node->var_name_tok.pos);
-                for (auto &field : ut.fields) {
+                for (auto& field : ut.fields) {
                     sv->fields[field.name] = def_value_for_type(field.type);
                 }
 
                 value = sv;
             }
-            const auto &fields = ut.fields;
+            const auto& fields = ut.fields;
 
             if (auto svPtr =
                     std::get_if<std::shared_ptr<StructValue>>(&value)) {
@@ -6635,8 +6637,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                      (*svPtr)->type_name +
                                      "' to variable of type '" + declaredType +
                                      "'",
-                                 node->var_name_tok.pos),
-                         "Error"});
+                             node->var_name_tok.pos),
+                            "Error"});
                 }
 
                 auto newStruct = std::make_shared<StructValue>(**svPtr);
@@ -6653,15 +6655,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                      " elements, but struct '" + declaredType +
                                      "' has " + std::to_string(fields.size()) +
                                      " fields",
-                                 node->var_name_tok.pos),
-                         "Error"});
+                             node->var_name_tok.pos),
+                            "Error"});
                 }
 
                 auto sv = std::make_shared<StructValue>(declaredType);
                 sv->set_pos(node->var_name_tok.pos);
 
                 for (size_t i = 0; i < fields.size(); ++i) {
-                    const auto &field = fields[i];
+                    const auto& field = fields[i];
                     NumberVariant elemVal = arrPtr->get()->elements[i];
 
                     auto nested_it = context->user_types.find(field.type);
@@ -6675,8 +6677,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                 {RTError("Expected struct initializer for "
                                          "nested struct '" +
                                              field.type + "'",
-                                         node->var_name_tok.pos),
-                                 "Error"});
+                                     node->var_name_tok.pos),
+                                    "Error"});
                         }
                         elemVal = Interpreter::convert_array_to_struct(
                             *nestedArr, field.type, context);
@@ -6691,8 +6693,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                 {RTError("Expected array initializer for list "
                                          "field '" +
                                              field.name + "'",
-                                         node->var_name_tok.pos),
-                                 "Error"});
+                                     node->var_name_tok.pos),
+                                    "Error"});
                         }
                         std::string elemType =
                             field.type.substr(0, field.type.size() - 2);
@@ -6710,14 +6712,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                          "for field '" +
                                              field.name + "' of type '" +
                                              field.type + "'",
-                                         node->var_name_tok.pos),
-                                 "Error"});
+                                     node->var_name_tok.pos),
+                                    "Error"});
                         }
 
                         auto [expectedKeyType, expectedValType] =
                             parse_map_type(field.type);
-                        const std::string &actualKeyType = (*mapVal)->key_type;
-                        const std::string &actualValType =
+                        const std::string& actualKeyType = (*mapVal)->key_type;
+                        const std::string& actualValType =
                             (*mapVal)->value_type;
 
                         if (expectedKeyType != actualKeyType ||
@@ -6730,7 +6732,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                          actualKeyType + "," + actualValType +
                                          ">",
                                      node->var_name_tok.pos),
-                                 "Error"});
+                                    "Error"});
                         }
                     }
 
@@ -6743,8 +6745,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                     {RTError("Expected struct initializer '{ ... }' "
                              "or struct value for type '" +
                                  declaredType + "'",
-                             node->var_name_tok.pos),
-                     "Error"});
+                         node->var_name_tok.pos),
+                        "Error"});
             }
 
             actualType = declaredType;
@@ -6753,11 +6755,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
         else if (ut.kind == UserTypeKind::Alias) {
             declaredType = ut.aliasTarget;
         } else if (ut.kind == UserTypeKind::Union) {
-            auto &members = ut_it->second.members;
+            auto& members = ut_it->second.members;
             std::string valType = context->get_type_name(value);
             bool ok = false;
 
-            for (auto &m : members) {
+            for (auto& m : members) {
                 if (value_matches_union_member(m.type, valType, value)) {
                     ok = true;
                     break;
@@ -6778,8 +6780,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
                                  valType +
                                  " is not assignable to union type '" +
                                  node->type_tok.value + "'",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             actualType = node->type_tok.value;
@@ -6787,16 +6789,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
             if (std::holds_alternative<VoidValue>(value)) {
                 auto fields = make_instance_fields(lookup_type);
                 auto inst = std::make_shared<InstanceValue>(lookup_type,
-                                                            std::move(fields));
+                    std::move(fields));
                 std::vector<NumberVariant> no_args;
-                ClassMethodInfo *init_m =
+                ClassMethodInfo* init_m =
                     this->find_method_with_args(lookup_type, "init", no_args);
 
                 if (init_m) {
                     context->push_scope();
                     context->define("this", lookup_type, inst, true);
                     this->call_instance_method(inst, init_m, no_args,
-                                               node->var_name_tok.pos);
+                        node->var_name_tok.pos);
                     context->pop_scope();
                 }
                 value = inst;
@@ -6897,27 +6899,27 @@ NumberVariant Interpreter::operator()(std::unique_ptr<VarAssignNode> &node) {
             this->errors.push_back(
                 {RTError("QC-T003: Type mismatch: expected " + declaredType +
                              ", got " + actualType,
-                         node->var_name_tok.pos),
-                 "Error"});
+                     node->var_name_tok.pos),
+                    "Error"});
         }
     }
 
     context->define(node->var_name_tok.value,
-                    declaredType == "auto" || declaredType == "list<auto>"
-                        ? actualType
-                        : declaredType,
-                    std::move(value), node->is_const);
+        declaredType == "auto" || declaredType == "list<auto>"
+            ? actualType
+            : declaredType,
+        std::move(value), node->is_const);
     return std::move(value);
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<MapDeclNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<MapDeclNode>& node) {
     if (!node)
         return Number<int>(0);
 
     auto map_val = std::make_shared<MapValue>(node->key_type.value,
-                                              node->value_type.value);
+        node->value_type.value);
 
     // Initialize with pairs
-    for (auto &[key_node, val_node] : node->init_pairs) {
+    for (auto& [key_node, val_node] : node->init_pairs) {
         NumberVariant key = this->process(key_node);
         NumberVariant val = this->process(val_node);
 
@@ -6933,7 +6935,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MapDeclNode> &node) {
 
     return VoidValue();
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode &ifn) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode& ifn) {
     if (ifn.init.has_value())
         process(ifn.init.value());
 
@@ -6942,7 +6944,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode &ifn) {
         return exec_stmt_in_loop_or_switch(*ifn.then_branch);
     }
 
-    for (auto &[cond, body] : ifn.elif_branches) {
+    for (auto& [cond, body] : ifn.elif_branches) {
         NumberVariant ev = this->process(cond);
         if (is_truthy(ev)) {
             return exec_stmt_in_loop_or_switch(*body);
@@ -6955,7 +6957,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(IfNode &ifn) {
 
     return {};
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode& ifn) {
     NumberVariant cond_val = this->process(ifn.condition);
 
     bool should_run_true = false;
@@ -6973,7 +6975,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
     NumberVariant last = Number<int>(0);
 
     if (should_run_true) {
-        for (auto &stmt : ifn.then_branch->statements) {
+        for (auto& stmt : ifn.then_branch->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
 
@@ -6985,7 +6987,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
     }
 
     bool qelif_ran = false;
-    for (auto &[qelif_cond, qelif_body] : ifn.qelif_branches) {
+    for (auto& [qelif_cond, qelif_body] : ifn.qelif_branches) {
         NumberVariant qelif_val = this->process(qelif_cond);
 
         bool qelif_true = false;
@@ -7001,7 +7003,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
         }
 
         if (should_run_false && qelif_true) {
-            for (auto &stmt : qelif_body->statements) {
+            for (auto& stmt : qelif_body->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
 
@@ -7016,7 +7018,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
     }
 
     if (should_run_false && !qelif_ran && ifn.qelse_branch) {
-        for (auto &stmt : ifn.qelse_branch->statements) {
+        for (auto& stmt : ifn.qelse_branch->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
 
@@ -7029,15 +7031,15 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QIfNode &ifn) {
 
     return ExecResult{std::move(last), false, false};
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(SwitchNode &sw) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(SwitchNode& sw) {
     NumberVariant v = process(sw.value);
 
-    for (auto &sec : sw.sections) {
+    for (auto& sec : sw.sections) {
         bool match = sec.is_default;
 
-        for (auto &c : sec.cases) {
+        for (auto& c : sec.cases) {
             Position expr_pos = std::visit(
-                [](auto &n) -> Position {
+                [](auto& n) -> Position {
                     using T = std::decay_t<decltype(n)>;
                     if constexpr (requires { n.tok; }) {
                         return n.tok.pos;
@@ -7067,14 +7069,14 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(SwitchNode &sw) {
     }
     return {};
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode &qsw) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode& qsw) {
     NumberVariant val = this->process(qsw.value);
 
     if (auto qb = std::get_if<QBoolValue>(&val)) {
         NumberVariant last = Number<int>(0);
 
         if (qb->tval && qsw.case_t) {
-            for (auto &stmt : qsw.case_t->statements) {
+            for (auto& stmt : qsw.case_t->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break)
@@ -7085,7 +7087,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode &qsw) {
         }
 
         if (qb->fval && qsw.case_f) {
-            for (auto &stmt : qsw.case_f->statements) {
+            for (auto& stmt : qsw.case_f->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break)
@@ -7096,7 +7098,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode &qsw) {
         }
 
         if (!qb->tval && !qb->fval && qsw.case_n) {
-            for (auto &stmt : qsw.case_n->statements) {
+            for (auto& stmt : qsw.case_n->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break)
@@ -7107,7 +7109,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode &qsw) {
         }
 
         if (qb->tval && qb->fval && qsw.case_b) {
-            for (auto &stmt : qsw.case_b->statements) {
+            for (auto& stmt : qsw.case_b->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break)
@@ -7124,7 +7126,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(QSwitchNode &qsw) {
         {RTError("qswitch requires a qbool", get_pos(val)), "Severe"});
     return {};
 }
-ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode &tcn) {
+ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode& tcn) {
     try {
         if (tcn.try_body) {
             ExecResult r = exec_stmt_in_loop_or_switch(*tcn.try_body);
@@ -7132,7 +7134,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode &tcn) {
                 return r;
             }
         }
-    } catch (const NumberVariant &thrown_value) {
+    } catch (const NumberVariant& thrown_value) {
         std::string thrown_type = context->get_type_name(thrown_value);
         bool type_matches = false;
 
@@ -7163,7 +7165,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode &tcn) {
         if (type_matches) {
             context->push_scope();
             context->define(tcn.catch_var_name, tcn.catch_var_type,
-                            thrown_value, false);
+                thrown_value, false);
             ExecResult r = {};
             if (tcn.catch_body) {
                 r = exec_stmt_in_loop_or_switch(*tcn.catch_body);
@@ -7173,12 +7175,12 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode &tcn) {
         } else {
             throw;
         }
-    } catch (const RTError &e) {
+    } catch (const RTError& e) {
         if (tcn.catch_var_type == "string" || tcn.catch_var_type == "auto") {
             context->push_scope();
 
             context->define(tcn.catch_var_name, "string",
-                            StringValue(e.details), false);
+                StringValue(e.details), false);
 
             ExecResult r = {};
             if (tcn.catch_body) {
@@ -7194,7 +7196,7 @@ ExecResult Interpreter::exec_stmt_in_loop_or_switch(TryCatchNode &tcn) {
     }
     return {};
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -7204,25 +7206,25 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode> &node) {
         NumberVariant last = Number<int>(0);
 
         if (qb->tval && !qb->fval && node->case_t) {
-            for (auto &stmt : node->case_t->statements) {
+            for (auto& stmt : node->case_t->statements) {
                 last = this->process(stmt);
             }
         }
 
         if (qb->fval && !qb->tval && node->case_f) {
-            for (auto &stmt : node->case_f->statements) {
+            for (auto& stmt : node->case_f->statements) {
                 last = this->process(stmt);
             }
         }
 
         if (!qb->tval && !qb->fval && node->case_n) {
-            for (auto &stmt : node->case_n->statements) {
+            for (auto& stmt : node->case_n->statements) {
                 last = this->process(stmt);
             }
         }
 
         if (qb->tval && qb->fval && node->case_b) {
-            for (auto &stmt : node->case_b->statements) {
+            for (auto& stmt : node->case_b->statements) {
                 last = this->process(stmt);
             }
         }
@@ -7233,11 +7235,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode> &node) {
         NumberVariant last = Number<int>(0);
 
         if (truthy && node->case_t) {
-            for (auto &stmt : node->case_t->statements) {
+            for (auto& stmt : node->case_t->statements) {
                 last = this->process(stmt);
             }
         } else if (!truthy && node->case_f) {
-            for (auto &stmt : node->case_f->statements) {
+            for (auto& stmt : node->case_f->statements) {
                 last = this->process(stmt);
             }
         }
@@ -7246,14 +7248,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QSwitchNode> &node) {
     }
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ContinueNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ContinueNode>& node) {
     this->errors.push_back(
         {RTError("QC-SW02: Unexpected 'continue' outside loop",
-                 node ? node->tok.pos : Position()),
-         "Warning"});
+             node ? node->tok.pos : Position()),
+            "Warning"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode>& node) {
 
     std::vector<NumberVariant> return_values;
     for (size_t i = 0; i < node->values.size(); i++) {
@@ -7263,7 +7265,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MultiReturnNode> &node) {
 
     throw MultiReturnException(std::move(return_values));
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
 
@@ -7274,7 +7276,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode> &node) {
         if (!is_truthy(cond_val))
             break;
 
-        for (auto &stmt : node->body->statements) {
+        for (auto& stmt : node->body->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
 
@@ -7291,10 +7293,10 @@ NumberVariant Interpreter::operator()(std::unique_ptr<WhileNode> &node) {
 
     return std::move(last);
 }
-NumberVariant Interpreter::operator()(QInNode &node) {
+NumberVariant Interpreter::operator()(QInNode& node) {
     return std::move(Number<int>(0));
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ForNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ForNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
 
@@ -7310,7 +7312,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ForNode> &node) {
         if (!is_truthy(cond_val))
             break;
 
-        for (auto &stmt : node->body->statements) {
+        for (auto& stmt : node->body->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
 
@@ -7330,8 +7332,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ForNode> &node) {
 
     return std::move(last);
 }
-bool Interpreter::struct_has_field(const std::shared_ptr<StructValue> &sv,
-                                   const std::string &field) {
+bool Interpreter::struct_has_field(const std::shared_ptr<StructValue>& sv,
+    const std::string& field) {
     auto it = sv->fields.find(field);
     if (it == sv->fields.end())
         return false;
@@ -7340,7 +7342,7 @@ bool Interpreter::struct_has_field(const std::shared_ptr<StructValue> &sv,
 
     return true;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
 
@@ -7349,7 +7351,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode> &node) {
     int start_index = -1;
     int default_index = -1;
     for (int i = 0; i < (int)node->sections.size(); ++i) {
-        auto &sec = node->sections[i];
+        auto& sec = node->sections[i];
 
         if (sec.is_default) {
             if (default_index == -1)
@@ -7357,7 +7359,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode> &node) {
             continue;
         }
 
-        for (auto &lbl : sec.cases) {
+        for (auto& lbl : sec.cases) {
             NumberVariant case_val = this->process(lbl.expr);
             if (values_equal(switch_val, case_val, get_pos(case_val))) {
                 start_index = i;
@@ -7375,11 +7377,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode> &node) {
     NumberVariant last = Number<int>(0);
 
     for (int i = start_index; i < (int)node->sections.size(); ++i) {
-        auto &sec = node->sections[i];
+        auto& sec = node->sections[i];
         if (!sec.body)
             continue;
 
-        for (auto &stmt : sec.body->statements) {
+        for (auto& stmt : sec.body->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
             if (r.did_break) {
@@ -7390,7 +7392,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<SwitchNode> &node) {
 
     return last;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode>& node) {
 
     if (!node) {
         return std::move(Number<int>(0));
@@ -7406,24 +7408,24 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ReturnNode> &node) {
 }
 
 std::unordered_map<std::string, NumberVariant>
-Interpreter::make_instance_fields(const std::string &className) {
+Interpreter::make_instance_fields(const std::string& className) {
     std::unordered_map<std::string, NumberVariant> fields;
 
     auto it = context->user_types.find(className);
     if (it == context->user_types.end())
         return fields;
-    auto &info = it->second;
+    auto& info = it->second;
     if (!info.baseClassName.empty()) {
         auto baseFields = make_instance_fields(info.baseClassName);
         fields.insert(baseFields.begin(), baseFields.end());
     }
-    for (auto &f : info.classFields) {
+    for (auto& f : info.classFields) {
         fields[f.name] = def_value_for_type(f.type);
     }
 
     return fields;
 }
-size_t Interpreter::get_sizeof_type(const std::string &type) {
+size_t Interpreter::get_sizeof_type(const std::string& type) {
     std::string base_type = type;
     size_t ptr_count = 0;
     while (!base_type.empty() && base_type.back() == '*') {
@@ -7459,13 +7461,13 @@ size_t Interpreter::get_sizeof_type(const std::string &type) {
     if (ut_it != context->user_types.end()) {
         if (ut_it->second.kind == UserTypeKind::Struct) {
             size_t total = 0;
-            for (auto &field : ut_it->second.fields) {
+            for (auto& field : ut_it->second.fields) {
                 total += get_sizeof_type(field.type);
             }
             return total;
         } else if (ut_it->second.kind == UserTypeKind::Class) {
             size_t total = 0;
-            for (auto &field : ut_it->second.classFields) {
+            for (auto& field : ut_it->second.classFields) {
                 total += get_sizeof_type(field.type);
             }
             return total;
@@ -7479,7 +7481,7 @@ size_t Interpreter::get_sizeof_type(const std::string &type) {
         return 8;
     return 0;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<CallNode>& node) {
     if (!node)
         return Number<int>(0);
     NumberVariant target_val;
@@ -7488,15 +7490,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
     std::vector<std::string> final_lvalues;
     if (std::holds_alternative<std::unique_ptr<VarAccessNode>>(
             node->node_to_call)) {
-        auto &varacc =
+        auto& varacc =
             std::get<std::unique_ptr<VarAccessNode>>(node->node_to_call);
         func_name = varacc->var_name_tok.value;
         if (func_name == "throw") {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: throw() requires exactly 1 argument",
-                             get_pos(target_val)),
-                     "Error"});
+                         get_pos(target_val)),
+                        "Error"});
             }
 
             NumberVariant value = this->process(node->arg_nodes.front());
@@ -7506,11 +7508,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() < 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: qout() requires at least 1 argument",
-                             get_pos(target_val)),
-                     "Error"});
+                         get_pos(target_val)),
+                        "Error"});
             }
             std::vector<NumberVariant> args;
-            for (auto &arg : node->arg_nodes) {
+            for (auto& arg : node->arg_nodes) {
                 args.push_back(this->process(arg));
             }
             int current_arg = 0;
@@ -7526,8 +7528,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 if (i >= val.size()) {
                     this->errors.push_back(
                         {RTError("QC-Q003: invalid formatter",
-                                 get_pos(target_val)),
-                         "Error"});
+                             get_pos(target_val)),
+                            "Error"});
                     break;
                 }
                 bool zero_pad = false;
@@ -7543,8 +7545,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (i >= val.size()) {
                         this->errors.push_back(
                             {RTError("QC-Q003: invalid formatter",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                         break;
                     }
                     c = val[i];
@@ -7564,8 +7566,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (i >= val.size()) {
                         this->errors.push_back(
                             {RTError("QC-Q003: invalid formatter",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                         break;
                     }
                     c = val[i];
@@ -7582,8 +7584,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     } else {
                         this->errors.push_back(
                             {RTError("QC-Q003: invalid formatter",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                         break;
                     }
                 }
@@ -7593,8 +7595,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg) {
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     } else if (auto is_intVal = std::get_if<Number<int>>(
                                    &args[current_arg])) {
                         std::stringstream ss;
@@ -7617,8 +7619,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     } else {
                         this->errors.push_back(
                             {RTError("QC-B002: qout(): i formater takes a int",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     }
                     break;
                 case 's':
@@ -7626,8 +7628,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (current_arg >= args.size()) {
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     } else if (i + 1 < val.size()) {
                         if (val[i + 1] == 't') {
                             i++;
@@ -7639,8 +7641,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                 this->errors.push_back(
                                     {RTError("QC-B002: st formater requires a "
                                              "struct value.",
-                                             get_pos(target_val)),
-                                     "Error"});
+                                         get_pos(target_val)),
+                                        "Error"});
                             }
                         } else {
                             if (std::get_if<StringValue>(&args[current_arg])) {
@@ -7650,8 +7652,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                 this->errors.push_back(
                                     {RTError("QC-B002: qout(): s formater "
                                              "takes a string",
-                                             get_pos(target_val)),
-                                     "Error"});
+                                         get_pos(target_val)),
+                                        "Error"});
                             }
                         }
                     } else {
@@ -7662,8 +7664,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             this->errors.push_back(
                                 {RTError("QC-B002: qout(): s formater takes a "
                                          "string",
-                                         get_pos(target_val)),
-                                 "Error"});
+                                     get_pos(target_val)),
+                                    "Error"});
                         }
                     }
                     break;
@@ -7672,8 +7674,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg) {
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     } else if (auto is_ftVal = std::get_if<Number<float>>(
                                    &args[current_arg])) {
                         std::stringstream ss;
@@ -7690,7 +7692,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             {RTError(
                                  "QC-B002: qout(): f formater takes a float",
                                  get_pos(target_val)),
-                             "Error"});
+                                "Error"});
                     }
                     break;
                 case 'd':
@@ -7698,8 +7700,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg) {
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     } else if (auto is_dobVal = std::get_if<Number<double>>(
                                    &args[current_arg])) {
                         std::stringstream ss;
@@ -7716,7 +7718,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             {RTError(
                                  "QC-B002: qout(): d formater takes a double",
                                  get_pos(target_val)),
-                             "Error"});
+                                "Error"});
                     }
                     break;
                 case 'c':
@@ -7724,8 +7726,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     if (i >= val.size()) {
                     } else if (val[i + 1] == 's') {
                         i++;
@@ -7737,16 +7739,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             this->errors.push_back(
                                 {RTError("QC-B002: qout(): cs formater takes a "
                                          "class instance",
-                                         get_pos(target_val)),
-                                 "Error"});
+                                     get_pos(target_val)),
+                                    "Error"});
                         }
                     } else if (std::get_if<CharValue>(&args[current_arg])) {
                         to_print += this->value_to_string(args[current_arg]);
                     } else {
                         this->errors.push_back(
                             {RTError("QC-B002: qout(): c formater takes a char",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     }
                     break;
                 case 'b':
@@ -7754,8 +7756,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     else
                         to_print += this->value_to_string(args[current_arg]);
                     break;
@@ -7764,8 +7766,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     else
                         to_print += this->value_to_string(args[current_arg]);
                     break;
@@ -7774,8 +7776,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     else if (std::get_if<PointerValue>(&args[current_arg])) {
                         to_print += this->value_to_string(args[current_arg]);
                     } else {
@@ -7783,7 +7785,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             {RTError(
                                  "QC-B002: qout(): p formater takes a pointer",
                                  get_pos(target_val)),
-                             "Error"});
+                                "Error"});
                     }
                     break;
                 case 'x':
@@ -7791,8 +7793,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     if (auto is_intVal =
                             std::get_if<Number<int>>(&args[current_arg])) {
                         std::stringstream ss;
@@ -7815,8 +7817,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         this->errors.push_back(
                             {RTError("QC-B002: qout(): x formater takes a int "
                                      "or addr_t",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     }
                     break;
                 case 'o':
@@ -7824,8 +7826,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     if (auto is_intVal =
                             std::get_if<Number<int>>(&args[current_arg])) {
                         std::stringstream ss;
@@ -7848,8 +7850,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         this->errors.push_back(
                             {RTError("QC-B002: qout(): o formater takes a int "
                                      "or address",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     }
                     break;
                 case 'e':
@@ -7857,8 +7859,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     if (auto is_intVal =
                             std::get_if<Number<int>>(&args[current_arg])) {
                         std::stringstream ss;
@@ -7940,8 +7942,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         this->errors.push_back(
                             {RTError("QC-B002: qout(): e formatter takes a "
                                      "numeric type",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     }
                     break;
                 case 'a':
@@ -7949,16 +7951,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (args.size() - 1 < current_arg)
                         this->errors.push_back(
                             {RTError("QC-B001: too few arguments to qout().",
-                                     get_pos(target_val)),
-                             "Error"});
+                                 get_pos(target_val)),
+                                "Error"});
                     else
                         to_print += this->value_to_string(args[current_arg]);
                     break;
                 default:
                     this->errors.push_back(
                         {RTError("QC-Q003: invalid formatter",
-                                 get_pos(target_val)),
-                         "Error"});
+                             get_pos(target_val)),
+                            "Error"});
                 }
             }
             std::cout << to_print;
@@ -7966,7 +7968,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
         }
         if (func_name == "random") {
             std::vector<NumberVariant> args;
-            for (auto &arg : node->arg_nodes) {
+            for (auto& arg : node->arg_nodes) {
                 args.push_back(this->process(arg));
             }
             if (!random_seeded) {
@@ -7984,8 +7986,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 }
                 this->errors.push_back(
                     {RTError("QC-B002: random(max) requires integer argument",
-                             get_pos(args[0])),
-                     "Error"});
+                         get_pos(args[0])),
+                        "Error"});
             } else if (args.size() == 2) {
                 if (auto min_num = std::get_if<Number<int>>(&args[0])) {
                     if (auto max_num = std::get_if<Number<int>>(&args[1])) {
@@ -7998,19 +8000,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     {RTError(
                          "QC-B002: random(min, max) requires integer arguments",
                          get_pos(args[1])),
-                     "Error"});
+                        "Error"});
             }
 
             this->errors.push_back(
                 {RTError("QC-B001: random() takes 0, 1, or 2 arguments",
-                         get_pos(args[2])),
-                 "Error"});
+                     get_pos(args[2])),
+                    "Error"});
         }
         if (func_name == "time") {
             if (node->arg_nodes.size() != 0) {
                 this->errors.push_back(
                     {RTError("QC-B001: time() takes no arguments", Position()),
-                     "Error"});
+                        "Error"});
             }
 
             return Number<int>(static_cast<int>(time(nullptr)));
@@ -8020,8 +8022,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: seed() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant seed_val = this->process(node->arg_nodes.front());
@@ -8034,16 +8036,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: seed() requires integer argument",
-                         get_pos(seed_val)),
-                 "Error"});
+                     get_pos(seed_val)),
+                    "Error"});
         }
         if (func_name == "typeof") {
 
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: typeof() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant value = this->process(node->arg_nodes.front());
@@ -8054,8 +8056,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_qbool() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8072,13 +8074,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 this->errors.push_back({RTError("QC-B002: to_qbool() requires "
                                                 "string argument to be qtrue "
                                                 "qfalse both or none.",
-                                                sv->pos),
-                                        "Error"});
+                                            sv->pos),
+                    "Error"});
             } else {
                 this->errors.push_back({RTError("QC-B002: to_qbool() requires "
                                                 "string or boolean argument",
-                                                get_pos(cur_val)),
-                                        "Error"});
+                                            get_pos(cur_val)),
+                    "Error"});
             }
         }
 
@@ -8086,8 +8088,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_bool() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8104,14 +8106,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-B002: to_bool() requires string "
                              "argument to be true or false.",
-                             sv->pos),
-                     "Error"});
+                         sv->pos),
+                        "Error"});
             } else {
                 this->errors.push_back(
                     {RTError("QC-B002: to_bool() requires string or "
                              "quantum boolean argument",
-                             get_pos(cur_val)),
-                     "Error"});
+                         get_pos(cur_val)),
+                        "Error"});
             }
         }
 
@@ -8119,8 +8121,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_int() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8142,8 +8144,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 } catch (...) {
                     this->errors.push_back(
                         {RTError("QC-B002: could not convert value to int.",
-                                 sv->pos),
-                         "Error"});
+                             sv->pos),
+                            "Error"});
                 }
             } else if (auto qbv = std::get_if<QBoolValue>(&cur_val)) {
                 int val = 0;
@@ -8165,7 +8167,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                   "̸̢̢̡̛̟͍̤̥͙̝̘͍͇͓͔̣̭̜̊͊̎͂͆̓̃̎̿̕̕͘͝͝s̷̢͖͙̥͉̘̄̑͗̉̒̅́͋̏̾̆̅̔́̈́̕͝ͅͅê̶͇͉͈̰̭̼͎̔̿́̈́͆́͆́͘͘ͅā̸̜̠͇́̍̈͂͐͐͂̑̽͘͝s̵̢̳̆̆̑̉̔̑̊͌̂ͅ ̸͚̬͒̈́͛͗́̃̀͛̈́͆̃̀̂̀̕̚͘ố̸̡̡̹̼̙̤̘̱̪̻̒̿̿̈̂f̴̛̛̭̹̘́̐͐̈́̌͐̒̏͌̍͑͘͝ ̷̼̮̙̜̈̎͛̓͐͋̾͗̀́̂̇̇̅͝ͅī̴̤̥͇̲̣̙̦̩̜̼͈̲͓̼͔̌̏͗̀̀͐̕͠n̷̡̹̘̞̦̙̙̦̮̙͎͆͗̒̎̂̊̈͑̏̈́̑͋̃͋́̇̚ḟ̵̧̧͚̤͚̫͍̰̗͙͚̜̲̹̗̺͒̏͆͛͌̒̊͠i̷̢̛̛̲̥͚̳͚̟̼̲̤̦͕̻̪̐͊̄̈́͘̕͜n̵͎̘̳̘̟̕i̸̜̮̘̠̘̘̹̰̓̿̍̅̓̈́̊͗̇̊̚͝͝t̸̛̩͇̲̪̟̭̱̝̯͍̘̻̘͆͛̊̋̎̎̍̈́͊͊̽̊̽̊̚͠y̷̨̡̛̳͓͌͛͐̽̈́,̸̡̡̬͙̩͍̜̭͓̦͉̦̀̈́͐̏͊̌̅̀͑͘͘ͅ ̵̞̠̜͉̣̃̌͌̒͗̈̓̂̿͠a̶̭͚͚͓̳̼̎͒́̍̅͆̆̅̕n̵̹͌̿̆̎͐̒͂͆͛͆͒̍͊͗̕͠ḑ̴̺̟̳͎̩͉̮̈́̄ ̸͍̾̈ȉ̸̡̧̦̰͈͓͎̦̳̈̄̋̅̓͗̀̍͝t̵̰̊͌̓̅͠ ̵̦̰̰̬̏̌̅̀͆̑̔̀͒̿̚͠͝ẁ̸̱̄͋͛͆̊̕a̵̢̧̝͚͕̫̺͙̫̹̫͖̳͆́̓̈́͒͛͘̕͝s̵̨̗͔̦̻̘̙͕͓̠̓̈́̓̎͂͆̄̀̀̕ ̶̛̦̅̈́̈̋̆͆̄̆͑͝n̴̨͈̦̙̝͖̦͌̔̎̒̿͊̑́̽͋̈́̅̄̎͌̕͝ȏ̸̹͇̪͙̜̄̊̍̒̉͛̂͘͠ť̴͈́͛̇̿̀̄̈͛̾̈̀̀̏̕ ̸̢̢͍͍͉̫̰̱͎̣̲̻͆́m̷̢̝͖̩̖͉̹̯̂̅̓́̍̍̍̒̀̓̚͝e̷̛̻͎͕̙̰͎̟͚̜̮͐̑̄̚ả̴̢̨͉̮̫̩̹͖̭̞̓̈n̶̡̩͇̦͚͔͈̩̞̫͕̤̘̎ṯ̶̢̟͉͕̳͔̮̫͚̤̹̹̥̦͉͕͋͛̎͊́͋͛̚ ̸̛̛̛͇̲̪̲̬̼̝̋̄̈̑͛͐̎͒̒̾̉̑͘͜͠t̴̥͍̊͑̀̀́̉́̍̀̓́̾̓̕͘͘͠h̴̢̡͚̞̖̙͇̣͖̺̙̣̤͖͆͊͊̊͌͂̆́̉͌͐͘͠͝a̶̛̛͎̖̥̍͑͆̾̄͑̿̄͆̑́̕t̷̹̬̩̺̠͕̜̗̲̓̃̒̿͒ "
                                   "̶̨̢͓̺̺̞̺̺͙̟̬͙̯̻̝͗͒̊̋͂́̕͠ẅ̷̛̳̠̤̲̻́ę̵̦̫̺̞͖͔̭̺̐͒̋̓͆̔́͑̿͛̈͊̿̿̀̕͜͠ ̵̡͚͇̗̞̺̗͎̪͚͋̋̽̈́̾̆͋̆̅͑̚͝s̷͓͈̰̹͓͕̖̜̞̼͙͕͚̬̖̦̩̓̌̿h̴͔̱͈̲̳̤̠͙̗̙̊̑͂͑̇̽̂̋̕̕͝o̵͙̞͚̺̅̃̈́͑̍͊̕͠ư̸͉̻̮̲͇͛̀̎͌l̷̠̇̋̀̕ͅd̴̻͕̑̔̌̾͗͗͒͌̒ ̵̺̹̥̞̯̠͕̘̳̪̄́̅͊̔͛́̀̈́̕͠͠v̵̧̀̆̊̄̊̌͠ỡ̴̹̒́̂͑̌̄̊͝͝ỳ̷̧͈͓̻̥̩̳̫̦̖̼͑̑̈́̉̀͌̈̄͘͠a̷̤̚g̶̡̨̣̗̣̰̬͈̗͖̩̖̭̋̆e̷̖̘͈͍̮̰͙͈͕̫̙͔͕̖̿́̋͒̒͊̌̚͠ "
                                   "̵̨̢̧͈̳̹̣͉̞̺̤̞͊͜f̴̭̫̬͇̘͋̓̎̐̐̓̎̄̇a̵̩̲̺̝͚̫̥̹̜̤̙̘̫͓̙̓͊̇r̵̡̭͚̗͈̤̤͚̥͈͙̘͓͚͈͊͆̽̆͒̀͘ͅ.̷̮̀",
-                                  qbv->pos);
+                        qbv->pos);
 
                 return Number<int>(val).set_pos(qbv->pos);
             } else if (auto bv = std::get_if<BoolValue>(&cur_val)) {
@@ -8175,7 +8177,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     {RTError(
                          "QC-B002: to_int() cannot take that argument type.",
                          get_pos(cur_val)),
-                     "Error"});
+                        "Error"});
             }
         }
 
@@ -8183,8 +8185,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_float() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8206,15 +8208,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 } catch (...) {
                     this->errors.push_back(
                         {RTError("QC-B002: could not convert value to float.",
-                                 sv->pos),
-                         "Error"});
+                             sv->pos),
+                            "Error"});
                 }
             } else {
                 this->errors.push_back(
                     {RTError(
                          "QC-B002: to_float() cannot take that argument type.",
                          get_pos(cur_val)),
-                     "Error"});
+                        "Error"});
             }
         }
 
@@ -8222,8 +8224,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_double() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8246,15 +8248,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 } catch (...) {
                     this->errors.push_back(
                         {RTError("QC-B002: could not convert value to double.",
-                                 sv->pos),
-                         "Error"});
+                             sv->pos),
+                            "Error"});
                 }
             } else {
                 this->errors.push_back(
                     {RTError(
                          "QC-B002: to_double() cannot take that argument type.",
                          get_pos(cur_val)),
-                     "Error"});
+                        "Error"});
             }
         }
 
@@ -8262,8 +8264,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_char() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8275,8 +8277,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 }
                 this->errors.push_back(
                     {RTError("QC-B002: to_char() cannot take empty string.",
-                             sv->pos),
-                     "Error"});
+                         sv->pos),
+                        "Error"});
             } else if (auto cv = std::get_if<CharValue>(&cur_val)) {
                 return *cv;
             } else {
@@ -8284,15 +8286,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     {RTError(
                          "QC-B002: to_char() cannot take that argument type.",
                          get_pos(cur_val)),
-                     "Error"});
+                        "Error"});
             }
         }
         if (func_name == "to_string") {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_string() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             NumberVariant cur_val = this->process(node->arg_nodes.front());
@@ -8317,15 +8319,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     {RTError(
                          "QC-B002: to_string() cannot take that argument type.",
                          get_pos(cur_val)),
-                     "Error"});
+                        "Error"});
             }
         }
         if (func_name == "split") {
             if (node->arg_nodes.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-B001: split() requires exactly 2 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8338,8 +8340,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 !std::holds_alternative<StringValue>(delim_val)) {
                 this->errors.push_back(
                     {RTError("QC-B002: split() requires string arguments",
-                             get_pos(str_val)),
-                     "Error"});
+                         get_pos(str_val)),
+                        "Error"});
             }
 
             std::string s = std::get<StringValue>(str_val).value;
@@ -8363,8 +8365,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: len() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8376,16 +8378,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-B002: len() requires string argument",
-                             get_pos(val)),
-                     "Error"});
+                         get_pos(val)),
+                        "Error"});
             }
         }
         if (func_name == "to_lower") {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_lower() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8398,16 +8400,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-B002: to_lower() requires string argument",
-                             get_pos(val)),
-                     "Error"});
+                         get_pos(val)),
+                        "Error"});
             }
         }
         if (func_name == "to_upper") {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: to_upper() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8420,8 +8422,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-B002: to_upper() requires string argument",
-                             get_pos(val)),
-                     "Error"});
+                         get_pos(val)),
+                        "Error"});
             }
         }
         if (func_name == "fopen") {
@@ -8429,8 +8431,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-B001: fopen() requires exactly 2 arguments "
                              "(path, mode)",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return VoidValue();
             }
 
@@ -8443,23 +8445,23 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (!path_str || !mode_str) {
                 this->errors.push_back(
                     {RTError("QC-B002: fopen() requires string arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return VoidValue();
             }
 
-            FILE *file =
+            FILE* file =
                 fopen(path_str->value.c_str(), mode_str->value.c_str());
             if (!file) {
                 this->errors.push_back(
                     {RTError("QC-B003: Failed to open file: " + path_str->value,
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return StringValue("");
             }
 
             std::ostringstream oss;
-            oss << (void *)file;
+            oss << (void*)file;
             return StringValue(oss.str()).set_pos(path_str->pos);
         }
 
@@ -8467,25 +8469,25 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: fclose() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return VoidValue();
             }
 
             NumberVariant file_val = this->process(node->arg_nodes.front());
 
             if (auto file_str = std::get_if<StringValue>(&file_val)) {
-                void *ptr;
+                void* ptr;
                 std::istringstream iss(file_str->value);
                 iss >> ptr;
-                FILE *file = (FILE *)ptr;
+                FILE* file = (FILE*)ptr;
                 if (file)
                     fclose(file);
                 return VoidValue();
             }
             this->errors.push_back(
                 {RTError("QC-B002: fclose() requires file handle", Position()),
-                 "Error"});
+                    "Error"});
             return VoidValue();
         }
 
@@ -8493,18 +8495,18 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: fread() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return StringValue("");
             }
 
             NumberVariant file_val = this->process(node->arg_nodes.front());
 
             if (auto file_str = std::get_if<StringValue>(&file_val)) {
-                void *ptr;
+                void* ptr;
                 std::istringstream iss(file_str->value);
                 iss >> ptr;
-                FILE *file = (FILE *)ptr;
+                FILE* file = (FILE*)ptr;
 
                 if (!file)
                     return StringValue("");
@@ -8522,7 +8524,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: fread() requires file handle", Position()),
-                 "Error"});
+                    "Error"});
             return StringValue("");
         }
 
@@ -8531,8 +8533,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-B001: fwrite() requires exactly 2 arguments "
                              "(file, data)",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return VoidValue();
             }
 
@@ -8540,10 +8542,10 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             NumberVariant data_val = this->process(node->arg_nodes.back());
 
             if (auto file_str = std::get_if<StringValue>(&file_val)) {
-                void *ptr;
+                void* ptr;
                 std::istringstream iss(file_str->value);
                 iss >> ptr;
-                FILE *file = (FILE *)ptr;
+                FILE* file = (FILE*)ptr;
 
                 if (!file)
                     return VoidValue();
@@ -8556,15 +8558,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: fwrite() requires file handle", Position()),
-                 "Error"});
+                    "Error"});
             return VoidValue();
         }
         if (func_name == "substring") {
             if (node->arg_nodes.size() != 3) {
                 this->errors.push_back(
                     {RTError("QC-B001: substring() requires 3 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8595,21 +8597,21 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 }
                 this->errors.push_back(
                     {RTError("QC-B002: substring() requires (string, int, int)",
-                             get_pos(str_val)),
-                     "Error"});
+                         get_pos(str_val)),
+                        "Error"});
             } else {
                 this->errors.push_back(
                     {RTError("QC-B002: substring() requires string argument",
-                             get_pos(str_val)),
-                     "Error"});
+                         get_pos(str_val)),
+                        "Error"});
             }
         }
         if (func_name == "join") {
             if (node->arg_nodes.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-B001: join() requires 2 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8622,7 +8624,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 if (auto sv = std::get_if<StringValue>(&delim_val)) {
                     std::string out;
                     for (size_t i = 0; i < (*lv)->elements.size(); i++) {
-                        auto &el = (*lv)->elements[i];
+                        auto& el = (*lv)->elements[i];
                         if (auto s = std::get_if<StringValue>(&el)) {
                             out += s->value;
                             if (i != (*lv)->elements.size() - 1)
@@ -8632,7 +8634,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                 {RTError(
                                      "QC-B002: join() requires list of strings",
                                      get_pos(el)),
-                                 "Error"});
+                                    "Error"});
                         }
                     }
                     return StringValue(out).set_pos(sv->pos);
@@ -8641,15 +8643,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: join() requires (list, string)",
-                         get_pos(list_val)),
-                 "Error"});
+                     get_pos(list_val)),
+                    "Error"});
         }
         if (func_name == "contains") {
             if (node->arg_nodes.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-B001: contains() requires 2 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8667,15 +8669,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: contains() requires (string, string)",
-                         get_pos(str_val)),
-                 "Error"});
+                     get_pos(str_val)),
+                    "Error"});
         }
         if (func_name == "startswith") {
             if (node->arg_nodes.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-B001: startswith() requires 2 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8693,15 +8695,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: startswith() requires (string, string)",
-                         get_pos(str_val)),
-                 "Error"});
+                     get_pos(str_val)),
+                    "Error"});
         }
         if (func_name == "endswith") {
             if (node->arg_nodes.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-B001: endswith() requires 2 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8714,23 +8716,23 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 if (auto ss = std::get_if<StringValue>(&suffix_val)) {
                     bool res =
                         (sv->value.size() >= ss->value.size() &&
-                         sv->value.compare(sv->value.size() - ss->value.size(),
-                                           ss->value.size(), ss->value) == 0);
+                            sv->value.compare(sv->value.size() - ss->value.size(),
+                                ss->value.size(), ss->value) == 0);
                     return BoolValue(res ? "true" : "false").set_pos(sv->pos);
                 }
             }
 
             this->errors.push_back(
                 {RTError("QC-B002: endswith() requires (string, string)",
-                         get_pos(str_val)),
-                 "Error"});
+                     get_pos(str_val)),
+                    "Error"});
         }
         if (func_name == "trim") {
             if (node->arg_nodes.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-B001: trim() requires exactly 1 argument",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8752,15 +8754,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: trim() requires string argument",
-                         get_pos(val)),
-                 "Error"});
+                     get_pos(val)),
+                    "Error"});
         }
         if (func_name == "replace") {
             if (node->arg_nodes.size() != 3) {
                 this->errors.push_back(
                     {RTError("QC-B001: replace() requires 3 arguments",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
 
             auto it = node->arg_nodes.begin();
@@ -8790,8 +8792,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             this->errors.push_back(
                 {RTError("QC-B002: replace() requires (string, string, string)",
-                         get_pos(str_val)),
-                 "Error"});
+                     get_pos(str_val)),
+                    "Error"});
         }
         if (func_name == "malloc") {
             this->errors.push_back(
@@ -8800,19 +8802,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                          "compiler, and thus, will be worse in the "
                          "interpreter, such as "
                          "malloc in interpreter taking a string, not a number.",
-                         Position()),
-                 "warning"});
+                     Position()),
+                    "warning"});
             if (node->arg_nodes.size() != 1) {
                 throw RTError("QC-B001: malloc expects exactly 1 argument "
                               "(type name string)",
-                              Position());
+                    Position());
             }
 
             NumberVariant type_val = this->process(node->arg_nodes.front());
             auto sv = std::get_if<StringValue>(&type_val);
             if (!sv) {
                 throw RTError("QC-B002: malloc expects a string type name",
-                              get_pos(type_val));
+                    get_pos(type_val));
             }
 
             std::string type_name = sv->value;
@@ -8837,8 +8839,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                          "compiler, and thus, will be worse in the "
                          "interpreter, such as "
                          "malloc in interpreter taking a string, not a number.",
-                         Position()),
-                 "warning"});
+                     Position()),
+                    "warning"});
             if (node->arg_nodes.size() != 1) {
                 throw RTError(
                     "QC-B001: free expects exactly 1 argument (pointer)",
@@ -8850,7 +8852,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             auto ptr = std::get_if<PointerValue>(&ptr_val);
             if (!ptr) {
                 throw RTError("QC-B002: free expects a pointer argument",
-                              get_pos(ptr_val));
+                    get_pos(ptr_val));
             }
 
             if (ptr->is_null) {
@@ -8859,7 +8861,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             if (!ptr->is_heap) {
                 throw RTError("QC-M010: Cannot free stack-allocated memory",
-                              ptr->pos);
+                    ptr->pos);
             }
 
             context->heap_free(ptr->heap_id);
@@ -8873,8 +8875,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                          "compiler, and thus, will be worse in the "
                          "interpreter, such as "
                          "malloc in interpreter taking a string, not a number.",
-                         Position()),
-                 "warning"});
+                     Position()),
+                    "warning"});
             if (node->arg_nodes.size() != 2) {
                 throw RTError(
                     "QC-B001: calloc expects 2 arguments (count, type name)",
@@ -8887,7 +8889,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             NumberVariant type_val = this->process(*it);
 
             int count = std::visit(
-                [&](auto &&arg) -> int {
+                [&](auto&& arg) -> int {
                     using T = std::decay_t<decltype(arg)>;
                     if constexpr (std::is_same_v<T, Number<int>> ||
                                   std::is_same_v<T, Number<long long>> ||
@@ -8895,20 +8897,20 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         return (int)arg.value;
                     }
                     throw RTError("QC-B002: calloc count must be an integer",
-                                  get_pos(count_val));
+                        get_pos(count_val));
                 },
                 count_val);
 
             auto sv = std::get_if<StringValue>(&type_val);
             if (!sv) {
                 throw RTError("QC-B002: calloc type must be a string",
-                              get_pos(type_val));
+                    get_pos(type_val));
             }
             std::string type_name = sv->value;
 
             if (count <= 0) {
                 throw RTError("QC-B002: calloc count must be positive",
-                              get_pos(count_val));
+                    get_pos(count_val));
             }
 
             size_t sz = this->get_sizeof_type(type_name);
@@ -8939,8 +8941,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                          "compiler, and thus, will be worse in the "
                          "interpreter, such as "
                          "malloc in interpreter taking a string, not a number.",
-                         Position()),
-                 "warning"});
+                     Position()),
+                    "warning"});
             if (node->arg_nodes.size() != 2) {
                 throw RTError(
                     "QC-B001: realloc expects 2 arguments (ptr, new_size)",
@@ -8960,7 +8962,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             }
 
             int new_size = std::visit(
-                [&](auto &&arg) -> int {
+                [&](auto&& arg) -> int {
                     using T = std::decay_t<decltype(arg)>;
                     if constexpr (std::is_same_v<T, Number<int>> ||
                                   std::is_same_v<T, Number<long long>> ||
@@ -8968,13 +8970,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         return (int)arg.value;
                     }
                     throw RTError("QC-B002: realloc size must be an integer",
-                                  get_pos(size_val));
+                        get_pos(size_val));
                 },
                 size_val);
 
             if (new_size < 0) {
                 throw RTError("QC-B002: realloc size must be non-negative",
-                              get_pos(size_val));
+                    get_pos(size_val));
             }
 
             if (ptr->is_null) {
@@ -8990,13 +8992,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
             if (!ptr->is_heap) {
                 throw RTError("QC-B002: Cannot realloc stack-allocated memory",
-                              ptr->pos);
+                    ptr->pos);
             }
 
             if (!context->heap_valid(ptr->heap_id)) {
                 throw RTError("QC-B002: Cannot realloc freed memory", ptr->pos);
             }
-            NumberVariant &block = context->heap_get(ptr->heap_id);
+            NumberVariant& block = context->heap_get(ptr->heap_id);
             if (std::holds_alternative<std::shared_ptr<ArrayValue>>(block)) {
                 throw RTError(
                     "QC-B002: realloc not allowed on array blocks (use "
@@ -9014,7 +9016,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
         if (func_name == "ternary" && !node->arg_nodes.empty()) {
             if (!node->arg_nodes.size() != 3) {
                 throw RTError("QC-B001: ternary must be passed exactly 3 args",
-                              varacc->var_name_tok.pos);
+                    varacc->var_name_tok.pos);
             }
             auto it = std::next(node->arg_nodes.begin(), 1);
             NumberVariant is_tr = this->process(*it);
@@ -9026,24 +9028,24 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     varacc->var_name_tok.pos);
             }
             NumberVariant val = this->process(node->arg_nodes.front());
-            if (BoolValue *bo = std::get_if<BoolValue>(&val)) {
+            if (BoolValue* bo = std::get_if<BoolValue>(&val)) {
                 return (bo->value ? is_tr : is_fl);
             }
             throw RTError("QC-B002: ternary arg 1 type must be boolean",
-                          varacc->var_name_tok.pos);
+                varacc->var_name_tok.pos);
         }
         auto ut_it = context->user_types.find(func_name);
         if (ut_it != context->user_types.end() &&
             ut_it->second.kind == UserTypeKind::Class) {
 
-            UserTypeInfo &info = ut_it->second;
+            UserTypeInfo& info = ut_it->second;
             bool inside_constructor = false;
             std::shared_ptr<InstanceValue> existing_inst = nullptr;
             if (info.is_abstract_class) {
                 errors.push_back(
                     {RTError("QC-B002: Cannot construct abstract class",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return VoidValue();
             }
             try {
@@ -9061,8 +9063,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
 
                 if (child_ut != context->user_types.end() &&
                     child_ut->second.baseClassName == func_name) {
-                    ClassMethodInfo *ctor = nullptr;
-                    for (auto &m : info.classMethods) {
+                    ClassMethodInfo* ctor = nullptr;
+                    for (auto& m : info.classMethods) {
                         if (m.is_constructor) {
                             ctor = &m;
                             break;
@@ -9075,7 +9077,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     final_args.clear();
                     final_lvalues.clear();
 
-                    for (auto &arg : node->arg_nodes) {
+                    for (auto& arg : node->arg_nodes) {
                         if (auto spread =
                                 std::get_if<std::unique_ptr<SpreadNode>>(
                                     &arg)) {
@@ -9083,13 +9085,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             if (auto arr =
                                     std::get_if<std::shared_ptr<ArrayValue>>(
                                         &sv)) {
-                                for (auto &e : (*arr)->elements) {
+                                for (auto& e : (*arr)->elements) {
                                     final_args.push_back(e);
                                     final_lvalues.push_back("");
                                 }
                             } else if (auto lst = std::get_if<
                                            std::shared_ptr<ListValue>>(&sv)) {
-                                for (auto &e : (*lst)->elements) {
+                                for (auto& e : (*lst)->elements) {
                                     final_args.push_back(e);
                                     final_lvalues.push_back("");
                                 }
@@ -9097,8 +9099,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                 this->errors.push_back(
                                     {RTError("QC-I005: Spread target must be "
                                              "array or list",
-                                             get_pos(sv)),
-                                     "Error"});
+                                         get_pos(sv)),
+                                        "Error"});
                             }
                         } else {
                             if (auto varacc_ptr =
@@ -9123,8 +9125,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             {RTError("QC-C002: Too many arguments to parent "
                                      "constructor '" +
                                          func_name + "'",
-                                     Position()),
-                             "Error"});
+                                 Position()),
+                                "Error"});
                         return VoidValue();
                     }
 
@@ -9144,19 +9146,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                 {RTError("QC-C004: Missing argument to parent "
                                          "constructor '" +
                                              func_name + "'",
-                                         get_pos(value)),
-                                 "Error"});
+                                     get_pos(value)),
+                                    "Error"});
                             return VoidValue();
                         }
                         context->define(it_param->name.value,
-                                        it_param->type.value, value);
+                            it_param->type.value, value);
                     }
 
                     try {
-                        for (auto &stmt : ctor->body->statements) {
+                        for (auto& stmt : ctor->body->statements) {
                             this->process(stmt);
                         }
-                    } catch (ReturnException &) {
+                    } catch (ReturnException&) {
                     }
                     context->pop_scope();
 
@@ -9166,14 +9168,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             auto fields = make_instance_fields(func_name);
             auto inst =
                 std::make_shared<InstanceValue>(func_name, std::move(fields));
-            ClassMethodInfo *ctor = nullptr;
-            for (auto &m : info.classMethods) {
+            ClassMethodInfo* ctor = nullptr;
+            for (auto& m : info.classMethods) {
                 if (m.is_constructor) {
                     ctor = &m;
                     break;
                 }
             }
-            ClassMethodInfo *init_m =
+            ClassMethodInfo* init_m =
                 this->find_method_on_class(func_name, "init");
             if (!ctor) {
                 if (init_m) {
@@ -9185,20 +9187,20 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             final_args.clear();
             final_lvalues.clear();
 
-            for (auto &arg : node->arg_nodes) {
+            for (auto& arg : node->arg_nodes) {
                 if (auto spread =
                         std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
                     NumberVariant sv = this->process((*spread)->expr);
                     if (auto arr =
                             std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
-                        for (auto &e : (*arr)->elements) {
+                        for (auto& e : (*arr)->elements) {
                             final_args.push_back(e);
                             final_lvalues.push_back("");
                         }
                     } else if (auto lst =
                                    std::get_if<std::shared_ptr<ListValue>>(
                                        &sv)) {
-                        for (auto &e : (*lst)->elements) {
+                        for (auto& e : (*lst)->elements) {
                             final_args.push_back(e);
                             final_lvalues.push_back("");
                         }
@@ -9207,7 +9209,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                             {RTError(
                                  "QC-I005: Spread target must be array or list",
                                  get_pos(sv)),
-                             "Error"});
+                                "Error"});
                     }
                 } else {
                     if (auto varacc_ptr =
@@ -9232,8 +9234,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-C002: Too many arguments to constructor '" +
                                  func_name + "'",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
                 return inst;
             }
 
@@ -9251,19 +9253,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     this->errors.push_back(
                         {RTError("QC-C004: Missing argument to constructor '" +
                                      func_name + "'",
-                                 get_pos(value)),
-                         "Error"});
+                             get_pos(value)),
+                            "Error"});
                     return inst;
                 }
                 context->define(it_param->name.value, it_param->type.value,
-                                value);
+                    value);
             } // need do this for methods
 
             try {
-                for (auto &stmt : ctor->body->statements) {
+                for (auto& stmt : ctor->body->statements) {
                     this->process(stmt);
                 }
-            } catch (ReturnException &) {
+            } catch (ReturnException&) {
             }
             context->pop_scope();
 
@@ -9276,16 +9278,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                 target_val = FunctionValue(func->second);
             } else {
                 throw RTError("Undefined function: '" + func_name + "'",
-                              Position());
+                    Position());
             }
         } else {
             try {
                 target_val = context->get(func_name, varacc->var_name_tok.pos);
-            } catch (RTError &) {
+            } catch (RTError&) {
                 auto func = context->get_function(func_name);
                 if (!func)
                     throw RTError("Undefined function: '" + func_name + "'",
-                                  Position());
+                        Position());
                 target_val = FunctionValue(func);
             }
         }
@@ -9306,25 +9308,25 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
     final_args.clear();
     final_lvalues.clear();
 
-    for (auto &arg : node->arg_nodes) {
+    for (auto& arg : node->arg_nodes) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
             NumberVariant sv = this->process((*spread)->expr);
             if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&sv)) {
-                for (auto &e : (*arr)->elements) {
+                for (auto& e : (*arr)->elements) {
                     final_args.push_back(e);
                     final_lvalues.push_back("");
                 }
             } else if (auto lst =
                            std::get_if<std::shared_ptr<ListValue>>(&sv)) {
-                for (auto &e : (*lst)->elements) {
+                for (auto& e : (*lst)->elements) {
                     final_args.push_back(e);
                     final_lvalues.push_back("");
                 }
             } else {
                 this->errors.push_back(
                     {RTError("QC-I005: Spread target must be array or list",
-                             get_pos(sv)),
-                     "Error"});
+                         get_pos(sv)),
+                        "Error"});
             }
         } else {
             if (auto varacc_ptr =
@@ -9384,7 +9386,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-C003: Missing argument", Position()),
-                     "Error"});
+                        "Error"});
                 continue;
             }
 
@@ -9422,14 +9424,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                      it_param->name.value + "' of type " +
                                      base_expected + "& to '" + lvalue_name +
                                      "' of type " + actual_type,
-                                 it_param->name.pos),
-                         "Error"});
+                             it_param->name.pos),
+                            "Error"});
                     continue;
                 }
 
                 context->define_reference(it_param->name.value, lvalue_name,
-                                          base_expected + "&",
-                                          it_param->name.pos);
+                    base_expected + "&",
+                    it_param->name.pos);
                 continue;
             }
             bool types_compatible = false;
@@ -9459,7 +9461,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         if (last_colon == std::string::npos &&
                             !context->namespaceStack.empty()) {
                             std::string qualified;
-                            for (auto &ns : context->namespaceStack) {
+                            for (auto& ns : context->namespaceStack) {
                                 if (!qualified.empty())
                                     qualified += "::";
                                 qualified += ns;
@@ -9469,7 +9471,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                         }
                     }
                     if (ut_it == context->user_types.end()) {
-                        for (auto &[type_name, info] : context->user_types) {
+                        for (auto& [type_name, info] : context->user_types) {
                             if (type_name == expected_type ||
                                 type_name.rfind("::" + expected_type) !=
                                     std::string::npos) {
@@ -9482,13 +9484,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     if (ut_it != context->user_types.end() &&
                         ut_it->second.kind == UserTypeKind::Union) {
 
-                        auto &members = ut_it->second.members;
+                        auto& members = ut_it->second.members;
                         std::string valType = context->get_type_name(value);
                         bool ok = false;
 
-                        for (auto &m : members) {
+                        for (auto& m : members) {
                             if (value_matches_union_member(m.type, valType,
-                                                           value)) {
+                                    value)) {
                                 ok = true;
                                 break;
                             }
@@ -9502,7 +9504,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                                          " is not assignable to union type '" +
                                          expected_type + "'",
                                      Position()),
-                                 "Error"});
+                                    "Error"});
                         }
 
                         actual_type = expected_type;
@@ -9574,20 +9576,20 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
                     this->errors.push_back(
                         {RTError("Argument type mismatch: expected " +
                                      expected_type + ", got " + actual_type,
-                                 Position()),
-                         "Error"});
+                             Position()),
+                            "Error"});
                 }
 
                 context->define(it_param->name.value, expected_type, value);
             }
         }
-        for (auto &stmt : func->body->statements) {
+        for (auto& stmt : func->body->statements) {
             this->process(stmt);
         }
 
         if (func->return_types.size() > 1) {
             std::vector<NumberVariant> defaults;
-            for (auto &rt : func->return_types)
+            for (auto& rt : func->return_types)
                 defaults.push_back(def_value_for_type(rt.value));
             context->pop_scope();
             if (changed_namespace) {
@@ -9607,7 +9609,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
             }
             return VoidValue();
         }
-    } catch (ReturnException &re) {
+    } catch (ReturnException& re) {
         context->pop_scope();
         if (changed_namespace) {
             context->namespaceStack = saved_namespace_stack;
@@ -9629,7 +9631,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
         }
 
         return std::move(re.value);
-    } catch (MultiReturnException &mre) {
+    } catch (MultiReturnException& mre) {
         context->pop_scope();
         if (changed_namespace) {
             context->namespaceStack = saved_namespace_stack;
@@ -9647,10 +9649,10 @@ NumberVariant Interpreter::operator()(std::unique_ptr<CallNode> &node) {
     }
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode>& node) {
     NumberVariant last_result = Number<int>(0);
 
-    for (auto &stmt : node->statements) {
+    for (auto& stmt : node->statements) {
         ExecResult r = exec_stmt_in_loop_or_switch(stmt);
         last_result = std::move(r.value);
 
@@ -9661,7 +9663,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<StatementsNode> &node) {
     return std::move(last_result);
 }
 
-NumberVariant Interpreter::operator()(NumberNode &node) {
+NumberVariant Interpreter::operator()(NumberNode& node) {
     if (node.tok.type == TokenType::INT) {
         try {
             long long val = std::stoll(node.tok.value);
@@ -9694,38 +9696,38 @@ NumberVariant Interpreter::operator()(NumberNode &node) {
     return Number<int>(0);
 }
 
-NumberVariant Interpreter::operator()(std::unique_ptr<VarAccessNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<VarAccessNode>& node) {
     if (!node) {
         throw RTError("Interpreter got a null VarAccessNode", Position());
     }
     if (!context) {
         this->errors.push_back(
             {RTError("Context not initialized", node->var_name_tok.pos),
-             "Severe"});
+                "Severe"});
     }
 
     std::string name = node->var_name_tok.value;
 
     if (name.find("::") != std::string::npos) {
         for (auto it = context->frames.rbegin(); it != context->frames.rend();
-             ++it) {
+            ++it) {
             auto sym_it = it->find(name);
             if (sym_it != it->end()) {
                 return sym_it->second.value;
             }
         }
         throw RTError("QC-C001: Undefined variable: '" + name + "'",
-                      node->var_name_tok.pos);
+            node->var_name_tok.pos);
     }
 
     auto result = context->get(name, node->var_name_tok.pos);
     return result;
 }
 
-std::string Interpreter::run_statements(std::unique_ptr<StatementsNode> &node) {
+std::string Interpreter::run_statements(std::unique_ptr<StatementsNode>& node) {
     std::string output = "";
 
-    for (auto &stmt : node->statements) {
+    for (auto& stmt : node->statements) {
         ExecResult r = exec_stmt_in_loop_or_switch(stmt);
         auto result = std::move(r.value);
 
@@ -9764,16 +9766,16 @@ std::string ListValue::print() const {
     return result + "]";
 }
 NumberVariant Interpreter::call_instance_method(
-    const std::shared_ptr<InstanceValue> &inst, ClassMethodInfo *method,
-    std::vector<NumberVariant> args, const Position &pos) {
-    const std::string &className = inst->class_name;
-    const std::string &mname = method->name_tok.value;
+    const std::shared_ptr<InstanceValue>& inst, ClassMethodInfo* method,
+    std::vector<NumberVariant> args, const Position& pos) {
+    const std::string& className = inst->class_name;
+    const std::string& mname = method->name_tok.value;
     if (method->access == "private" && !in_class_context(className)) {
         this->errors.push_back(
             {RTError("Method '" + mname + "' of class '" + className +
                          "' is private and cannot be called here",
-                     pos),
-             "Error"});
+                 pos),
+                "Error"});
         return VoidValue();
     }
     if (method->access == "protected" &&
@@ -9781,8 +9783,8 @@ NumberVariant Interpreter::call_instance_method(
         this->errors.push_back(
             {RTError("Method '" + mname + "' of class '" + className +
                          "' is protected and cannot be called here",
-                     pos),
-             "Error"});
+                 pos),
+                "Error"});
         return VoidValue();
     }
 
@@ -9793,8 +9795,8 @@ NumberVariant Interpreter::call_instance_method(
         context->pop_scope();
         this->errors.push_back(
             {RTError("QC-C002: Too many arguments to method '" + mname + "'",
-                     pos),
-             "Error"});
+                 pos),
+                "Error"});
         return VoidValue();
     }
 
@@ -9812,8 +9814,8 @@ NumberVariant Interpreter::call_instance_method(
             this->errors.push_back(
                 {RTError("QC-C004: Missing argument " + it_param->name.value +
                              " for method '" + mname + "'",
-                         pos),
-                 "Error"});
+                     pos),
+                    "Error"});
             return VoidValue{};
         }
 
@@ -9844,7 +9846,7 @@ NumberVariant Interpreter::call_instance_method(
 
     try {
         NumberVariant last = Number<int>(0);
-        for (auto &stmt : method->body->statements) {
+        for (auto& stmt : method->body->statements) {
             last = this->process(stmt);
         }
 
@@ -9854,7 +9856,7 @@ NumberVariant Interpreter::call_instance_method(
                 return def_value_for_type(method->return_types[0].value);
             } else {
                 std::vector<NumberVariant> defaults;
-                for (auto &rt : method->return_types)
+                for (auto& rt : method->return_types)
                     defaults.push_back(def_value_for_type(rt.value));
                 context->pop_scope();
                 return std::make_shared<MultiValue>(std::move(defaults));
@@ -9863,10 +9865,10 @@ NumberVariant Interpreter::call_instance_method(
 
         context->pop_scope();
         return last;
-    } catch (ReturnException &re) {
+    } catch (ReturnException& re) {
         context->pop_scope();
         return std::move(re.value);
-    } catch (MultiReturnException &mre) {
+    } catch (MultiReturnException& mre) {
         context->pop_scope();
         return std::make_shared<MultiValue>(std::move(mre.values));
     } catch (...) {
@@ -9874,7 +9876,7 @@ NumberVariant Interpreter::call_instance_method(
         throw;
     }
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode>& node) {
     if (!node)
         return VoidValue();
     if (node->op_tok.type == TokenType::RSHIFT) {
@@ -9918,7 +9920,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                     } catch (...) {
                         this->errors.push_back(
                             {RTError("Cannot parse integer", node->op_tok.pos),
-                             "Error"});
+                                "Error"});
                     }
                 } else if (type == "float") {
                     try {
@@ -9926,7 +9928,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                     } catch (...) {
                         this->errors.push_back(
                             {RTError("Cannot parse float", node->op_tok.pos),
-                             "Error"});
+                                "Error"});
                     }
                 } else if (type == "double" || type == "long double") {
                     try {
@@ -9938,7 +9940,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                     } catch (...) {
                         this->errors.push_back(
                             {RTError("Cannot parse double", node->op_tok.pos),
-                             "Error"});
+                                "Error"});
                     }
                 } else if (type == "string") {
                     val = StringValue(input);
@@ -9951,8 +9953,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                 } else {
                     this->errors.push_back(
                         {RTError("Cannot read input into type " + type,
-                                 node->op_tok.pos),
-                         "Error"});
+                             node->op_tok.pos),
+                            "Error"});
                 }
 
                 context->set(var_name, val, node->op_tok.pos);
@@ -9961,7 +9963,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             return VoidValue();
         } else {
             auto to_size_t =
-                [](const NumberVariant &v) -> std::optional<size_t> {
+                [](const NumberVariant& v) -> std::optional<size_t> {
                 if (auto i = std::get_if<Number<int>>(&v))
                     return static_cast<size_t>(i->value);
                 if (auto l = std::get_if<Number<long long>>(&v))
@@ -9998,7 +10000,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         return VoidValue();
     }
     if (node->op_tok.type == TokenType::LSHIFT) {
-        auto to_size_t = [](const NumberVariant &v) -> std::optional<size_t> {
+        auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
             if (auto i = std::get_if<Number<int>>(&v))
                 return static_cast<size_t>(i->value);
             if (auto l = std::get_if<Number<long long>>(&v))
@@ -10029,12 +10031,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         } else {
             this->errors.push_back(
                 {RTError("Cannot perform << on non-int like", node->op_tok.pos),
-                 "error"});
+                    "error"});
         }
         return VoidValue();
     }
     if (node->op_tok.type == TokenType::LOGICAL_RSHIFT) {
-        auto to_size_t = [](const NumberVariant &v) -> std::optional<size_t> {
+        auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
             if (auto i = std::get_if<Number<int>>(&v))
                 return static_cast<size_t>(i->value);
             if (auto l = std::get_if<Number<long long>>(&v))
@@ -10056,7 +10058,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         }
 
         return std::visit(
-            [&, this](auto &&arg) -> NumberVariant {
+            [&, this](auto&& arg) -> NumberVariant {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>> ||
                               std::is_same_v<T, Number<long long>> ||
@@ -10075,7 +10077,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             left);
     }
     if (node->op_tok.type == TokenType::L_ROT) {
-        auto to_size_t = [](const NumberVariant &v) -> std::optional<size_t> {
+        auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
             if (auto i = std::get_if<Number<int>>(&v))
                 return static_cast<size_t>(i->value);
             if (auto l = std::get_if<Number<long long>>(&v))
@@ -10095,7 +10097,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             return VoidValue();
         }
         return std::visit(
-            [&, this](auto &&arg) -> NumberVariant {
+            [&, this](auto&& arg) -> NumberVariant {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>> ||
                               std::is_same_v<T, Number<long long>> ||
@@ -10115,7 +10117,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             left);
     }
     if (node->op_tok.type == TokenType::R_ROT) {
-        auto to_size_t = [](const NumberVariant &v) -> std::optional<size_t> {
+        auto to_size_t = [](const NumberVariant& v) -> std::optional<size_t> {
             if (auto i = std::get_if<Number<int>>(&v))
                 return static_cast<size_t>(i->value);
             if (auto l = std::get_if<Number<long long>>(&v))
@@ -10136,7 +10138,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             return VoidValue();
         }
         return std::visit(
-            [&, this](auto &&arg) -> NumberVariant {
+            [&, this](auto&& arg) -> NumberVariant {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>> ||
                               std::is_same_v<T, Number<long long>> ||
@@ -10176,41 +10178,41 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto lhs = std::get_if<Number<int>>(&left)) {
             if (auto rhs = std::get_if<Number<int>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<uintptr_t>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
         } else if (auto lhs = std::get_if<Number<uintptr_t>>(&left)) {
             if (auto rhs = std::get_if<Number<uintptr_t>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<int>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
         } else if (auto lhs = std::get_if<Number<long long>>(&left)) {
             if (auto rhs = std::get_if<Number<long long>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<uintptr_t>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
         } else if (auto lhs = std::get_if<Number<short>>(&left)) {
             if (auto rhs = std::get_if<Number<short>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<int>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<uintptr_t>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
             if (auto rhs = std::get_if<Number<long long>>(&right))
                 return perform_bit_op(lhs->value, rhs->value,
-                                      node->op_tok.type);
+                    node->op_tok.type);
         } else {
             this->errors.push_back(
                 {RTError("Cannot perform bitwise op on non-int like types",
-                         node->op_tok.pos)});
+                    node->op_tok.pos)});
         }
     }
     if (node->op_tok.type == TokenType::AND) {
@@ -10220,11 +10222,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10234,11 +10236,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10252,11 +10254,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator||", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10266,11 +10268,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator||", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10284,22 +10286,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator^", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator^", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10315,21 +10317,21 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&&&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&&&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10357,22 +10359,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator|||", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator|||", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10400,22 +10402,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator^^", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator^^", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10444,7 +10446,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             } else {
                 return QBoolValue(std::string("none"));
             }
-        } catch (const RTError &e) {
+        } catch (const RTError& e) {
             errors.push_back({e, "Error"});
             return QBoolValue(std::string("none"));
         }
@@ -10460,7 +10462,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
             } else {
                 return QBoolValue(std::string("none"));
             }
-        } catch (const RTError &e) {
+        } catch (const RTError& e) {
             errors.push_back({e, "Error"});
             return QBoolValue(std::string("both"));
         }
@@ -10473,22 +10475,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&|&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator&|&", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10511,22 +10513,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&left)) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator|&|", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
         if (auto inst_ptr =
                 std::get_if<std::shared_ptr<InstanceValue>>(&right)) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method = find_method_with_args(
+            ClassMethodInfo* method = find_method_with_args(
                 (*inst_ptr)->class_name, "operator|&|", args);
             if (method) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
 
@@ -10563,18 +10565,18 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         std::string mname = op_method_name(node->op_tok.type);
         if (!mname.empty()) {
             std::vector<NumberVariant> args = {right};
-            ClassMethodInfo *method =
+            ClassMethodInfo* method =
                 find_method_with_args((*inst_ptr)->class_name, mname, args);
             if (method != nullptr) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
         errors.push_back({RTError("QC-C005: No matching '" + mname +
                                       "' operator found for class '" +
                                       (*inst_ptr)->class_name + "'",
-                                  get_pos(left)),
-                          "Error"});
+                              get_pos(left)),
+            "Error"});
         return VoidValue();
     }
 
@@ -10582,23 +10584,23 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         std::string mname = op_method_name(node->op_tok.type);
         if (!mname.empty()) {
             std::vector<NumberVariant> args = {left};
-            ClassMethodInfo *method =
+            ClassMethodInfo* method =
                 find_method_with_args((*inst_ptr)->class_name, mname, args);
             if (method != nullptr) {
                 return call_instance_method(*inst_ptr, method, args,
-                                            node->op_tok.pos);
+                    node->op_tok.pos);
             }
         }
         errors.push_back({RTError("QC-C005: No matching '" + mname +
                                       "' operator found for class '" +
                                       (*inst_ptr)->class_name + "'",
-                                  get_pos(left)),
-                          "Error"});
+                              get_pos(left)),
+            "Error"});
         return VoidValue();
     }
     return std::visit(
-        [this, &node, right, left](const auto &L,
-                                   const auto &R) -> NumberVariant {
+        [this, &node, right, left](const auto& L,
+            const auto& R) -> NumberVariant {
             using T1 = std::decay_t<decltype(L)>;
             using T2 = std::decay_t<decltype(R)>;
 
@@ -10614,7 +10616,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                     return BoolValue(values_equal(left, right, node->op_tok.pos)
                                          ? "true"
                                          : "false");
-                } catch (RTError &e) {
+                } catch (RTError& e) {
                     return BoolValue("false");
                 }
             }
@@ -10623,7 +10625,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                     return BoolValue(
                         !values_equal(left, right, node->op_tok.pos) ? "true"
                                                                      : "false");
-                } catch (RTError &e) {
+                } catch (RTError& e) {
                     return BoolValue("false");
                 }
             }
@@ -10631,119 +10633,119 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
                           std::is_same_v<T2, StringValue>) {
                 if (node->op_tok.type == TokenType::PLUS) {
                     return std::move(StringValue(L.value + R.value)
-                                         .set_pos(node->op_tok.pos));
+                            .set_pos(node->op_tok.pos));
                 }
                 this->errors.push_back({RTError("QC-T005: Only '+' and logical "
                                                 "expresions are supported "
                                                 "for strings",
-                                                node->op_tok.pos),
-                                        "Error"});
+                                            node->op_tok.pos),
+                    "Error"});
             } else if constexpr (std::is_same_v<T1, StringValue> ^
                                  std::is_same_v<T2, StringValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform operations on string and "
                              "number",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, CharValue> ||
                                  std::is_same_v<T2, CharValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic on a Char",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, std::monostate> ||
                                  std::is_same_v<T2, std::monostate>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Operation on uninitialized value",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, BoolValue> ||
                                  std::is_same_v<T2, BoolValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic operations on "
                              "a Boolean",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, QBoolValue> ||
                                  std::is_same_v<T2, QBoolValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic "
                              "operations on a Quantum Boolean",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, FunctionValue> ||
                                  std::is_same_v<T2, FunctionValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic "
                              "operations on a Function",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, VoidValue> ||
                                  std::is_same_v<T2, VoidValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic operations on "
                              "nothing",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1,
-                                                std::shared_ptr<ArrayValue>> ||
+                                     std::shared_ptr<ArrayValue>> ||
                                  std::is_same_v<T2,
-                                                std::shared_ptr<ArrayValue>>) {
+                                     std::shared_ptr<ArrayValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic operations on "
                              "arrays",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1,
-                                                std::shared_ptr<ListValue>> ||
+                                     std::shared_ptr<ListValue>> ||
                                  std::is_same_v<T2,
-                                                std::shared_ptr<ListValue>>) {
+                                     std::shared_ptr<ListValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic operations on "
                              "lists",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1,
-                                                std::shared_ptr<MapValue>> ||
+                                     std::shared_ptr<MapValue>> ||
                                  std::is_same_v<T2,
-                                                std::shared_ptr<MapValue>>) {
+                                     std::shared_ptr<MapValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic "
                              "operations on a map/dict",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1,
-                                                std::shared_ptr<StructValue>> ||
+                                     std::shared_ptr<StructValue>> ||
                                  std::is_same_v<T2,
-                                                std::shared_ptr<StructValue>>) {
+                                     std::shared_ptr<StructValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic operations on "
                              "a Struct",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1,
-                                                std::shared_ptr<MultiValue>> ||
+                                     std::shared_ptr<MultiValue>> ||
                                  std::is_same_v<T2,
-                                                std::shared_ptr<MultiValue>>) {
+                                     std::shared_ptr<MultiValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic on "
                              "multi-return values",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<
                                      T1, std::shared_ptr<InstanceValue>> ||
                                  std::is_same_v<
                                      T2, std::shared_ptr<InstanceValue>>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic on classes",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else if constexpr (std::is_same_v<T1, PointerValue> ||
                                  std::is_same_v<T2, PointerValue>) {
                 this->errors.push_back(
                     {RTError("QC-T006: Cannot perform arithmetic on pointers",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             } else {
                 return std::move(
                     handle_binop(L, R, node->op_tok.type, this->error));
@@ -10753,7 +10755,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<BinOpNode> &node) {
         left, right);
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode>& node) {
 
     std::shared_ptr<MultiValue> mv;
 
@@ -10762,48 +10764,48 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MultiVarDeclNode> &node) {
         mv = std::get_if<std::shared_ptr<MultiValue>>(&result)
                  ? std::move(*std::get_if<std::shared_ptr<MultiValue>>(&result))
                  : nullptr;
-    } catch (MultiReturnException &mre) {
+    } catch (MultiReturnException& mre) {
         mv = std::make_shared<MultiValue>(std::move(mre.values));
     }
 
     if (!mv) {
         this->errors.push_back(
             {RTError("Expected multi-return value", node->var_names[0].pos),
-             "Error"});
+                "Error"});
     }
 
     if (mv->values.size() != node->var_names.size()) {
         this->errors.push_back(
             {RTError("Expected " + std::to_string(node->var_names.size()) +
                          " values, got " + std::to_string(mv->values.size()),
-                     node->var_names[0].pos),
-             "Error"});
+                 node->var_names[0].pos),
+                "Error"});
     }
 
     for (size_t i = 0; i < node->var_names.size(); i++) {
 
         context->define(node->var_names[i].value, node->type_toks[i].value,
-                        std::move(mv->values[i]), node->is_const);
+            std::move(mv->values[i]), node->is_const);
     }
 
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(CharNode &node) {
+NumberVariant Interpreter::operator()(CharNode& node) {
     CharValue cv(node.tok.value);
     return std::move(cv.set_pos(node.tok.pos));
 }
-NumberVariant Interpreter::operator()(BoolNode &node) {
+NumberVariant Interpreter::operator()(BoolNode& node) {
     return std::move(BoolValue(node.tok.value).set_pos(node.tok.pos));
 }
-NumberVariant Interpreter::operator()(QBoolNode &node) {
+NumberVariant Interpreter::operator()(QBoolNode& node) {
     auto qb = QBoolValue(node.tok.value);
     return std::move(qb.set_pos(node.tok.pos));
 }
-NumberVariant apply_numeric_binop(const NumberVariant &left,
-                                  const NumberVariant &right, TokenType op,
-                                  const Position &pos) {
+NumberVariant apply_numeric_binop(const NumberVariant& left,
+    const NumberVariant& right, TokenType op,
+    const Position& pos) {
     return std::visit(
-        [&](auto const &L, auto const &R) -> NumberVariant {
+        [&](auto const& L, auto const& R) -> NumberVariant {
             using TL = std::decay_t<decltype(L)>;
             using TR = std::decay_t<decltype(R)>;
             if constexpr (std::is_same_v<TL, Number<short>> ||
@@ -10825,7 +10827,7 @@ NumberVariant apply_numeric_binop(const NumberVariant &left,
                 } else {
                     throw RTError("QC-T002: Right side of compound assignment "
                                   "must be numeric",
-                                  pos);
+                        pos);
                 }
             } else {
                 throw RTError(
@@ -10835,14 +10837,14 @@ NumberVariant apply_numeric_binop(const NumberVariant &left,
         },
         left, right);
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode>& node) {
     if (!node)
         return Number<int>(0);
 
     TokenType op = node->op_tok.type;
-    AnyNode &target = node->target;
-    auto get_symbol_for_var = [this](const std::string &name,
-                                     const Position &pos) -> Symbol & {
+    AnyNode& target = node->target;
+    auto get_symbol_for_var = [this](const std::string& name,
+                                  const Position& pos) -> Symbol& {
         auto loc_opt = context->find_any_symbol(name);
         if (!loc_opt) {
             throw RTError("QC-C001: Undefined variable: '" + name + "'", pos);
@@ -10853,7 +10855,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
         if (t_fi >= context->frames.size()) {
             throw RTError("Dangling reference: invalid frame index", pos);
         }
-        auto &frame = context->frames[t_fi];
+        auto& frame = context->frames[t_fi];
         auto sym_it = frame.find(t_key);
         if (sym_it == frame.end()) {
             throw RTError(
@@ -10895,12 +10897,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
             auto pv = std::get_if<PointerValue>(&inner);
             if (!pv) {
                 throw RTError("Left-hand side '*...' is not a pointer",
-                              (*un)->op_tok.pos);
+                    (*un)->op_tok.pos);
             }
 
             if (pv->is_null) {
                 throw RTError("Dereference of null pointer in assignment",
-                              pv->pos);
+                    pv->pos);
             }
 
             if (pv->is_heap) {
@@ -10933,7 +10935,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
                     }
 
                     rhs = apply_numeric_binop(current, rightVal, binop_type,
-                                              get_pos(rightVal));
+                        get_pos(rightVal));
                 }
 
                 context->heap_get(pv->heap_id) = std::move(rhs);
@@ -10944,13 +10946,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
                 throw RTError("Dangling pointer (invalid frame)", pv->pos);
             }
 
-            auto &frame = context->frames[pv->frame_index];
+            auto& frame = context->frames[pv->frame_index];
             auto it = frame.find(pv->symbol_key);
             if (it == frame.end()) {
                 throw RTError("Dangling pointer (symbol not found)", pv->pos);
             }
 
-            Symbol &sym = it->second;
+            Symbol& sym = it->second;
             if (sym.is_const) {
                 throw RTError(
                     "QC-T001: Cannot assign through const pointer target '" +
@@ -10983,7 +10985,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
                 }
 
                 rhs = apply_numeric_binop(current, rightVal, binop_type,
-                                          get_pos(rightVal));
+                    get_pos(rightVal));
             }
 
             std::string expected = sym.declared_type;
@@ -10993,7 +10995,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
                 return sym.value;
             }
 
-            auto normalize_type = [](const std::string &t) {
+            auto normalize_type = [](const std::string& t) {
                 std::string type = t;
                 size_t pos = type.rfind("::");
                 type = (pos != std::string::npos) ? type.substr(pos + 2) : type;
@@ -11012,7 +11014,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
                 expected != actual) {
                 throw RTError("QC-T003: Type mismatch: cannot assign " +
                                   actual + " to " + expected,
-                              pv->pos);
+                    pv->pos);
             }
 
             sym.value = std::move(rhs);
@@ -11020,9 +11022,9 @@ NumberVariant Interpreter::operator()(std::unique_ptr<AssignExprNode> &node) {
         }
     }
     throw RTError("Invalid assignment target",
-                  get_pos(this->process(node->value)));
+        get_pos(this->process(node->value)));
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode>& node) {
     if (!node)
         return Number<int>(0);
     if (node->op_tok.type == TokenType::QNOT) {
@@ -11031,7 +11033,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&val)) {
             std::string mname = "operator!!";
             if (!mname.empty()) {
-                ClassMethodInfo *method =
+                ClassMethodInfo* method =
                     find_method_on_class((*inst_ptr)->class_name, mname);
                 if (method) {
                     NumberVariant result = call_instance_method(
@@ -11042,14 +11044,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
             }
         }
         return std::visit(
-            [&](auto &&n) -> NumberVariant {
+            [&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                     this->errors.push_back(
                         {RTError(
                              "Cannot use !! operator on multi-return values",
                              node->op_tok.pos),
-                         "Error"});
+                            "Error"});
                 } else {
                     if constexpr (std::is_same_v<T, QBoolValue>) {
                         if (n.valname == "both") {
@@ -11078,7 +11080,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
         if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&val)) {
             std::string mname = "operator!";
             if (!mname.empty()) {
-                ClassMethodInfo *method =
+                ClassMethodInfo* method =
                     find_method_on_class((*inst_ptr)->class_name, mname);
                 if (method) {
                     NumberVariant result = call_instance_method(
@@ -11089,13 +11091,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
             }
         }
         return std::visit(
-            [&](auto &&n) -> NumberVariant {
+            [&](auto&& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>) {
                     this->errors.push_back(
                         {RTError("Cannot use ! operator on multi-return values",
-                                 node->op_tok.pos),
-                         "Error"});
+                             node->op_tok.pos),
+                            "Error"});
                 } else {
                     return std::move(
                         BoolValue(is_truthy(n) ? "false" : "true"));
@@ -11107,7 +11109,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
     if (node->op_tok.type == TokenType::BITWISE_NOT) {
         NumberVariant operand = this->process(node->node);
         return std::visit(
-            [&](auto &&arg) -> NumberVariant {
+            [&](auto&& arg) -> NumberVariant {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>> ||
                               std::is_same_v<T, Number<uintptr_t>> ||
@@ -11125,12 +11127,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
     if (node->op_tok.type == TokenType::INCREMENT ||
         node->op_tok.type == TokenType::DECREMENT) {
 
-        auto *var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
+        auto* var = std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
         if (!var) {
             this->errors.push_back(
                 {RTError("Increment/decrement must target a variable",
-                         node->op_tok.pos),
-                 "Error"});
+                     node->op_tok.pos),
+                    "Error"});
             return VoidValue();
         }
 
@@ -11140,7 +11142,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
         NumberVariant old_val = std::move(context->get(name, pos));
 
         NumberVariant new_val = std::move(std::visit(
-            [&](auto &n) -> NumberVariant {
+            [&](auto& n) -> NumberVariant {
                 using T = std::decay_t<decltype(n)>;
                 if constexpr (!std::is_same_v<T, StringValue> &&
                               !std::is_same_v<T, CharValue> &&
@@ -11154,9 +11156,9 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
                               !std::is_same_v<T, std::shared_ptr<ListValue>> &&
                               !std::is_same_v<T, std::shared_ptr<MapValue>> &&
                               !std::is_same_v<T,
-                                              std::shared_ptr<StructValue>> &&
+                                  std::shared_ptr<StructValue>> &&
                               !std::is_same_v<T,
-                                              std::shared_ptr<InstanceValue>>) {
+                                  std::shared_ptr<InstanceValue>>) {
                     if (node->op_tok.type == TokenType::INCREMENT)
                         return std::move(n.added_to(Number<int>(1)));
                     else
@@ -11172,22 +11174,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
         return std::move(node->is_postfix ? old_val : new_val);
     }
     if (node->op_tok.type == TokenType::AMPERSAND) {
-        auto *var_ptr =
+        auto* var_ptr =
             std::get_if<std::unique_ptr<VarAccessNode>>(&node->node);
         if (!var_ptr) {
             throw RTError("Address-of '&' must target a variable (for now)",
-                          node->op_tok.pos);
+                node->op_tok.pos);
             return VoidValue();
         }
 
-        auto &var = *var_ptr;
+        auto& var = *var_ptr;
         std::string name = var->var_name_tok.value;
         Position pos = var->var_name_tok.pos;
         auto loc_opt = context->find_any_symbol(name);
         if (!loc_opt) {
             throw RTError("Cannot take address of undefined variable '" + name +
                               "'",
-                          pos);
+                pos);
         }
         auto [fi, key] = *loc_opt;
         auto [t_fi, t_key] = context->follow_ref_chain(fi, key, pos);
@@ -11197,7 +11199,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
                 "Dangling symbol when taking address of '" + name + "'", pos);
         }
 
-        auto &frame = context->frames[t_fi];
+        auto& frame = context->frames[t_fi];
         auto it = frame.find(t_key);
         if (it == frame.end()) {
             throw RTError(
@@ -11225,7 +11227,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
                 throw RTError("Dangling pointer (invalid frame)", pv->pos);
             }
 
-            auto &frame = context->frames[pv->frame_index];
+            auto& frame = context->frames[pv->frame_index];
             auto it = frame.find(pv->symbol_key);
             if (it == frame.end()) {
                 throw RTError("Dangling pointer (symbol not found)", pv->pos);
@@ -11236,7 +11238,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
 
         this->errors.push_back(
             {RTError("Unary '*' requires pointer value", node->op_tok.pos),
-             "Error"});
+                "Error"});
         return VoidValue();
     }
     if (node->op_tok.type == TokenType::SIZEOF) {
@@ -11252,14 +11254,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
         size_t size = get_sizeof_type(type);
         if (size == 0) {
             throw RTError("QC-B002: Unknown type: " + type,
-                          Position("", "", 0, 0, 0));
+                Position("", "", 0, 0, 0));
         }
         return Number<int>(size);
     }
     NumberVariant number = std::move(this->process(node->node));
 
     return std::move(std::visit(
-        [&node, this](const auto &n) -> NumberVariant {
+        [&node, this](const auto& n) -> NumberVariant {
             using T = std::decay_t<decltype(n)>;
 
             if constexpr (!std::is_same_v<T, StringValue> &&
@@ -11285,19 +11287,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<UnaryOpNode> &node) {
                     {RTError("Unary operator '" +
                                  get_token_name(node->op_tok.type) +
                                  "'not supported for this type",
-                             node->op_tok.pos),
-                     "Error"});
+                         node->op_tok.pos),
+                        "Error"});
             }
             return VoidValue();
         },
         number));
 }
 
-NumberVariant Interpreter::operator()(StringNode &node) {
+NumberVariant Interpreter::operator()(StringNode& node) {
     return std::move(StringValue(node.tok.value).set_pos(node.tok.pos));
 }
 NumberVariant Interpreter::operator()(std::monostate) { return VoidValue(); }
-NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -11322,12 +11324,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode> &node) {
         if (context->get_type_name(key) != keyType) {
             this->errors.push_back(
                 {RTError("Inconsistent key type in map literal", node->pos),
-                 "Error"});
+                    "Error"});
         }
         if (context->get_type_name(val) != valType) {
             this->errors.push_back(
                 {RTError("Inconsistent value type in map literal", node->pos),
-                 "Error"});
+                    "Error"});
         }
 
         map_val->set(this->value_to_string(key), std::move(val));
@@ -11335,7 +11337,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MapLiteralNode> &node) {
 
     return map_val;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<IfNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<IfNode>& node) {
     if (!node)
         return std::move(Number<int>(0));
 
@@ -11351,7 +11353,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<IfNode> &node) {
     NumberVariant cond_val = this->process(node->condition);
     if (is_truthy(cond_val)) {
         NumberVariant last = Number<int>(0);
-        for (auto &stmt : node->then_branch->statements) {
+        for (auto& stmt : node->then_branch->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
             if (r.did_break || r.did_continue) {
@@ -11361,11 +11363,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<IfNode> &node) {
         return std::move(last);
     }
 
-    for (auto &p : node->elif_branches) {
+    for (auto& p : node->elif_branches) {
         NumberVariant ev = this->process(p.first);
         if (is_truthy(ev)) {
             NumberVariant last = Number<int>(0);
-            for (auto &stmt : p.second->statements) {
+            for (auto& stmt : p.second->statements) {
                 ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
                 last = std::move(r.value);
                 if (r.did_break || r.did_continue) {
@@ -11378,7 +11380,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<IfNode> &node) {
 
     if (node->else_branch) {
         NumberVariant last = std::move(Number<int>(0));
-        for (auto &stmt : node->else_branch->statements) {
+        for (auto& stmt : node->else_branch->statements) {
             ExecResult r = this->exec_stmt_in_loop_or_switch(stmt);
             last = std::move(r.value);
             if (r.did_break || r.did_continue) {
@@ -11390,7 +11392,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<IfNode> &node) {
 
     return std::move(Number<int>(0));
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -11411,13 +11413,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode> &node) {
     NumberVariant last = Number<int>(0);
 
     if (should_run_true) {
-        for (auto &stmt : node->then_branch->statements) {
+        for (auto& stmt : node->then_branch->statements) {
             last = this->process(stmt);
         }
     }
 
     bool qelif_ran = false;
-    for (auto &[qelif_cond, qelif_body] : node->qelif_branches) {
+    for (auto& [qelif_cond, qelif_body] : node->qelif_branches) {
         NumberVariant qelif_val = this->process(qelif_cond);
 
         bool qelif_true = false;
@@ -11433,7 +11435,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode> &node) {
         }
 
         if (should_run_false && qelif_true) {
-            for (auto &stmt : qelif_body->statements) {
+            for (auto& stmt : qelif_body->statements) {
                 last = this->process(stmt);
             }
             qelif_ran = true;
@@ -11442,7 +11444,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode> &node) {
     }
 
     if (should_run_false && !qelif_ran && node->qelse_branch) {
-        for (auto &stmt : node->qelse_branch->statements) {
+        for (auto& stmt : node->qelse_branch->statements) {
             last = this->process(stmt);
         }
     }
@@ -11450,7 +11452,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<QIfNode> &node) {
     return last;
 }
 
-NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -11459,8 +11461,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode> &node) {
     if (!std::holds_alternative<std::shared_ptr<ArrayValue>>(init_value))
         this->errors.push_back(
             {RTError("Array must be initialized with array literal",
-                     node->var_name_tok.pos),
-             "Error"});
+                 node->var_name_tok.pos),
+                "Error"});
 
     auto array_val = std::get<std::shared_ptr<ArrayValue>>(init_value);
 
@@ -11471,7 +11473,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode> &node) {
                     {RTError(
                          "Declared array has more dimensions than initialized",
                          node->var_name_tok.pos),
-                     "Error"});
+                        "Error"});
             if (array_val->sizes()[i] != node->sizes[i].value())
                 this->errors.push_back(
                     {RTError("Array size mismatch on dimension " +
@@ -11479,8 +11481,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode> &node) {
                                  std::to_string(node->sizes[i].value()) +
                                  " but got " +
                                  std::to_string(array_val->sizes()[i]),
-                             node->var_name_tok.pos),
-                     "Error"});
+                         node->var_name_tok.pos),
+                        "Error"});
         }
     }
 
@@ -11489,11 +11491,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayDeclNode> &node) {
         array_type += "[]";
 
     context->define(node->var_name_tok.value, array_type, init_value,
-                    node->is_const);
+        node->is_const);
     return VoidValue();
 }
 
-NumberVariant Interpreter::operator()(std::unique_ptr<ListDeclNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ListDeclNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -11507,7 +11509,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ListDeclNode> &node) {
 
         std::string list_type = "list<" + strip(node->type_tok.value) + ">";
         context->define(node->var_name_tok.value, list_type, list_val,
-                        node->is_const);
+            node->is_const);
         return VoidValue();
     }
 
@@ -11516,49 +11518,49 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ListDeclNode> &node) {
         std::string list_type = "list<" + strip(node->type_tok.value) + ">";
         list_val->element_type = strip(node->type_tok.value);
         context->define(node->var_name_tok.value, list_type, list_val,
-                        node->is_const);
+            node->is_const);
         return VoidValue();
     }
 
     this->errors.push_back(
         {RTError("List must be initialized with array literal or another list",
-                 node->var_name_tok.pos),
-         "Error"});
+             node->var_name_tok.pos),
+            "Error"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<SpreadNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<SpreadNode>& node) {
     if (!node)
         return Number<int>(0);
     this->errors.push_back(
         {RTError("SpreadNode evaluated outside of a valid context", Position()),
-         "Error"});
+            "Error"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode>& node) {
     if (!node)
         return Number<int>(0);
 
     std::vector<NumberVariant> elements;
     std::string element_type;
 
-    for (auto &elem : node->elements) {
+    for (auto& elem : node->elements) {
         if (auto spread_ptr = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
             NumberVariant spread_val = this->process((*spread_ptr)->expr);
 
             if (auto arr =
                     std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
-                for (auto &arr_elem : (*arr)->elements) {
+                for (auto& arr_elem : (*arr)->elements) {
                     elements.push_back(arr_elem);
                 }
             } else if (auto list = std::get_if<std::shared_ptr<ListValue>>(
                            &spread_val)) {
-                for (auto &list_elem : (*list)->elements) {
+                for (auto& list_elem : (*list)->elements) {
                     elements.push_back(list_elem);
                 }
             } else {
                 this->errors.push_back(
                     {RTError("Cannot spread non-array type", Position()),
-                     "Error"});
+                        "Error"});
             }
         } else {
             elements.push_back(this->process(elem));
@@ -11571,7 +11573,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayLiteralNode> &node) {
     return std::make_shared<ArrayValue>(element_type, std::move(elements));
 }
 
-NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -11582,7 +11584,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
         if (node->indices.size() != 1) {
             this->errors.push_back(
                 {RTError("Map access requires exactly one key", Position()),
-                 "Error"});
+                    "Error"});
         }
 
         NumberVariant key = this->process(node->indices[0]);
@@ -11594,19 +11596,19 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
         if (!ptr->is_heap) {
             this->errors.push_back(
                 {RTError("QC-I003: Cannot index non-heap pointer", ptr->pos),
-                 "Error"});
+                    "Error"});
             return Number<int>(0);
         }
         if (node->indices.size() != 1) {
             this->errors.push_back(
                 {RTError("QC-I003: Pointer indexing supports exactly one index",
-                         Position()),
-                 "Error"});
+                     Position()),
+                    "Error"});
             return Number<int>(0);
         }
         NumberVariant index_val = this->process(node->indices[0]);
         int index = std::visit(
-            [&](auto &&arg) -> int {
+            [&](auto&& arg) -> int {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>>)
                     return arg.value;
@@ -11626,20 +11628,20 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
             },
             index_val);
 
-        NumberVariant &block = context->heap_get(ptr->heap_id);
+        NumberVariant& block = context->heap_get(ptr->heap_id);
         auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&block);
         if (!arr) {
             this->errors.push_back(
                 {RTError("QC-I003: Pointer does not reference an array block",
-                         ptr->pos),
-                 "Error"});
+                     ptr->pos),
+                    "Error"});
             return Number<int>(0);
         }
 
         if (index < 0 || (size_t)index >= (*arr)->elements.size()) {
             throw RTError("QC-I001: Array index out of bounds: " +
                               std::to_string(index),
-                          Position());
+                Position());
         }
 
         return (*arr)->elements[index];
@@ -11652,7 +11654,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
 
         this->errors.push_back(
             {RTError("QC-I003: Cannot index non-array/list type", Position()),
-             "Error"});
+                "Error"});
     }
     std::shared_ptr<ArrayValue> current_array;
     std::shared_ptr<ListValue> current_list;
@@ -11665,7 +11667,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
     for (size_t dim = 0; dim < node->indices.size(); ++dim) {
         NumberVariant index_val = this->process(node->indices[dim]);
         int index = std::visit(
-            [&](auto &&arg) -> int {
+            [&](auto&& arg) -> int {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>>)
                     return arg.value;
@@ -11689,7 +11691,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
             if (index < 0 || (size_t)index >= current_array->size())
                 throw RTError("QC-I001: Array index out of bounds: " +
                                   std::to_string(index),
-                              Position());
+                    Position());
             NumberVariant next = current_array->elements[index];
 
             if (dim == node->indices.size() - 1)
@@ -11706,14 +11708,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-I003: Cannot index inside non-array/list",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
         } else if (current_list) {
             if (index < 0 || (size_t)index >= current_list->elements.size())
                 throw RTError("QC-I002: List index out of bounds: " +
                                   std::to_string(index),
-                              Position());
+                    Position());
             NumberVariant next = current_list->elements[index];
 
             if (dim == node->indices.size() - 1)
@@ -11730,24 +11732,24 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAccessNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("QC-I003: Cannot index inside non-array/list",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
         } else {
             this->errors.push_back(
                 {RTError("Internal error: lost array/list during indexing",
-                         Position()),
-                 "Error"});
+                     Position()),
+                    "Error"});
         }
     }
 
     return Number<int>(0);
 }
-bool Interpreter::in_class_or_derived_context(const std::string &baseName) {
+bool Interpreter::in_class_or_derived_context(const std::string& baseName) {
     NumberVariant this_val;
     try {
         this_val = context->get("this", Position());
-    } catch (RTError &) {
+    } catch (RTError&) {
         return false;
     }
 
@@ -11770,31 +11772,31 @@ bool Interpreter::in_class_or_derived_context(const std::string &baseName) {
     }
     return false;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode>& node) {
     if (!node)
         return Number<int>(0);
 
     NumberVariant obj = this->process(node->base);
     std::vector<NumberVariant> final_args;
 
-    for (auto &arg : node->args) {
+    for (auto& arg : node->args) {
 
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&arg)) {
             NumberVariant spread_val = this->process((*spread)->expr);
 
             if (auto arr =
                     std::get_if<std::shared_ptr<ArrayValue>>(&spread_val)) {
-                for (auto &elem : (*arr)->elements)
+                for (auto& elem : (*arr)->elements)
                     final_args.push_back(elem);
             } else if (auto list = std::get_if<std::shared_ptr<ListValue>>(
                            &spread_val)) {
-                for (auto &elem : (*list)->elements)
+                for (auto& elem : (*list)->elements)
                     final_args.push_back(elem);
             } else {
                 this->errors.push_back(
                     {RTError("QC-I005: Spread target must be array or list",
-                             Position()),
-                     "Error"});
+                         Position()),
+                        "Error"});
             }
         } else {
             final_args.push_back(this->process(arg));
@@ -11802,15 +11804,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
     }
     if (auto inst_ptr = std::get_if<std::shared_ptr<InstanceValue>>(&obj)) {
         auto inst = *inst_ptr;
-        const std::string &className = inst->class_name;
-        const std::string &mname = node->method_name.value;
+        const std::string& className = inst->class_name;
+        const std::string& mname = node->method_name.value;
         if (mname == "has") {
             if (node->args.size() != 1) {
                 this->errors.push_back(
                     {RTError(
                          "QC-BM01: class.has() expects 1 argument (field name)",
                          node->method_name.pos),
-                     "Error"});
+                        "Error"});
                 return BoolValue("false");
             }
 
@@ -11818,8 +11820,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (!std::holds_alternative<StringValue>(arg)) {
                 this->errors.push_back(
                     {RTError("QC-BM02: class.has() argument must be a string",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
                 return BoolValue("false");
             }
 
@@ -11833,8 +11835,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-BM01: class.has_method() expects 1 argument "
                              "(method name)",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
                 return BoolValue("false");
             }
 
@@ -11842,8 +11844,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (!std::holds_alternative<StringValue>(arg)) {
                 this->errors.push_back({RTError("QC-BM02: class.has_method() "
                                                 "argument must be a string",
-                                                node->method_name.pos),
-                                        "Error"});
+                                            node->method_name.pos),
+                    "Error"});
                 return BoolValue("false");
             }
 
@@ -11854,7 +11856,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
                 return BoolValue("false");
             }
 
-            for (auto &m : ut_it->second.classMethods) {
+            for (auto& m : ut_it->second.classMethods) {
                 if (m.name_tok.value == method) {
                     return BoolValue("true");
                 }
@@ -11862,27 +11864,27 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
 
             return BoolValue("false");
         }
-        ClassMethodInfo *method =
+        ClassMethodInfo* method =
             find_method_with_args(className, mname, final_args);
         if (!method) {
             this->errors.push_back(
                 {RTError("QC-M001: Class '" + className +
                              "' has no method or no matching overload for'" +
                              mname + "'",
-                         node->method_name.pos),
-                 "Error"});
+                     node->method_name.pos),
+                    "Error"});
             return VoidValue{};
         }
         return call_instance_method(inst, method, std::move(final_args),
-                                    node->method_name.pos);
+            node->method_name.pos);
     }
     if (auto sv = std::get_if<std::shared_ptr<StructValue>>(&obj)) {
         if (node->method_name.value == "has") {
             if (node->args.size() != 1) {
                 this->errors.push_back({RTError("QC-BM01: struct.has() expects "
                                                 "1 argument (field name)",
-                                                node->method_name.pos),
-                                        "Error"});
+                                            node->method_name.pos),
+                    "Error"});
                 return BoolValue("false");
             }
 
@@ -11890,8 +11892,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (!std::holds_alternative<StringValue>(arg)) {
                 this->errors.push_back(
                     {RTError("QC-BM02: struct.has() argument must be a string",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
                 return BoolValue("false");
             }
 
@@ -11907,8 +11909,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-BM01: push() requires exactly 1 argument",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             NumberVariant val = final_args[0];
             std::string name = context->get_type_name(val);
@@ -11917,16 +11919,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-BM02: cannot push a " + name +
                                  " to a list of type " + list->element_type,
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             } else if (name != strip(list->element_type) &&
                        name.find("list<") == std::string::npos &&
                        name.find("[]") == std::string::npos) {
                 this->errors.push_back(
                     {RTError("QC-BM02: (loose) cannot push a " + name +
                                  " to a list of type " + list->element_type,
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             list->push(std::move(val));
             return VoidValue();
@@ -11936,16 +11938,16 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 0) {
                 this->errors.push_back(
                     {RTError("QC-BM01: pop() takes no arguments",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             return list->pop();
         }
 
         this->errors.push_back(
             {RTError("QC-M001: Unknown method: " + node->method_name.value,
-                     node->method_name.pos),
-             "Error"});
+                 node->method_name.pos),
+                "Error"});
     }
     if (auto map_ptr = std::get_if<std::shared_ptr<MapValue>>(&obj)) {
         auto map = *map_ptr;
@@ -11954,8 +11956,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 2) {
                 this->errors.push_back(
                     {RTError("QC-BM01: set() requires 2 arguments (key, value)",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             NumberVariant key = this->process(node->args[0]);
             NumberVariant val = this->process(node->args[1]);
@@ -11969,8 +11971,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-BM01: remove() requires 1 argument (key)",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             NumberVariant key = this->process(node->args[0]);
             std::string key_str = this->value_to_string(key);
@@ -11983,8 +11985,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 1) {
                 this->errors.push_back(
                     {RTError("QC-BM01: has() requires 1 argument (key)",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
             NumberVariant key = this->process(node->args[0]);
             std::string key_str = this->value_to_string(key);
@@ -11996,31 +11998,31 @@ NumberVariant Interpreter::operator()(std::unique_ptr<MethodCallNode> &node) {
             if (node->args.size() != 0) {
                 this->errors.push_back(
                     {RTError("QC-BM01: keys() takes no arguments",
-                             node->method_name.pos),
-                     "Error"});
+                         node->method_name.pos),
+                        "Error"});
             }
 
             auto keys = map->keys();
             std::vector<NumberVariant> key_variants;
-            for (auto &key : keys) {
+            for (auto& key : keys) {
                 key_variants.push_back(StringValue(key));
             }
 
             return std::make_shared<ArrayValue>("string",
-                                                std::move(key_variants));
+                std::move(key_variants));
         }
 
         this->errors.push_back(
             {RTError("QC-BM04: Unknown map method: " + node->method_name.value,
-                     node->method_name.pos),
-             "Error"});
+                 node->method_name.pos),
+                "Error"});
     }
     this->errors.push_back({RTError("QC-BM05: Object does not support methods",
-                                    node->method_name.pos),
-                            "Error"});
+                                node->method_name.pos),
+        "Error"});
     return VoidValue();
 }
-NumberVariant make_value_from_type_atom(const std::string &atom) {
+NumberVariant make_value_from_type_atom(const std::string& atom) {
     if (atom.rfind("int:", 0) == 0) {
         return Number<int>(std::stoi(atom.substr(4)));
     }
@@ -12060,27 +12062,27 @@ NumberVariant make_value_from_type_atom(const std::string &atom) {
 
     return VoidValue();
 }
-bool Interpreter::in_class_context(const std::string &class_name) {
+bool Interpreter::in_class_context(const std::string& class_name) {
     try {
         NumberVariant this_val = context->get("this", Position());
         if (auto inst =
                 std::get_if<std::shared_ptr<InstanceValue>>(&this_val)) {
             return (*inst)->class_name == class_name;
         }
-    } catch (RTError &z) {
+    } catch (RTError& z) {
         this->errors.push_back({z, "Error"});
     }
     return false;
 }
-bool Interpreter::field_exists_on_class(const std::string &className,
-                                        const std::string &fieldName) {
+bool Interpreter::field_exists_on_class(const std::string& className,
+    const std::string& fieldName) {
     auto it = context->user_types.find(className);
     if (it == context->user_types.end())
         return false;
 
-    UserTypeInfo *cur = &it->second;
+    UserTypeInfo* cur = &it->second;
     while (cur) {
-        for (auto &f : cur->classFields) {
+        for (auto& f : cur->classFields) {
             if (f.name == fieldName)
                 return true;
         }
@@ -12095,20 +12097,20 @@ bool Interpreter::field_exists_on_class(const std::string &className,
     return false;
 }
 NumberVariant
-Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
+Interpreter::operator()(std::shared_ptr<PropertyAccessNode>& node) {
     if (!node)
         return Number<int>(0);
     if (!node->base_name_tok.value.empty()) {
         if (auto varAcc =
                 std::get_if<std::unique_ptr<VarAccessNode>>(&(*node->base))) {
-            const std::string &baseName = (*varAcc)->var_name_tok.value;
-            const std::string &memberName = node->property_name.value;
+            const std::string& baseName = (*varAcc)->var_name_tok.value;
+            const std::string& memberName = node->property_name.value;
 
             auto ut_it = context->user_types.find(baseName);
             if (ut_it != context->user_types.end()) {
-                UserTypeInfo &ut = ut_it->second;
+                UserTypeInfo& ut = ut_it->second;
                 if (!ut.enumEntries.empty()) {
-                    for (auto &e : ut.enumEntries) {
+                    for (auto& e : ut.enumEntries) {
                         if (e.memberName == memberName) {
                             return make_value_from_type_atom(e.typeAtom);
                         }
@@ -12116,14 +12118,14 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                     this->errors.push_back(
                         {RTError("QC-F001: Enum '" + baseName +
                                      "' has no member '" + memberName + "'",
-                                 node->property_name.pos),
-                         "Error"});
+                             node->property_name.pos),
+                            "Error"});
                 }
             }
         }
     }
     NumberVariant obj = this->process(*(node->base));
-    const std::string &name = node->property_name.value;
+    const std::string& name = node->property_name.value;
 
     while (true) {
 
@@ -12133,8 +12135,8 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-F001: Unknown field '" + name +
                                  "' on struct '" + (*s)->type_name + "'",
-                             node->property_name.pos),
-                     "Error"});
+                         node->property_name.pos),
+                        "Error"});
             }
             obj = it->second;
             break;
@@ -12146,7 +12148,7 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
             if (it != context->user_types.end() &&
                 it->second.kind == UserTypeKind::Struct) {
 
-                const auto &fields = it->second.fields;
+                const auto& fields = it->second.fields;
                 size_t idx = SIZE_MAX;
                 for (size_t i = 0; i < fields.size(); ++i) {
                     if (fields[i].name == name) {
@@ -12158,8 +12160,8 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                     this->errors.push_back(
                         {RTError("QC-F001: Unknown field '" + name +
                                      "' on struct '" + struct_type + "'",
-                                 node->property_name.pos),
-                         "Error"});
+                             node->property_name.pos),
+                            "Error"});
                 }
                 obj = (*arr)->elements[idx];
                 break;
@@ -12179,14 +12181,14 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                 return Number<int>((*map)->size());
         }
         if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&obj)) {
-            const std::string &className = (*inst)->class_name;
+            const std::string& className = (*inst)->class_name;
 
             if (!field_exists_on_class(className, name)) {
                 this->errors.push_back(
                     {RTError("QC-F001: Unknown field '" + name +
                                  "' on class '" + className + "'",
-                             node->property_name.pos),
-                     "Error"});
+                         node->property_name.pos),
+                        "Error"});
                 return VoidValue{};
             }
 
@@ -12195,8 +12197,8 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                 this->errors.push_back(
                     {RTError("QC-X001: Internal error: field '" + name +
                                  "' missing on instance of '" + className + "'",
-                             node->property_name.pos),
-                     "Severe"});
+                         node->property_name.pos),
+                        "Severe"});
                 return VoidValue{};
             }
 
@@ -12204,10 +12206,10 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
             if (ut_it != context->user_types.end() &&
                 ut_it->second.kind == UserTypeKind::Class) {
 
-                const auto &info = ut_it->second;
+                const auto& info = ut_it->second;
                 std::string access = "public";
 
-                for (auto &f : info.classFields) {
+                for (auto& f : info.classFields) {
                     if (f.name == name) {
                         access = f.access;
                         break;
@@ -12221,8 +12223,8 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                                          "' of class '" + className + "' is " +
                                          access +
                                          " and cannot be accessed here",
-                                     node->property_name.pos),
-                             "Error"});
+                                 node->property_name.pos),
+                                "Error"});
                         return VoidValue{};
                     }
                 }
@@ -12233,8 +12235,8 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
                                          "' of class '" + className + "' is " +
                                          access +
                                          " and cannot be accessed here",
-                                     node->property_name.pos),
-                             "Error"});
+                                 node->property_name.pos),
+                                "Error"});
                         return VoidValue{};
                     }
                 }
@@ -12244,19 +12246,19 @@ Interpreter::operator()(std::shared_ptr<PropertyAccessNode> &node) {
             break;
         }
         this->errors.push_back({RTError("QC-F002: Unknown property: " + name,
-                                        node->property_name.pos),
-                                "Error"});
+                                    node->property_name.pos),
+            "Error"});
     }
 
     return obj;
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode>& node) {
     if (!node)
         return Number<int>(0);
 
     NumberVariant coll_val = this->process(node->collection);
 
-    std::vector<NumberVariant> *elements = nullptr;
+    std::vector<NumberVariant>* elements = nullptr;
 
     if (auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&coll_val)) {
         elements = &((*arr)->elements);
@@ -12265,13 +12267,13 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode> &node) {
     } else {
         this->errors.push_back(
             {RTError("foreach requires an array or list", node->elem_name.pos),
-             "Error"});
+                "Error"});
     }
 
     NumberVariant last = Number<int>(0);
-    for (auto &elem : *elements) {
+    for (auto& elem : *elements) {
         context->define(node->elem_name.value, node->elem_type.value, elem,
-                        false);
+            false);
         ExecResult r = this->exec_stmt_in_loop_or_switch(node->body);
         last = std::move(r.value);
 
@@ -12287,11 +12289,11 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ForeachNode> &node) {
 
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode>& node) {
     if (!node)
         return Number<int>(0);
 
-    auto &arr_access =
+    auto& arr_access =
         std::get<std::unique_ptr<ArrayAccessNode>>(node->array_access);
     NumberVariant base = this->process(arr_access->base);
     NumberVariant val = this->process(node->value);
@@ -12302,7 +12304,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
         if (arr_access->indices.size() != 1) {
             this->errors.push_back(
                 {RTError("Map access requires exactly one key", Position()),
-                 "Error"});
+                    "Error"});
         }
 
         NumberVariant key = this->process(arr_access->indices[0]);
@@ -12314,22 +12316,22 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
         if (!ptr->is_heap) {
             this->errors.push_back({RTError("QC-B002: cannot assign through "
                                             "non-heap pointer in interpreter",
-                                            ptr->pos),
-                                    "Error"});
+                                        ptr->pos),
+                "Error"});
             return VoidValue();
         }
 
         if (arr_access->indices.size() != 1) {
             this->errors.push_back(
                 {RTError("QC-B002: pointer indexing supports exactly one index",
-                         Position()),
-                 "Error"});
+                     Position()),
+                    "Error"});
             return VoidValue();
         }
 
         NumberVariant idx_val = this->process(arr_access->indices[0]);
         int index = std::visit(
-            [&](auto &&arg) -> int {
+            [&](auto&& arg) -> int {
                 using T = std::decay_t<decltype(arg)>;
                 if constexpr (std::is_same_v<T, Number<int>> ||
                               std::is_same_v<T, Number<long long>> ||
@@ -12338,25 +12340,25 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
                 }
                 this->errors.push_back(
                     {RTError("Array index must be an integer", Position()),
-                     "Error"});
+                        "Error"});
                 return 0;
             },
             idx_val);
 
-        NumberVariant &block = context->heap_get(ptr->heap_id);
+        NumberVariant& block = context->heap_get(ptr->heap_id);
         auto arr = std::get_if<std::shared_ptr<ArrayValue>>(&block);
         if (!arr) {
             this->errors.push_back(
                 {RTError("QC-B002: pointer does not reference an array block",
-                         ptr->pos),
-                 "Error"});
+                     ptr->pos),
+                    "Error"});
             return VoidValue();
         }
 
         if (index < 0 || (size_t)index >= (*arr)->elements.size()) {
             this->errors.push_back(
                 {RTError("QC-I001: Array index out of bounds", Position()),
-                 "Error"});
+                    "Error"});
             return VoidValue();
         }
 
@@ -12382,14 +12384,14 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
             } else {
                 this->errors.push_back(
                     {RTError("Array index must be an integer", Position()),
-                     "Error"});
+                        "Error"});
             }
         }
 
         if (flat_index < 0 || flat_index >= arr->elements.size()) {
             this->errors.push_back(
                 {RTError("QC-I001: Array index out of bounds", Position()),
-                 "Error"});
+                    "Error"});
         }
 
         arr->elements[flat_index] = std::move(val);
@@ -12402,7 +12404,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
         if (arr_access->indices.size() != 1) {
             this->errors.push_back(
                 {RTError("List access requires exactly one index", Position()),
-                 "Error"});
+                    "Error"});
         }
 
         NumberVariant idx_val = this->process(arr_access->indices[0]);
@@ -12413,7 +12415,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
             if (idx < 0 || idx >= list->elements.size()) {
                 this->errors.push_back(
                     {RTError("QC-I002: List index out of bounds", Position()),
-                     "Error"});
+                        "Error"});
             }
 
             list->elements[idx] = std::move(val);
@@ -12421,7 +12423,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
         } else {
             this->errors.push_back(
                 {RTError("List index must be an integer", Position()),
-                 "Error"});
+                    "Error"});
         }
     }
 
@@ -12429,7 +12431,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<ArrayAssignNode> &node) {
         {RTError("Cannot assign to this type", Position()), "Error"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -12446,7 +12448,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode> &node) {
 
         this->errors.push_back(
             {RTError("random(max) requires integer argument", Position()),
-             "Error"});
+                "Error"});
     } else if (node->args.size() == 2) {
         NumberVariant min_val = this->process(node->args[0]);
         NumberVariant max_val = this->process(node->args[1]);
@@ -12461,7 +12463,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode> &node) {
 
         this->errors.push_back(
             {RTError("random(min, max) requires integer arguments", Position()),
-             "Error"});
+                "Error"});
     }
 
     this->errors.push_back(
@@ -12469,7 +12471,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<RandomCallNode> &node) {
     return VoidValue();
 }
 
-NumberVariant Interpreter::operator()(std::unique_ptr<SeedCallNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<SeedCallNode>& node) {
     if (!node)
         return Number<int>(0);
 
@@ -12484,32 +12486,32 @@ NumberVariant Interpreter::operator()(std::unique_ptr<SeedCallNode> &node) {
         {RTError("seed() requires integer argument", Position()), "Error"});
     return VoidValue();
 }
-NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
+NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode>& node) {
     if (!node)
         return VoidValue();
 
     NumberVariant base_val = this->process(node->base);
-    const std::string &fieldName = node->field_name.value;
+    const std::string& fieldName = node->field_name.value;
     if (auto inst = std::get_if<std::shared_ptr<InstanceValue>>(&base_val)) {
-        const std::string &className = (*inst)->class_name;
+        const std::string& className = (*inst)->class_name;
         const std::string fieldName = node->field_name.value;
 
         auto ut_it = context->user_types.find(className);
         if (ut_it == context->user_types.end() ||
             ut_it->second.kind != UserTypeKind::Class) {
             this->errors.push_back({RTError("Unknown class '" + className + "'",
-                                            node->field_name.pos),
-                                    "Severe"});
+                                        node->field_name.pos),
+                "Severe"});
             return VoidValue{};
         }
 
-        UserTypeInfo *cur = &ut_it->second;
+        UserTypeInfo* cur = &ut_it->second;
         bool found = false;
         std::string access = "public";
         std::string targetFieldType = "";
 
         while (cur) {
-            for (auto &f : cur->classFields) {
+            for (auto& f : cur->classFields) {
                 if (f.name == fieldName) {
                     found = true;
                     access = f.access;
@@ -12533,8 +12535,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
             this->errors.push_back(
                 {RTError("Unknown field '" + fieldName + "' in class '" +
                              className + "'",
-                         node->field_name.pos),
-                 "Error"});
+                     node->field_name.pos),
+                    "Error"});
             return VoidValue{};
         }
 
@@ -12544,8 +12546,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
                     {RTError("Field '" + fieldName + "' of class '" +
                                  className + "' is " + access +
                                  " and cannot be assigned here",
-                             node->field_name.pos),
-                     "Error"});
+                         node->field_name.pos),
+                        "Error"});
                 return VoidValue{};
             }
         }
@@ -12555,8 +12557,8 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
                     {RTError("Field '" + fieldName + "' of class '" +
                                  className + "' is " + access +
                                  " and cannot be assigned here",
-                             node->field_name.pos),
-                     "Error"});
+                         node->field_name.pos),
+                        "Error"});
                 return VoidValue{};
             }
         }
@@ -12567,12 +12569,12 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
         return rightVal;
     }
     if (auto s = std::get_if<std::shared_ptr<StructValue>>(&base_val)) {
-        const std::string &structName = (*s)->type_name;
+        const std::string& structName = (*s)->type_name;
         std::string targetFieldType = "";
 
         auto ut_it = context->user_types.find(structName);
         if (ut_it != context->user_types.end()) {
-            for (auto &f : ut_it->second.fields) {
+            for (auto& f : ut_it->second.fields) {
                 if (f.name == fieldName) {
                     targetFieldType = f.type;
                     break;
@@ -12584,7 +12586,7 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
                 std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node->value)) {
             if (targetFieldType.find("list<") == 0) {
                 std::vector<NumberVariant> evaluatedElements;
-                for (auto &elementNode : (*arrLit)->elements) {
+                for (auto& elementNode : (*arrLit)->elements) {
                     evaluatedElements.push_back(this->process(elementNode));
                 }
                 std::string innerType = getElementType(targetFieldType);
@@ -12600,15 +12602,15 @@ NumberVariant Interpreter::operator()(std::unique_ptr<FieldAssignNode> &node) {
     }
     this->errors.push_back(
         {RTError("Expected struct or class instance on left side of '.'",
-                 node->field_name.pos),
-         "Error"});
+             node->field_name.pos),
+            "Error"});
     return VoidValue();
 }
 //////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////
 #ifdef ENABLE_LLVM
-llvm::Type *LLVMCompiler::llvmTypeFor(const std::string &qcType) {
+llvm::Type* LLVMCompiler::llvmTypeFor(const std::string& qcType) {
     std::string type = resolveType(qcType);
     type = resolveTypeName(type);
     type = resolveType(type);
@@ -12669,7 +12671,7 @@ llvm::Type *LLVMCompiler::llvmTypeFor(const std::string &qcType) {
     }
     return builder->getInt32Ty();
 }
-std::string LLVMCompiler::resolveType(const std::string &typeName) {
+std::string LLVMCompiler::resolveType(const std::string& typeName) {
     auto it = typeAliases.find(typeName);
     if (it != typeAliases.end()) {
         return resolveType(it->second);
@@ -12677,27 +12679,27 @@ std::string LLVMCompiler::resolveType(const std::string &typeName) {
     return typeName;
 }
 void LLVMCompiler::createUserTypes() {
-    auto getFullName = [](const std::string &name, const UserTypeInfo &info) {
+    auto getFullName = [](const std::string& name, const UserTypeInfo& info) {
         if (info.namespace_path.empty()) {
             return name;
         }
         return info.namespace_path + "::" + name;
     };
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Enum) {
             size_t lastColon = mapKey.rfind("::");
             std::string actualName = (lastColon == std::string::npos)
                                          ? mapKey
                                          : mapKey.substr(lastColon + 2);
 
-            std::vector<llvm::Type *> fields = {
+            std::vector<llvm::Type*> fields = {
                 builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
 
-            llvm::StructType *enumTy =
+            llvm::StructType* enumTy =
                 llvm::StructType::create(context, fields, mapKey);
             enumTypes[mapKey] = enumTy;
             for (size_t i = 0; i < info.enumEntries.size(); i++) {
-                auto &entry = info.enumEntries[i];
+                auto& entry = info.enumEntries[i];
                 std::string fullName = mapKey + "." + entry.memberName;
 
                 size_t colonPos = entry.typeAtom.find(':');
@@ -12708,21 +12710,21 @@ void LLVMCompiler::createUserTypes() {
             }
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
-            llvm::StructType *structTy =
+            llvm::StructType* structTy =
                 llvm::StructType::create(context, mapKey);
             structTypes[mapKey] = structTy;
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Class) {
-            llvm::StructType *classTy =
+            llvm::StructType* classTy =
                 llvm::StructType::create(context, mapKey);
             classTypes[mapKey] = classTy;
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Class) {
             if (!info.baseClassName.empty()) {
                 auto base_it = userTypes.find(info.baseClassName);
@@ -12733,21 +12735,21 @@ void LLVMCompiler::createUserTypes() {
                     continue;
                 }
             }
-            std::vector<llvm::Type *> fieldTypes;
+            std::vector<llvm::Type*> fieldTypes;
 
-            std::function<void(const std::string &)> collectFields =
-                [&](const std::string &className) {
+            std::function<void(const std::string&)> collectFields =
+                [&](const std::string& className) {
                     auto it = userTypes.find(className);
                     if (it == userTypes.end()) {
                         throw std::runtime_error("Class not found: " +
                                                  className);
                     }
-                    auto &classInfo = it->second;
+                    auto& classInfo = it->second;
 
                     if (!classInfo.baseClassName.empty()) {
                         std::string baseFullName = classInfo.baseClassName;
                         if (baseFullName.find("::") == std::string::npos) {
-                            for (auto &[key, info] : userTypes) {
+                            for (auto& [key, info] : userTypes) {
                                 if (key.find(baseFullName) !=
                                         std::string::npos &&
                                     info.kind == UserTypeKind::Class) {
@@ -12760,7 +12762,7 @@ void LLVMCompiler::createUserTypes() {
                         collectFields(baseFullName);
                     }
 
-                    for (auto &field : classInfo.classFields) {
+                    for (auto& field : classInfo.classFields) {
                         fieldTypes.push_back(llvmTypeFor(field.type));
                     }
                 };
@@ -12774,76 +12776,76 @@ void LLVMCompiler::createUserTypes() {
             classTypes[mapKey]->setBody(fieldTypes);
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind != UserTypeKind::Class)
             continue;
         if (!info.baseClassName.empty()) {
             auto base_it = userTypes.find(info.baseClassName);
             if (base_it != userTypes.end()) {
-                auto &baseInfo = base_it->second;
-                for (auto &method : info.classMethods) {
-                    for (auto &baseMethod : baseInfo.classMethods) {
+                auto& baseInfo = base_it->second;
+                for (auto& method : info.classMethods) {
+                    for (auto& baseMethod : baseInfo.classMethods) {
                         if (baseMethod.name_tok.value ==
                                 method.name_tok.value &&
                             baseMethod.is_final) {
                             cg_error(method.name_tok.pos,
-                                     "Cannot override final method '" +
-                                         baseMethod.name_tok.value +
-                                         "' from base class '" +
-                                         info.baseClassName + "'");
+                                "Cannot override final method '" +
+                                    baseMethod.name_tok.value +
+                                    "' from base class '" +
+                                    info.baseClassName + "'");
                         }
                     }
                 }
             }
         }
-        llvm::StructType *classTy = classTypes[mapKey];
+        llvm::StructType* classTy = classTypes[mapKey];
 
-        for (auto &method : info.classMethods) {
+        for (auto& method : info.classMethods) {
             if (method.is_constructor && info.is_abstract_class) {
                 cg_error(method.name_tok.pos,
-                         "Cannot make a constructor on a abstract class.");
+                    "Cannot make a constructor on a abstract class.");
                 continue;
             }
             std::string methodName = mapKey + "_" + method.name_tok.value;
-            std::vector<llvm::Type *> paramTypes;
+            std::vector<llvm::Type*> paramTypes;
             paramTypes.push_back(llvm::PointerType::get(context, 0));
-            llvm::FunctionType *baseFuncTy =
+            llvm::FunctionType* baseFuncTy =
                 llvmFuncTypeFor(method.return_types, method.params);
-            for (auto *paramTy : baseFuncTy->params()) {
+            for (auto* paramTy : baseFuncTy->params()) {
                 paramTypes.push_back(paramTy);
             }
-            llvm::FunctionType *fnTy = llvm::FunctionType::get(
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 baseFuncTy->getReturnType(), paramTypes, false);
-            llvm::Function *fn =
+            llvm::Function* fn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       methodName, module.get());
+                    methodName, module.get());
 
             classMethods[mapKey][method.name_tok.value].push_back(fn);
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
-            std::vector<llvm::Type *> fieldTypes;
+            std::vector<llvm::Type*> fieldTypes;
 
-            for (auto &field : info.fields) {
-                llvm::Type *ty = llvmTypeFor(field.type);
+            for (auto& field : info.fields) {
+                llvm::Type* ty = llvmTypeFor(field.type);
                 fieldTypes.push_back(ty);
             }
 
             structTypes[mapKey]->setBody(fieldTypes);
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Union) {
-            std::vector<llvm::Type *> fields = {
+            std::vector<llvm::Type*> fields = {
                 builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
 
-            llvm::StructType *unionTy =
+            llvm::StructType* unionTy =
                 llvm::StructType::create(context, fields, mapKey);
             unionTypes[mapKey] = unionTy;
         }
     }
-    for (auto &[mapKey, info] : userTypes) {
+    for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Alias) {
             typeAliases[mapKey] = info.aliasTarget;
         }
@@ -12851,7 +12853,7 @@ void LLVMCompiler::createUserTypes() {
 
     generateStructReprFunctions();
 }
-ParamTypeInfo toTypeInfo(const Parameter &p) {
+ParamTypeInfo toTypeInfo(const Parameter& p) {
     ParamTypeInfo out;
 
     out.type = p.type;
@@ -12862,7 +12864,7 @@ ParamTypeInfo toTypeInfo(const Parameter &p) {
         sig.return_types = p.signature->return_types;
 
         sig.params.reserve(p.signature->params.size());
-        for (const auto &sub : p.signature->params) {
+        for (const auto& sub : p.signature->params) {
             sig.params.push_back(toTypeInfo(sub));
         }
 
@@ -12871,12 +12873,12 @@ ParamTypeInfo toTypeInfo(const Parameter &p) {
 
     return out;
 }
-llvm::FunctionType *
-LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
-                                    const std::vector<ParamTypeInfo> &params) {
-    std::vector<llvm::Type *> paramTypes;
+llvm::FunctionType*
+LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>& returnTypes,
+    const std::vector<ParamTypeInfo>& params) {
+    std::vector<llvm::Type*> paramTypes;
     bool is_c_varargs = false;
-    for (auto &p : params) {
+    for (auto& p : params) {
         if (p.signature.has_value()) {
             paramTypes.push_back(llvm::PointerType::getUnqual(context));
         } else {
@@ -12897,7 +12899,7 @@ LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
     }
 
     if (returnTypes.size() == 1) {
-        llvm::Type *retTy = llvmTypeFor(returnTypes[0].value);
+        llvm::Type* retTy = llvmTypeFor(returnTypes[0].value);
 
         if (retTy->isArrayTy()) {
             retTy = llvm::PointerType::get(context, 0);
@@ -12906,145 +12908,145 @@ LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token> &returnTypes,
         return llvm::FunctionType::get(retTy, paramTypes, is_c_varargs);
     }
 
-    std::vector<llvm::Type *> retTypes;
-    for (auto &rt : returnTypes) {
-        llvm::Type *ty = llvmTypeFor(rt.value);
+    std::vector<llvm::Type*> retTypes;
+    for (auto& rt : returnTypes) {
+        llvm::Type* ty = llvmTypeFor(rt.value);
         if (ty->isArrayTy()) {
             ty = llvm::PointerType::get(context, 0);
         }
 
         retTypes.push_back(ty);
     }
-    llvm::StructType *structTy = llvm::StructType::get(context, retTypes);
+    llvm::StructType* structTy = llvm::StructType::get(context, retTypes);
     return llvm::FunctionType::get(structTy, paramTypes, is_c_varargs);
 }
-llvm::FunctionType *
-LLVMCompiler::llvmFuncTypeFor(const std::vector<Token> &returnTypes,
-                              const std::list<Parameter> &params) {
+llvm::FunctionType*
+LLVMCompiler::llvmFuncTypeFor(const std::vector<Token>& returnTypes,
+    const std::list<Parameter>& params) {
     std::vector<ParamTypeInfo> converted;
 
-    for (const auto &p : params) {
+    for (const auto& p : params) {
         converted.push_back(toTypeInfo(p));
     }
 
     return llvmFuncTypeForHelper(returnTypes, converted);
 }
-llvm::FunctionType *
-LLVMCompiler::llvmFuncTypeFor(const std::vector<Token> &returnTypes,
-                              const std::vector<Parameter> &params) {
+llvm::FunctionType*
+LLVMCompiler::llvmFuncTypeFor(const std::vector<Token>& returnTypes,
+    const std::vector<Parameter>& params) {
     std::vector<ParamTypeInfo> converted;
 
-    for (const auto &p : params) {
+    for (const auto& p : params) {
         converted.push_back(toTypeInfo(p));
     }
 
     return llvmFuncTypeForHelper(returnTypes, converted);
 }
-void LLVMCompiler::cg_error(const Position &pos, const std::string &msg) {
+void LLVMCompiler::cg_error(const Position& pos, const std::string& msg) {
     errors.emplace_back(msg, pos);
 }
-llvm::Value *LLVMCompiler::createJaggedArray(AnyNode &literalNode,
-                                             int elemTypeCode, int depth) {
+llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
+    int elemTypeCode, int depth) {
     auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&literalNode);
     if (!arrLit)
         return nullptr;
     if (depth == 0) {
         int rowSize = (*arrLit)->elements.size();
 
-        llvm::Function *createRowFn = module->getFunction("qc_create_leaf_row");
+        llvm::Function* createRowFn = module->getFunction("qc_create_leaf_row");
         if (!createRowFn) {
-            llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy = llvm::FunctionType::get(
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 voidPtrTy, {builder->getInt32Ty(), builder->getInt32Ty()},
                 false);
             createRowFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_create_leaf_row", module.get());
+                    "qc_create_leaf_row", module.get());
         }
 
-        llvm::Value *row = builder->CreateCall(
+        llvm::Value* row = builder->CreateCall(
             createRowFn,
             {builder->getInt32(rowSize), builder->getInt32(elemTypeCode)},
             "leaf_row");
 
-        llvm::Function *setLeafFn = module->getFunction("qc_set_leaf_element");
+        llvm::Function* setLeafFn = module->getFunction("qc_set_leaf_element");
         if (!setLeafFn) {
-            llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy =
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy =
                 llvm::FunctionType::get(builder->getVoidTy(),
-                                        {voidPtrTy, builder->getInt32Ty(),
-                                         voidPtrTy, builder->getInt32Ty()},
-                                        false);
+                    {voidPtrTy, builder->getInt32Ty(),
+                        voidPtrTy, builder->getInt32Ty()},
+                    false);
             setLeafFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_set_leaf_element", module.get());
+                    "qc_set_leaf_element", module.get());
         }
 
         for (size_t j = 0; j < (*arrLit)->elements.size(); j++) {
-            llvm::Value *elemVal = emitExpr((*arrLit)->elements[j]);
+            llvm::Value* elemVal = emitExpr((*arrLit)->elements[j]);
             if (!elemVal)
                 continue;
 
-            llvm::AllocaInst *tempAlloc =
+            llvm::AllocaInst* tempAlloc =
                 createEntryAlloca("temp_elem", elemVal->getType());
             builder->CreateStore(elemVal, tempAlloc);
 
-            llvm::Value *elemPtr = builder->CreateBitCast(
+            llvm::Value* elemPtr = builder->CreateBitCast(
                 tempAlloc, llvm::PointerType::get(context, 0));
 
             builder->CreateCall(setLeafFn, {row, builder->getInt32(j), elemPtr,
-                                            builder->getInt32(elemTypeCode)});
+                                               builder->getInt32(elemTypeCode)});
         }
 
         return row;
     }
-    llvm::Function *createFn = module->getFunction("qc_create_jagged_array");
+    llvm::Function* createFn = module->getFunction("qc_create_jagged_array");
     if (!createFn) {
-        llvm::Type *jaggedPtrTy = llvm::PointerType::get(context, 0);
-        llvm::FunctionType *fnTy = llvm::FunctionType::get(
+        llvm::Type* jaggedPtrTy = llvm::PointerType::get(context, 0);
+        llvm::FunctionType* fnTy = llvm::FunctionType::get(
             jaggedPtrTy,
             {builder->getInt32Ty(), builder->getInt32Ty(),
-             builder->getInt32Ty()},
+                builder->getInt32Ty()},
             false);
         createFn =
             llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                   "qc_create_jagged_array", module.get());
+                "qc_create_jagged_array", module.get());
     }
 
     int count = (*arrLit)->elements.size();
-    llvm::Value *jaggedArr = builder->CreateCall(
+    llvm::Value* jaggedArr = builder->CreateCall(
         createFn,
         {builder->getInt32(count), builder->getInt32(elemTypeCode),
-         builder->getInt32(depth)},
+            builder->getInt32(depth)},
         "jagged_arr");
 
-    llvm::Function *setFn = module->getFunction("qc_set_jagged_element");
+    llvm::Function* setFn = module->getFunction("qc_set_jagged_element");
     if (!setFn) {
-        llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-        llvm::FunctionType *fnTy =
+        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+        llvm::FunctionType* fnTy =
             llvm::FunctionType::get(builder->getVoidTy(),
-                                    {voidPtrTy, builder->getInt32Ty(),
-                                     voidPtrTy, builder->getInt32Ty()},
-                                    false);
+                {voidPtrTy, builder->getInt32Ty(),
+                    voidPtrTy, builder->getInt32Ty()},
+                false);
         setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_set_jagged_element", module.get());
+            "qc_set_jagged_element", module.get());
     }
 
     for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
         if (auto subLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                 &(*arrLit)->elements[i])) {
-            llvm::Value *subArr = createJaggedArray((*arrLit)->elements[i],
-                                                    elemTypeCode, depth - 1);
+            llvm::Value* subArr = createJaggedArray((*arrLit)->elements[i],
+                elemTypeCode, depth - 1);
             int subSize = (*subLit)->elements.size();
 
             builder->CreateCall(setFn, {jaggedArr, builder->getInt32(i), subArr,
-                                        builder->getInt32(subSize)});
+                                           builder->getInt32(subSize)});
         }
     }
 
     return jaggedArr;
 }
-LLVMCompiler::LLVMCompiler(std::unordered_map<std::string, UserTypeInfo> &types)
+LLVMCompiler::LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types)
     : userTypes(types) {
     module = std::make_unique<llvm::Module>("qc_module", context);
     builder = std::make_unique<llvm::IRBuilder<>>(context);
@@ -13070,14 +13072,14 @@ void LLVMCompiler::addRuntimeToModule() {
         errors.emplace_back("Failed to link runtime module", Position());
     }
 }
-llvm::Value *LLVMCompiler::boolToQBool(llvm::Value *boolVal) {
-    llvm::Value *ext = builder->CreateZExt(boolVal, builder->getInt8Ty());
-    llvm::Value *tripled = builder->CreateMul(ext, builder->getInt8(3));
+llvm::Value* LLVMCompiler::boolToQBool(llvm::Value* boolVal) {
+    llvm::Value* ext = builder->CreateZExt(boolVal, builder->getInt8Ty());
+    llvm::Value* tripled = builder->CreateMul(ext, builder->getInt8(3));
     return builder->CreateTrunc(tripled, builder->getIntNTy(2));
 }
-llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
+llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
     if (auto num = std::get_if<NumberNode>(&node)) {
-        const std::string &text = num->tok.value;
+        const std::string& text = num->tok.value;
 
         switch (num->tok.type) {
         case TokenType::INT: {
@@ -13091,7 +13093,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::ADDR_T: {
             unsigned long long v = std::stoull(text);
             return llvm::ConstantInt::get(builder->getContext(),
-                                          llvm::APInt(getPtrSize(), v));
+                llvm::APInt(getPtrSize(), v));
         }
         case TokenType::FLOAT: {
             std::string t = text;
@@ -13103,7 +13105,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::DOUBLE: {
             long double v = std::stold(text);
             return llvm::ConstantFP::get(builder->getDoubleTy(),
-                                         static_cast<double>(v));
+                static_cast<double>(v));
         }
         default:
             int v = std::stoi(text);
@@ -13127,25 +13129,25 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             value = 0b11;
         } else {
             cg_error(qbool->tok.pos,
-                     "Invalid qbool value: " + qbool->tok.value);
+                "Invalid qbool value: " + qbool->tok.value);
             return nullptr;
         }
         return llvm::ConstantInt::get(builder->getIntNTy(2), value);
     } else if (auto str = std::get_if<StringNode>(&node)) {
-        llvm::Constant *strConstant =
+        llvm::Constant* strConstant =
             llvm::ConstantDataArray::getString(context, str->tok.value, true);
 
-        llvm::GlobalVariable *globalStr = new llvm::GlobalVariable(
+        llvm::GlobalVariable* globalStr = new llvm::GlobalVariable(
             *module, strConstant->getType(), true,
             llvm::GlobalValue::PrivateLinkage, strConstant, ".str");
-        std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                              builder->getInt32(0)};
+        std::vector<llvm::Value*> indices = {builder->getInt32(0),
+            builder->getInt32(0)};
         return builder->CreateInBoundsGEP(strConstant->getType(), globalStr,
-                                          indices, "str");
+            indices, "str");
     } else if (auto bin = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
         TokenType op = (*bin)->op_tok.type;
         if (op == TokenType::RSHIFT) {
-            llvm::Value *leftResult = nullptr;
+            llvm::Value* leftResult = nullptr;
             if (startsWithQIn((*bin)->left_node)) {
                 if (auto leftBin = std::get_if<std::unique_ptr<BinOpNode>>(
                         &(*bin)->left_node)) {
@@ -13155,37 +13157,37 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         leftResult = emitExpr((*bin)->left_node);
                     }
                 }
-                llvm::Function *qinFn = module->getFunction("qc_qin");
+                llvm::Function* qinFn = module->getFunction("qc_qin");
                 if (!qinFn) {
-                    auto *fnTy = llvm::FunctionType::get(
+                    auto* fnTy = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0), {}, false);
                     qinFn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage, "qc_qin",
                         module.get());
                 }
 
-                llvm::Value *input =
+                llvm::Value* input =
                     builder->CreateCall(qinFn, {}, "qin_input");
 
                 if (auto varAccess =
                         std::get_if<std::unique_ptr<VarAccessNode>>(
                             &(*bin)->right_node)) {
                     std::string varName = (*varAccess)->var_name_tok.value;
-                    llvm::Value *alloc = getVarAddress(varName);
+                    llvm::Value* alloc = getVarAddress(varName);
                     if (!alloc) {
                         cg_error(Position(),
-                                 "qin: variable not declared: " + varName);
+                            "qin: variable not declared: " + varName);
                         return nullptr;
                     }
 
-                    llvm::Type *varTy = getPointeeType(varName);
-                    llvm::Value *converted = input;
+                    llvm::Type* varTy = getPointeeType(varName);
+                    llvm::Value* converted = input;
 
                     if (varTy->isIntegerTy(32)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_int_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt32Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13194,10 +13196,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(16)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_short_int_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt16Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13206,10 +13208,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(64)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_long_int_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt64Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13218,10 +13220,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isFloatTy()) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_float_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getFloatTy(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13230,10 +13232,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isDoubleTy()) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_double_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getDoubleTy(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13242,10 +13244,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(8)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_char_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt8Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13254,10 +13256,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(1)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_bool_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13266,10 +13268,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
                         converted = builder->CreateCall(fn, {input});
                     } else if (varTy->isIntegerTy(2)) {
-                        llvm::Function *fn =
+                        llvm::Function* fn =
                             module->getFunction("qc_to_qbool_from_string");
                         if (!fn) {
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getIntNTy(2),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
@@ -13288,19 +13290,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 return nullptr;
             }
         }
-        llvm::Value *L = emitExpr((*bin)->left_node);
-        llvm::Value *R = emitExpr((*bin)->right_node);
+        llvm::Value* L = emitExpr((*bin)->left_node);
+        llvm::Value* R = emitExpr((*bin)->right_node);
         if (!L || !R)
             return nullptr;
-        llvm::Type *lty = L->getType();
-        llvm::Type *rty = R->getType();
+        llvm::Type* lty = L->getType();
+        llvm::Type* rty = R->getType();
         if (lty->isPointerTy()) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                     &(*bin)->left_node)) {
                 std::string varName = (*varAccess)->var_name_tok.value;
-                llvm::Value *alloc = getVarAddress(varName);
+                llvm::Value* alloc = getVarAddress(varName);
                 if (alloc) {
-                    llvm::Type *allocTy = getPointeeType(varName);
+                    llvm::Type* allocTy = getPointeeType(varName);
 
                     if (auto structTy =
                             llvm::dyn_cast<llvm::StructType>(allocTy)) {
@@ -13313,13 +13315,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     getOperatorMethodName((*bin)->op_tok.type);
 
                                 if (!opMethodName.empty()) {
-                                    std::vector<llvm::Value *> args = {R};
-                                    llvm::Function *opMethod =
+                                    std::vector<llvm::Value*> args = {R};
+                                    llvm::Function* opMethod =
                                         findMethodOverload(className,
-                                                           opMethodName, args);
+                                            opMethodName, args);
 
                                     if (opMethod) {
-                                        std::vector<llvm::Value *> allArgs = {
+                                        std::vector<llvm::Value*> allArgs = {
                                             L, R};
                                         return builder->CreateCall(
                                             opMethod, allArgs, "op_result");
@@ -13335,8 +13337,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         bool isNe = (*bin)->op_tok.type == TokenType::NOT_EQ;
 
         if (isEq || isNe) {
-            llvm::Type *lTy = L->getType();
-            llvm::Type *rTy = R->getType();
+            llvm::Type* lTy = L->getType();
+            llvm::Type* rTy = R->getType();
 
             std::string lUnionName, rUnionName;
             bool lIsUnion = isUnionType(lTy, &lUnionName);
@@ -13349,44 +13351,44 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     matchValueToUnionVariant(lUnionName, (*bin)->right_node, R);
 
                 if (!match) {
-                    llvm::Value *res = builder->getFalse();
+                    llvm::Value* res = builder->getFalse();
                     if (isNe)
                         res = builder->CreateNot(res);
                     return res;
                 }
 
                 auto info = *match;
-                llvm::Value *tag =
+                llvm::Value* tag =
                     builder->CreateExtractValue(L, 0, "union_tag");
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(L, 1, "union_data");
 
-                llvm::Value *tagMatch = builder->CreateICmpEQ(
+                llvm::Value* tagMatch = builder->CreateICmpEQ(
                     tag, builder->getInt32(info.tagIndex), "union_tag_match");
-                llvm::BasicBlock *matchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(
                     context, "tag_matches", currentFunction);
-                llvm::BasicBlock *mismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(
                     context, "tag_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
 
                 builder->SetInsertPoint(matchBB);
-                llvm::Value *payloadMatch = nullptr;
+                llvm::Value* payloadMatch = nullptr;
 
                 if (!info.memberTypeStr.empty()) {
-                    llvm::Type *memberTy = llvmTypeFor(info.memberTypeStr);
+                    llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
 
                     if (memberTy->isPointerTy()) {
-                        llvm::Value *payload =
+                        llvm::Value* payload =
                             builder->CreateBitCast(dataPtr, memberTy);
 
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         if (!strcmp_fn) {
-                            auto *i8Ptr = llvm::PointerType::get(context, 0);
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
                                 fnTy, llvm::Function::ExternalLinkage,
@@ -13395,9 +13397,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         payloadMatch = builder->CreateCall(
                             strcmp_fn, {payload, R}, "payload_str_eq");
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
-                        llvm::Value *payload = builder->CreateLoad(
+                        llvm::Value* payload = builder->CreateLoad(
                             memberTy, typedPtr, "union_payload");
 
                         if (memberTy->isIntegerTy()) {
@@ -13410,7 +13412,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                 }
 
-                llvm::Value *fullMatch =
+                llvm::Value* fullMatch =
                     payloadMatch ? payloadMatch : builder->getTrue();
                 if (fullMatch->getType() != builder->getInt1Ty()) {
                     fullMatch =
@@ -13422,12 +13424,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *phi =
+                llvm::PHINode* phi =
                     builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
                 phi->addIncoming(fullMatch, matchBB);
                 phi->addIncoming(builder->getFalse(), mismatchBB);
 
-                llvm::Value *result = phi;
+                llvm::Value* result = phi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
@@ -13437,45 +13439,45 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto match =
                     matchValueToUnionVariant(rUnionName, (*bin)->left_node, L);
                 if (!match) {
-                    llvm::Value *res = builder->getFalse();
+                    llvm::Value* res = builder->getFalse();
                     if (isNe)
                         res = builder->CreateNot(res);
                     return res;
                 }
 
                 auto info = *match;
-                llvm::Value *tag =
+                llvm::Value* tag =
                     builder->CreateExtractValue(R, 0, "union_tag");
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(R, 1, "union_data");
 
-                llvm::Value *tagMatch = builder->CreateICmpEQ(
+                llvm::Value* tagMatch = builder->CreateICmpEQ(
                     tag, builder->getInt32(info.tagIndex), "union_tag_match");
 
-                llvm::BasicBlock *matchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(
                     context, "tag_matches", currentFunction);
-                llvm::BasicBlock *mismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(
                     context, "tag_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
 
                 builder->SetInsertPoint(matchBB);
-                llvm::Value *payloadMatch = nullptr;
+                llvm::Value* payloadMatch = nullptr;
 
                 if (!info.memberTypeStr.empty()) {
-                    llvm::Type *memberTy = llvmTypeFor(info.memberTypeStr);
+                    llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
 
                     if (memberTy->isPointerTy()) {
-                        llvm::Value *payload =
+                        llvm::Value* payload =
                             builder->CreateBitCast(dataPtr, memberTy);
 
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         if (!strcmp_fn) {
-                            auto *i8Ptr = llvm::PointerType::get(context, 0);
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
                                 fnTy, llvm::Function::ExternalLinkage,
@@ -13484,9 +13486,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         payloadMatch = builder->CreateCall(
                             strcmp_fn, {L, payload}, "payload_str_eq");
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
-                        llvm::Value *payload = builder->CreateLoad(
+                        llvm::Value* payload = builder->CreateLoad(
                             memberTy, typedPtr, "union_payload");
 
                         if (memberTy->isIntegerTy()) {
@@ -13499,7 +13501,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                 }
 
-                llvm::Value *fullMatch =
+                llvm::Value* fullMatch =
                     payloadMatch ? payloadMatch : builder->getTrue();
                 if (fullMatch->getType() != builder->getInt1Ty()) {
                     fullMatch =
@@ -13511,52 +13513,52 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *phi =
+                llvm::PHINode* phi =
                     builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
                 phi->addIncoming(fullMatch, matchBB);
                 phi->addIncoming(builder->getFalse(), mismatchBB);
 
-                llvm::Value *result = phi;
+                llvm::Value* result = phi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
                 return result;
             }
             if (lIsUnion && rIsUnion) {
-                llvm::Value *lhsTag =
+                llvm::Value* lhsTag =
                     builder->CreateExtractValue(L, 0, "lhs_tag");
-                llvm::Value *rhsTag =
+                llvm::Value* rhsTag =
                     builder->CreateExtractValue(R, 0, "rhs_tag");
-                llvm::Value *tagsEqual =
+                llvm::Value* tagsEqual =
                     builder->CreateICmpEQ(lhsTag, rhsTag, "tags_equal");
 
-                llvm::BasicBlock *tagMatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* tagMatchBB = llvm::BasicBlock::Create(
                     context, "tags_match", currentFunction);
-                llvm::BasicBlock *tagMismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* tagMismatchBB = llvm::BasicBlock::Create(
                     context, "tags_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "union_cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagsEqual, tagMatchBB, tagMismatchBB);
                 builder->SetInsertPoint(tagMatchBB);
 
-                llvm::Value *lhsPayload =
+                llvm::Value* lhsPayload =
                     builder->CreateExtractValue(L, 1, "lhs_payload");
-                llvm::Value *rhsPayload =
+                llvm::Value* rhsPayload =
                     builder->CreateExtractValue(R, 1, "rhs_payload");
 
-                auto &members = userTypes[lUnionName].members;
-                llvm::BasicBlock *payloadEndBB = llvm::BasicBlock::Create(
+                auto& members = userTypes[lUnionName].members;
+                llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(
                     context, "payload_cmp_end", currentFunction);
-                llvm::BasicBlock *defaultBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(
                     context, "cmp_default", currentFunction);
-                llvm::SwitchInst *sw =
+                llvm::SwitchInst* sw =
                     builder->CreateSwitch(lhsTag, defaultBB, members.size());
-                std::vector<std::pair<llvm::BasicBlock *, llvm::Value *>>
+                std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>>
                     caseResults;
 
                 for (size_t i = 0; i < members.size(); i++) {
-                    llvm::BasicBlock *caseBB = llvm::BasicBlock::Create(
+                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
                         context, "cmp_case_" + std::to_string(i),
                         currentFunction);
                     sw->addCase(builder->getInt32(i), caseBB);
@@ -13568,7 +13570,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         typeStr = typeStr.substr(0, colonPos);
                     }
 
-                    llvm::Type *memberTy = llvmTypeFor(typeStr);
+                    llvm::Type* memberTy = llvmTypeFor(typeStr);
 
                     llvm::Value *lhsVal, *rhsVal;
 
@@ -13576,20 +13578,20 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
                         rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
                     } else {
-                        llvm::Value *lhsTyped = builder->CreateBitCast(
+                        llvm::Value* lhsTyped = builder->CreateBitCast(
                             lhsPayload, llvm::PointerType::get(context, 0));
-                        llvm::Value *rhsTyped = builder->CreateBitCast(
+                        llvm::Value* rhsTyped = builder->CreateBitCast(
                             rhsPayload, llvm::PointerType::get(context, 0));
                         lhsVal = builder->CreateLoad(memberTy, lhsTyped);
                         rhsVal = builder->CreateLoad(memberTy, rhsTyped);
                     }
-                    llvm::Value *cmp;
+                    llvm::Value* cmp;
                     if (memberTy->isIntegerTy()) {
                         cmp = builder->CreateICmpEQ(lhsVal, rhsVal);
                     } else if (memberTy->isFloatingPointTy()) {
                         cmp = builder->CreateFCmpOEQ(lhsVal, rhsVal);
                     } else if (memberTy->isPointerTy()) {
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         cmp = builder->CreateCall(strcmp_fn, {lhsVal, rhsVal});
                         cmp = builder->CreateTrunc(cmp, builder->getInt1Ty());
@@ -13603,9 +13605,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->SetInsertPoint(defaultBB);
                 builder->CreateBr(payloadEndBB);
                 builder->SetInsertPoint(payloadEndBB);
-                llvm::PHINode *payloadPhi = builder->CreatePHI(
+                llvm::PHINode* payloadPhi = builder->CreatePHI(
                     builder->getInt1Ty(), caseResults.size());
-                for (auto &[bb, val] : caseResults) {
+                for (auto& [bb, val] : caseResults) {
                     payloadPhi->addIncoming(val, bb);
                 }
                 payloadPhi->addIncoming(builder->getFalse(), defaultBB);
@@ -13615,12 +13617,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *finalPhi =
+                llvm::PHINode* finalPhi =
                     builder->CreatePHI(builder->getInt1Ty(), 2);
                 finalPhi->addIncoming(payloadPhi, payloadEndBB);
                 finalPhi->addIncoming(builder->getFalse(), tagMismatchBB);
 
-                llvm::Value *result = finalPhi;
+                llvm::Value* result = finalPhi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
@@ -13629,44 +13631,44 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto match =
                     matchValueToEnumMember(lEnumName, (*bin)->right_node, R);
                 if (!match) {
-                    llvm::Value *res = builder->getFalse();
+                    llvm::Value* res = builder->getFalse();
                     if (isNe)
                         res = builder->CreateNot(res);
                     return res;
                 }
 
                 auto info = *match;
-                llvm::Value *tag =
+                llvm::Value* tag =
                     builder->CreateExtractValue(L, 0, "union_tag");
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(L, 1, "union_data");
 
-                llvm::Value *tagMatch = builder->CreateICmpEQ(
+                llvm::Value* tagMatch = builder->CreateICmpEQ(
                     tag, builder->getInt32(info.tagIndex), "union_tag_match");
-                llvm::BasicBlock *matchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(
                     context, "tag_matches", currentFunction);
-                llvm::BasicBlock *mismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(
                     context, "tag_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
 
                 builder->SetInsertPoint(matchBB);
-                llvm::Value *payloadMatch = nullptr;
+                llvm::Value* payloadMatch = nullptr;
 
                 if (!info.memberTypeStr.empty()) {
-                    llvm::Type *memberTy = llvmTypeFor(info.memberTypeStr);
+                    llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
 
                     if (memberTy->isPointerTy()) {
-                        llvm::Value *payload =
+                        llvm::Value* payload =
                             builder->CreateBitCast(dataPtr, memberTy);
 
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         if (!strcmp_fn) {
-                            auto *i8Ptr = llvm::PointerType::get(context, 0);
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
                                 fnTy, llvm::Function::ExternalLinkage,
@@ -13675,9 +13677,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         payloadMatch = builder->CreateCall(
                             strcmp_fn, {payload, R}, "payload_str_eq");
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
-                        llvm::Value *payload = builder->CreateLoad(
+                        llvm::Value* payload = builder->CreateLoad(
                             memberTy, typedPtr, "union_payload");
 
                         if (memberTy->isIntegerTy()) {
@@ -13690,7 +13692,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                 }
 
-                llvm::Value *fullMatch =
+                llvm::Value* fullMatch =
                     payloadMatch ? payloadMatch : builder->getTrue();
                 if (fullMatch->getType() != builder->getInt1Ty()) {
                     fullMatch =
@@ -13702,12 +13704,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *phi =
+                llvm::PHINode* phi =
                     builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
                 phi->addIncoming(fullMatch, matchBB);
                 phi->addIncoming(builder->getFalse(), mismatchBB);
 
-                llvm::Value *result = phi;
+                llvm::Value* result = phi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
@@ -13718,45 +13720,45 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto match =
                     matchValueToEnumMember(rEnumName, (*bin)->left_node, L);
                 if (!match) {
-                    llvm::Value *res = builder->getFalse();
+                    llvm::Value* res = builder->getFalse();
                     if (isNe)
                         res = builder->CreateNot(res);
                     return res;
                 }
 
                 auto info = *match;
-                llvm::Value *tag =
+                llvm::Value* tag =
                     builder->CreateExtractValue(R, 0, "union_tag");
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(R, 1, "union_data");
 
-                llvm::Value *tagMatch = builder->CreateICmpEQ(
+                llvm::Value* tagMatch = builder->CreateICmpEQ(
                     tag, builder->getInt32(info.tagIndex), "union_tag_match");
 
-                llvm::BasicBlock *matchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(
                     context, "tag_matches", currentFunction);
-                llvm::BasicBlock *mismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(
                     context, "tag_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
 
                 builder->SetInsertPoint(matchBB);
-                llvm::Value *payloadMatch = nullptr;
+                llvm::Value* payloadMatch = nullptr;
 
                 if (!info.memberTypeStr.empty()) {
-                    llvm::Type *memberTy = llvmTypeFor(info.memberTypeStr);
+                    llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
 
                     if (memberTy->isPointerTy()) {
-                        llvm::Value *payload =
+                        llvm::Value* payload =
                             builder->CreateBitCast(dataPtr, memberTy);
 
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         if (!strcmp_fn) {
-                            auto *i8Ptr = llvm::PointerType::get(context, 0);
-                            auto *fnTy = llvm::FunctionType::get(
+                            auto* i8Ptr = llvm::PointerType::get(context, 0);
+                            auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
                                 fnTy, llvm::Function::ExternalLinkage,
@@ -13765,9 +13767,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         payloadMatch = builder->CreateCall(
                             strcmp_fn, {L, payload}, "payload_str_eq");
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
-                        llvm::Value *payload = builder->CreateLoad(
+                        llvm::Value* payload = builder->CreateLoad(
                             memberTy, typedPtr, "union_payload");
 
                         if (memberTy->isIntegerTy()) {
@@ -13780,7 +13782,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                 }
 
-                llvm::Value *fullMatch =
+                llvm::Value* fullMatch =
                     payloadMatch ? payloadMatch : builder->getTrue();
                 if (fullMatch->getType() != builder->getInt1Ty()) {
                     fullMatch =
@@ -13792,51 +13794,51 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *phi =
+                llvm::PHINode* phi =
                     builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
                 phi->addIncoming(fullMatch, matchBB);
                 phi->addIncoming(builder->getFalse(), mismatchBB);
 
-                llvm::Value *result = phi;
+                llvm::Value* result = phi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
                 return result;
             } else if (lIsEnum && rIsEnum) {
-                llvm::Value *lhsTag =
+                llvm::Value* lhsTag =
                     builder->CreateExtractValue(L, 0, "lhs_tag");
-                llvm::Value *rhsTag =
+                llvm::Value* rhsTag =
                     builder->CreateExtractValue(R, 0, "rhs_tag");
-                llvm::Value *tagsEqual =
+                llvm::Value* tagsEqual =
                     builder->CreateICmpEQ(lhsTag, rhsTag, "tags_equal");
 
-                llvm::BasicBlock *tagMatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* tagMatchBB = llvm::BasicBlock::Create(
                     context, "tags_match", currentFunction);
-                llvm::BasicBlock *tagMismatchBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* tagMismatchBB = llvm::BasicBlock::Create(
                     context, "tags_mismatch", currentFunction);
-                llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                     context, "union_cmp_end", currentFunction);
 
                 builder->CreateCondBr(tagsEqual, tagMatchBB, tagMismatchBB);
                 builder->SetInsertPoint(tagMatchBB);
 
-                llvm::Value *lhsPayload =
+                llvm::Value* lhsPayload =
                     builder->CreateExtractValue(L, 1, "lhs_payload");
-                llvm::Value *rhsPayload =
+                llvm::Value* rhsPayload =
                     builder->CreateExtractValue(R, 1, "rhs_payload");
 
-                auto &entries = userTypes[lEnumName].enumEntries;
-                llvm::BasicBlock *payloadEndBB = llvm::BasicBlock::Create(
+                auto& entries = userTypes[lEnumName].enumEntries;
+                llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(
                     context, "payload_cmp_end", currentFunction);
-                llvm::BasicBlock *defaultBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(
                     context, "cmp_default", currentFunction);
-                llvm::SwitchInst *sw =
+                llvm::SwitchInst* sw =
                     builder->CreateSwitch(lhsTag, defaultBB, entries.size());
-                std::vector<std::pair<llvm::BasicBlock *, llvm::Value *>>
+                std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>>
                     caseResults;
 
                 for (size_t i = 0; i < entries.size(); i++) {
-                    llvm::BasicBlock *caseBB = llvm::BasicBlock::Create(
+                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
                         context, "cmp_case_" + std::to_string(i),
                         currentFunction);
                     sw->addCase(builder->getInt32(i), caseBB);
@@ -13848,7 +13850,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         typeStr = typeStr.substr(0, colonPos);
                     }
 
-                    llvm::Type *memberTy = llvmTypeFor(typeStr);
+                    llvm::Type* memberTy = llvmTypeFor(typeStr);
 
                     llvm::Value *lhsVal, *rhsVal;
 
@@ -13856,20 +13858,20 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
                         rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
                     } else {
-                        llvm::Value *lhsTyped = builder->CreateBitCast(
+                        llvm::Value* lhsTyped = builder->CreateBitCast(
                             lhsPayload, llvm::PointerType::get(context, 0));
-                        llvm::Value *rhsTyped = builder->CreateBitCast(
+                        llvm::Value* rhsTyped = builder->CreateBitCast(
                             rhsPayload, llvm::PointerType::get(context, 0));
                         lhsVal = builder->CreateLoad(memberTy, lhsTyped);
                         rhsVal = builder->CreateLoad(memberTy, rhsTyped);
                     }
-                    llvm::Value *cmp;
+                    llvm::Value* cmp;
                     if (memberTy->isIntegerTy()) {
                         cmp = builder->CreateICmpEQ(lhsVal, rhsVal);
                     } else if (memberTy->isFloatingPointTy()) {
                         cmp = builder->CreateFCmpOEQ(lhsVal, rhsVal);
                     } else if (memberTy->isPointerTy()) {
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         cmp = builder->CreateCall(strcmp_fn, {lhsVal, rhsVal});
                         cmp = builder->CreateTrunc(cmp, builder->getInt1Ty());
@@ -13883,9 +13885,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->SetInsertPoint(defaultBB);
                 builder->CreateBr(payloadEndBB);
                 builder->SetInsertPoint(payloadEndBB);
-                llvm::PHINode *payloadPhi = builder->CreatePHI(
+                llvm::PHINode* payloadPhi = builder->CreatePHI(
                     builder->getInt1Ty(), caseResults.size());
-                for (auto &[bb, val] : caseResults) {
+                for (auto& [bb, val] : caseResults) {
                     payloadPhi->addIncoming(val, bb);
                 }
                 payloadPhi->addIncoming(builder->getFalse(), defaultBB);
@@ -13895,12 +13897,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 builder->CreateBr(endBB);
 
                 builder->SetInsertPoint(endBB);
-                llvm::PHINode *finalPhi =
+                llvm::PHINode* finalPhi =
                     builder->CreatePHI(builder->getInt1Ty(), 2);
                 finalPhi->addIncoming(payloadPhi, payloadEndBB);
                 finalPhi->addIncoming(builder->getFalse(), tagMismatchBB);
 
-                llvm::Value *result = finalPhi;
+                llvm::Value* result = finalPhi;
                 if (isNe) {
                     result = builder->CreateNot(result);
                 }
@@ -13908,15 +13910,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
         }
         if ((*bin)->is_f) {
-            std::function<llvm::Value *(llvm::Value *, const Position &)>
+            std::function<llvm::Value*(llvm::Value*, const Position&)>
                 toString =
-                    [&](llvm::Value *v, const Position &pos) -> llvm::Value * {
-                llvm::Type *ty = v->getType();
+                    [&](llvm::Value* v, const Position& pos) -> llvm::Value* {
+                llvm::Type* ty = v->getType();
                 if (ty->isIntegerTy(32)) {
-                    auto *fn = module->getFunction("qc_to_string_int");
+                    auto* fn = module->getFunction("qc_to_string_int");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt32Ty()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13925,10 +13927,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_i32");
                 }
                 if (ty->isIntegerTy(16)) {
-                    auto *fn = module->getFunction("qc_to_string_short_int");
+                    auto* fn = module->getFunction("qc_to_string_short_int");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt16Ty()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13937,10 +13939,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_i16");
                 }
                 if (ty->isIntegerTy(64)) {
-                    auto *fn = module->getFunction("qc_to_string_long_int");
+                    auto* fn = module->getFunction("qc_to_string_long_int");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt64Ty()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13949,10 +13951,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_i64");
                 }
                 if (ty->isDoubleTy()) {
-                    auto *fn = module->getFunction("qc_to_string_double");
+                    auto* fn = module->getFunction("qc_to_string_double");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getDoubleTy()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13961,10 +13963,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_f64");
                 }
                 if (ty->isFloatTy()) {
-                    auto *fn = module->getFunction("qc_to_string_float");
+                    auto* fn = module->getFunction("qc_to_string_float");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getDoubleTy()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13973,10 +13975,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_f32");
                 }
                 if (ty->isIntegerTy(1)) {
-                    auto *fn = module->getFunction("qc_to_string_bool");
+                    auto* fn = module->getFunction("qc_to_string_bool");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt1Ty()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -13985,10 +13987,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {v}, "fstr_bool");
                 }
                 if (ty->isIntegerTy(8)) {
-                    auto *fn = module->getFunction("qc_to_string_char");
+                    auto* fn = module->getFunction("qc_to_string_char");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt32Ty()}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -14000,10 +14002,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return v;
                 }
                 if (ty->isIntegerTy(2)) {
-                    auto *fn = module->getFunction("qc_to_string_qbool");
+                    auto* fn = module->getFunction("qc_to_string_qbool");
                     if (!fn) {
-                        auto *i8Ptr = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* i8Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getIntNTy(2)}, false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -14014,7 +14016,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
                 if (ty->isArrayTy()) {
                     std::vector<uint64_t> dimensions;
-                    llvm::Type *checkTy = ty;
+                    llvm::Type* checkTy = ty;
                     while (checkTy->isArrayTy()) {
                         dimensions.push_back(checkTy->getArrayNumElements());
                         checkTy = checkTy->getArrayElementType();
@@ -14039,36 +14041,36 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     else if (checkTy->isPointerTy())
                         elemTypeCode = 6;
 
-                    llvm::ArrayType *dimsArrTy = llvm::ArrayType::get(
+                    llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(
                         builder->getInt32Ty(), dimensions.size());
-                    llvm::AllocaInst *dimsAlloc =
+                    llvm::AllocaInst* dimsAlloc =
                         createEntryAlloca("fstr_dims", dimsArrTy);
 
                     for (size_t i = 0; i < dimensions.size(); i++) {
-                        std::vector<llvm::Value *> indices = {
+                        std::vector<llvm::Value*> indices = {
                             builder->getInt32(0), builder->getInt32(i)};
-                        llvm::Value *dimPtr = builder->CreateInBoundsGEP(
+                        llvm::Value* dimPtr = builder->CreateInBoundsGEP(
                             dimsArrTy, dimsAlloc, indices);
                         builder->CreateStore(builder->getInt32(dimensions[i]),
-                                             dimPtr);
+                            dimPtr);
                     }
-                    llvm::Value *arrPtr = builder->CreateBitCast(
+                    llvm::Value* arrPtr = builder->CreateBitCast(
                         v, llvm::PointerType::get(context, 0));
 
-                    std::vector<llvm::Value *> dimsIndices = {
+                    std::vector<llvm::Value*> dimsIndices = {
                         builder->getInt32(0), builder->getInt32(0)};
-                    llvm::Value *dimsPtr = builder->CreateInBoundsGEP(
+                    llvm::Value* dimsPtr = builder->CreateInBoundsGEP(
                         dimsArrTy, dimsAlloc, dimsIndices);
 
-                    auto *fn =
+                    auto* fn =
                         module->getFunction("qc_array_to_string_recursive");
                     if (!fn) {
-                        auto *voidPtrTy = llvm::PointerType::get(context, 0);
-                        auto *intPtrTy = llvm::PointerType::get(context, 0);
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* voidPtrTy = llvm::PointerType::get(context, 0);
+                        auto* intPtrTy = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(
                             voidPtrTy,
                             {voidPtrTy, builder->getInt32Ty(),
-                             builder->getInt32Ty(), intPtrTy},
+                                builder->getInt32Ty(), intPtrTy},
                             false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -14078,7 +14080,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(
                         fn,
                         {arrPtr, builder->getInt32(elemTypeCode),
-                         builder->getInt32(dimensions.size()), dimsPtr},
+                            builder->getInt32(dimensions.size()), dimsPtr},
                         "fstr_array");
                 }
                 if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
@@ -14090,48 +14092,48 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 findMethodInHierarchy(className, "repr");
 
                             if (reprMethod) {
-                                std::vector<llvm::Value *> args;
+                                std::vector<llvm::Value*> args;
 
-                                llvm::AllocaInst *temp =
+                                llvm::AllocaInst* temp =
                                     createEntryAlloca("temp_repr", ty);
                                 builder->CreateStore(v, temp);
                                 args.push_back(temp);
 
                                 return builder->CreateCall(reprMethod, args,
-                                                           "repr_result");
+                                    "repr_result");
                             }
                         }
                     }
                 }
 
-                for (auto &[enumName, enumTy] : enumTypes) {
+                for (auto& [enumName, enumTy] : enumTypes) {
                     if (ty == enumTy) {
-                        llvm::Value *dataPtr =
+                        llvm::Value* dataPtr =
                             builder->CreateExtractValue(v, 1, "enum_data");
                         return builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
                     }
                 }
 
-                for (auto &[unionName, unionTy] : unionTypes) {
+                for (auto& [unionName, unionTy] : unionTypes) {
                     if (ty == unionTy) {
-                        auto &members = userTypes[unionName].members;
-                        llvm::Value *tag =
+                        auto& members = userTypes[unionName].members;
+                        llvm::Value* tag =
                             builder->CreateExtractValue(v, 0, "union_tag");
-                        llvm::Value *payload =
+                        llvm::Value* payload =
                             builder->CreateExtractValue(v, 1, "union_payload");
 
-                        llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                        llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                             context, "fstr_union_end", currentFunction);
-                        llvm::AllocaInst *resultAlloc = createEntryAlloca(
+                        llvm::AllocaInst* resultAlloc = createEntryAlloca(
                             "fstr_union_result",
                             llvm::PointerType::get(context, 0));
 
-                        llvm::SwitchInst *sw =
+                        llvm::SwitchInst* sw =
                             builder->CreateSwitch(tag, endBB, members.size());
 
                         for (size_t i = 0; i < members.size(); i++) {
-                            llvm::BasicBlock *caseBB = llvm::BasicBlock::Create(
+                            llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
                                 context, "fstr_union_case_" + std::to_string(i),
                                 currentFunction);
                             sw->addCase(builder->getInt32(i), caseBB);
@@ -14141,21 +14143,21 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             size_t c = ts.find(':');
                             if (c != std::string::npos)
                                 ts = ts.substr(0, c);
-                            llvm::Type *memberTy = llvmTypeFor(ts);
+                            llvm::Type* memberTy = llvmTypeFor(ts);
 
-                            llvm::Value *memberVal;
+                            llvm::Value* memberVal;
                             if (memberTy->isPointerTy()) {
                                 memberVal =
                                     builder->CreateBitCast(payload, memberTy);
                             } else {
-                                llvm::Value *typedPtr = builder->CreateBitCast(
+                                llvm::Value* typedPtr = builder->CreateBitCast(
                                     payload,
                                     llvm::PointerType::get(context, 0));
                                 memberVal = builder->CreateLoad(
                                     memberTy, typedPtr, "union_member");
                             }
                             AnyNode fakeNode = std::monostate{};
-                            llvm::Value *strVal = toString(memberVal, pos);
+                            llvm::Value* strVal = toString(memberVal, pos);
                             if (!strVal)
                                 strVal = builder->CreateGlobalString("?");
                             builder->CreateStore(strVal, resultAlloc);
@@ -14176,16 +14178,16 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 return nullptr;
             };
 
-            llvm::Value *lStr = toString(L, (*bin)->op_tok.pos);
-            llvm::Value *rStr = toString(R, (*bin)->op_tok.pos);
+            llvm::Value* lStr = toString(L, (*bin)->op_tok.pos);
+            llvm::Value* rStr = toString(R, (*bin)->op_tok.pos);
             if (!lStr || !rStr)
                 return nullptr;
 
-            llvm::Function *concatFn = module->getFunction("qc_string_concat");
+            llvm::Function* concatFn = module->getFunction("qc_string_concat");
             if (!concatFn) {
-                auto *i8Ptr = llvm::PointerType::get(context, 0);
-                std::vector<llvm::Type *> argTypes = {i8Ptr, i8Ptr};
-                auto *fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
+                auto* i8Ptr = llvm::PointerType::get(context, 0);
+                std::vector<llvm::Type*> argTypes = {i8Ptr, i8Ptr};
+                auto* fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
                 concatFn = llvm::Function::Create(
                     fnTy, llvm::Function::ExternalLinkage, "qc_string_concat",
                     module.get());
@@ -14197,27 +14199,27 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         bool lIsUnion = isUnionType(L->getType(), &lUnion);
         bool rIsUnion = isUnionType(R->getType(), &rUnion);
         if (lIsUnion && rIsUnion) {
-            auto &members = userTypes[lUnion].members;
-            llvm::Value *lTag = builder->CreateExtractValue(L, 0, "ltag");
-            llvm::Value *lPayload =
+            auto& members = userTypes[lUnion].members;
+            llvm::Value* lTag = builder->CreateExtractValue(L, 0, "ltag");
+            llvm::Value* lPayload =
                 builder->CreateExtractValue(L, 1, "lpayload");
-            llvm::Value *rPayload =
+            llvm::Value* rPayload =
                 builder->CreateExtractValue(R, 1, "rpayload");
 
-            llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                 context, "union_op_end", currentFunction);
             bool isComparison =
                 op == TokenType::LESS || op == TokenType::MORE ||
                 op == TokenType::LESS_EQ || op == TokenType::MORE_EQ;
-            llvm::AllocaInst *resultAlloc = createEntryAlloca(
+            llvm::AllocaInst* resultAlloc = createEntryAlloca(
                 "union_op_result",
                 isComparison ? builder->getInt1Ty() : builder->getDoubleTy());
 
-            llvm::SwitchInst *sw =
+            llvm::SwitchInst* sw =
                 builder->CreateSwitch(lTag, endBB, members.size());
 
             for (size_t i = 0; i < members.size(); i++) {
-                llvm::BasicBlock *caseBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
                     context, "union_op_case_" + std::to_string(i),
                     currentFunction);
                 sw->addCase(builder->getInt32(i), caseBB);
@@ -14227,19 +14229,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 size_t c = ts.find(':');
                 if (c != std::string::npos)
                     ts = ts.substr(0, c);
-                llvm::Type *memberTy = llvmTypeFor(ts);
+                llvm::Type* memberTy = llvmTypeFor(ts);
 
-                llvm::Value *lTypedPtr = builder->CreateBitCast(
+                llvm::Value* lTypedPtr = builder->CreateBitCast(
                     lPayload, llvm::PointerType::get(context, 0));
-                llvm::Value *rTypedPtr = builder->CreateBitCast(
+                llvm::Value* rTypedPtr = builder->CreateBitCast(
                     rPayload, llvm::PointerType::get(context, 0));
-                llvm::Value *lhsVal =
+                llvm::Value* lhsVal =
                     builder->CreateLoad(memberTy, lTypedPtr, "lmember");
-                llvm::Value *rhsVal =
+                llvm::Value* rhsVal =
                     builder->CreateLoad(memberTy, rTypedPtr, "rmember");
 
                 bool isFP = memberTy->isFloatingPointTy();
-                llvm::Value *res = nullptr;
+                llvm::Value* res = nullptr;
                 switch (op) {
                 case TokenType::LESS:
                     res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal)
@@ -14296,7 +14298,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     llvm::Intrinsic::ID id = (op == TokenType::L_ROT)
                                                  ? llvm::Intrinsic::fshl
                                                  : llvm::Intrinsic::fshr;
-                    llvm::Function *rotFunc =
+                    llvm::Function* rotFunc =
                         llvm::Intrinsic::getOrInsertDeclaration(
                             module.get(), id, {lhsVal->getType()});
                     res =
@@ -14308,7 +14310,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     break;
                 }
 
-                llvm::Type *allocTy = resultAlloc->getAllocatedType();
+                llvm::Type* allocTy = resultAlloc->getAllocatedType();
                 if (res->getType() != allocTy) {
                     if (allocTy->isDoubleTy() && res->getType()->isIntegerTy())
                         res = builder->CreateSIToFP(res, allocTy);
@@ -14322,34 +14324,34 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
             builder->SetInsertPoint(endBB);
             return builder->CreateLoad(resultAlloc->getAllocatedType(),
-                                       resultAlloc, "union_op_result");
+                resultAlloc, "union_op_result");
         }
         if (lIsUnion || rIsUnion) {
             std::string unionName = lIsUnion ? lUnion : rUnion;
-            auto &members = userTypes[unionName].members;
-            llvm::Value *unionVal = lIsUnion ? L : R;
-            llvm::Value *otherVal = lIsUnion ? R : L;
+            auto& members = userTypes[unionName].members;
+            llvm::Value* unionVal = lIsUnion ? L : R;
+            llvm::Value* otherVal = lIsUnion ? R : L;
 
-            llvm::Value *tag = builder->CreateExtractValue(unionVal, 0, "tag");
-            llvm::Value *payload =
+            llvm::Value* tag = builder->CreateExtractValue(unionVal, 0, "tag");
+            llvm::Value* payload =
                 builder->CreateExtractValue(unionVal, 1, "payload");
 
-            llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                 context, "union_op_end", currentFunction);
             bool isComparison =
                 op == TokenType::LESS || op == TokenType::MORE ||
                 op == TokenType::LESS_EQ || op == TokenType::MORE_EQ;
-            llvm::Type *resultTy =
+            llvm::Type* resultTy =
                 isComparison ? builder->getInt1Ty() : builder->getDoubleTy();
-            llvm::AllocaInst *resultAlloc =
+            llvm::AllocaInst* resultAlloc =
                 createEntryAlloca("union_op_result", resultTy);
 
-            llvm::SwitchInst *sw =
+            llvm::SwitchInst* sw =
                 builder->CreateSwitch(tag, endBB, members.size());
-            std::vector<llvm::BasicBlock *> caseBBs;
+            std::vector<llvm::BasicBlock*> caseBBs;
 
             for (size_t i = 0; i < members.size(); i++) {
-                llvm::BasicBlock *caseBB = llvm::BasicBlock::Create(
+                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(
                     context, "union_op_case_" + std::to_string(i),
                     currentFunction);
                 sw->addCase(builder->getInt32(i), caseBB);
@@ -14359,18 +14361,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 size_t c = ts.find(':');
                 if (c != std::string::npos)
                     ts = ts.substr(0, c);
-                llvm::Type *memberTy = llvmTypeFor(ts);
+                llvm::Type* memberTy = llvmTypeFor(ts);
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     payload, llvm::PointerType::get(context, 0));
-                llvm::Value *memberVal =
+                llvm::Value* memberVal =
                     builder->CreateLoad(memberTy, typedPtr, "member");
 
-                llvm::Value *lhsVal = lIsUnion ? memberVal : otherVal;
-                llvm::Value *rhsVal = lIsUnion ? otherVal : memberVal;
+                llvm::Value* lhsVal = lIsUnion ? memberVal : otherVal;
+                llvm::Value* rhsVal = lIsUnion ? otherVal : memberVal;
 
-                llvm::Type *lTy = lhsVal->getType();
-                llvm::Type *rTy = rhsVal->getType();
+                llvm::Type* lTy = lhsVal->getType();
+                llvm::Type* rTy = rhsVal->getType();
                 if (lTy != rTy) {
                     if (lTy->isDoubleTy() || rTy->isDoubleTy()) {
                         if (!lTy->isDoubleTy())
@@ -14407,7 +14409,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 }
 
                 bool isFP = lhsVal->getType()->isFloatingPointTy();
-                llvm::Value *res = nullptr;
+                llvm::Value* res = nullptr;
                 switch (op) {
                 case TokenType::LESS:
                     res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal)
@@ -14449,8 +14451,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 case TokenType::LOGICAL_RSHIFT:
                     if (isFP) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Bitwise operations not allowed on "
-                                 "floating-point union members");
+                            "Bitwise operations not allowed on "
+                            "floating-point union members");
                         return nullptr;
                     }
                     if (op == TokenType::AMPERSAND)
@@ -14470,14 +14472,14 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 case TokenType::R_ROT: {
                     if (isFP) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Rotation not allowed on floating-point union "
-                                 "members");
+                            "Rotation not allowed on floating-point union "
+                            "members");
                         return nullptr;
                     }
                     llvm::Intrinsic::ID id = (op == TokenType::L_ROT)
                                                  ? llvm::Intrinsic::fshl
                                                  : llvm::Intrinsic::fshr;
-                    llvm::Function *rotFunc =
+                    llvm::Function* rotFunc =
                         llvm::Intrinsic::getOrInsertDeclaration(
                             module.get(), id, {lhsVal->getType()});
                     res =
@@ -14488,7 +14490,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     res = memberVal;
                     break;
                 }
-                llvm::Type *allocTy = resultAlloc->getAllocatedType();
+                llvm::Type* allocTy = resultAlloc->getAllocatedType();
                 if (res->getType() != allocTy) {
                     if (allocTy->isDoubleTy() && res->getType()->isIntegerTy())
                         res = builder->CreateSIToFP(res, allocTy);
@@ -14503,7 +14505,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
             builder->SetInsertPoint(endBB);
             return builder->CreateLoad(resultAlloc->getAllocatedType(),
-                                       resultAlloc, "union_op_result");
+                resultAlloc, "union_op_result");
         }
 
         L = normalizeValue(L, (*bin)->left_node);
@@ -14519,18 +14521,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         getOperatorMethodName((*bin)->op_tok.type);
 
                     if (!opMethodName.empty()) {
-                        std::vector<llvm::Value *> args = {R};
-                        llvm::Function *opMethod =
+                        std::vector<llvm::Value*> args = {R};
+                        llvm::Function* opMethod =
                             findMethodOverload(className, opMethodName, args);
 
                         if (opMethod) {
-                            llvm::AllocaInst *temp =
+                            llvm::AllocaInst* temp =
                                 createEntryAlloca("temp_op_lhs", lty);
                             builder->CreateStore(L, temp);
 
-                            std::vector<llvm::Value *> allArgs = {temp, R};
+                            std::vector<llvm::Value*> allArgs = {temp, R};
                             return builder->CreateCall(opMethod, allArgs,
-                                                       "op_result");
+                                "op_result");
                         }
                     }
                 }
@@ -14583,7 +14585,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::PLUS:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
@@ -14593,35 +14595,35 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 if (lType.ends_with("*") || lType == "@nullptr") {
                     if (lType.starts_with("void*")) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Pointer arithmetic cannot be preformed on "
-                                 "void pointers");
+                            "Pointer arithmetic cannot be preformed on "
+                            "void pointers");
                         return nullptr;
                     }
                     if (rType != "int") {
                         cg_error((*bin)->op_tok.pos,
-                                 "Pointer arithmetic may only be preformed on "
-                                 "ptr lhs and "
-                                 "int rhs, got " +
-                                     lType + " and " + rType);
+                            "Pointer arithmetic may only be preformed on "
+                            "ptr lhs and "
+                            "int rhs, got " +
+                                lType + " and " + rType);
                         return nullptr;
                     }
                     lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R,
-                                              "ptr_arith_plus");
+                        "ptr_arith_plus");
                 } else {
                     if (lType != rType) {
                         cg_error((*bin)->op_tok.pos,
-                                 "You can only add string with string, got " +
-                                     lType + " and " + rType);
+                            "You can only add string with string, got " +
+                                lType + " and " + rType);
                         return nullptr;
                     }
-                    llvm::Function *concatFn =
+                    llvm::Function* concatFn =
                         module->getFunction("qc_string_concat");
                     if (!concatFn) {
-                        llvm::Type *i8PtrTy =
+                        llvm::Type* i8PtrTy =
                             llvm::PointerType::get(context, 0);
-                        std::vector<llvm::Type *> argTypes = {i8PtrTy, i8PtrTy};
-                        llvm::FunctionType *fnTy =
+                        std::vector<llvm::Type*> argTypes = {i8PtrTy, i8PtrTy};
+                        llvm::FunctionType* fnTy =
                             llvm::FunctionType::get(i8PtrTy, argTypes, false);
                         concatFn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage,
@@ -14630,19 +14632,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(concatFn, {L, R}, "str_concat");
                 }
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on types " + lType + " + " +
-                             " rType");
+                    "Cannot perform arithmetic on types " + lType + " + " +
+                        " rType");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFAdd(L, R, "fadd")
@@ -14650,7 +14652,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::MINUS:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
@@ -14661,22 +14663,22 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     (rType.ends_with("*") || rType == "@nullptr")) {
                     if (lType.starts_with("void*")) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Pointer arithmetic cannot be preformed on "
-                                 "void pointers");
+                            "Pointer arithmetic cannot be preformed on "
+                            "void pointers");
                         return nullptr;
                     }
                     if (rType.starts_with("void*")) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Pointer arithmetic cannot be preformed on "
-                                 "void pointers");
+                            "Pointer arithmetic cannot be preformed on "
+                            "void pointers");
                         return nullptr;
                     }
                     if (lType != rType) {
                         cg_error((*bin)->op_tok.pos,
-                                 "Pointer arithmetic may only be preformed on "
-                                 "the same lhs "
-                                 "and rhs type, got " +
-                                     lType + " and " + rType);
+                            "Pointer arithmetic may only be preformed on "
+                            "the same lhs "
+                            "and rhs type, got " +
+                                lType + " and " + rType);
                         return nullptr;
                     }
                     std::string baseType =
@@ -14685,15 +14687,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         return builder->getInt32(0);
                     }
                     baseType.pop_back();
-                    llvm::Value *diff = builder->CreatePtrDiff(
+                    llvm::Value* diff = builder->CreatePtrDiff(
                         llvmTypeFor(baseType), L, R, "ptr_diff");
                     return builder->CreateTrunc(diff, builder->getInt32Ty());
                 } else if (lType.ends_with("*") && rType == "int") {
                     std::string baseType = lType;
                     baseType.pop_back();
-                    llvm::Value *negR = builder->CreateNeg(R, "neg_offset");
+                    llvm::Value* negR = builder->CreateNeg(R, "neg_offset");
                     return builder->CreateGEP(llvmTypeFor(baseType), L, {negR},
-                                              "ptr_arith_minus");
+                        "ptr_arith_minus");
                 }
 
                 cg_error((*bin)->op_tok.pos, "Invalid pointer subtraction: " +
@@ -14702,13 +14704,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFSub(L, R, "fsub")
@@ -14716,23 +14718,23 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::MUL:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on string types");
+                    "Cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFMul(L, R, "fmul")
@@ -14740,23 +14742,23 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::DIV:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on string types");
+                    "Cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFDiv(L, R, "fdiv")
@@ -14764,23 +14766,23 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::MOD:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on string types");
+                    "Cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFRem(L, R, "frem")
@@ -14796,7 +14798,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform bitwise operations on string types");
+                    "Cannot perform bitwise operations on string types");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::AMPERSAND)
@@ -14809,7 +14811,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::LOGICAL_RSHIFT:
             if (isFloatTy) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform shifts on float/double types");
+                    "Cannot perform shifts on float/double types");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::LSHIFT)
@@ -14821,7 +14823,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::R_ROT:
             if (isFloatTy) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform rotations on float/double types");
+                    "Cannot perform rotations on float/double types");
                 return nullptr;
             }
             {
@@ -14829,39 +14831,39 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     ((*bin)->op_tok.type == TokenType::L_ROT)
                         ? llvm::Intrinsic::fshl
                         : llvm::Intrinsic::fshr;
-                llvm::Function *rotFunc =
+                llvm::Function* rotFunc =
                     llvm::Intrinsic::getOrInsertDeclaration(module.get(), id,
-                                                            {lty});
+                        {lty});
                 return builder->CreateCall(rotFunc, {L, L, R}, "rottmp");
             }
         case TokenType::POWER: {
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on string types");
+                    "Cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on bool types");
+                    "Cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform arithmetic on qbool types");
+                    "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
-            llvm::Type *ty = L->getType();
+            llvm::Type* ty = L->getType();
 
             if (ty->isIntegerTy()) {
-                llvm::Function *qc_powi = module->getFunction("qc_powi_i32");
+                llvm::Function* qc_powi = module->getFunction("qc_powi_i32");
                 if (!qc_powi) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt32Ty(),
                         {builder->getInt32Ty(), builder->getInt32Ty()}, false);
                     qc_powi = llvm::Function::Create(
@@ -14870,12 +14872,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 }
                 return builder->CreateCall(qc_powi, {L, R}, "powi");
             } else if (ty->isFloatTy() || ty->isDoubleTy()) {
-                llvm::Function *powFn = llvm::Intrinsic::getOrInsertDeclaration(
+                llvm::Function* powFn = llvm::Intrinsic::getOrInsertDeclaration(
                     module.get(), llvm::Intrinsic::pow, {ty});
                 return builder->CreateCall(powFn, {L, R}, "pow");
             } else {
                 cg_error((*bin)->op_tok.pos,
-                         "POWER not supported for this type");
+                    "POWER not supported for this type");
                 return nullptr;
             }
         }
@@ -14921,9 +14923,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         return builder->CreateICmpNE(L, R, "ptr_ne");
                     }
                 } else {
-                    llvm::Function *strcmp_fn =
+                    llvm::Function* strcmp_fn =
                         module->getFunction("qc_string_eq");
-                    llvm::Value *result =
+                    llvm::Value* result =
                         builder->CreateCall(strcmp_fn, {L, R});
                     if (op == TokenType::NOT_EQ) {
                         result = builder->CreateNot(result);
@@ -14939,7 +14941,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         case TokenType::QEQEQ:
         case TokenType::QNEQ: {
-            llvm::Value *boolResult = nullptr;
+            llvm::Value* boolResult = nullptr;
 
             if (lty->isIntegerTy() && rty->isIntegerTy()) {
                 unsigned lBits = lty->getIntegerBitWidth();
@@ -14970,8 +14972,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                  ? builder->CreateFCmpOEQ(L, R, "qfcmpeq")
                                  : builder->CreateFCmpONE(L, R, "qfcmpne");
             } else if (lty->isPointerTy() && rty->isPointerTy()) {
-                llvm::Function *strcmp_fn = module->getFunction("qc_string_eq");
-                llvm::Value *cmp = builder->CreateCall(strcmp_fn, {L, R});
+                llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
+                llvm::Value* cmp = builder->CreateCall(strcmp_fn, {L, R});
 
                 if (op == TokenType::QNEQ) {
                     cmp = builder->CreateNot(cmp);
@@ -14981,9 +14983,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             } else {
                 return builder->getIntN(2, 0);
             }
-            llvm::Value *ext =
+            llvm::Value* ext =
                 builder->CreateZExt(boolResult, builder->getInt8Ty());
-            llvm::Value *tripled = builder->CreateMul(ext, builder->getInt8(3));
+            llvm::Value* tripled = builder->CreateMul(ext, builder->getInt8(3));
             return builder->CreateTrunc(tripled, builder->getIntNTy(2));
         }
         case TokenType::LESS:
@@ -14992,12 +14994,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         case TokenType::MORE_EQ: {
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on char types");
+                    "Cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot perform this operation on string types");
+                    "Cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty->isIntegerTy() && rty->isIntegerTy()) {
@@ -15005,7 +15007,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 unsigned rBits = rty->getIntegerBitWidth();
                 if (lBits == 1 || lBits == 2 || rBits == 1 || rBits == 2) {
                     cg_error((*bin)->op_tok.pos,
-                             "Cannot use comparison operators on bool/qbool");
+                        "Cannot use comparison operators on bool/qbool");
                     return nullptr;
                 }
                 bool isFloatTy = false;
@@ -15013,7 +15015,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 bool isFloatTy = true;
             } else {
                 cg_error((*bin)->op_tok.pos,
-                         "Cannot compare non-numeric types with <, >, <=, >=");
+                    "Cannot compare non-numeric types with <, >, <=, >=");
                 return nullptr;
             }
             switch (op) {
@@ -15047,36 +15049,36 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return builder->CreateXor(L, R, "xor");
         case TokenType::QAND:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qand");
+                llvm::Function* fn = module->getFunction("qc_qand");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_qand", module.get());
+                        llvm::Function::ExternalLinkage,
+                        "qc_qand", module.get());
                 }
-                llvm::Value *L8 = builder->CreateZExt(L, builder->getInt8Ty());
-                llvm::Value *R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {L8, R8});
+                llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
+                llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
+                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
             cg_error((*bin)->op_tok.pos, "&&& requires qbool operands");
             return nullptr;
         case TokenType::QOR:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qor");
+                llvm::Function* fn = module->getFunction("qc_qor");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_qor", module.get());
+                        llvm::Function::ExternalLinkage,
+                        "qc_qor", module.get());
                 }
-                llvm::Value *L8 = builder->CreateZExt(L, builder->getInt8Ty());
-                llvm::Value *R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {L8, R8});
+                llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
+                llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
+                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
             cg_error((*bin)->op_tok.pos, "||| requires qbool operands");
@@ -15084,54 +15086,54 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
         case TokenType::QXOR:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qxor");
+                llvm::Function* fn = module->getFunction("qc_qxor");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_qxor", module.get());
+                        llvm::Function::ExternalLinkage,
+                        "qc_qxor", module.get());
                 }
-                llvm::Value *L8 = builder->CreateZExt(L, builder->getInt8Ty());
-                llvm::Value *R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {L8, R8});
+                llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
+                llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
+                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
             cg_error((*bin)->op_tok.pos, "^^ requires qbool operands");
             return nullptr;
         case TokenType::COLLAPSE_AND:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qand_collapse");
+                llvm::Function* fn = module->getFunction("qc_qand_collapse");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt1Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage,
                         "qc_qand_collapse", module.get());
                 }
-                llvm::Value *L8 = builder->CreateZExt(L, builder->getInt8Ty());
-                llvm::Value *R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {L8, R8});
+                llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
+                llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
+                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateCall(fn, {L8, R8});
             }
             cg_error((*bin)->op_tok.pos, "&|& requires qbool operands");
             return nullptr;
         case TokenType::COLLAPSE_OR:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qor_collapse");
+                llvm::Function* fn = module->getFunction("qc_qor_collapse");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt1Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage,
                         "qc_qor_collapse", module.get());
                 }
-                llvm::Value *L8 = builder->CreateZExt(L, builder->getInt8Ty());
-                llvm::Value *R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {L8, R8});
+                llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
+                llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
+                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateCall(fn, {L8, R8});
             }
             cg_error((*bin)->op_tok.pos, "|&| requires qbool operands");
@@ -15147,22 +15149,22 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             int elemTypeCode = getTypeCode(elemType);
 
             if (elemTypeCode != -1) {
-                llvm::Function *createFn =
+                llvm::Function* createFn =
                     module->getFunction("qc_create_list");
                 if (!createFn) {
-                    llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         ptrTy, {builder->getInt32Ty()}, false);
                     createFn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage, "qc_create_list",
                         module.get());
                 }
 
-                llvm::Value *listPtr = builder->CreateCall(
+                llvm::Value* listPtr = builder->CreateCall(
                     createFn, {builder->getInt32(elemTypeCode)}, "list_ptr");
 
-                llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-                llvm::AllocaInst *alloc = createEntryAlloca(name, ptrTy);
+                llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+                llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
                 builder->CreateStore(listPtr, alloc);
 
                 locals[name] = alloc;
@@ -15172,22 +15174,22 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
         }
         if (qcType == "auto") {
-            llvm::Value *rhs = emitExpr((*va)->value_node);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
                 cg_error((*va)->var_name_tok.pos,
-                         "Cannot infer type from invalid expression");
+                    "Cannot infer type from invalid expression");
                 return nullptr;
             }
 
-            llvm::Type *inferredTy = rhs->getType();
-            llvm::AllocaInst *alloc = createEntryAlloca(name, inferredTy);
+            llvm::Type* inferredTy = rhs->getType();
+            llvm::AllocaInst* alloc = createEntryAlloca(name, inferredTy);
             builder->CreateStore(rhs, alloc);
             std::string fullName = getCurrentNamespace().empty()
                                        ? name
                                        : getCurrentNamespace() + "::" + name;
             locals[fullName] = alloc;
             if (inferredTy->isArrayTy()) {
-                llvm::Type *elemTy = inferredTy;
+                llvm::Type* elemTy = inferredTy;
                 while (elemTy->isArrayTy()) {
                     elemTy = elemTy->getArrayElementType();
                 }
@@ -15212,27 +15214,27 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return nullptr;
         }
         if (qcType == "auto[]" || qcType.starts_with("auto[")) {
-            llvm::Value *rhs = emitExpr((*va)->value_node);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
                 cg_error((*va)->var_name_tok.pos, "Cannot infer array type");
                 return nullptr;
             }
 
-            llvm::Type *rhsTy = rhs->getType();
+            llvm::Type* rhsTy = rhs->getType();
 
             if (!rhsTy->isArrayTy()) {
                 cg_error((*va)->var_name_tok.pos,
-                         "auto[] requires array literal");
+                    "auto[] requires array literal");
                 return nullptr;
             }
 
-            llvm::AllocaInst *alloc = createEntryAlloca(name, rhsTy);
+            llvm::AllocaInst* alloc = createEntryAlloca(name, rhsTy);
             builder->CreateStore(rhs, alloc);
             name = getCurrentNamespace().empty()
                        ? name
                        : getCurrentNamespace() + "::" + name;
             locals[name] = alloc;
-            llvm::Type *elemTy = rhsTy->getArrayElementType();
+            llvm::Type* elemTy = rhsTy->getArrayElementType();
             if (elemTy->isIntegerTy(32))
                 arrayTypeStrings[name] = "int";
             else if (elemTy->isFloatTy())
@@ -15254,27 +15256,27 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
 
         if (qcType == "list<auto>") {
-            llvm::Value *rhs = emitExpr((*va)->value_node);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
                 cg_error((*va)->var_name_tok.pos, "Cannot infer list type");
                 return nullptr;
             }
 
-            llvm::Type *rhsTy = rhs->getType();
+            llvm::Type* rhsTy = rhs->getType();
 
             if (!rhsTy->isArrayTy()) {
                 cg_error((*va)->var_name_tok.pos,
-                         "list<auto> requires array literal");
+                    "list<auto> requires array literal");
                 return nullptr;
             }
 
-            llvm::AllocaInst *alloc = createEntryAlloca(name, rhsTy);
+            llvm::AllocaInst* alloc = createEntryAlloca(name, rhsTy);
             builder->CreateStore(rhs, alloc);
             name = getCurrentNamespace().empty()
                        ? name
                        : getCurrentNamespace() + "::" + name;
             locals[name] = alloc;
-            llvm::Type *elemTy = rhsTy->getArrayElementType();
+            llvm::Type* elemTy = rhsTy->getArrayElementType();
             int elemTypeCode = -1;
             if (elemTy->isIntegerTy(32))
                 elemTypeCode = 0;
@@ -15301,26 +15303,26 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             userTypeIt->second.kind == UserTypeKind::Struct) {
             if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                     &(*va)->value_node)) {
-                llvm::StructType *structTy = structTypes[qcType];
-                llvm::Value *structVal = llvm::UndefValue::get(structTy);
-                auto &structInfo = userTypeIt->second;
+                llvm::StructType* structTy = structTypes[qcType];
+                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                auto& structInfo = userTypeIt->second;
                 for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
                     std::string fieldType = structInfo.fields[i].type;
                     auto fieldTypeIt = userTypes.find(fieldType);
-                    llvm::Value *val;
+                    llvm::Value* val;
 
                     if (fieldTypeIt != userTypes.end() &&
                         fieldTypeIt->second.kind == UserTypeKind::Struct) {
                         if (auto nestedArrLit =
                                 std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                                     &(*arrLit)->elements[i])) {
-                            llvm::StructType *nestedStructTy =
+                            llvm::StructType* nestedStructTy =
                                 structTypes[fieldType];
-                            llvm::Value *nestedStruct =
+                            llvm::Value* nestedStruct =
                                 llvm::UndefValue::get(nestedStructTy);
                             for (size_t j = 0;
-                                 j < (*nestedArrLit)->elements.size(); j++) {
-                                llvm::Value *fieldVal =
+                                j < (*nestedArrLit)->elements.size(); j++) {
+                                llvm::Value* fieldVal =
                                     emitExpr((*nestedArrLit)->elements[j]);
                                 if (!fieldVal)
                                     return nullptr;
@@ -15341,7 +15343,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                     structVal = builder->CreateInsertValue(structVal, val, i);
                 }
-                llvm::AllocaInst *structAlloc =
+                llvm::AllocaInst* structAlloc =
                     createEntryAlloca(name, structTy);
                 builder->CreateStore(structVal, structAlloc);
 
@@ -15356,8 +15358,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         if (userTypeIt != userTypes.end() &&
             userTypeIt->second.kind == UserTypeKind::Class) {
-            llvm::StructType *classTy = classTypes[qcType];
-            llvm::AllocaInst *instance = createEntryAlloca(name, classTy);
+            llvm::StructType* classTy = classTypes[qcType];
+            llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
 
             if (auto call = std::get_if<std::unique_ptr<CallNode>>(
                     &(*va)->value_node)) {
@@ -15368,7 +15370,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
                     if (calledName == qcType) {
                         std::string ctorMethodName = "";
-                        for (auto &method : userTypeIt->second.classMethods) {
+                        for (auto& method : userTypeIt->second.classMethods) {
                             if (method.is_constructor) {
                                 ctorMethodName = method.name_tok.value;
                                 break;
@@ -15376,20 +15378,20 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
 
                         if (!ctorMethodName.empty()) {
-                            std::vector<llvm::Value *> args;
-                            for (auto &argNode : (*call)->arg_nodes) {
-                                llvm::Value *arg = emitExpr(argNode);
+                            std::vector<llvm::Value*> args;
+                            for (auto& argNode : (*call)->arg_nodes) {
+                                llvm::Value* arg = emitExpr(argNode);
                                 if (!arg)
                                     return nullptr;
                                 args.push_back(arg);
                             }
-                            llvm::Function *ctor = findMethodOverload(
+                            llvm::Function* ctor = findMethodOverload(
                                 qcType, ctorMethodName, args);
 
                             if (ctor) {
-                                std::vector<llvm::Value *> allArgs = {instance};
+                                std::vector<llvm::Value*> allArgs = {instance};
                                 allArgs.insert(allArgs.end(), args.begin(),
-                                               args.end());
+                                    args.end());
                                 builder->CreateCall(ctor, allArgs);
                             }
                         } else {
@@ -15397,7 +15399,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 findMethodInHierarchy(qcType, "init");
 
                             if (initMethod) {
-                                std::vector<llvm::Value *> args = {instance};
+                                std::vector<llvm::Value*> args = {instance};
                                 builder->CreateCall(initMethod, args);
                             }
                         }
@@ -15408,11 +15410,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     findMethodInHierarchy(qcType, "init");
 
                 if (initMethod) {
-                    std::vector<llvm::Value *> args;
+                    std::vector<llvm::Value*> args;
                     args.push_back(instance);
                     builder->CreateCall(initMethod, args);
                 } else {
-                    llvm::Value *rhs = emitExpr((*va)->value_node);
+                    llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (rhs) {
                         builder->CreateStore(rhs, instance);
                     }
@@ -15428,9 +15430,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         if (userTypeIt != userTypes.end() &&
             userTypeIt->second.kind == UserTypeKind::Union) {
-            llvm::StructType *unionTy = unionTypes[qcType];
-            llvm::AllocaInst *unionAlloc = createEntryAlloca(name, unionTy);
-            llvm::Value *rhs = emitExpr((*va)->value_node);
+            llvm::StructType* unionTy = unionTypes[qcType];
+            llvm::AllocaInst* unionAlloc = createEntryAlloca(name, unionTy);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs)
                 return nullptr;
             if (rhs->getType() == unionTy) {
@@ -15446,28 +15448,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
             if (tag == -1) {
                 cg_error((*va)->var_name_tok.pos,
-                         "Value does not match any variant of union " + qcType);
+                    "Value does not match any variant of union " + qcType);
                 return nullptr;
             }
-            auto &member = userTypes[qcType].members[tag];
+            auto& member = userTypes[qcType].members[tag];
             bool isLiteral = member.type.find(':') != std::string::npos;
-            llvm::Type *rhsTy = rhs->getType();
+            llvm::Type* rhsTy = rhs->getType();
             std::string baseType =
                 isLiteral ? member.type.substr(0, member.type.find(':'))
                           : member.type;
 
-            llvm::Type *memberTy = llvmTypeFor(baseType);
+            llvm::Type* memberTy = llvmTypeFor(baseType);
 
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
                 cg_error((*va)->var_name_tok.pos,
-                         "Union literal variant type mismatch");
+                    "Union literal variant type mismatch");
                 return nullptr;
             }
-            llvm::Value *unionVal = llvm::UndefValue::get(unionTy);
+            llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
             unionVal =
                 builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
 
-            llvm::Value *dataPtr = storeAndGetPointer(rhs);
+            llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
             builder->CreateStore(unionVal, unionAlloc);
@@ -15480,10 +15482,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         if (userTypeIt != userTypes.end() &&
             userTypeIt->second.kind == UserTypeKind::Enum) {
-            llvm::StructType *enumTy = enumTypes[qcType];
-            llvm::AllocaInst *enumAlloc = createEntryAlloca(name, enumTy);
+            llvm::StructType* enumTy = enumTypes[qcType];
+            llvm::AllocaInst* enumAlloc = createEntryAlloca(name, enumTy);
 
-            llvm::Value *rhs = emitExpr((*va)->value_node);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs)
                 return nullptr;
             builder->CreateStore(rhs, enumAlloc);
@@ -15501,19 +15503,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
             arrayTypeStrings[name] = baseType;
         }
-        llvm::AllocaInst *alloc = nullptr;
+        llvm::AllocaInst* alloc = nullptr;
         if ((*va)->type_tok.value == "function" ||
             (*va)->type_tok.value == "auto" &&
                 std::holds_alternative<std::shared_ptr<FuncDefNode>>(
                     (*va)->value_node)) {
             auto fnPtr =
                 std::get<std::shared_ptr<FuncDefNode>>((*va)->value_node);
-            llvm::Function *f = emitFuncDef(*fnPtr);
+            llvm::Function* f = emitFuncDef(*fnPtr);
             name = getCurrentNamespace().empty()
                        ? name
                        : getCurrentNamespace() + "::" + name;
             lambdaTypes[name] = f->getFunctionType();
-            llvm::Type *funcPtrTy = llvm::PointerType::get(context, 0);
+            llvm::Type* funcPtrTy = llvm::PointerType::get(context, 0);
             alloc = createEntryAlloca(name, funcPtrTy);
 
             locals[name] = alloc;
@@ -15521,13 +15523,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             builder->CreateStore(f, alloc);
             return nullptr;
         }
-        llvm::Value *existingAlloc = getVarAddress(name);
+        llvm::Value* existingAlloc = getVarAddress(name);
         std::string fullName = getCurrentNamespace().empty()
                                    ? name
                                    : getCurrentNamespace() + "::" + name;
 
         if (!existingAlloc) {
-            llvm::Type *ty = llvmTypeFor(qcType);
+            llvm::Type* ty = llvmTypeFor(qcType);
             if (!ty) {
                 cg_error((*va)->var_name_tok.pos, "Unknown type: " + qcType);
                 return nullptr;
@@ -15536,10 +15538,10 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             locals[fullName] = alloc;
             varTypes[fullName] = qcType;
         } else {
-            if (auto *existingLocal =
+            if (auto* existingLocal =
                     llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
-                llvm::Type *existingTy = existingLocal->getAllocatedType();
-                llvm::Type *newTy = llvmTypeFor(qcType);
+                llvm::Type* existingTy = existingLocal->getAllocatedType();
+                llvm::Type* newTy = llvmTypeFor(qcType);
 
                 if (existingTy != newTy) {
                     static int shadowId = 0;
@@ -15551,33 +15553,33 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 } else {
                     alloc = existingLocal;
                 }
-            } else if (auto *gv = llvm::dyn_cast<llvm::GlobalVariable>(
+            } else if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(
                            existingAlloc)) {
-                llvm::Value *rhs = emitExpr((*va)->value_node);
+                llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (rhs) {
                     builder->CreateStore(rhs, gv);
                 }
                 return nullptr;
             }
         }
-        llvm::Type *destTy = getPointeeType(fullName);
-        llvm::Value *rhs = emitExpr((*va)->value_node);
+        llvm::Type* destTy = getPointeeType(fullName);
+        llvm::Value* rhs = emitExpr((*va)->value_node);
         if (!rhs) {
             cg_error((*va)->var_name_tok.pos,
-                     "Failed to compile initializer for '" + name + "'");
+                "Failed to compile initializer for '" + name + "'");
             return nullptr;
         }
 
-        llvm::Type *srcTy = rhs->getType();
-        for (auto &[unionName, unionTy] : unionTypes) {
+        llvm::Type* srcTy = rhs->getType();
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (srcTy == unionTy && !isUnionType(destTy)) {
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(rhs, 1, "union_data");
 
                 if (destTy->isPointerTy()) {
                     rhs = builder->CreateBitCast(dataPtr, destTy);
                 } else {
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     rhs = builder->CreateLoad(destTy, typedPtr);
                 }
@@ -15586,15 +15588,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 break;
             }
         }
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (srcTy == enumTy) {
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(rhs, 1, "enum_data");
 
                 if (destTy->isPointerTy()) {
                     rhs = builder->CreateBitCast(dataPtr, destTy);
                 } else {
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     rhs = builder->CreateLoad(destTy, typedPtr);
                 }
@@ -15608,7 +15610,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 rhs = builder->CreateFPExt(rhs, destTy, "f2d");
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
                 cg_error((*va)->var_name_tok.pos,
-                         "Cannot assign double to float in compiled mode");
+                    "Cannot assign double to float in compiled mode");
                 return nullptr;
             } else if (srcTy->isIntegerTy() && destTy->isIntegerTy()) {
                 unsigned srcBits = srcTy->getIntegerBitWidth();
@@ -15622,7 +15624,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 rhs = builder->CreateSIToFP(rhs, destTy, "i2f");
             } else {
                 cg_error((*va)->var_name_tok.pos,
-                         "Type mismatch in assignment in compiled mode");
+                    "Type mismatch in assignment in compiled mode");
                 return nullptr;
             }
         }
@@ -15636,28 +15638,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 return currentThis;
             } else {
                 cg_error((*acc)->var_name_tok.pos,
-                         "'this' used outside class method");
+                    "'this' used outside class method");
                 return nullptr;
             }
         }
-        llvm::Value *alloc = getVarAddress(name);
+        llvm::Value* alloc = getVarAddress(name);
         if (alloc) {
-            llvm::Type *ty = getPointeeType(name);
+            llvm::Type* ty = getPointeeType(name);
             if (ty == nullptr) {
                 cg_error((*acc)->var_name_tok.pos,
-                         "Could not resolve var type");
+                    "Could not resolve var type");
                 return nullptr;
             }
             return builder->CreateLoad(ty, alloc, name);
         }
 
-        llvm::Function *fn = resolveFunction(name);
+        llvm::Function* fn = resolveFunction(name);
         if (fn) {
             return fn;
         }
 
         cg_error((*acc)->var_name_tok.pos,
-                 "Use of undeclared variable '" + name + "' in compiled mode");
+            "Use of undeclared variable '" + name + "' in compiled mode");
         return nullptr;
     } else if (auto asn = std::get_if<std::unique_ptr<AssignExprNode>>(&node)) {
         if (auto propAccess = std::get_if<std::shared_ptr<PropertyAccessNode>>(
@@ -15669,8 +15671,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 std::string varName = (*varAccess)->var_name_tok.value;
                 if (varName == "this" && currentThis &&
                     !currentClassName.empty()) {
-                    auto &classInfo = userTypes[currentClassName];
-                    llvm::StructType *classTy = classTypes[currentClassName];
+                    auto& classInfo = userTypes[currentClassName];
+                    llvm::StructType* classTy = classTypes[currentClassName];
 
                     int fieldIdx = 0;
                     if (!classInfo.baseClassName.empty())
@@ -15678,19 +15680,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
                     for (size_t i = 0; i < classInfo.classFields.size(); i++) {
                         if (classInfo.classFields[i].name == fieldName) {
-                            llvm::Type *fieldTy =
+                            llvm::Type* fieldTy =
                                 llvmTypeFor(classInfo.classFields[i].type);
-                            llvm::Value *fieldPtr = builder->CreateStructGEP(
+                            llvm::Value* fieldPtr = builder->CreateStructGEP(
                                 classTy, currentThis, fieldIdx + i);
 
-                            llvm::Value *rhsVal = emitExpr((*asn)->value);
+                            llvm::Value* rhsVal = emitExpr((*asn)->value);
                             if (!rhsVal)
                                 return nullptr;
 
                             TokenType op = (*asn)->op_tok.type;
 
                             if (op != TokenType::EQ) {
-                                llvm::Value *oldVal =
+                                llvm::Value* oldVal =
                                     builder->CreateLoad(fieldTy, fieldPtr);
                                 bool isFloat = fieldTy->isFloatingPointTy();
 
@@ -15698,37 +15700,37 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 case TokenType::PLUS_EQ:
                                     rhsVal = isFloat
                                                  ? builder->CreateFAdd(oldVal,
-                                                                       rhsVal)
+                                                       rhsVal)
                                                  : builder->CreateAdd(oldVal,
-                                                                      rhsVal);
+                                                       rhsVal);
                                     break;
                                 case TokenType::MINUS_EQ:
                                     rhsVal = isFloat
                                                  ? builder->CreateFSub(oldVal,
-                                                                       rhsVal)
+                                                       rhsVal)
                                                  : builder->CreateSub(oldVal,
-                                                                      rhsVal);
+                                                       rhsVal);
                                     break;
                                 case TokenType::MUL_EQ:
                                     rhsVal = isFloat
                                                  ? builder->CreateFMul(oldVal,
-                                                                       rhsVal)
+                                                       rhsVal)
                                                  : builder->CreateMul(oldVal,
-                                                                      rhsVal);
+                                                       rhsVal);
                                     break;
                                 case TokenType::DIV_EQ:
                                     rhsVal = isFloat
                                                  ? builder->CreateFDiv(oldVal,
-                                                                       rhsVal)
+                                                       rhsVal)
                                                  : builder->CreateSDiv(oldVal,
-                                                                       rhsVal);
+                                                       rhsVal);
                                     break;
                                 case TokenType::MOD_EQ:
                                     rhsVal = isFloat
                                                  ? builder->CreateFRem(oldVal,
-                                                                       rhsVal)
+                                                       rhsVal)
                                                  : builder->CreateSRem(oldVal,
-                                                                       rhsVal);
+                                                       rhsVal);
                                     break;
                                 default:
                                     break;
@@ -15743,13 +15745,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     cg_error(Position(), "Field not found: " + fieldName);
                     return nullptr;
                 }
-                llvm::Value *locAlloc = getVarAddress(varName);
+                llvm::Value* locAlloc = getVarAddress(varName);
                 if (!locAlloc) {
                     cg_error(Position(), "Unknown variable: " + varName);
                     return nullptr;
                 }
 
-                llvm::Type *allocTy = getPointeeType(varName);
+                llvm::Type* allocTy = getPointeeType(varName);
 
                 auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
                 if (!structTy) {
@@ -15767,15 +15769,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                 }
 
-                llvm::Value *fieldPtr =
+                llvm::Value* fieldPtr =
                     builder->CreateStructGEP(structTy, locAlloc, fieldIdx);
-                llvm::Type *fieldTy = structTy->getElementType(fieldIdx);
+                llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
 
-                llvm::Value *rhsVal = emitExpr((*asn)->value);
+                llvm::Value* rhsVal = emitExpr((*asn)->value);
                 TokenType op = (*asn)->op_tok.type;
 
                 if (op != TokenType::EQ) {
-                    llvm::Value *oldVal =
+                    llvm::Value* oldVal =
                         builder->CreateLoad(fieldTy, fieldPtr);
                     bool isFloat = fieldTy->isFloatingPointTy();
 
@@ -15809,11 +15811,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 return rhsVal;
             }
         }
-        llvm::Value *alloc = emitLValue((*asn)->target);
+        llvm::Value* alloc = emitLValue((*asn)->target);
         if (!alloc) {
             cg_error((*asn)->op_tok.pos,
-                     "Left side of assignment must be an L-value "
-                     "(variable, property, or dereference)");
+                "Left side of assignment must be an L-value "
+                "(variable, property, or dereference)");
             return nullptr;
         }
         std::string lhsTypeStr = getExpressionType((*asn)->target, false);
@@ -15821,15 +15823,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         bool isReference = lhsTypeStr.ends_with("&");
         if (isReference)
             lhsTypeStr.pop_back();
-        llvm::Type *destTy = llvmTypeFor(lhsTypeStr);
+        llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
             cg_error((*asn)->op_tok.pos,
-                     "Could not resolve type for assignment");
+                "Could not resolve type for assignment");
             return nullptr;
         }
-        for (auto &[unionName, unionTy] : unionTypes) {
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (destTy == unionTy) {
-                llvm::Value *rhs = emitExpr((*asn)->value);
+                llvm::Value* rhs = emitExpr((*asn)->value);
                 if (!rhs)
                     return nullptr;
                 if (rhs->getType() == unionTy) {
@@ -15840,38 +15842,38 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
 
                 if (tag == -1) {
                     cg_error((*asn)->op_tok.pos,
-                             "Value does not match any variant of union " +
-                                 unionName);
+                        "Value does not match any variant of union " +
+                            unionName);
                     return nullptr;
                 }
-                auto &member = userTypes[unionName].members[tag];
+                auto& member = userTypes[unionName].members[tag];
                 bool isLiteral = member.type.find(':') != std::string::npos;
 
                 std::string baseType =
                     isLiteral ? member.type.substr(0, member.type.find(':'))
                               : member.type;
 
-                llvm::Type *rhsTy = rhs->getType();
-                llvm::Type *memberTy = llvmTypeFor(baseType);
+                llvm::Type* rhsTy = rhs->getType();
+                llvm::Type* memberTy = llvmTypeFor(baseType);
 
                 if (rhsTy->getTypeID() != memberTy->getTypeID()) {
                     cg_error((*asn)->op_tok.pos,
-                             "Union variant payload type mismatch");
+                        "Union variant payload type mismatch");
                     return nullptr;
                 }
-                llvm::Value *unionVal = llvm::UndefValue::get(unionTy);
+                llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
                 unionVal = builder->CreateInsertValue(
                     unionVal, builder->getInt32(tag), 0);
-                llvm::Value *dataPtr = storeAndGetPointer(rhs);
+                llvm::Value* dataPtr = storeAndGetPointer(rhs);
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
                 builder->CreateStore(unionVal, alloc);
                 return unionVal;
             }
         }
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (destTy == enumTy) {
-                llvm::Value *rhs = emitExpr((*asn)->value);
+                llvm::Value* rhs = emitExpr((*asn)->value);
                 if (!rhs)
                     return nullptr;
 
@@ -15879,24 +15881,24 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 return rhs;
             }
         }
-        llvm::Value *oldVal =
+        llvm::Value* oldVal =
             builder->CreateLoad(destTy, alloc, "assign_lhs_val");
-        llvm::Value *rhsVal = emitExpr((*asn)->value);
+        llvm::Value* rhsVal = emitExpr((*asn)->value);
         std::string rhsType = getExpressionType((*asn)->value);
         if (!rhsVal) {
             cg_error((*asn)->op_tok.pos,
-                     "Failed to compile right-hand side of assignment");
+                "Failed to compile right-hand side of assignment");
             return nullptr;
         }
-        llvm::Type *srcTy = rhsVal->getType();
-        for (auto &[unionName, unionTy] : unionTypes) {
+        llvm::Type* srcTy = rhsVal->getType();
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (srcTy == unionTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(rhsVal, 1);
+                llvm::Value* dataPtr = builder->CreateExtractValue(rhsVal, 1);
 
                 if (destTy->isPointerTy()) {
                     rhsVal = builder->CreateBitCast(dataPtr, destTy);
                 } else {
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     rhsVal = builder->CreateLoad(destTy, typedPtr);
                 }
@@ -15946,7 +15948,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         srcTy = rhsVal->getType();
                     } else {
                         cg_error((*asn)->op_tok.pos,
-                                 "Type mismatch in assignment");
+                            "Type mismatch in assignment");
                         return nullptr;
                     }
                 } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
@@ -15955,7 +15957,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
                         cg_error((*asn)->op_tok.pos,
-                                 "Type mismatch in assignment");
+                            "Type mismatch in assignment");
                         return nullptr;
                     }
                 }
@@ -15988,13 +15990,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     rhsVal = builder->CreateSIToFP(rhsVal, destTy, "i2d");
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
                     cg_error((*asn)->op_tok.pos,
-                             "Cannot narrow double to float (loses precision)");
+                        "Cannot narrow double to float (loses precision)");
                     return nullptr;
                 } else if (srcTy->isFloatingPointTy() &&
                            destTy->isIntegerTy()) {
                     cg_error((*asn)->op_tok.pos,
-                             "Cannot convert floating point to integer (loses "
-                             "precision)");
+                        "Cannot convert floating point to integer (loses "
+                        "precision)");
                     return nullptr;
                 } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
                     if (lhsTypeStr.ends_with("&")) {
@@ -16008,7 +16010,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
                         cg_error((*asn)->op_tok.pos,
-                                 "Type mismatch in assignment");
+                            "Type mismatch in assignment");
                         return nullptr;
                     }
                 } else {
@@ -16017,7 +16019,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 }
             }
         }
-        llvm::Value *newVal = nullptr;
+        llvm::Value* newVal = nullptr;
         bool isFloatTy = destTy->isFloatingPointTy();
 
         switch ((*asn)->op_tok.type) {
@@ -16054,14 +16056,17 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     std::string className = structTy->getName().str();
 
                     if (classTypes.find(className) != classTypes.end()) {
-                        std::vector<llvm::Value *> args = {rhsVal};
-                        llvm::Function *opMethod =
+                        std::vector<llvm::Value*> args = {rhsVal};
+                        llvm::Function* opMethod =
                             findMethodOverload(className, "operator=", args);
 
                         if (opMethod) {
-                            std::vector<llvm::Value *> allArgs = {alloc,
-                                                                  rhsVal};
-                            llvm::Value *callResult = builder->CreateCall(
+                            llvm::Type* expectedRhsTy = opMethod->getFunctionType()->getParamType(1);
+                            if (expectedRhsTy->isStructTy() && rhsVal->getType()->isPointerTy()) {
+                                rhsVal = builder->CreateLoad(expectedRhsTy, rhsVal, "op_rhs_load");
+                            }
+                            std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
+                            llvm::Value* callResult = builder->CreateCall(
                                 opMethod, allArgs, "op_assign_tmp");
                             return callResult;
                         }
@@ -16074,13 +16079,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
     } else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
         TokenType op = (*unary)->op_tok.type;
 
-        llvm::Value *operand = emitExpr((*unary)->node);
+        llvm::Value* operand = emitExpr((*unary)->node);
         if (!operand)
             return nullptr;
-        llvm::Type *operandTy = operand->getType();
-        for (auto &[unionName, unionTy] : unionTypes) {
+        llvm::Type* operandTy = operand->getType();
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (operandTy == unionTy) {
-                llvm::Type *targetTy = nullptr;
+                llvm::Type* targetTy = nullptr;
 
                 if (op == TokenType::MINUS) {
                     targetTy = builder->getInt32Ty();
@@ -16092,9 +16097,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     targetTy = builder->getPtrTy();
                 }
                 if (targetTy) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(operand, 1);
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     operand = builder->CreateLoad(targetTy, typedPtr);
                     operandTy = targetTy;
@@ -16102,9 +16107,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 break;
             }
         }
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (operandTy == enumTy) {
-                llvm::Type *targetTy = nullptr;
+                llvm::Type* targetTy = nullptr;
 
                 if (op == TokenType::MINUS) {
                     targetTy = builder->getInt32Ty();
@@ -16116,9 +16121,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     targetTy = builder->getPtrTy();
                 }
                 if (targetTy) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(operand, 1);
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     operand = builder->CreateLoad(targetTy, typedPtr);
                     operandTy = targetTy;
@@ -16135,18 +16140,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         getUnaryOperatorMethodName((*unary)->op_tok.type);
 
                     if (!opMethodName.empty()) {
-                        std::vector<llvm::Value *> args = {};
-                        llvm::Function *opMethod =
+                        std::vector<llvm::Value*> args = {};
+                        llvm::Function* opMethod =
                             findMethodOverload(className, opMethodName, args);
 
                         if (opMethod) {
-                            llvm::AllocaInst *temp =
+                            llvm::AllocaInst* temp =
                                 createEntryAlloca("temp_unary_this", operandTy);
                             builder->CreateStore(operand, temp);
 
-                            std::vector<llvm::Value *> allArgs = {temp};
+                            std::vector<llvm::Value*> allArgs = {temp};
                             return builder->CreateCall(opMethod, allArgs,
-                                                       "unary_op_result");
+                                "unary_op_result");
                         }
                     }
                 }
@@ -16161,28 +16166,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
         }
         if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
-            llvm::Type *ty = operand->getType();
+            llvm::Type* ty = operand->getType();
             if (ty->isFloatingPointTy() || ty->isPointerTy()) {
                 cg_error((*unary)->op_tok.pos,
-                         "Cannot perform bitwise NOT on non-integer type");
+                    "Cannot perform bitwise NOT on non-integer type");
                 return nullptr;
             }
-            llvm::Value *allOnes = llvm::ConstantInt::get(ty, -1, true);
+            llvm::Value* allOnes = llvm::ConstantInt::get(ty, -1, true);
             return builder->CreateXor(operand, allOnes, "nottmp");
         }
         if ((*unary)->op_tok.type == TokenType::QNOT) {
             if (operand->getType() == builder->getIntNTy(2)) {
-                llvm::Function *fn = module->getFunction("qc_qnot");
+                llvm::Function* fn = module->getFunction("qc_qnot");
                 if (!fn) {
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt8Ty(), {builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_qnot", module.get());
+                        llvm::Function::ExternalLinkage,
+                        "qc_qnot", module.get());
                 }
-                llvm::Value *op8 =
+                llvm::Value* op8 =
                     builder->CreateZExt(operand, builder->getInt8Ty());
-                llvm::Value *result8 = builder->CreateCall(fn, {op8});
+                llvm::Value* result8 = builder->CreateCall(fn, {op8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
             cg_error((*unary)->op_tok.pos, "!! requires qbool operand");
@@ -16200,33 +16205,33 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         if ((*unary)->op_tok.type == TokenType::INCREMENT ||
             (*unary)->op_tok.type == TokenType::DECREMENT) {
-            auto *varPtr =
+            auto* varPtr =
                 std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node);
             if (!varPtr) {
                 cg_error((*unary)->op_tok.pos,
-                         "++/-- only supported on variables in compiled mode");
+                    "++/-- only supported on variables in compiled mode");
                 return nullptr;
             }
 
             std::string name = (*varPtr)->var_name_tok.value;
-            llvm::Value *alloc = getVarAddress(name);
+            llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
                 cg_error((*varPtr)->var_name_tok.pos,
-                         "Use of undeclared variable '" + name + "'");
+                    "Use of undeclared variable '" + name + "'");
                 return nullptr;
             }
-            llvm::Type *ty = getPointeeType(name);
+            llvm::Type* ty = getPointeeType(name);
 
             if (!ty->isIntegerTy() || ty->getIntegerBitWidth() <= 2) {
                 cg_error((*unary)->op_tok.pos,
-                         "++/-- only valid on int-like (not bool/qbool)");
+                    "++/-- only valid on int-like (not bool/qbool)");
                 return nullptr;
             }
 
-            llvm::Value *oldVal = builder->CreateLoad(ty, alloc, name);
-            llvm::Value *one = llvm::ConstantInt::get(ty, 1);
+            llvm::Value* oldVal = builder->CreateLoad(ty, alloc, name);
+            llvm::Value* one = llvm::ConstantInt::get(ty, 1);
 
-            llvm::Value *newVal;
+            llvm::Value* newVal;
             if ((*unary)->op_tok.type == TokenType::INCREMENT) {
                 newVal = builder->CreateAdd(oldVal, one, "inc");
             } else {
@@ -16239,7 +16244,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return isPostfix ? oldVal : newVal;
         }
         if ((*unary)->op_tok.type == TokenType::AMPERSAND) {
-            auto *varPtr =
+            auto* varPtr =
                 std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node);
             if (!varPtr) {
                 cg_error((*unary)->op_tok.pos, "& only supported on variables");
@@ -16248,18 +16253,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             std::string name = (*varPtr)->var_name_tok.value;
             if (!(resolveVariable(name))) {
                 cg_error((*unary)->op_tok.pos,
-                         "cannot & something that doesn't exist.");
+                    "cannot & something that doesn't exist.");
                 return nullptr;
             }
             return resolveVariable(name);
         }
         if ((*unary)->op_tok.type == TokenType::MUL) {
-            llvm::Value *val = emitExpr((*unary)->node);
+            llvm::Value* val = emitExpr((*unary)->node);
             std::string type = getExpressionType((*unary)->node);
             if (!type.ends_with("*")) {
                 cg_error((*unary)->op_tok.pos,
-                         "you can only dereference pointer types, found: " +
-                             type);
+                    "you can only dereference pointer types, found: " +
+                        type);
                 return nullptr;
             }
             if (type.starts_with("void*")) {
@@ -16270,20 +16275,20 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return builder->CreateLoad(llvmTypeFor(baseType), val, "deref");
         }
         if ((*unary)->op_tok.type == TokenType::SIZEOF) {
-            const llvm::DataLayout &dl = module->getDataLayout();
+            const llvm::DataLayout& dl = module->getDataLayout();
             uint64_t size;
-            if (StringNode *val = std::get_if<StringNode>(&(*unary)->node)) {
+            if (StringNode* val = std::get_if<StringNode>(&(*unary)->node)) {
                 size = dl.getTypeAllocSize(llvmTypeFor(val->tok.value));
             } else {
                 size = dl.getTypeAllocSize(emitExpr((*unary)->node)->getType());
             }
             unsigned ptrBitWidth = dl.getPointerSizeInBits();
-            llvm::IntegerType *addrType =
+            llvm::IntegerType* addrType =
                 llvm::IntegerType::get(context, ptrBitWidth);
             return llvm::ConstantInt::get(addrType, size);
         }
     } else if (auto fnPtr = std::get_if<std::shared_ptr<FuncDefNode>>(&node)) {
-        llvm::Function *f = emitFuncDef(*(*fnPtr));
+        llvm::Function* f = emitFuncDef(*(*fnPtr));
         return f;
     } else if (auto mapLit =
                    std::get_if<std::unique_ptr<MapLiteralNode>>(&node)) {
@@ -16291,55 +16296,55 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             cg_error((*mapLit)->pos, "Cannot infer type of empty map literal");
             return nullptr;
         }
-        llvm::Value *firstKey = emitExpr((*mapLit)->pairs[0].first);
-        llvm::Value *firstVal = emitExpr((*mapLit)->pairs[0].second);
+        llvm::Value* firstKey = emitExpr((*mapLit)->pairs[0].first);
+        llvm::Value* firstVal = emitExpr((*mapLit)->pairs[0].second);
         if (!firstKey || !firstVal)
             return nullptr;
 
         int keyTypeCode = getTypeCodeFromLLVM(firstKey->getType());
         int valueTypeCode = getTypeCodeFromLLVM(firstVal->getType());
 
-        llvm::Function *createFn = module->getFunction("qc_create_map");
+        llvm::Function* createFn = module->getFunction("qc_create_map");
         if (!createFn) {
-            llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy = llvm::FunctionType::get(
+            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_create_map", module.get());
+                    "qc_create_map", module.get());
         }
 
-        llvm::Value *mapPtr = builder->CreateCall(
+        llvm::Value* mapPtr = builder->CreateCall(
             createFn,
             {builder->getInt32(keyTypeCode), builder->getInt32(valueTypeCode)},
             "map_lit_ptr");
 
-        llvm::Function *setFn = module->getFunction("qc_map_set");
+        llvm::Function* setFn = module->getFunction("qc_map_set");
         if (!setFn) {
-            llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy = llvm::FunctionType::get(
+            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
             setFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_map_set", module.get());
+                    "qc_map_set", module.get());
         }
 
-        for (auto &pair : (*mapLit)->pairs) {
-            llvm::Value *keyVal = emitExpr(pair.first);
-            llvm::Value *valueVal = emitExpr(pair.second);
+        for (auto& pair : (*mapLit)->pairs) {
+            llvm::Value* keyVal = emitExpr(pair.first);
+            llvm::Value* valueVal = emitExpr(pair.second);
             if (!keyVal || !valueVal)
                 continue;
 
-            llvm::AllocaInst *keyAlloc =
+            llvm::AllocaInst* keyAlloc =
                 createEntryAlloca("lit_key", keyVal->getType());
-            llvm::AllocaInst *valAlloc =
+            llvm::AllocaInst* valAlloc =
                 createEntryAlloca("lit_val", valueVal->getType());
             builder->CreateStore(keyVal, keyAlloc);
             builder->CreateStore(valueVal, valAlloc);
 
-            llvm::Value *keyPtr = builder->CreateBitCast(
+            llvm::Value* keyPtr = builder->CreateBitCast(
                 keyAlloc, llvm::PointerType::get(context, 0));
-            llvm::Value *valPtr = builder->CreateBitCast(
+            llvm::Value* valPtr = builder->CreateBitCast(
                 valAlloc, llvm::PointerType::get(context, 0));
 
             builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
@@ -16351,39 +16356,39 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         if ((*arrLit)->elements.empty()) {
             if (!currentFunction) {
                 cg_error(Position(),
-                         "Empty array literals only supported in functions");
+                    "Empty array literals only supported in functions");
                 return nullptr;
             }
 
-            llvm::Type *retTy = currentFunction->getReturnType();
+            llvm::Type* retTy = currentFunction->getReturnType();
             if (retTy->isPointerTy()) {
-                llvm::Type *elemType = builder->getInt32Ty();
-                llvm::Function *mallocFn = module->getFunction("malloc");
+                llvm::Type* elemType = builder->getInt32Ty();
+                llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                         builder->getPtrTy(), {builder->getInt64Ty()}, false);
                     mallocFn = llvm::Function::Create(
                         mallocTy, llvm::Function::ExternalLinkage, "malloc",
                         module.get());
                 }
-                llvm::Value *size = builder->getInt64(0);
-                llvm::Value *ptr =
+                llvm::Value* size = builder->getInt64(0);
+                llvm::Value* ptr =
                     builder->CreateCall(mallocFn, {size}, "empty_arr");
                 return builder->CreateBitCast(ptr, retTy, "empty_arr_cast");
             }
 
             cg_error(Position(),
-                     "Cannot determine element type for empty array");
+                "Cannot determine element type for empty array");
             return nullptr;
         }
 
         bool hasRuntimeSpread = false;
-        llvm::Value *totalSize = builder->getInt32(0);
+        llvm::Value* totalSize = builder->getInt32(0);
 
-        for (auto &elem : (*arrLit)->elements) {
+        for (auto& elem : (*arrLit)->elements) {
             if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
-                llvm::Value *collVal = emitExpr((*spread)->expr);
-                llvm::Value *spreadLen =
+                llvm::Value* collVal = emitExpr((*spread)->expr);
+                llvm::Value* spreadLen =
                     getCollectionLength(collVal, (*spread)->expr);
 
                 if (!llvm::isa<llvm::ConstantInt>(spreadLen)) {
@@ -16398,13 +16403,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         if (hasRuntimeSpread) {
             return createRuntimeSizedArray((*arrLit)->elements, totalSize);
         }
-        std::vector<llvm::Value *> allElements;
-        for (auto &elem : (*arrLit)->elements) {
+        std::vector<llvm::Value*> allElements;
+        for (auto& elem : (*arrLit)->elements) {
             if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
-                llvm::Value *collVal = emitExpr((*spread)->expr);
+                llvm::Value* collVal = emitExpr((*spread)->expr);
                 expandSpreadIntoVector(collVal, (*spread)->expr, allElements);
             } else {
-                llvm::Value *v = emitExpr(elem);
+                llvm::Value* v = emitExpr(elem);
                 if (v)
                     allElements.push_back(v);
             }
@@ -16413,14 +16418,14 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         if (allElements.empty())
             return nullptr;
 
-        llvm::Value *firstElem = allElements[0];
-        llvm::Type *elemTy = firstElem->getType();
+        llvm::Value* firstElem = allElements[0];
+        llvm::Type* elemTy = firstElem->getType();
         size_t arraySize = allElements.size();
 
-        std::vector<llvm::Constant *> constElems;
+        std::vector<llvm::Constant*> constElems;
         bool allConst = true;
-        for (auto *v : allElements) {
-            if (auto *constVal = llvm::dyn_cast<llvm::Constant>(v)) {
+        for (auto* v : allElements) {
+            if (auto* constVal = llvm::dyn_cast<llvm::Constant>(v)) {
                 constElems.push_back(constVal);
             } else {
                 allConst = false;
@@ -16429,31 +16434,30 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
 
         if (allConst) {
-            llvm::ArrayType *arrTy = llvm::ArrayType::get(elemTy, arraySize);
+            llvm::ArrayType* arrTy = llvm::ArrayType::get(elemTy, arraySize);
             return llvm::ConstantArray::get(arrTy, constElems);
         }
 
-        llvm::ArrayType *arrTy = llvm::ArrayType::get(elemTy, arraySize);
-        llvm::AllocaInst *alloc = createEntryAlloca("arr_lit", arrTy);
+        llvm::ArrayType* arrTy = llvm::ArrayType::get(elemTy, arraySize);
+        llvm::AllocaInst* alloc = createEntryAlloca("arr_lit", arrTy);
 
         for (size_t i = 0; i < allElements.size(); i++) {
-            std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                                  builder->getInt32(i)};
-            llvm::Value *elemPtr = builder->CreateInBoundsGEP(
+            std::vector<llvm::Value*> indices = {builder->getInt32(0),
+                builder->getInt32(i)};
+            llvm::Value* elemPtr = builder->CreateInBoundsGEP(
                 arrTy, alloc, indices, "arr_elem_ptr");
             builder->CreateStore(allElements[i], elemPtr);
         }
 
-        std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                              builder->getInt32(0)};
+        std::vector<llvm::Value*> indices = {builder->getInt32(0),
+            builder->getInt32(0)};
         return builder->CreateInBoundsGEP(arrTy, alloc, indices, "arr_ptr");
     } else if (auto callPtr = std::get_if<std::unique_ptr<CallNode>>(&node)) {
-        CallNode &call = *(*callPtr);
-        if (auto *varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
-                &call.node_to_call)) {
+        CallNode& call = *(*callPtr);
+        if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call.node_to_call)) {
             std::string funcName = (*varAccess)->var_name_tok.value;
             std::string resolvedName = funcName;
-            llvm::Function *resolved = resolveFunction(funcName);
+            llvm::Function* resolved = resolveFunction(funcName);
             if (resolved) {
                 resolvedName = resolved->getName().str();
             } else {
@@ -16471,22 +16475,22 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             funcName = resolvedName;
             auto funcDefIt = functionDefs.find(funcName);
             if (funcDefIt != functionDefs.end()) {
-                FuncDefNode *funcDef = funcDefIt->second.get();
+                FuncDefNode* funcDef = funcDefIt->second.get();
                 if (funcHasAutoParams(funcDef)) {
-                    std::vector<llvm::Value *> argValues;
+                    std::vector<llvm::Value*> argValues;
                     std::vector<std::string> argTypes;
-
                     auto paramIt = funcDef->params.begin();
-                    for (auto &argNode : call.arg_nodes) {
-                        std::string ptype = paramIt->type.value;
-                        llvm::Value *argVal;
+                    bool hasSpread = false;
+                    for (auto& argNode : call.arg_nodes) {
+                        if (std::holds_alternative<std::unique_ptr<SpreadNode>>(argNode)) {
+                            hasSpread = true;
+                        }
+                        std::string ptype = (paramIt != funcDef->params.end()) ? paramIt->type.value : "...";
+                        llvm::Value* argVal;
                         if (ptype.ends_with("&")) {
-                            auto *va =
-                                std::get_if<std::unique_ptr<VarAccessNode>>(
-                                    &argNode);
+                            auto* va = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode);
                             if (!va) {
-                                cg_error(Position(),
-                                         "L-value required for ref param");
+                                cg_error(Position(), "L-value required for ref param");
                                 return nullptr;
                             }
                             argVal = getVarAddress((*va)->var_name_tok.value);
@@ -16496,130 +16500,148 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             argTypes.push_back(getExpressionType(argNode));
                         }
                         argValues.push_back(argVal);
-                        ++paramIt;
+                        if (paramIt != funcDef->params.end())
+                            ++paramIt;
+                    }
+                    if (hasSpread) {
+                        std::string sig = makeTypeSignature(argTypes);
+                        std::string specializedName = funcName + "_" + sig;
+                        if (specializedFunctions[funcName].count(sig) == 0) {
+                            llvm::Function* specializedFn = generateSpecializedFunction(funcDef, argTypes, specializedName);
+                            if (!specializedFn)
+                                return nullptr;
+                            specializedFunctions[funcName][sig] = specializedFn;
+                        }
+                        llvm::Function* fn = specializedFunctions[funcName][sig];
+                        return emitSpreadFunctionCall(fn, fn->getFunctionType(), call);
                     }
                     std::string sig = makeTypeSignature(argTypes);
                     std::string specializedName = funcName + "_" + sig;
                     if (specializedFunctions[funcName].count(sig) == 0) {
-                        llvm::Function *specializedFn =
-                            generateSpecializedFunction(funcDef, argTypes,
-                                                        specializedName);
-
+                        llvm::Function* specializedFn = generateSpecializedFunction(funcDef, argTypes, specializedName);
                         if (!specializedFn)
                             return nullptr;
                         specializedFunctions[funcName][sig] = specializedFn;
                     }
-                    llvm::Function *fn = specializedFunctions[funcName][sig];
+                    llvm::Function* fn = specializedFunctions[funcName][sig];
+                    if (funcDef->params.size() > 0 && funcDef->params.back().type.value == "...") {
+                        size_t fixedCount = funcDef->params.size() - 1;
+                        std::vector<llvm::Value*> varVals(argValues.begin() + fixedCount, argValues.end());
+                        argValues.resize(fixedCount);
+                        argValues.push_back(packVariadicArgs(varVals));
+                    }
                     return builder->CreateCall(fn, argValues);
                 }
             }
             resolvedName = resolveTypeName(funcName);
             auto classIt = userTypes.find(resolvedName);
-            if (classIt != userTypes.end() &&
-                classIt->second.kind == UserTypeKind::Class) {
-                llvm::StructType *classTy = classTypes[resolvedName];
-                llvm::AllocaInst *temp =
-                    createEntryAlloca("temp_" + resolvedName, classTy);
+            if (classIt != userTypes.end() && classIt->second.kind == UserTypeKind::Class) {
+                llvm::StructType* classTy = classTypes[resolvedName];
+                llvm::AllocaInst* temp = createEntryAlloca("temp_" + resolvedName, classTy);
                 std::string ctorName = "";
-                for (auto &method : classIt->second.classMethods) {
+                ClassMethodInfo* ctorInfo = nullptr;
+                for (auto& method : classIt->second.classMethods) {
                     if (method.is_constructor) {
                         ctorName = method.name_tok.value;
+                        ctorInfo = &method;
                         break;
                     }
                 }
                 if (!ctorName.empty()) {
-                    std::vector<llvm::Value *> ctorArgs;
-                    for (auto &argNode : call.arg_nodes) {
-                        llvm::Value *arg = emitExpr(argNode);
+                    std::vector<llvm::Value*> ctorArgs;
+                    for (auto& argNode : call.arg_nodes) {
+                        llvm::Value* arg = emitExpr(argNode);
                         if (!arg)
                             return nullptr;
                         ctorArgs.push_back(arg);
                     }
-                    llvm::Function *ctor =
-                        findMethodOverload(resolvedName, ctorName, ctorArgs);
+                    llvm::Function* ctor = findMethodOverload(resolvedName, ctorName, ctorArgs);
                     if (!ctor) {
-                        cg_error((*varAccess)->var_name_tok.pos,
-                                 "No matching constructor for " + resolvedName);
+                        cg_error((*varAccess)->var_name_tok.pos, "No matching constructor for " + resolvedName);
                         return nullptr;
                     }
-                    std::vector<llvm::Value *> allArgs = {temp};
-                    allArgs.insert(allArgs.end(), ctorArgs.begin(),
-                                   ctorArgs.end());
+                    bool isCtorVariadic = (ctorInfo->params.size() > 0 && ctorInfo->params.back().type.value == "...");
+                    if (isCtorVariadic) {
+                        size_t fixedCount = ctorInfo->params.size();
+                        std::vector<llvm::Value*> varVals(ctorArgs.begin() + fixedCount, ctorArgs.end());
+                        ctorArgs.resize(fixedCount);
+                        ctorArgs.push_back(packVariadicArgs(varVals));
+                    }
+
+                    std::vector<llvm::Value*> allArgs = {temp};
+                    allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
                     builder->CreateCall(ctor, allArgs);
                 } else {
-                    builder->CreateStore(llvm::Constant::getNullValue(classTy),
-                                         temp);
+                    builder->CreateStore(llvm::Constant::getNullValue(classTy), temp);
                 }
-                return builder->CreateLoad(classTy, temp,
-                                           resolvedName + "_inst");
+                return builder->CreateLoad(classTy, temp, resolvedName + "_inst");
             }
             static const std::unordered_map<std::string, std::string> builtins =
                 {{"time", "qc_time"},
-                 {"seed", "qc_seed"},
-                 {"random", "qc_random_float"},
-                 {"len", "qc_len"},
-                 {"to_lower", "qc_to_lower"},
-                 {"to_upper", "qc_to_upper"},
-                 {"substring", "qc_substring"},
-                 {"contains", "qc_contains"},
-                 {"startswith", "qc_startswith"},
-                 {"endswith", "qc_endswith"},
-                 {"trim", "qc_trim"},
-                 {"replace", "qc_replace"},
-                 {"to_int", "qc_to_int_from_string"},
-                 {"to_float", "qc_to_float_from_string"},
-                 {"to_double", "qc_to_double_from_string"},
-                 {"to_char", "qc_to_char_from_string"},
-                 {"to_bool", "qc_to_bool_from_int"},
-                 {"to_string", "qc_to_string_int"},
-                 {"qout", ""},
-                 {"typeof", ""},
-                 {"fopen", "qc_fopen"},
-                 {"fclose", "qc_fclose"},
-                 {"fread", "qc_fread"},
-                 {"fwrite", "qc_fwrite"},
-                 {"malloc", "qc_malloc"},
-                 {"calloc", "qc_calloc"},
-                 {"free", "qc_free"},
-                 {"realloc", "qc_realloc"},
-                 {"mapped_ptr", ""},
-                 {"ternary", ""},
-                 {"to_address", ""},
-                 {"inline", ""},
-                 {"flush", "qc_flush"},
-                 {"next", ""},
-                 {"is_empty", ""}
-            };
+                    {"seed", "qc_seed"},
+                    {"random", "qc_random_float"},
+                    {"len", "qc_len"},
+                    {"to_lower", "qc_to_lower"},
+                    {"to_upper", "qc_to_upper"},
+                    {"substring", "qc_substring"},
+                    {"contains", "qc_contains"},
+                    {"startswith", "qc_startswith"},
+                    {"endswith", "qc_endswith"},
+                    {"trim", "qc_trim"},
+                    {"replace", "qc_replace"},
+                    {"to_int", "qc_to_int_from_string"},
+                    {"to_float", "qc_to_float_from_string"},
+                    {"to_double", "qc_to_double_from_string"},
+                    {"to_char", "qc_to_char_from_string"},
+                    {"to_bool", "qc_to_bool_from_int"},
+                    {"to_string", "qc_to_string_int"},
+                    {"qout", ""},
+                    {"typeof", ""},
+                    {"fopen", "qc_fopen"},
+                    {"fclose", "qc_fclose"},
+                    {"fread", "qc_fread"},
+                    {"fwrite", "qc_fwrite"},
+                    {"malloc", "qc_malloc"},
+                    {"calloc", "qc_calloc"},
+                    {"free", "qc_free"},
+                    {"realloc", "qc_realloc"},
+                    {"mapped_ptr", ""},
+                    {"ternary", ""},
+                    {"to_address", ""},
+                    {"inline", ""},
+                    {"flush", "qc_flush"},
+                    {"next", ""},
+                    {"is_empty", ""}};
             auto it = builtins.find(funcName);
 
             if (it != builtins.end()) {
                 std::string runtimeName = it->second;
 
                 if (funcName == "typeof" && !call.arg_nodes.empty()) {
-                    AnyNode &argNode = call.arg_nodes.front();
-                    llvm::Value *arg = emitExpr(argNode);
+                    AnyNode& argNode = call.arg_nodes.front();
+                    llvm::Value* arg = emitExpr(argNode);
                     if (!arg)
                         return nullptr;
-                    llvm::Type *argTy = arg->getType();
-                    for (auto &[unionName, unionTy] : unionTypes) {
+                    llvm::Type* argTy = arg->getType();
+                    for (auto& [unionName, unionTy] : unionTypes) {
                         if (argTy == unionTy) {
-                            llvm::Value *tag = builder->CreateExtractValue(
+                            llvm::Value* tag = builder->CreateExtractValue(
                                 arg, 0, "typeof_tag");
                             auto typeIt = userTypes.find(unionName);
                             if (typeIt != userTypes.end()) {
-                                auto &members = typeIt->second.members;
-                                llvm::BasicBlock *endBB =
+                                auto& members = typeIt->second.members;
+                                llvm::BasicBlock* endBB =
                                     llvm::BasicBlock::Create(
                                         context, "typeof_end", currentFunction);
-                                llvm::AllocaInst *resultAlloc =
+                                llvm::AllocaInst* resultAlloc =
                                     createEntryAlloca(
                                         "typeof_result",
                                         llvm::PointerType::get(context, 0));
-                                llvm::SwitchInst *switchInst =
+                                llvm::SwitchInst* switchInst =
                                     builder->CreateSwitch(tag, endBB,
-                                                          members.size());
+                                        members.size());
                                 for (size_t i = 0; i < members.size(); i++) {
-                                    llvm::BasicBlock *caseBB =
+                                    llvm::BasicBlock* caseBB =
                                         llvm::BasicBlock::Create(
                                             context,
                                             "typeof_case_" + std::to_string(i),
@@ -16629,13 +16651,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     size_t colonPos = baseType.find(':');
                                     if (colonPos != std::string::npos)
                                         baseType = baseType.substr(0, colonPos);
-                                    llvm::Value *variantName =
+                                    llvm::Value* variantName =
                                         builder->CreateGlobalString(baseType);
                                     builder->CreateStore(variantName,
-                                                         resultAlloc);
+                                        resultAlloc);
                                     builder->CreateBr(endBB);
                                     switchInst->addCase(builder->getInt32(i),
-                                                        caseBB);
+                                        caseBB);
                                 }
                                 builder->SetInsertPoint(endBB);
                                 return builder->CreateLoad(
@@ -16644,33 +16666,33 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             }
                         }
                     }
-                    for (auto &[enumName, enumTy] : enumTypes) {
+                    for (auto& [enumName, enumTy] : enumTypes) {
                         if (argTy == enumTy) {
-                            llvm::Value *tag =
+                            llvm::Value* tag =
                                 builder->CreateExtractValue(arg, 0);
-                            auto &entries = userTypes[enumName].enumEntries;
-                            llvm::BasicBlock *endBB = llvm::BasicBlock::Create(
+                            auto& entries = userTypes[enumName].enumEntries;
+                            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(
                                 context, "typeof_end", currentFunction);
-                            llvm::AllocaInst *resultAlloc = createEntryAlloca(
+                            llvm::AllocaInst* resultAlloc = createEntryAlloca(
                                 "typeof_result",
                                 llvm::PointerType::get(context, 0));
-                            llvm::SwitchInst *switchInst =
+                            llvm::SwitchInst* switchInst =
                                 builder->CreateSwitch(tag, endBB,
-                                                      entries.size());
+                                    entries.size());
                             for (size_t i = 0; i < entries.size(); i++) {
-                                llvm::BasicBlock *caseBB =
+                                llvm::BasicBlock* caseBB =
                                     llvm::BasicBlock::Create(context, "case",
-                                                             currentFunction);
+                                        currentFunction);
                                 builder->SetInsertPoint(caseBB);
                                 size_t colonPos = entries[i].typeAtom.find(':');
                                 std::string type =
                                     entries[i].typeAtom.substr(0, colonPos);
-                                llvm::Value *typeStr =
+                                llvm::Value* typeStr =
                                     builder->CreateGlobalString(type);
                                 builder->CreateStore(typeStr, resultAlloc);
                                 builder->CreateBr(endBB);
                                 switchInst->addCase(builder->getInt32(i),
-                                                    caseBB);
+                                    caseBB);
                             }
                             builder->SetInsertPoint(endBB);
                             return builder->CreateLoad(
@@ -16739,19 +16761,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateGlobalString(typeName);
                 }
                 if (funcName == "fopen") {
-                    std::vector<llvm::Value *> args;
-                    for (auto &argNode : call.arg_nodes) {
-                        llvm::Value *arg = emitExpr(argNode);
+                    std::vector<llvm::Value*> args;
+                    for (auto& argNode : call.arg_nodes) {
+                        llvm::Value* arg = emitExpr(argNode);
                         if (!arg)
                             return nullptr;
                         args.push_back(arg);
                     }
-                    llvm::Function *fn = module->getFunction("qc_fopen");
+                    llvm::Function* fn = module->getFunction("qc_fopen");
                     if (!fn) {
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* fnTy = llvm::FunctionType::get(
                             llvm::PointerType::get(context, 0),
                             {llvm::PointerType::get(context, 0),
-                             llvm::PointerType::get(context, 0)},
+                                llvm::PointerType::get(context, 0)},
                             false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage, "qc_fopen",
@@ -16760,12 +16782,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, args, "fopen_result");
                 }
                 if (funcName == "fclose") {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
-                    llvm::Function *fn = module->getFunction("qc_fclose");
+                    llvm::Function* fn = module->getFunction("qc_fclose");
                     if (!fn) {
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* fnTy = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0)}, false);
                         fn = llvm::Function::Create(
@@ -16776,12 +16798,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return nullptr;
                 }
                 if (funcName == "fread") {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
-                    llvm::Function *fn = module->getFunction("qc_fread");
+                    llvm::Function* fn = module->getFunction("qc_fread");
                     if (!fn) {
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* fnTy = llvm::FunctionType::get(
                             llvm::PointerType::get(context, 0),
                             {llvm::PointerType::get(context, 0)}, false);
                         fn = llvm::Function::Create(
@@ -16791,19 +16813,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     return builder->CreateCall(fn, {arg}, "fread_result");
                 }
                 if (funcName == "fwrite") {
-                    std::vector<llvm::Value *> args;
-                    for (auto &argNode : call.arg_nodes) {
-                        llvm::Value *arg = emitExpr(argNode);
+                    std::vector<llvm::Value*> args;
+                    for (auto& argNode : call.arg_nodes) {
+                        llvm::Value* arg = emitExpr(argNode);
                         if (!arg)
                             return nullptr;
                         args.push_back(arg);
                     }
-                    llvm::Function *fn = module->getFunction("qc_fwrite");
+                    llvm::Function* fn = module->getFunction("qc_fwrite");
                     if (!fn) {
-                        auto *fnTy = llvm::FunctionType::get(
+                        auto* fnTy = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0),
-                             llvm::PointerType::get(context, 0)},
+                                llvm::PointerType::get(context, 0)},
                             false);
                         fn = llvm::Function::Create(
                             fnTy, llvm::Function::ExternalLinkage, "qc_fwrite",
@@ -16821,7 +16843,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                                  // ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
                     if (call.arg_nodes.empty()) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "qout requires arguments: " + funcName);
+                            "qout requires arguments: " + funcName);
                         return nullptr;
                     }
                     std::vector<AnyNode> goodArgs(
@@ -16829,15 +16851,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         std::make_move_iterator(call.arg_nodes.end()));
                     int current_arg = 0;
                     std::string fmtString = "";
-                    llvm::Value *argVal = emitExpr(goodArgs[0]);
-                    llvm::ConstantDataSequential *constArray = nullptr;
-                    if (auto *CE = llvm::dyn_cast<llvm::ConstantExpr>(argVal)) {
+                    llvm::Value* argVal = emitExpr(goodArgs[0]);
+                    llvm::ConstantDataSequential* constArray = nullptr;
+                    if (auto* CE = llvm::dyn_cast<llvm::ConstantExpr>(argVal)) {
                         if (CE->getOpcode() ==
                             llvm::Instruction::GetElementPtr) {
                             argVal = CE->getOperand(0);
                         }
                     }
-                    if (auto *GV =
+                    if (auto* GV =
                             llvm::dyn_cast<llvm::GlobalVariable>(argVal)) {
                         if (GV->hasInitializer()) {
                             constArray =
@@ -16853,170 +16875,170 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         fmtString = constArray->getAsString().str();
                     } else {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "qout requires the first argument to be a "
-                                 "string: " +
-                                     funcName);
+                            "qout requires the first argument to be a "
+                            "string: " +
+                                funcName);
                         return nullptr;
                     }
                     std::string to_print = "";
                     char c;
-                    llvm::Function *printString =
+                    llvm::Function* printString =
                         module->getFunction("qc_print_string");
                     if (!printString) {
-                        llvm::FunctionType *prStrFnTy = llvm::FunctionType::get(
+                        llvm::FunctionType* prStrFnTy = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0)}, false);
                         printString = llvm::Function::Create(
                             prStrFnTy, llvm::Function::ExternalLinkage,
                             "qc_print_string", module.get());
                     }
-                    llvm::Function *fmtStr =
+                    llvm::Function* fmtStr =
                         module->getFunction("qc_fmt_string");
                     if (!fmtStr) {
-                        llvm::FunctionType *prStrFnTy = llvm::FunctionType::get(
+                        llvm::FunctionType* prStrFnTy = llvm::FunctionType::get(
                             llvm::PointerType::get(context, 0),
                             {llvm::PointerType::get(context, 0),
-                             builder->getInt32Ty(), builder->getInt1Ty()},
+                                builder->getInt32Ty(), builder->getInt1Ty()},
                             false);
                         fmtStr = llvm::Function::Create(
                             prStrFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_string", module.get());
                     }
-                    llvm::Function *fmtInt = module->getFunction("qc_fmt_int");
+                    llvm::Function* fmtInt = module->getFunction("qc_fmt_int");
                     if (!fmtInt) {
-                        llvm::FunctionType *fmtIntFnTy =
+                        llvm::FunctionType* fmtIntFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                 builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtInt = llvm::Function::Create(
                             fmtIntFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_int", module.get());
                     }
-                    llvm::Function *fmtUInt =
+                    llvm::Function* fmtUInt =
                         module->getFunction("qc_fmt_unsigned_int");
                     if (!fmtUInt) {
-                        llvm::FunctionType *fmtUIntFnTy =
+                        llvm::FunctionType* fmtUIntFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                 builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtUInt = llvm::Function::Create(
                             fmtUIntFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_unsigned_int", module.get());
                     }
-                    llvm::Function *fmtFloat =
+                    llvm::Function* fmtFloat =
                         module->getFunction("qc_fmt_float");
                     if (!fmtFloat) {
-                        llvm::FunctionType *fmtFloatFnTy =
+                        llvm::FunctionType* fmtFloatFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                 builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtFloat = llvm::Function::Create(
                             fmtFloatFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_float", module.get());
                     }
-                    llvm::Function *fmtDouble =
+                    llvm::Function* fmtDouble =
                         module->getFunction("qc_fmt_double");
                     if (!fmtDouble) {
-                        llvm::FunctionType *fmtDoubleFnTy =
+                        llvm::FunctionType* fmtDoubleFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                 builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtDouble = llvm::Function::Create(
                             fmtDoubleFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_double", module.get());
                     }
-                    llvm::Function *fmtChar =
+                    llvm::Function* fmtChar =
                         module->getFunction("qc_fmt_char");
                     if (!fmtChar) {
-                        llvm::FunctionType *fmtCharFnTy =
+                        llvm::FunctionType* fmtCharFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt8Ty(), builder->getInt32Ty(),
-                                 builder->getInt32Ty()},
+                                    builder->getInt32Ty()},
                                 false);
                         fmtChar = llvm::Function::Create(
                             fmtCharFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_char", module.get());
                     }
-                    llvm::Function *fmtQBool =
+                    llvm::Function* fmtQBool =
                         module->getFunction("qc_fmt_qbool");
                     if (!fmtQBool) {
-                        llvm::FunctionType *fmtQBoolFnTy =
+                        llvm::FunctionType* fmtQBoolFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt1Ty(), builder->getInt32Ty(),
-                                 builder->getInt32Ty()},
+                                    builder->getInt32Ty()},
                                 false);
                         fmtQBool = llvm::Function::Create(
                             fmtQBoolFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_qbool", module.get());
                     }
-                    llvm::Function *fmtBool =
+                    llvm::Function* fmtBool =
                         module->getFunction("qc_fmt_bool");
                     if (!fmtBool) {
-                        llvm::FunctionType *fmtBoolFnTy =
+                        llvm::FunctionType* fmtBoolFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt8Ty(), builder->getInt32Ty(),
-                                 builder->getInt32Ty()},
+                                    builder->getInt32Ty()},
                                 false);
                         fmtBool = llvm::Function::Create(
                             fmtBoolFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_bool", module.get());
                     }
-                    llvm::Function *fmtPtr = module->getFunction("qc_fmt_ptr");
+                    llvm::Function* fmtPtr = module->getFunction("qc_fmt_ptr");
                     if (!fmtPtr) {
-                        llvm::FunctionType *fmtPtrFnTy =
+                        llvm::FunctionType* fmtPtrFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {llvm::PointerType::get(context, 0),
-                                 builder->getInt32Ty(), builder->getInt1Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtPtr = llvm::Function::Create(
                             fmtPtrFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_ptr", module.get());
                     }
-                    llvm::Function *fmtOctal =
+                    llvm::Function* fmtOctal =
                         module->getFunction("qc_fmt_octal");
                     if (!fmtOctal) {
-                        llvm::FunctionType *fmtOctalFnTy =
+                        llvm::FunctionType* fmtOctalFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                 builder->getInt1Ty()},
+                                    builder->getInt1Ty()},
                                 false);
                         fmtOctal = llvm::Function::Create(
                             fmtOctalFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_octal", module.get());
                     }
-                    llvm::Function *fmtHex = module->getFunction("qc_fmt_hex");
+                    llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
                     if (!fmtHex) {
-                        llvm::FunctionType *fmtHexFnTy =
+                        llvm::FunctionType* fmtHexFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                 builder->getInt1Ty()},
+                                    builder->getInt1Ty()},
                                 false);
                         fmtHex = llvm::Function::Create(
                             fmtHexFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_hex", module.get());
                     }
-                    llvm::Function *fmtScientific =
+                    llvm::Function* fmtScientific =
                         module->getFunction("qc_fmt_scientific");
                     if (!fmtScientific) {
-                        llvm::FunctionType *fmtScientificFnTy =
+                        llvm::FunctionType* fmtScientificFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                 builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtScientific = llvm::Function::Create(
                             fmtScientificFnTy, llvm::Function::ExternalLinkage,
@@ -17031,8 +17053,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         i++;
                         if (i > fmtString.length() - 1) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "unexpected end of fmt string: " +
-                                         funcName);
+                                "unexpected end of fmt string: " +
+                                    funcName);
                             return nullptr;
                         }
                         c = fmtString[i];
@@ -17048,7 +17070,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             i++;
                             if (i >= fmtString.size()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid formater: " + funcName);
+                                    "invalid formater: " + funcName);
                                 break;
                             }
                             c = fmtString[i];
@@ -17068,7 +17090,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             i++;
                             if (i >= fmtString.size()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid formater: " + funcName);
+                                    "invalid formater: " + funcName);
                                 break;
                             }
                             c = fmtString[i];
@@ -17084,7 +17106,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 precision = std::stoi(num);
                             } else {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid formater: " + funcName);
+                                    "invalid formater: " + funcName);
                                 break;
                             }
                         }
@@ -17093,18 +17115,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *itgVal =
+                            llvm::Value* itgVal =
                                 emitExpr(goodArgs[current_arg]);
-                            llvm::Value *bigIntSigned = nullptr;
+                            llvm::Value* bigIntSigned = nullptr;
                             if (!itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "%i formater takes an integer");
+                                    "%i formater takes an integer");
                                 return nullptr;
                             }
-                            llvm::Type *i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getInt64Ty();
                             unsigned bitWidth =
                                 itgVal->getType()->getIntegerBitWidth();
 
@@ -17117,7 +17139,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else {
                                 bigIntSigned = itgVal;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17126,32 +17148,32 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtInt,
                                     {bigIntSigned,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), precision),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), precision),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'u': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *itgVal =
+                            llvm::Value* itgVal =
                                 emitExpr(goodArgs[current_arg]);
-                            llvm::Value *bigIntSigned = nullptr;
+                            llvm::Value* bigIntSigned = nullptr;
                             if (!itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "%u formater takes an int-like (int, "
-                                         "long int, short "
-                                         "int, addr_t)");
+                                    "%u formater takes an int-like (int, "
+                                    "long int, short "
+                                    "int, addr_t)");
                                 return nullptr;
                             }
-                            llvm::Type *i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getInt64Ty();
                             unsigned bitWidth =
                                 itgVal->getType()->getIntegerBitWidth();
 
@@ -17164,7 +17186,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else {
                                 bigIntSigned = itgVal;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17173,38 +17195,38 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtUInt,
                                     {bigIntSigned,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), precision),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), precision),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 's': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Value *stVal =
+                            llvm::Value* stVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!stVal) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "Failed to resolve argument for "
-                                         "formatter in " +
-                                             funcName);
+                                    "Failed to resolve argument for "
+                                    "formatter in " +
+                                        funcName);
                                 return nullptr;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
                             if (i >= fmtString.size()) {
                             } else if (fmtString[i + 1] == 't') {
                                 i++;
-                                llvm::Type *ty = stVal->getType();
+                                llvm::Type* ty = stVal->getType();
                                 if (auto structTy =
                                         llvm::dyn_cast<llvm::StructType>(
                                             stVal->getType())) {
@@ -17223,7 +17245,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         } else if (structTypes.find(
                                                        className) !=
                                                    structTypes.end()) {
-                                            llvm::Function *nestedReprFn =
+                                            llvm::Function* nestedReprFn =
                                                 module->getFunction(className +
                                                                     "_repr");
                                             if (nestedReprFn) {
@@ -17236,9 +17258,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                                 builder->CreateCall(
                                                     printString,
                                                     {builder
-                                                         ->CreateGlobalString(
-                                                             "(unknown "
-                                                             "struct)")});
+                                                            ->CreateGlobalString(
+                                                                "(unknown "
+                                                                "struct)")});
                                             }
                                         } else {
                                             cg_error(
@@ -17251,16 +17273,16 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     }
                                 } else {
                                     cg_error((*varAccess)->var_name_tok.pos,
-                                             "st formater takes a struct "
-                                             "instance: " +
-                                                 funcName);
+                                        "st formater takes a struct "
+                                        "instance: " +
+                                            funcName);
                                     return nullptr;
                                 }
                             } else {
                                 if (!stVal->getType()->isPointerTy()) {
                                     cg_error((*varAccess)->var_name_tok.pos,
-                                             "s formater takes a string: " +
-                                                 funcName);
+                                        "s formater takes a string: " +
+                                            funcName);
                                     return nullptr;
                                 }
                                 builder->CreateCall(
@@ -17268,11 +17290,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtStr,
                                         {stVal,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                             }
                             break;
                         }
@@ -17280,18 +17302,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *floatVal =
+                            llvm::Value* floatVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!floatVal->getType()->isFloatTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "f formater takes a float: " +
-                                             funcName);
+                                    "f formater takes a float: " +
+                                        funcName);
                                 return nullptr;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17301,30 +17323,30 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     fmtFloat,
                                     {builder->CreateFPExt(
                                          floatVal, builder->getDoubleTy()),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), precision),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), precision),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'd': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *doubVal =
+                            llvm::Value* doubVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!doubVal->getType()->isDoubleTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "d formater takes a double: " +
-                                             funcName);
+                                    "d formater takes a double: " +
+                                        funcName);
                                 return nullptr;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17333,30 +17355,30 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtDouble,
                                     {doubVal,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), precision),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), precision),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'c': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
-                            llvm::Value *cVal = emitExpr(goodArgs[current_arg]);
+                            llvm::Value* cVal = emitExpr(goodArgs[current_arg]);
                             if (i >= fmtString.size()) {
                             } else if (fmtString[i + 1] == 's') {
                                 i++;
-                                llvm::Type *ty = cVal->getType();
+                                llvm::Type* ty = cVal->getType();
                                 if (auto structTy =
                                         llvm::dyn_cast<llvm::StructType>(
                                             cVal->getType())) {
@@ -17368,15 +17390,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                             classTypes.end()) {
                                             auto [reprMethod, ownerClass] =
                                                 findMethodInHierarchy(className,
-                                                                      "repr");
+                                                    "repr");
 
                                             if (reprMethod) {
-                                                std::vector<llvm::Value *> args;
-                                                llvm::AllocaInst *temp =
+                                                std::vector<llvm::Value*> args;
+                                                llvm::AllocaInst* temp =
                                                     createEntryAlloca(
                                                         "temp_repr", ty);
                                                 builder->CreateStore(cVal,
-                                                                     temp);
+                                                    temp);
                                                 args.push_back(temp);
 
                                                 builder->CreateCall(
@@ -17398,8 +17420,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else {
                                 if (!cVal->getType()->isIntegerTy(8)) {
                                     cg_error((*varAccess)->var_name_tok.pos,
-                                             "c formater takes a char: " +
-                                                 funcName);
+                                        "c formater takes a char: " +
+                                            funcName);
                                     return nullptr;
                                 }
                                 builder->CreateCall(
@@ -17407,11 +17429,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtChar,
                                         {cVal,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             break;
@@ -17420,18 +17442,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *boolVal =
+                            llvm::Value* boolVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!boolVal->getType()->isIntegerTy(1)) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "b formater takes a bool: " +
-                                             funcName);
+                                    "b formater takes a bool: " +
+                                        funcName);
                                 return nullptr;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17440,28 +17462,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtBool,
                                     {boolVal,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'q': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *qboolVal =
+                            llvm::Value* qboolVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!qboolVal->getType()->isIntegerTy(2)) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "q formater takes a qbool: " +
-                                             funcName);
+                                    "q formater takes a qbool: " +
+                                        funcName);
                                 return nullptr;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17470,28 +17492,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtQBool,
                                     {qboolVal,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'x': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *itgVal =
+                            llvm::Value* itgVal =
                                 emitExpr(goodArgs[current_arg]);
-                            llvm::Value *bigIntUnsigned;
+                            llvm::Value* bigIntUnsigned;
                             if (!itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "x formater takes a int: " + funcName);
+                                    "x formater takes a int: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Type *i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getInt64Ty();
                             unsigned bitWidth =
                                 itgVal->getType()->getIntegerBitWidth();
 
@@ -17504,7 +17526,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else {
                                 bigIntUnsigned = itgVal;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17513,28 +17535,28 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtHex,
                                     {bigIntUnsigned,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'o': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 break;
                             }
-                            llvm::Value *itgVal =
+                            llvm::Value* itgVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "o formater takes a int: " + funcName);
+                                    "o formater takes a int: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Type *i64Ty = builder->getInt64Ty();
-                            llvm::Value *bigIntUnsigned;
+                            llvm::Type* i64Ty = builder->getInt64Ty();
+                            llvm::Value* bigIntUnsigned;
                             unsigned bitWidth =
                                 itgVal->getType()->getIntegerBitWidth();
 
@@ -17547,7 +17569,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else {
                                 bigIntUnsigned = itgVal;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17556,29 +17578,29 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtOctal,
                                     {bigIntUnsigned,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'p': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Value *ptVal =
+                            llvm::Value* ptVal =
                                 emitExpr(goodArgs[current_arg]);
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
                             if (!ptVal->getType()->isPointerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "p formater takes a pointer: " +
-                                             funcName);
+                                    "p formater takes a pointer: " +
+                                        funcName);
                                 break;
                             }
                             builder->CreateCall(
@@ -17586,27 +17608,27 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 {builder->CreateCall(
                                     fmtPtr,
                                     {ptVal,
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'e': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Value *decimalVal =
+                            llvm::Value* decimalVal =
                                 emitExpr(goodArgs[current_arg]);
                             if (!decimalVal->getType()->isFloatTy() &&
                                 !decimalVal->getType()->isDoubleTy() &&
                                 !decimalVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "e formater takes a number: " +
-                                             funcName);
+                                    "e formater takes a number: " +
+                                        funcName);
                             }
                             if (decimalVal->getType()->isIntegerTy()) {
                                 decimalVal = builder->CreateSIToFP(
@@ -17617,7 +17639,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             } else if (decimalVal->getType()->isDoubleTy()) {
                                 decimalVal = decimalVal;
                             }
-                            llvm::Value *strVal =
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17627,24 +17649,24 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     fmtScientific,
                                     {builder->CreateFPExt(
                                          decimalVal, builder->getDoubleTy()),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), width),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt32Ty(), precision),
-                                     llvm::ConstantInt::get(
-                                         builder->getInt1Ty(), zero_pad)})});
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), width),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt32Ty(), precision),
+                                        llvm::ConstantInt::get(
+                                            builder->getInt1Ty(), zero_pad)})});
                             break;
                         }
                         case 'a': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "too few args: " + funcName);
+                                    "too few args: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Value *val = emitExpr(goodArgs[current_arg]);
-                            llvm::Type *aTy = val->getType();
-                            llvm::Value *strVal =
+                            llvm::Value* val = emitExpr(goodArgs[current_arg]);
+                            llvm::Type* aTy = val->getType();
+                            llvm::Value* strVal =
                                 builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
@@ -17656,13 +17678,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         fmtInt,
                                         {builder->CreateZExt(
                                              val, builder->getInt64Ty()),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt64Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), precision),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt64Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), precision),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (auto structTy =
@@ -17672,7 +17694,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         structTy->getName().str();
                                     if (structTypes.find(className) !=
                                         structTypes.end()) {
-                                        llvm::Function *nestedReprFn =
+                                        llvm::Function* nestedReprFn =
                                             module->getFunction(className +
                                                                 "_repr");
                                         if (nestedReprFn) {
@@ -17690,26 +17712,26 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 }
                                 break;
                             }
-                            auto *varNode =
+                            auto* varNode =
                                 std::get_if<std::unique_ptr<VarAccessNode>>(
                                     &goodArgs[current_arg]);
                             if ((aTy->isPointerTy() &&
-                                 std::get_if<StringNode>(
-                                     &goodArgs[current_arg])) ||
+                                    std::get_if<StringNode>(
+                                        &goodArgs[current_arg])) ||
                                 (varNode &&
-                                 hasVarType((*varNode)->var_name_tok.value) &&
-                                 findVarType((*varNode)->var_name_tok.value)
-                                         ->second == std::string("string"))) {
+                                    hasVarType((*varNode)->var_name_tok.value) &&
+                                    findVarType((*varNode)->var_name_tok.value)
+                                            ->second == std::string("string"))) {
                                 builder->CreateCall(
                                     printString,
                                     {builder->CreateCall(
                                         fmtStr,
                                         {val,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (aTy->isFloatTy()) {
@@ -17719,13 +17741,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         fmtFloat,
                                         {builder->CreateFPExt(
                                              val, builder->getDoubleTy()),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), precision),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), precision),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (aTy->isDoubleTy()) {
@@ -17734,13 +17756,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtDouble,
                                         {val,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), precision),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), precision),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (auto structTy =
@@ -17752,18 +17774,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         classTypes.end()) {
                                         auto [reprMethod, ownerClass] =
                                             findMethodInHierarchy(className,
-                                                                  "repr");
+                                                "repr");
                                         if (reprMethod) {
-                                            std::vector<llvm::Value *> args;
-                                            llvm::AllocaInst *temp =
+                                            std::vector<llvm::Value*> args;
+                                            llvm::AllocaInst* temp =
                                                 createEntryAlloca("temp_repr",
-                                                                  aTy);
+                                                    aTy);
                                             builder->CreateStore(val, temp);
                                             args.push_back(temp);
                                             builder->CreateCall(
                                                 printString,
                                                 {builder->CreateCall(reprMethod,
-                                                                     args)});
+                                                    args)});
                                         } else {
                                             to_print += "(reprless class)";
                                         }
@@ -17775,11 +17797,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                         {builder->CreateCall(
                                             fmtChar,
                                             {val,
-                                             llvm::ConstantInt::get(
-                                                 builder->getInt32Ty(), width),
-                                             llvm::ConstantInt::get(
-                                                 builder->getInt1Ty(),
-                                                 zero_pad)})});
+                                                llvm::ConstantInt::get(
+                                                    builder->getInt32Ty(), width),
+                                                llvm::ConstantInt::get(
+                                                    builder->getInt1Ty(),
+                                                    zero_pad)})});
                                     break;
                                 }
                                 break;
@@ -17790,11 +17812,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtBool,
                                         {val,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (aTy->isIntegerTy(2)) {
@@ -17803,11 +17825,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtQBool,
                                         {val,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             if (aTy->isPointerTy()) {
@@ -17816,73 +17838,73 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     {builder->CreateCall(
                                         fmtPtr,
                                         {val,
-                                         llvm::ConstantInt::get(
-                                             builder->getInt32Ty(), width),
-                                         llvm::ConstantInt::get(
-                                             builder->getInt1Ty(),
-                                             zero_pad)})});
+                                            llvm::ConstantInt::get(
+                                                builder->getInt32Ty(), width),
+                                            llvm::ConstantInt::get(
+                                                builder->getInt1Ty(),
+                                                zero_pad)})});
                                 break;
                             }
                             break;
                         }
                         default:
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "invalid formater: " + funcName);
+                                "invalid formater: " + funcName);
                             break;
                         }
                     }
-                    llvm::Value *strVal = builder->CreateGlobalString(to_print);
+                    llvm::Value* strVal = builder->CreateGlobalString(to_print);
                     builder->CreateCall(printString, {strVal});
                     to_print = "";
                     return nullptr;
                 }
                 if (funcName == "to_string" && !call.arg_nodes.empty()) {
-                    AnyNode &argNode = call.arg_nodes.front();
-                    llvm::Value *arg = emitExpr(argNode);
+                    AnyNode& argNode = call.arg_nodes.front();
+                    llvm::Value* arg = emitExpr(argNode);
                     if (!arg)
                         return nullptr;
                     return convertToString(arg, argNode);
                 }
 
                 if (funcName == "to_int" && !call.arg_nodes.empty()) {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
                     return emitBuiltinConversion(arg, "int");
                 }
 
                 if (funcName == "to_float" && !call.arg_nodes.empty()) {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
                     return emitBuiltinConversion(arg, "float");
                 }
 
                 if (funcName == "to_double" && !call.arg_nodes.empty()) {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
                     return emitBuiltinConversion(arg, "double");
                 }
 
                 if (funcName == "to_bool" && !call.arg_nodes.empty()) {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
                     return emitBuiltinConversion(arg, "bool");
                 }
 
                 if (funcName == "to_char" && !call.arg_nodes.empty()) {
-                    llvm::Value *arg = emitExpr(call.arg_nodes.front());
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg)
                         return nullptr;
                     return emitBuiltinConversion(arg, "char");
                 }
                 if (funcName == "mapped_ptr" && !call.arg_nodes.empty()) {
-                    llvm::Value *val = emitExpr(call.arg_nodes.front());
+                    llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isIntegerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "arg 1 must be a integer: " + funcName);
+                            "arg 1 must be a integer: " + funcName);
                         return nullptr;
                     }
                     if (!(val->getType()->isIntegerTy(getPtrSize()))) {
@@ -17896,21 +17918,21 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                     val->getType()->getIntegerBitWidth()) +
                                 " bit integer (" +
                                 ((val->getType()->getIntegerBitWidth() == 32)
-                                     ? "int"
-                                     : ((val->getType()->getIntegerBitWidth() ==
-                                         64)
-                                            ? "long int"
-                                            : "short int")) +
+                                        ? "int"
+                                        : ((val->getType()->getIntegerBitWidth() ==
+                                               64)
+                                                  ? "long int"
+                                                  : "short int")) +
                                 ": " + funcName);
                         return nullptr;
                     }
                     return builder->CreateIntToPtr(val, builder->getPtrTy());
                 }
                 if (funcName == "to_address" && !call.arg_nodes.empty()) {
-                    llvm::Value *val = emitExpr(call.arg_nodes.front());
+                    llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isPointerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "arg 1 must be a pointer: " + funcName);
+                            "arg 1 must be a pointer: " + funcName);
                         return nullptr;
                     }
                     return builder->CreatePtrToInt(
@@ -17919,34 +17941,34 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 if (funcName == "ternary" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() != 3) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "must have exactly 3 args: " + funcName);
+                            "must have exactly 3 args: " + funcName);
                         return nullptr;
                     }
                     auto it = std::next(call.arg_nodes.begin(), 1);
-                    llvm::Value *is_tr = emitExpr(*it);
-                    llvm::Value *is_fl = emitExpr(call.arg_nodes.back());
+                    llvm::Value* is_tr = emitExpr(*it);
+                    llvm::Value* is_fl = emitExpr(call.arg_nodes.back());
                     if (is_tr->getType() != is_fl->getType()) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "arg 2 and 3 must be the same type: " +
-                                     funcName);
+                            "arg 2 and 3 must be the same type: " +
+                                funcName);
                         return nullptr;
                     }
-                    llvm::Value *val = emitExpr(call.arg_nodes.front());
+                    llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (val->getType()->isIntegerTy(1)) {
                         return builder->CreateSelect(val, is_tr, is_fl,
-                                                     "select_val");
+                            "select_val");
                     }
                     cg_error((*varAccess)->var_name_tok.pos,
-                             "arg 1 must be a boolean: " + funcName);
+                        "arg 1 must be a boolean: " + funcName);
                     return nullptr;
                 }
                 if (funcName == "inline" && !call.arg_nodes.empty()) {
-                    StringNode *data =
+                    StringNode* data =
                         std::get_if<StringNode>(&call.arg_nodes.front());
                     if (data == nullptr) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "arg 1 must be a compile-time string: " +
-                                     funcName);
+                            "arg 1 must be a compile-time string: " +
+                                funcName);
                         return nullptr;
                     }
                     int outputs = 0;
@@ -17978,8 +18000,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         } else {
                             if (asm_text.length() <= i + 1) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid operand placeholder: " +
-                                             funcName);
+                                    "invalid operand placeholder: " +
+                                        funcName);
                                 return nullptr;
                             }
                             finalized += c;
@@ -17990,8 +18012,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 if (i >= asm_text.size() ||
                                     !std::isdigit(asm_text[i])) {
                                     cg_error((*varAccess)->var_name_tok.pos,
-                                             "expected number after $: " +
-                                                 funcName);
+                                        "expected number after $: " +
+                                            funcName);
                                     return nullptr;
                                 }
                                 int index = 0;
@@ -18004,13 +18026,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 op.index = index;
                             } catch (...) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid operand index: " + funcName);
+                                    "invalid operand index: " + funcName);
                                 return nullptr;
                             }
                             if (asm_text.length() <= i + 1) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid operand placeholder: " +
-                                             funcName);
+                                    "invalid operand placeholder: " +
+                                        funcName);
                                 return nullptr;
                             }
                             if (i < asm_text.size() && asm_text[i] == '=') {
@@ -18019,17 +18041,17 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             }
                             if (i >= asm_text.size()) {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "expected operand kind after asm "
-                                         "operand index: " +
-                                             funcName);
+                                    "expected operand kind after asm "
+                                    "operand index: " +
+                                        funcName);
                                 return nullptr;
                             }
                             char kind = asm_text[i];
                             if (kind != 'r' && kind != 'm' && kind != 'i' &&
                                 kind != 'g') {
                                 cg_error((*varAccess)->var_name_tok.pos,
-                                         "invalid asm operand kind: " +
-                                             funcName);
+                                    "invalid asm operand kind: " +
+                                        funcName);
                                 return nullptr;
                             }
                             op.kind = kind;
@@ -18042,12 +18064,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             }
                         }
                     }
-                    StringNode *clobber_string_node =
+                    StringNode* clobber_string_node =
                         std::get_if<StringNode>(&call.arg_nodes.back());
                     if (clobber_string_node == nullptr) {
                         cg_error((*varAccess)->var_name_tok.pos,
-                                 "final arg must be a compile-time string: " +
-                                     funcName);
+                            "final arg must be a compile-time string: " +
+                                funcName);
                         return nullptr;
                     }
                     std::string clobber_string = clobber_string_node->tok.value;
@@ -18067,16 +18089,16 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                     std::unordered_set<int> output_indices;
                     std::unordered_set<int> input_indices;
-                    for (const auto &op : output_ops)
+                    for (const auto& op : output_ops)
                         output_indices.insert(op.index);
-                    for (const auto &op : input_ops)
+                    for (const auto& op : input_ops)
                         input_indices.insert(op.index);
 
                     for (int idx : input_indices) {
                         if (output_indices.contains(idx)) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "asm operand " + std::to_string(idx) +
-                                         " used as both input and output");
+                                "asm operand " + std::to_string(idx) +
+                                    " used as both input and output");
                             return nullptr;
                         }
                     }
@@ -18085,8 +18107,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     for (int i = 0; i < output_count; i++) {
                         if (!output_indices.contains(i)) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "output operands must be contiguous "
-                                     "starting at index 0");
+                                "output operands must be contiguous "
+                                "starting at index 0");
                             return nullptr;
                         }
                     }
@@ -18101,69 +18123,69 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                     std::map<int, AsmOp> unique_outputs;
                     std::map<int, AsmOp> unique_inputs;
-                    for (const auto &op : output_ops) {
+                    for (const auto& op : output_ops) {
                         if (!unique_outputs.contains(op.index)) {
                             unique_outputs[op.index] = op;
                         }
                     }
-                    for (const auto &op : input_ops) {
+                    for (const auto& op : input_ops) {
                         if (!unique_inputs.contains(op.index)) {
                             unique_inputs[op.index] = op;
                         }
                     }
-                    std::vector<llvm::Type *> input_types;
-                    std::vector<llvm::Value *> input_values;
+                    std::vector<llvm::Type*> input_types;
+                    std::vector<llvm::Value*> input_values;
 
-                    std::vector<llvm::Type *> output_types;
-                    std::vector<llvm::Value *> output_targets;
-                    for (auto &[idx, op] : unique_inputs) {
+                    std::vector<llvm::Type*> output_types;
+                    std::vector<llvm::Value*> output_targets;
+                    for (auto& [idx, op] : unique_inputs) {
                         int arg_pos = idx + 1;
                         if (arg_pos >= call.arg_nodes.size() - 1) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "asm input index out of range");
+                                "asm input index out of range");
                             return nullptr;
                         }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
-                        auto &arg_node = *it;
-                        llvm::Value *val = emitExpr(arg_node);
+                        auto& arg_node = *it;
+                        llvm::Value* val = emitExpr(arg_node);
                         if (val == nullptr) {
                             return nullptr;
                         }
                         input_values.push_back(val);
                         input_types.push_back(val->getType());
                     }
-                    for (auto &[idx, op] : unique_outputs) {
+                    for (auto& [idx, op] : unique_outputs) {
                         int arg_pos = idx + 1;
                         if (arg_pos >= call.arg_nodes.size() - 1) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "asm output index out of range");
+                                "asm output index out of range");
                             return nullptr;
                         }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
-                        auto &arg_node = *it;
-                        auto *out_var =
+                        auto& arg_node = *it;
+                        auto* out_var =
                             std::get_if<std::unique_ptr<VarAccessNode>>(
                                 &arg_node);
                         if (out_var == nullptr) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "asm outputs must be variables");
+                                "asm outputs must be variables");
                             return nullptr;
                         }
 
-                        llvm::Value *out_ptr =
+                        llvm::Value* out_ptr =
                             resolveVariable((*out_var)->var_name_tok.value);
                         if (out_ptr == nullptr) {
                             cg_error((*varAccess)->var_name_tok.pos,
-                                     "unknown output variable: " +
-                                         (*out_var)->var_name_tok.value);
+                                "unknown output variable: " +
+                                    (*out_var)->var_name_tok.value);
                             return nullptr;
                         }
-                        llvm::Type *out_ty = llvmTypeFor(
+                        llvm::Type* out_ty = llvmTypeFor(
                             resolveVarType((*out_var)->var_name_tok.value));
                         output_targets.push_back(out_ptr);
                         output_types.push_back(out_ty);
                     }
-                    llvm::Type *ret_ty = nullptr;
+                    llvm::Type* ret_ty = nullptr;
                     if (output_types.empty()) {
                         ret_ty = builder->getVoidTy();
                     } else if (output_types.size() == 1) {
@@ -18171,40 +18193,40 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     } else {
                         ret_ty = llvm::StructType::get(context, output_types);
                     }
-                    llvm::FunctionType *fn_ty =
+                    llvm::FunctionType* fn_ty =
                         llvm::FunctionType::get(ret_ty, input_types, false);
                     std::string constraints = "";
                     bool first = true;
-                    for (auto &[idx, op] : unique_outputs) {
+                    for (auto& [idx, op] : unique_outputs) {
                         if (!first)
                             constraints += ",";
                         constraints += "=";
                         constraints += op.kind;
                         first = false;
                     }
-                    for (auto &[idx, op] : unique_inputs) {
+                    for (auto& [idx, op] : unique_inputs) {
                         if (!first)
                             constraints += ",";
                         constraints += op.kind;
                         first = false;
                     }
-                    for (const auto &clobber : clobbers) {
+                    for (const auto& clobber : clobbers) {
                         if (!first)
                             constraints += ",";
                         constraints += clobber;
                         first = false;
                     }
-                    llvm::InlineAsm *asm_fn;
+                    llvm::InlineAsm* asm_fn;
                     if (isATT) {
                         asm_fn = llvm::InlineAsm::get(fn_ty, finalized,
-                                                      constraints, true);
+                            constraints, true);
                     } else {
                         asm_fn = llvm::InlineAsm::get(
                             fn_ty, finalized, constraints, true, false,
                             llvm::InlineAsm::AD_Intel);
                     }
 
-                    llvm::Value *result =
+                    llvm::Value* result =
                         builder->CreateCall(fn_ty, asm_fn, input_values);
                     if (output_targets.empty()) {
                         return result;
@@ -18213,7 +18235,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         return result;
                     } else {
                         for (unsigned i = 0; i < output_targets.size(); i++) {
-                            llvm::Value *field =
+                            llvm::Value* field =
                                 builder->CreateExtractValue(result, {i});
                             builder->CreateStore(field, output_targets[i]);
                         }
@@ -18233,9 +18255,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             return nullptr;
                         }
                         llvm::Value* ConvertedValue = nullptr;
-                        llvm::Function *nextElem = module->getFunction("qc_variadic_next");
+                        llvm::Function* nextElem = module->getFunction("qc_variadic_next");
                         if (!nextElem) {
-                            llvm::FunctionType *nextElemFnTy =
+                            llvm::FunctionType* nextElemFnTy =
                                 llvm::FunctionType::get(
                                     llvm::PointerType::get(context, 0),
                                     {llvm::PointerType::get(context, 0)},
@@ -18250,22 +18272,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         llvm::Type* TargetType = llvmTypeFor(expectedType->tok.value);
                         if (TargetType->isIntegerTy()) {
                             ConvertedValue = builder->CreatePtrToInt(RawSlot, TargetType, "vararg_int");
-                        } 
-                        else if (TargetType->isPointerTy()) {
+                        } else if (TargetType->isPointerTy()) {
                             ConvertedValue = builder->CreateBitCast(RawSlot, TargetType, "vararg_ptr");
-                        } 
-                        else if (TargetType->isFloatingPointTy()) {
+                        } else if (TargetType->isFloatingPointTy()) {
                             llvm::Type* Int64Ty = builder->getInt64Ty();
                             llvm::Value* RawInt = builder->CreatePtrToInt(RawSlot, Int64Ty, "vararg_fp_bits");
-                            
+
                             if (TargetType->isFloatTy()) {
                                 llvm::Value* Int32Trunc = builder->CreateTrunc(RawInt, builder->getInt32Ty());
                                 ConvertedValue = builder->CreateBitCast(Int32Trunc, TargetType, "vararg_float");
                             } else {
                                 ConvertedValue = builder->CreateBitCast(RawInt, TargetType, "vararg_double");
                             }
-                        } 
-                        else if (TargetType->isStructTy()) {
+                        } else if (TargetType->isStructTy()) {
                             ConvertedValue = builder->CreateLoad(TargetType, RawSlot, "vararg_struct");
                         }
                         return ConvertedValue;
@@ -18281,9 +18300,9 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             cg_error((*acc)->var_name_tok.pos, "Argument must be a variadic argument: " + funcName);
                             return nullptr;
                         }
-                        llvm::Function *isEmpty = module->getFunction("qc_variadic_is_empty");
+                        llvm::Function* isEmpty = module->getFunction("qc_variadic_is_empty");
                         if (!isEmpty) {
-                            llvm::FunctionType *isEmptyFnTy =
+                            llvm::FunctionType* isEmptyFnTy =
                                 llvm::FunctionType::get(
                                     llvm::PointerType::get(context, 0),
                                     {llvm::PointerType::get(context, 0)},
@@ -18299,38 +18318,38 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
                     return nullptr;
                 }
-                llvm::Function *fn = module->getFunction(runtimeName);
+                llvm::Function* fn = module->getFunction(runtimeName);
                 if (!fn) {
                     cg_error((*varAccess)->var_name_tok.pos,
-                             "Built-in function not found in runtime: " +
-                                 runtimeName);
+                        "Built-in function not found in runtime: " +
+                            runtimeName);
                     return nullptr;
                 }
-                llvm::FunctionType *builtinFnTy = fn->getFunctionType();
+                llvm::FunctionType* builtinFnTy = fn->getFunctionType();
                 std::vector<std::string> emptyMetadata;
-                std::vector<llvm::Value *> args =
+                std::vector<llvm::Value*> args =
                     emitAdaptedArgs(call.arg_nodes, builtinFnTy, emptyMetadata);
                 if (call.arg_nodes.size() != args.size())
                     return nullptr;
-                llvm::Type *retTy = fn->getReturnType();
+                llvm::Type* retTy = fn->getReturnType();
                 return builder->CreateCall(
                     fn, args, retTy->isVoidTy() ? "" : "builtin_call");
             }
         }
-        llvm::Value *calleeVal = nullptr;
-        llvm::FunctionType *fnTy = nullptr;
+        llvm::Value* calleeVal = nullptr;
+        llvm::FunctionType* fnTy = nullptr;
         std::string funcName = "";
-        if (auto *varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
+        if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                 &call.node_to_call)) {
             std::string name = (*varAccess)->var_name_tok.value;
-            llvm::Value *varAddr = getVarAddress(name);
+            llvm::Value* varAddr = getVarAddress(name);
             if (varAddr) {
                 if (auto lmbt = resolveLambdaType(name)) {
                     fnTy = lmbt;
                     calleeVal = emitExpr(call.node_to_call);
                 }
             } else {
-                llvm::Function *resolved = resolveFunction(name);
+                llvm::Function* resolved = resolveFunction(name);
                 if (resolved) {
                     calleeVal = resolved;
                     fnTy = resolved->getFunctionType();
@@ -18338,7 +18357,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             }
             if (!calleeVal) {
                 cg_error((*varAccess)->var_name_tok.pos,
-                         "Undeclared function or variable: " + name);
+                    "Undeclared function or variable: " + name);
                 return nullptr;
             }
             funcName = name;
@@ -18348,7 +18367,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return nullptr;
         }
         bool hasSpread = false;
-        for (auto &argNode : call.arg_nodes) {
+        for (auto& argNode : call.arg_nodes) {
             if (std::holds_alternative<std::unique_ptr<SpreadNode>>(argNode)) {
                 hasSpread = true;
                 break;
@@ -18362,18 +18381,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         std::vector<std::string> paramTypeStrings;
         auto defIt = functionDefs.find(funcName);
         if (defIt != functionDefs.end()) {
-            for (auto &p : defIt->second->params) {
+            for (auto& p : defIt->second->params) {
                 paramTypeStrings.push_back(p.type.value);
             }
         }
-        std::vector<llvm::Value *> args =
+        std::vector<llvm::Value*> args =
             emitAdaptedArgs(call.arg_nodes, fnTy, paramTypeStrings);
         if (call.arg_nodes.size() < args.size()) {
             cg_error(Position(), "Too few args to function.");
             return nullptr;
         }
         if (!paramTypeStrings.empty() && paramTypeStrings.back() == "...") {
-            size_t num_fixed_args = paramTypeStrings.size() - 1; 
+            size_t num_fixed_args = paramTypeStrings.size() - 1;
             std::vector<llvm::Value*> var_vals(args.begin() + num_fixed_args, args.end());
             args.resize(num_fixed_args);
             llvm::Value* args_cnt = builder->getInt32(var_vals.size());
@@ -18385,8 +18404,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 llvm::Type* valTy = ValueToStore->getType();
                 if (valTy->isIntegerTy()) {
                     ValueToStore = builder->CreateIntToPtr(ValueToStore, builder->getPtrTy(), "vararg_int_to_ptr");
-                }
-                else if (valTy->isFloatingPointTy()) {
+                } else if (valTy->isFloatingPointTy()) {
                     llvm::Value* Int64Bits = nullptr;
                     if (valTy->isFloatTy()) {
                         llvm::Value* Int32Bits = builder->CreateBitCast(ValueToStore, builder->getInt32Ty(), "float_to_i32");
@@ -18409,33 +18427,33 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             args.push_back(variadic_struct);
         }
         if (defIt != functionDefs.end()) {
-            auto &fnDef = defIt->second;
+            auto& fnDef = defIt->second;
             size_t paramIdx = 0;
 
-            for (auto &param : fnDef->params) {
+            for (auto& param : fnDef->params) {
                 if (paramIdx >= args.size()) {
                     if (param.default_value.has_value()) {
-                        AnyNode &defaultRef =
-                            const_cast<AnyNode &>(param.default_value.value());
-                        llvm::Value *defVal = emitExpr(defaultRef);
+                        AnyNode& defaultRef =
+                            const_cast<AnyNode&>(param.default_value.value());
+                        llvm::Value* defVal = emitExpr(defaultRef);
                         if (!defVal) {
                             cg_error(Position(),
-                                     "Failed to evaluate default parameter");
+                                "Failed to evaluate default parameter");
                             return nullptr;
                         }
                         args.push_back(defVal);
                     } else {
                         cg_error(Position(),
-                                 "Missing required argument at position " +
-                                     std::to_string(paramIdx));
+                            "Missing required argument at position " +
+                                std::to_string(paramIdx));
                         return nullptr;
                     }
                 }
                 paramIdx++;
             }
         }
-        llvm::Type *retTy = fnTy->getReturnType();
-        auto *callInst = builder->CreateCall(
+        llvm::Type* retTy = fnTy->getReturnType();
+        auto* callInst = builder->CreateCall(
             fnTy, calleeVal, args, retTy->isVoidTy() ? "" : "calltmp");
 
         return retTy->isVoidTy() ? nullptr : callInst;
@@ -18460,11 +18478,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     "Attempted to index a pointer with a non-integer value.");
                 return nullptr;
             }
-            llvm::Value *value = emitExpr((*arrAcc)->indices[0]);
+            llvm::Value* value = emitExpr((*arrAcc)->indices[0]);
             ptrTy.pop_back();
-            llvm::Value *addr = builder->CreateGEP(llvmTypeFor(ptrTy),
-                                                   emitExpr((*arrAcc)->base),
-                                                   value, "ptr_arr_addr");
+            llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy),
+                emitExpr((*arrAcc)->base),
+                value, "ptr_arr_addr");
             return builder->CreateLoad(llvmTypeFor(ptrTy), addr, "ptr_arr_val");
         }
         if (auto varAcc =
@@ -18472,36 +18490,36 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             std::string name = (*varAcc)->var_name_tok.value;
             if (hasJaggedArray(name)) {
                 auto jagIt = findJaggedArray(name);
-                llvm::Value *alloc = getVarAddress(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error(Position(), "Unknown jagged array: " + name);
                     return nullptr;
                 }
 
-                llvm::Value *jaggedPtr = builder->CreateLoad(
+                llvm::Value* jaggedPtr = builder->CreateLoad(
                     llvm::PointerType::get(context, 0), alloc, "jagged_ptr");
-                llvm::ArrayType *indicesArrTy = llvm::ArrayType::get(
+                llvm::ArrayType* indicesArrTy = llvm::ArrayType::get(
                     builder->getInt32Ty(), (*arrAcc)->indices.size());
-                llvm::AllocaInst *indicesAlloc =
+                llvm::AllocaInst* indicesAlloc =
                     createEntryAlloca("indices_arr", indicesArrTy);
 
                 for (size_t i = 0; i < (*arrAcc)->indices.size(); i++) {
-                    llvm::Value *indexVal = emitExpr((*arrAcc)->indices[i]);
+                    llvm::Value* indexVal = emitExpr((*arrAcc)->indices[i]);
                     if (!indexVal)
                         return nullptr;
 
-                    std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                                          builder->getInt32(i)};
-                    llvm::Value *idxPtr = builder->CreateInBoundsGEP(
+                    std::vector<llvm::Value*> indices = {builder->getInt32(0),
+                        builder->getInt32(i)};
+                    llvm::Value* idxPtr = builder->CreateInBoundsGEP(
                         indicesArrTy, indicesAlloc, indices);
                     builder->CreateStore(indexVal, idxPtr);
                 }
-                llvm::Function *getFn =
+                llvm::Function* getFn =
                     module->getFunction("qc_jagged_array_get");
                 if (!getFn) {
-                    llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                    llvm::Type *intPtrTy = llvm::PointerType::get(context, 0);
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                    llvm::Type* intPtrTy = llvm::PointerType::get(context, 0);
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy, {voidPtrTy, intPtrTy, builder->getInt32Ty()},
                         false);
                     getFn = llvm::Function::Create(
@@ -18509,18 +18527,18 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         "qc_jagged_array_get", module.get());
                 }
 
-                std::vector<llvm::Value *> idxIndices = {builder->getInt32(0),
-                                                         builder->getInt32(0)};
-                llvm::Value *indicesPtr = builder->CreateInBoundsGEP(
+                std::vector<llvm::Value*> idxIndices = {builder->getInt32(0),
+                    builder->getInt32(0)};
+                llvm::Value* indicesPtr = builder->CreateInBoundsGEP(
                     indicesArrTy, indicesAlloc, idxIndices);
 
-                llvm::Value *elemPtr = builder->CreateCall(
+                llvm::Value* elemPtr = builder->CreateCall(
                     getFn,
                     {jaggedPtr, indicesPtr,
-                     builder->getInt32((*arrAcc)->indices.size())},
+                        builder->getInt32((*arrAcc)->indices.size())},
                     "jagged_elem_ptr");
                 int elemTypeCode = jagIt->second.first;
-                llvm::Type *elemTy = nullptr;
+                llvm::Type* elemTy = nullptr;
                 switch (elemTypeCode) {
                 case 0:
                     elemTy = builder->getInt32Ty();
@@ -18544,45 +18562,45 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     elemTy = llvm::PointerType::get(context, 0);
                     break;
                 }
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     elemPtr, llvm::PointerType::get(context, 0));
                 return builder->CreateLoad(elemTy, typedPtr, "jagged_elem");
             }
             if (hasList(name)) {
                 auto listIt = findList(name);
-                llvm::Value *alloc = getVarAddress(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error(Position(), "Unknown list: " + name);
                     return nullptr;
                 }
 
-                llvm::Value *listPtr = builder->CreateLoad(
+                llvm::Value* listPtr = builder->CreateLoad(
                     llvm::PointerType::get(context, 0), alloc, "list_ptr");
 
-                llvm::Function *getFn = module->getFunction("qc_list_get");
+                llvm::Function* getFn = module->getFunction("qc_list_get");
                 if (!getFn) {
-                    llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy, {voidPtrTy, builder->getInt32Ty()}, false);
                     getFn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage, "qc_list_get",
                         module.get());
                 }
 
-                llvm::Value *indexVal = emitExpr((*arrAcc)->indices[0]);
+                llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                 if (!indexVal)
                     return nullptr;
 
-                llvm::Value *elemPtr = builder->CreateCall(
+                llvm::Value* elemPtr = builder->CreateCall(
                     getFn, {listPtr, indexVal}, "list_elem_ptr");
-                llvm::Value *nestedPtr = elemPtr;
+                llvm::Value* nestedPtr = elemPtr;
                 if ((*arrAcc)->indices.size() > 1) {
                     for (size_t i = 1; i < (*arrAcc)->indices.size(); i++) {
-                        llvm::Value *idx = emitExpr((*arrAcc)->indices[i]);
+                        llvm::Value* idx = emitExpr((*arrAcc)->indices[i]);
                         if (!idx)
                             return nullptr;
                         int elemTypeCode = listIt->second;
-                        llvm::Type *elemTy = nullptr;
+                        llvm::Type* elemTy = nullptr;
                         switch (elemTypeCode) {
                         case 0:
                             elemTy = builder->getInt32Ty();
@@ -18608,11 +18626,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                         }
 
                         nestedPtr = builder->CreateGEP(elemTy, nestedPtr, idx,
-                                                       "nested_elem_ptr");
+                            "nested_elem_ptr");
                     }
 
                     int elemTypeCode = listIt->second;
-                    llvm::Type *elemTy = nullptr;
+                    llvm::Type* elemTy = nullptr;
                     switch (elemTypeCode) {
                     case 0:
                         elemTy = builder->getInt32Ty();
@@ -18638,11 +18656,11 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     }
 
                     return builder->CreateLoad(elemTy, nestedPtr,
-                                               "list_nested_elem");
+                        "list_nested_elem");
                 }
 
                 int elemTypeCode = listIt->second;
-                llvm::Type *elemTy = nullptr;
+                llvm::Type* elemTy = nullptr;
                 switch (elemTypeCode) {
                 case 0:
                     elemTy = builder->getInt32Ty();
@@ -18667,46 +18685,46 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     break;
                 }
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     elemPtr, llvm::PointerType::get(context, 0));
                 return builder->CreateLoad(elemTy, typedPtr, "list_elem");
             }
             if (hasMap(name)) {
                 auto mapIt = findMap(name);
-                llvm::Value *alloc = getVarAddress(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error(Position(), "Unknown map: " + name);
                     return nullptr;
                 }
 
-                llvm::Value *mapPtr = builder->CreateLoad(
+                llvm::Value* mapPtr = builder->CreateLoad(
                     llvm::PointerType::get(context, 0), alloc, "map_ptr");
 
-                llvm::Value *keyVal = emitExpr((*arrAcc)->indices[0]);
+                llvm::Value* keyVal = emitExpr((*arrAcc)->indices[0]);
                 if (!keyVal)
                     return nullptr;
 
-                llvm::Value *keyPtr;
+                llvm::Value* keyPtr;
                 if (keyVal->getType()->isPointerTy()) {
                     keyPtr = keyVal;
                 } else {
-                    llvm::AllocaInst *keyAlloc =
+                    llvm::AllocaInst* keyAlloc =
                         createEntryAlloca("map_key", keyVal->getType());
                     builder->CreateStore(keyVal, keyAlloc);
                     keyPtr = builder->CreateBitCast(
                         keyAlloc, llvm::PointerType::get(context, 0));
                 }
-                llvm::Function *getFn = module->getFunction("qc_map_get");
+                llvm::Function* getFn = module->getFunction("qc_map_get");
                 if (!getFn) {
-                    llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                    llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                    llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                    llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy, {voidPtrTy, voidPtrTy}, false);
                     getFn = llvm::Function::Create(
                         fnTy, llvm::Function::ExternalLinkage, "qc_map_get",
                         module.get());
                 }
 
-                llvm::Value *valPtr =
+                llvm::Value* valPtr =
                     builder->CreateCall(getFn, {mapPtr, keyPtr}, "map_val_ptr");
 
                 int valueTypeCode = mapIt->second.second;
@@ -18714,47 +18732,47 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 if (valueTypeCode == 6) {
                     return valPtr;
                 } else {
-                    llvm::Type *valueTy = getTypeFromCode(valueTypeCode);
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Type* valueTy = getTypeFromCode(valueTypeCode);
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         valPtr, llvm::PointerType::get(context, 0));
                     return builder->CreateLoad(valueTy, typedPtr, "map_val");
                 }
             }
-            llvm::Value *alloc = getVarAddress(name);
+            llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
                 cg_error(Position(), "Unknown array: " + name);
                 return nullptr;
             }
 
-            llvm::Value *arrAlloc = alloc;
-            llvm::Type *arrTy = getPointeeType(name);
+            llvm::Value* arrAlloc = alloc;
+            llvm::Type* arrTy = getPointeeType(name);
 
             if (arrTy->isPointerTy()) {
-                llvm::Value *ptr =
+                llvm::Value* ptr =
                     builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
-                llvm::Value *indexVal = emitExpr((*arrAcc)->indices[0]);
+                llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                 if (!indexVal)
                     return nullptr;
                 std::string baseType = arrayTypeStrings[name];
-                llvm::Type *elemTy = llvmTypeFor(baseType);
+                llvm::Type* elemTy = llvmTypeFor(baseType);
 
-                llvm::Value *elemPtr =
+                llvm::Value* elemPtr =
                     builder->CreateGEP(elemTy, ptr, indexVal, "arr_elem_ptr");
 
                 return builder->CreateLoad(elemTy, elemPtr, "arr_elem");
             } else if (arrTy->isArrayTy()) {
-                std::vector<llvm::Value *> indices = {builder->getInt32(0)};
+                std::vector<llvm::Value*> indices = {builder->getInt32(0)};
 
                 for (size_t i = 0; i < (*arrAcc)->indices.size(); i++) {
-                    llvm::Value *indexVal = emitExpr((*arrAcc)->indices[i]);
+                    llvm::Value* indexVal = emitExpr((*arrAcc)->indices[i]);
                     if (!indexVal)
                         return nullptr;
                     indices.push_back(indexVal);
                 }
 
-                llvm::Value *elemPtr = builder->CreateInBoundsGEP(
+                llvm::Value* elemPtr = builder->CreateInBoundsGEP(
                     arrTy, arrAlloc, indices, "arr_elem_ptr");
-                llvm::Type *elemTy = arrTy;
+                llvm::Type* elemTy = arrTy;
                 for (size_t i = 0; i < (*arrAcc)->indices.size(); i++) {
                     if (elemTy->isArrayTy()) {
                         elemTy = elemTy->getArrayElementType();
@@ -18789,15 +18807,15 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto [fieldOwnerClass, fieldAccess] =
                     getFieldOwner(currentClassName, propName);
                 if (!canAccessField(currentClassName, fieldOwnerClass,
-                                    fieldAccess)) {
+                        fieldAccess)) {
                     cg_error(Position(),
-                             "Cannot access " + fieldAccess + " field");
+                        "Cannot access " + fieldAccess + " field");
                     return nullptr;
                 }
 
-                llvm::StructType *classTy = classTypes[currentClassName];
-                llvm::Type *fieldTy = classTy->getElementType(fieldIdx);
-                llvm::Value *fieldPtr =
+                llvm::StructType* classTy = classTypes[currentClassName];
+                llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
+                llvm::Value* fieldPtr =
                     builder->CreateStructGEP(classTy, currentThis, fieldIdx);
                 return builder->CreateLoad(fieldTy, fieldPtr, propName);
             }
@@ -18813,19 +18831,19 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     std::string type = memberIt->second.type;
                     std::string value = memberIt->second.value;
 
-                    llvm::StructType *enumTy = enumTypes[baseName];
-                    llvm::Value *enumVal = llvm::UndefValue::get(enumTy);
+                    llvm::StructType* enumTy = enumTypes[baseName];
+                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
 
                     enumVal = builder->CreateInsertValue(
                         enumVal, builder->getInt32(tag), 0);
 
-                    llvm::Value *dataPtr = createEnumData(type, value);
+                    llvm::Value* dataPtr = createEnumData(type, value);
                     enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
 
                     return enumVal;
                 } else {
                     cg_error(Position(),
-                             "Enum " + baseName + " has no member " + propName);
+                        "Enum " + baseName + " has no member " + propName);
                     return nullptr;
                 }
             }
@@ -18843,60 +18861,60 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             auto runtimeIt = runtimeArraySizes.find(baseName);
             if (runtimeIt != runtimeArraySizes.end()) {
                 return builder->CreateLoad(builder->getInt32Ty(),
-                                           runtimeIt->second, "runtime_len");
+                    runtimeIt->second, "runtime_len");
             }
             auto it = locals.find(baseName);
             if (it != locals.end()) {
-                llvm::Type *allocTy = getPointeeType(baseName);
+                llvm::Type* allocTy = getPointeeType(baseName);
                 if (allocTy && allocTy->isArrayTy()) {
                     return builder->getInt32(allocTy->getArrayNumElements());
                 }
             }
-            llvm::Value *baseVal = emitExpr(*(*propAccess)->base);
+            llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
             if (!baseVal)
                 return nullptr;
 
-            llvm::Function *lenFn = module->getFunction("qc_list_length");
+            llvm::Function* lenFn = module->getFunction("qc_list_length");
             if (!lenFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_length", module.get());
+                        "qc_list_length", module.get());
             }
 
             return builder->CreateCall(lenFn, {baseVal}, "list_len");
         }
         if (propName == "size") {
-            llvm::Value *baseVal = emitExpr(*(*propAccess)->base);
+            llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
             if (!baseVal)
                 return nullptr;
 
-            llvm::Function *sizeFn = module->getFunction("qc_map_size");
+            llvm::Function* sizeFn = module->getFunction("qc_map_size");
             if (!sizeFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 sizeFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_map_size", module.get());
+                        "qc_map_size", module.get());
             }
 
             return builder->CreateCall(sizeFn, {baseVal}, "map_size");
         }
-        llvm::Value *baseVal = emitExpr(*(*propAccess)->base);
+        llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
         if (!baseVal)
             return nullptr;
 
-        llvm::Type *baseTy = baseVal->getType();
+        llvm::Type* baseTy = baseVal->getType();
         if (baseTy->isPointerTy()) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                     &*(*propAccess)->base)) {
                 std::string varName = (*varAccess)->var_name_tok.value;
-                llvm::Value *locAlloc = getVarAddress(varName);
+                llvm::Value* locAlloc = getVarAddress(varName);
                 if (locAlloc) {
-                    llvm::Type *allocTy = getPointeeType(varName);
+                    llvm::Type* allocTy = getPointeeType(varName);
 
                     if (auto structTy =
                             llvm::dyn_cast<llvm::StructType>(allocTy)) {
@@ -18907,7 +18925,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             userTypeIt->second.kind == UserTypeKind::Struct) {
                             int fieldIdx = -1;
                             for (size_t i = 0;
-                                 i < userTypeIt->second.fields.size(); i++) {
+                                i < userTypeIt->second.fields.size(); i++) {
                                 if (userTypeIt->second.fields[i].name ==
                                     propName) {
                                     fieldIdx = i;
@@ -18922,13 +18940,13 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                 return nullptr;
                             }
 
-                            llvm::Value *fieldPtr = builder->CreateStructGEP(
+                            llvm::Value* fieldPtr = builder->CreateStructGEP(
                                 structTy, locAlloc, fieldIdx,
                                 propName + "_ptr");
-                            llvm::Type *fieldTy =
+                            llvm::Type* fieldTy =
                                 structTy->getElementType(fieldIdx);
                             return builder->CreateLoad(fieldTy, fieldPtr,
-                                                       propName);
+                                propName);
                         }
                     }
                 }
@@ -18953,12 +18971,12 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                                              " has no field " + propName);
                     return nullptr;
                 }
-                llvm::Value *result =
+                llvm::Value* result =
                     builder->CreateExtractValue(baseVal, fieldIdx, propName);
                 return result;
             }
         }
-        for (auto &[className, classTy] : classTypes) {
+        for (auto& [className, classTy] : classTypes) {
             if (baseTy == classTy) {
                 int fieldIdx = getFlattenedFieldIndex(className, propName);
 
@@ -18969,50 +18987,50 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto [fieldOwnerClass, fieldAccess] =
                     getFieldOwner(className, propName);
                 if (!canAccessField(currentClassName, fieldOwnerClass,
-                                    fieldAccess)) {
+                        fieldAccess)) {
                     cg_error(Position(),
-                             "Cannot access " + fieldAccess + " field");
+                        "Cannot access " + fieldAccess + " field");
                     return nullptr;
                 }
 
-                llvm::Type *fieldTy = classTy->getElementType(fieldIdx);
-                for (auto &[unionName, unionTy] : unionTypes) {
+                llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
+                for (auto& [unionName, unionTy] : unionTypes) {
                     if (fieldTy == unionTy) {
-                        llvm::AllocaInst *temp =
+                        llvm::AllocaInst* temp =
                             createEntryAlloca("temp_obj", baseTy);
                         builder->CreateStore(baseVal, temp);
-                        llvm::Value *fieldPtr =
+                        llvm::Value* fieldPtr =
                             builder->CreateStructGEP(classTy, temp, fieldIdx);
                         return builder->CreateLoad(unionTy, fieldPtr,
-                                                   "union_field");
+                            "union_field");
                     }
                 }
-                llvm::Value *ptr;
+                llvm::Value* ptr;
                 if (baseTy->isPointerTy()) {
                     ptr = baseVal;
                 } else {
-                    llvm::AllocaInst *temp =
+                    llvm::AllocaInst* temp =
                         createEntryAlloca("temp_obj", baseTy);
                     builder->CreateStore(baseVal, temp);
                     ptr = temp;
                 }
 
-                llvm::Value *fieldPtr =
+                llvm::Value* fieldPtr =
                     builder->CreateStructGEP(classTy, ptr, fieldIdx);
                 return builder->CreateLoad(fieldTy, fieldPtr, propName);
             }
         }
-        for (auto &[unionName, unionTy] : unionTypes) {
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (baseTy == unionTy) {
-                auto &unionInfo = userTypes[unionName];
+                auto& unionInfo = userTypes[unionName];
 
-                for (auto &member : unionInfo.members) {
+                for (auto& member : unionInfo.members) {
                     std::string resolvedVariant = resolveTypeName(member.type);
                     if (classTypes.find(resolvedVariant) != classTypes.end()) {
                         int fieldIdx =
                             getFlattenedFieldIndex(resolvedVariant, propName);
                         if (fieldIdx != -1) {
-                            llvm::Value *varAlloc = nullptr;
+                            llvm::Value* varAlloc = nullptr;
                             if (auto varAcc =
                                     std::get_if<std::unique_ptr<VarAccessNode>>(
                                         &*(*propAccess)->base)) {
@@ -19022,29 +19040,29 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             if (!varAlloc)
                                 return nullptr;
 
-                            llvm::Value *dataFieldPtr =
+                            llvm::Value* dataFieldPtr =
                                 builder->CreateStructGEP(unionTy, varAlloc, 1,
-                                                         "union_data_ptr");
-                            llvm::Value *dataPtr = builder->CreateLoad(
+                                    "union_data_ptr");
+                            llvm::Value* dataPtr = builder->CreateLoad(
                                 llvm::PointerType::get(context, 0),
                                 dataFieldPtr, "union_data");
 
-                            llvm::StructType *classTy =
+                            llvm::StructType* classTy =
                                 classTypes[resolvedVariant];
-                            llvm::Value *castedPtr = builder->CreateBitCast(
+                            llvm::Value* castedPtr = builder->CreateBitCast(
                                 dataPtr, llvm::PointerType::get(context, 0));
 
-                            llvm::Type *fieldTy =
+                            llvm::Type* fieldTy =
                                 classTy->getElementType(fieldIdx);
-                            llvm::Value *fieldPtr = builder->CreateStructGEP(
+                            llvm::Value* fieldPtr = builder->CreateStructGEP(
                                 classTy, castedPtr, fieldIdx);
                             return builder->CreateLoad(fieldTy, fieldPtr,
-                                                       propName);
+                                propName);
                         }
                     }
                     if (structTypes.find(resolvedVariant) !=
                         structTypes.end()) {
-                        auto &structInfo = userTypes[resolvedVariant];
+                        auto& structInfo = userTypes[resolvedVariant];
                         int fieldIdx = -1;
                         for (size_t i = 0; i < structInfo.fields.size(); i++) {
                             if (structInfo.fields[i].name == propName) {
@@ -19053,7 +19071,7 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             }
                         }
                         if (fieldIdx != -1) {
-                            llvm::Value *varAlloc = nullptr;
+                            llvm::Value* varAlloc = nullptr;
                             if (auto varAcc =
                                     std::get_if<std::unique_ptr<VarAccessNode>>(
                                         &*(*propAccess)->base)) {
@@ -19063,990 +19081,104 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                             if (!varAlloc)
                                 return nullptr;
 
-                            llvm::Value *dataFieldPtr =
+                            llvm::Value* dataFieldPtr =
                                 builder->CreateStructGEP(unionTy, varAlloc, 1,
-                                                         "union_data_ptr");
-                            llvm::Value *dataPtr = builder->CreateLoad(
+                                    "union_data_ptr");
+                            llvm::Value* dataPtr = builder->CreateLoad(
                                 llvm::PointerType::get(context, 0),
                                 dataFieldPtr, "union_data");
 
-                            llvm::StructType *structTy =
+                            llvm::StructType* structTy =
                                 structTypes[resolvedVariant];
-                            llvm::Value *castedPtr = builder->CreateBitCast(
+                            llvm::Value* castedPtr = builder->CreateBitCast(
                                 dataPtr, llvm::PointerType::get(context, 0));
 
-                            llvm::Type *fieldTy =
+                            llvm::Type* fieldTy =
                                 structTy->getElementType(fieldIdx);
-                            llvm::Value *fieldPtr = builder->CreateStructGEP(
+                            llvm::Value* fieldPtr = builder->CreateStructGEP(
                                 structTy, castedPtr, fieldIdx);
                             return builder->CreateLoad(fieldTy, fieldPtr,
-                                                       propName);
+                                propName);
                         }
                     }
                 }
 
                 cg_error((*propAccess)->property_name.pos,
-                         "No variant of union '" + unionName + "' has field '" +
-                             propName + "'");
+                    "No variant of union '" + unionName + "' has field '" +
+                        propName + "'");
                 return nullptr;
             }
         }
         cg_error((*propAccess)->property_name.pos,
-                 "Unknown property: " + propName);
+            "Unknown property: " + propName);
         return nullptr;
-    } else if (auto methodCall =
-                   std::get_if<std::unique_ptr<MethodCallNode>>(&node)) {
-        std::string methodName = (*methodCall)->method_name.value;
-        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
-                &(*methodCall)->base)) {
-            if ((*varAccess)->var_name_tok.value == "this" && currentThis &&
-                !currentClassName.empty()) {
-                bool isAutoMethod = false;
-                if (autoMethodIndices.find(currentClassName) !=
-                    autoMethodIndices.end()) {
-                    for (size_t methodIdx :
-                         autoMethodIndices[currentClassName]) {
-                        auto &autoMethod =
-                            userTypes[currentClassName].classMethods[methodIdx];
-                        if (autoMethod.name_tok.value == methodName &&
-                            autoMethod.params.size() ==
-                                (*methodCall)->args.size()) {
-                            std::vector<std::string> argTypes;
-                            for (auto &argNode : (*methodCall)->args) {
-                                argTypes.push_back(getExpressionType(argNode));
-                            }
-                            bool paramsMatch = true;
-                            size_t argIdx = 0;
-                            for (auto it = autoMethod.params.begin();
-                                 it != autoMethod.params.end();
-                                 ++it, ++argIdx) {
-                                if (it->type.value != "auto") {
-                                    std::string declared = it->type.value;
-                                    std::string argType =
-                                        argIdx < argTypes.size()
-                                            ? argTypes[argIdx]
-                                            : "";
-                                    if (declared.ends_with("&"))
-                                        declared.pop_back();
-                                    if (argType.ends_with("&"))
-                                        argType.pop_back();
-                                    if (argIdx >= argTypes.size() ||
-                                        argType != declared) {
-                                        paramsMatch = false;
-                                        break;
-                                    }
-                                }
-                            }
-                            size_t ardx = 0;
-                            if (!paramsMatch) {
-                                continue;
-                            }
-                            isAutoMethod = true;
-
-                            std::string specializedName =
-                                currentClassName + "_" + methodName;
-                            for (auto &ty : argTypes) {
-                                specializedName += "_" + ty;
-                            }
-
-                            llvm::Function *specialized =
-                                module->getFunction(specializedName);
-                            if (!specialized) {
-                                specialized = generateSpecializedMethod(
-                                    currentClassName, methodIdx, argTypes,
-                                    specializedName);
-                            }
-
-                            std::vector<llvm::Value *> allArgs = {currentThis};
-                            for (auto &argNode : (*methodCall)->args) {
-                                allArgs.push_back(emitExpr(argNode));
-                            }
-
-                            return builder->CreateCall(specialized, allArgs,
-                                                       methodName + "_result");
-                        }
-                    }
-                }
-                if (!isAutoMethod) {
-                    ClassMethodInfo *methodInfo = nullptr;
-                    std::string currentClass = currentClassName;
-                    while (!currentClass.empty()) {
-                        for (auto &m : userTypes[currentClass].classMethods) {
-                            if (m.name_tok.value == methodName &&
-                                m.params.size() == (*methodCall)->args.size()) {
-                                methodInfo = &m;
-                                break;
-                            }
-                        }
-                        if (methodInfo)
-                            break;
-                        currentClass = userTypes[currentClass].baseClassName;
-                    }
-                    std::vector<llvm::Value *> args;
-                    for (size_t i = 0; i < (*methodCall)->args.size(); i++) {
-                        auto &argNode = (*methodCall)->args[i];
-                        bool isRef =
-                            methodInfo &&
-                            methodInfo->params[i].type.value.ends_with("&");
-                        if (isRef) {
-                            auto *va =
-                                std::get_if<std::unique_ptr<VarAccessNode>>(
-                                    &argNode);
-                            if (!va) {
-                                cg_error(Position(),
-                                         "L-value required for ref param");
-                                return nullptr;
-                            }
-                            args.push_back(
-                                getVarAddress((*va)->var_name_tok.value));
-                        } else {
-                            llvm::Value *arg = emitExpr(argNode);
-                            if (!arg)
-                                return nullptr;
-                            args.push_back(arg);
-                        }
-                    }
-                    llvm::Function *method =
-                        findMethodOverload(currentClassName, methodName, args);
-                    if (!method) {
-                        cg_error(Position(),
-                                 "No matching overload for " + methodName);
-                        return nullptr;
-                    }
-                    std::vector<llvm::Value *> reconciledArgs;
-                    reconciledArgs.push_back(currentThis);
-                    for (size_t i = 0; i < args.size(); i++) {
-                        llvm::Type *expected =
-                            method->getFunctionType()->getParamType(i + 1);
-                        llvm::Value *actual = args[i];
-                        if (actual->getType() != expected) {
-                            if (!expected->isPointerTy() &&
-                                actual->getType()->isPointerTy()) {
-                                reconciledArgs.push_back(
-                                    builder->CreateLoad(expected, actual));
-                            } else {
-                                reconciledArgs.push_back(
-                                    builder->CreateBitCast(actual, expected));
-                            }
-                        } else {
-                            reconciledArgs.push_back(actual);
-                        }
-                    }
-                    return builder->CreateCall(method, reconciledArgs,
-                                               methodName + "_result");
-                }
-            }
-        }
-        llvm::Value *baseVal = emitExpr((*methodCall)->base);
-        if (!baseVal)
-            return nullptr;
-        llvm::Type *baseTy = baseVal->getType();
-        if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
-            if (structTy->hasName()) {
-                std::string structName = structTy->getName().str();
-                auto classIt = classTypes.find(structName);
-                if (classIt != classTypes.end()) {
-                    bool isAutoMethod = false;
-                    llvm::Function *specialized = nullptr;
-                    std::vector<std::string> paramDeclaredTypes;
-                    if (autoMethodIndices.find(structName) !=
-                        autoMethodIndices.end()) {
-                        for (size_t methodIdx : autoMethodIndices[structName]) {
-                            auto &autoMethod =
-                                userTypes[structName].classMethods[methodIdx];
-                            if (autoMethod.name_tok.value == methodName &&
-                                autoMethod.params.size() ==
-                                    (*methodCall)->args.size()) {
-                                for (auto &p : autoMethod.params) {
-                                    paramDeclaredTypes.push_back(p.type.value);
-                                }
-                                std::vector<std::string> argTypes;
-                                for (auto &argNode : (*methodCall)->args) {
-                                    std::string ty = getExpressionType(argNode);
-                                    argTypes.push_back(ty);
-                                }
-                                bool paramsMatch = true;
-                                size_t argIdx = 0;
-                                for (auto &param : autoMethod.params) {
-                                    if (param.type.value != "auto") {
-                                        std::string declared = param.type.value;
-                                        std::string argType =
-                                            argIdx < argTypes.size()
-                                                ? argTypes[argIdx]
-                                                : "";
-                                        if (declared.ends_with("&"))
-                                            declared.pop_back();
-                                        if (argType.ends_with("&"))
-                                            argType.pop_back();
-                                        if (argIdx >= argTypes.size() ||
-                                            argType != declared) {
-                                            paramsMatch = false;
-                                            break;
-                                        }
-                                    }
-                                    argIdx++;
-                                }
-                                if (!paramsMatch) {
-                                    continue;
-                                }
-                                isAutoMethod = true;
-                                std::string methodOwnerClass = structName;
-                                std::string currentClass = structName;
-                                while (!currentClass.empty()) {
-                                    auto &classInfo = userTypes[currentClass];
-                                    bool found = false;
-                                    for (auto &m : classInfo.classMethods) {
-                                        if (m.name_tok.value == methodName) {
-                                            methodOwnerClass = currentClass;
-                                            found = true;
-                                            break;
-                                        }
-                                    }
-                                    if (found)
-                                        break;
-                                    currentClass = classInfo.baseClassName;
-                                }
-
-                                if (!canAccessMethod(currentClassName,
-                                                     methodOwnerClass,
-                                                     methodName)) {
-                                    cg_error(Position(),
-                                             "Cannot access private/protected "
-                                             "method in this context");
-                                    return nullptr;
-                                }
-                                std::string specializedName =
-                                    structName + "_" + methodName;
-                                for (auto &ty : argTypes) {
-                                    specializedName += "_" + ty;
-                                }
-                                specialized =
-                                    module->getFunction(specializedName);
-                                if (!specialized) {
-                                    specialized = generateSpecializedMethod(
-                                        structName, methodIdx, argTypes,
-                                        specializedName);
-                                }
-
-                                break;
-                            }
-                        }
-                    }
-                    if (isAutoMethod && specialized) {
-                        std::vector<llvm::Value *> allArgs;
-
-                        if (auto varAcc =
-                                std::get_if<std::unique_ptr<VarAccessNode>>(
-                                    &(*methodCall)->base)) {
-                            std::string varName = (*varAcc)->var_name_tok.value;
-                            llvm::Value *locAlloc = getVarAddress(varName);
-                            if (locAlloc) {
-                                allArgs.push_back(locAlloc);
-                            }
-                        } else {
-                            llvm::AllocaInst *temp =
-                                createEntryAlloca("temp_this", baseTy);
-                            builder->CreateStore(baseVal, temp);
-                            allArgs.push_back(temp);
-                        }
-                        size_t argIdx = 0;
-                        for (auto &argNode : (*methodCall)->args) {
-                            std::string ptype = paramDeclaredTypes[argIdx];
-                            if (ptype.ends_with("&")) {
-                                auto *va =
-                                    std::get_if<std::unique_ptr<VarAccessNode>>(
-                                        &argNode);
-                                if (!va) {
-                                    cg_error(Position(), "L-value required");
-                                    return nullptr;
-                                }
-                                allArgs.push_back(
-                                    getVarAddress((*va)->var_name_tok.value));
-                            } else {
-                                allArgs.push_back(emitExpr(argNode));
-                            }
-                            argIdx++;
-                        }
-                        return builder->CreateCall(specialized, allArgs,
-                                                   methodName + "_result");
-                    }
-                    if (!isAutoMethod) {
-                        ClassMethodInfo *methodInfo = nullptr;
-                        std::string currentClass = structName;
-                        while (!currentClass.empty()) {
-                            for (auto &m :
-                                 userTypes[currentClass].classMethods) {
-                                if (m.name_tok.value == methodName &&
-                                    m.params.size() ==
-                                        (*methodCall)->args.size()) {
-                                    methodInfo = &m;
-                                    break;
-                                }
-                            }
-                            if (methodInfo)
-                                break;
-                            currentClass =
-                                userTypes[currentClass].baseClassName;
-                        }
-                        std::vector<llvm::Value *> methodArgs;
-                        for (size_t i = 0; i < (*methodCall)->args.size();
-                             i++) {
-                            auto &argNode = (*methodCall)->args[i];
-                            bool isRef =
-                                methodInfo &&
-                                methodInfo->params[i].type.value.ends_with("&");
-                            if (isRef) {
-                                auto *va =
-                                    std::get_if<std::unique_ptr<VarAccessNode>>(
-                                        &argNode);
-                                if (!va) {
-                                    cg_error(Position(),
-                                             "L-value required for ref param");
-                                    return nullptr;
-                                }
-                                methodArgs.push_back(
-                                    getVarAddress((*va)->var_name_tok.value));
-                            } else {
-                                llvm::Value *arg = emitExpr(argNode);
-                                if (!arg)
-                                    return nullptr;
-                                methodArgs.push_back(arg);
-                            }
-                        }
-                        llvm::Function *method = findMethodOverload(
-                            structName, methodName, methodArgs);
-                        if (!method) {
-                            cg_error(Position(),
-                                     "No matching overload for " + methodName);
-                            return nullptr;
-                        }
-                        std::vector<llvm::Value *> reconciledArgs;
-                        llvm::Value *thisPtr = nullptr;
-                        if (auto varAcc =
-                                std::get_if<std::unique_ptr<VarAccessNode>>(
-                                    &(*methodCall)->base)) {
-                            thisPtr =
-                                getVarAddress((*varAcc)->var_name_tok.value);
-                        } else {
-                            llvm::AllocaInst *temp =
-                                createEntryAlloca("temp_this", baseTy);
-                            builder->CreateStore(baseVal, temp);
-                            thisPtr = temp;
-                        }
-                        reconciledArgs.push_back(thisPtr);
-                        for (size_t i = 0; i < methodArgs.size(); i++) {
-                            llvm::Type *expected =
-                                method->getFunctionType()->getParamType(i + 1);
-                            llvm::Value *actual = methodArgs[i];
-                            if (actual->getType() != expected) {
-                                if (!expected->isPointerTy() &&
-                                    actual->getType()->isPointerTy()) {
-                                    reconciledArgs.push_back(
-                                        builder->CreateLoad(expected, actual));
-                                } else {
-                                    reconciledArgs.push_back(
-                                        builder->CreateBitCast(actual,
-                                                               expected));
-                                }
-                            } else {
-                                reconciledArgs.push_back(actual);
-                            }
-                        }
-                        return builder->CreateCall(method, reconciledArgs,
-                                                   methodName + "_result");
-                    }
-                }
-            }
-        }
-        if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(
-                &(*methodCall)->base)) {
-            llvm::Value *varAlloc =
-                getVarAddress((*varAcc)->var_name_tok.value);
-            if (varAlloc) {
-                llvm::Type *allocTy =
-                    getPointeeType((*varAcc)->var_name_tok.value);
-                for (auto &[unionName, unionTy] : unionTypes) {
-                    if (allocTy == unionTy) {
-                        auto &unionInfo = userTypes[unionName];
-                        for (auto &member : unionInfo.members) {
-                            std::string resolvedVariant =
-                                resolveTypeName(member.type);
-                            if (classTypes.find(resolvedVariant) !=
-                                classTypes.end()) {
-                                if (classMethods[resolvedVariant].find(
-                                        methodName) !=
-                                    classMethods[resolvedVariant].end()) {
-                                    llvm::Value *dataFieldPtr =
-                                        builder->CreateStructGEP(
-                                            unionTy, varAlloc, 1,
-                                            "union_data_ptr");
-                                    llvm::Value *dataPtr = builder->CreateLoad(
-                                        llvm::PointerType::get(context, 0),
-                                        dataFieldPtr, "union_data");
-                                    llvm::StructType *classTy =
-                                        classTypes[resolvedVariant];
-                                    llvm::Value *castedPtr =
-                                        builder->CreateBitCast(
-                                            dataPtr,
-                                            llvm::PointerType::get(context, 0),
-                                            "union_as_" + resolvedVariant);
-                                    ClassMethodInfo *methodInfo = nullptr;
-                                    std::string currentClass = resolvedVariant;
-                                    while (!currentClass.empty()) {
-                                        for (auto &m : userTypes[currentClass]
-                                                           .classMethods) {
-                                            if (m.name_tok.value ==
-                                                    methodName &&
-                                                m.params.size() ==
-                                                    (*methodCall)
-                                                        ->args.size()) {
-                                                methodInfo = &m;
-                                                break;
-                                            }
-                                        }
-                                        if (methodInfo)
-                                            break;
-                                        currentClass = userTypes[currentClass]
-                                                           .baseClassName;
-                                    }
-                                    std::vector<llvm::Value *> methodArgs;
-                                    for (size_t i = 0;
-                                         i < (*methodCall)->args.size(); i++) {
-                                        auto &argNode = (*methodCall)->args[i];
-                                        bool isRef =
-                                            methodInfo &&
-                                            methodInfo->params[i]
-                                                .type.value.ends_with("&");
-                                        if (isRef) {
-                                            auto *va = std::get_if<
-                                                std::unique_ptr<VarAccessNode>>(
-                                                &argNode);
-                                            if (!va) {
-                                                cg_error(Position(),
-                                                         "L-value required for "
-                                                         "ref param");
-                                                return nullptr;
-                                            }
-                                            methodArgs.push_back(getVarAddress(
-                                                (*va)->var_name_tok.value));
-                                        } else {
-                                            llvm::Value *arg =
-                                                emitExpr(argNode);
-                                            if (!arg)
-                                                return nullptr;
-                                            methodArgs.push_back(arg);
-                                        }
-                                    }
-                                    llvm::Function *method = findMethodOverload(
-                                        resolvedVariant, methodName,
-                                        methodArgs);
-                                    if (!method) {
-                                        cg_error(Position(),
-                                                 "No matching overload for " +
-                                                     methodName);
-                                        return nullptr;
-                                    }
-                                    std::vector<llvm::Value *> reconciledArgs;
-                                    reconciledArgs.push_back(castedPtr);
-                                    for (size_t i = 0; i < methodArgs.size();
-                                         i++) {
-                                        llvm::Type *expected =
-                                            method->getFunctionType()
-                                                ->getParamType(i + 1);
-                                        llvm::Value *actual = methodArgs[i];
-                                        if (actual->getType() != expected) {
-                                            if (!expected->isPointerTy() &&
-                                                actual->getType()
-                                                    ->isPointerTy()) {
-                                                reconciledArgs.push_back(
-                                                    builder->CreateLoad(
-                                                        expected, actual));
-                                            } else {
-                                                reconciledArgs.push_back(
-                                                    builder->CreateBitCast(
-                                                        actual, expected));
-                                            }
-                                        } else {
-                                            reconciledArgs.push_back(actual);
-                                        }
-                                    }
-                                    return builder->CreateCall(
-                                        method, reconciledArgs,
-                                        methodName + "_result");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        std::string baseName = "";
-        if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(
-                &(*methodCall)->base)) {
-            baseName = (*varAcc)->var_name_tok.value;
-            llvm::Value *resolved = getVarAddress(baseName);
-            if (resolved) {
-                for (auto &[key, val] : locals) {
-                    if (val == resolved) {
-                        baseName = key;
-                        break;
-                    }
-                }
-            }
-        } else if (auto propAcc =
-                       std::get_if<std::shared_ptr<PropertyAccessNode>>(
-                           &(*methodCall)->base)) {
-            if (auto varBase = std::get_if<std::unique_ptr<VarAccessNode>>(
-                    &*(*propAcc)->base)) {
-                std::string varName = (*varBase)->var_name_tok.value;
-                std::string propName = (*propAcc)->property_name.value;
-
-                if (varName == "this" && currentThis &&
-                    !currentClassName.empty()) {
-                    baseName = propName;
-                } else {
-                    baseName = varName + "." + propName;
-                }
+    } else if (auto methodCall = std::get_if<std::unique_ptr<MethodCallNode>>(&node)) {
+        auto* call = methodCall->get();
+        std::string methodName = call->method_name.value;
+        llvm::Value* thisPtr = nullptr;
+        std::string targetClass = "";
+        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&call->base)) {
+            std::string varName = (*varAccess)->var_name_tok.value;
+            if (varName == "this") {
+                thisPtr = currentThis;
+                targetClass = currentClassName;
             } else {
-                baseName = (*propAcc)->property_name.value;
+                thisPtr = getVarAddress(varName);
+                llvm::Type* pTy = getPointeeType(varName);
+                if (auto* sTy = llvm::dyn_cast<llvm::StructType>(pTy))
+                    targetClass = sTy->getName().str();
             }
-        } else {
-            cg_error((*methodCall)->method_name.pos,
-                     "Method calls only supported on variables or properties");
-            return nullptr;
-        }
-        if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(
-                &(*methodCall)->base)) {
-            if (auto varBase = std::get_if<std::unique_ptr<VarAccessNode>>(
-                    &*(*propAcc)->base)) {
-                std::string varName = (*varBase)->var_name_tok.value;
-                std::string propName = (*propAcc)->property_name.value;
-
-                if (varName == "this" && currentThis &&
-                    !currentClassName.empty()) {
-                    int fieldIdx =
-                        getFlattenedFieldIndex(currentClassName, propName);
-                    if (fieldIdx != -1) {
-                        llvm::StructType *classTy =
-                            classTypes[currentClassName];
-                        llvm::Type *fieldTy = classTy->getElementType(fieldIdx);
-                        if (auto fieldStructTy =
-                                llvm::dyn_cast<llvm::StructType>(fieldTy)) {
-                            if (fieldStructTy->hasName()) {
-                                std::string fieldClassName =
-                                    fieldStructTy->getName().str();
-
-                                if (classTypes.find(fieldClassName) !=
-                                    classTypes.end()) {
-                                    llvm::Value *fieldPtr =
-                                        builder->CreateStructGEP(
-                                            classTy, currentThis, fieldIdx);
-                                    ClassMethodInfo *methodInfo = nullptr;
-                                    std::string currentClass = fieldClassName;
-                                    while (!currentClass.empty()) {
-                                        for (auto &m : userTypes[currentClass]
-                                                           .classMethods) {
-                                            if (m.name_tok.value ==
-                                                    methodName &&
-                                                m.params.size() ==
-                                                    (*methodCall)
-                                                        ->args.size()) {
-                                                methodInfo = &m;
-                                                break;
-                                            }
-                                        }
-                                        if (methodInfo)
-                                            break;
-                                        currentClass = userTypes[currentClass]
-                                                           .baseClassName;
-                                    }
-                                    std::vector<llvm::Value *> methodArgs;
-                                    for (size_t i = 0;
-                                         i < (*methodCall)->args.size(); i++) {
-                                        auto &argNode = (*methodCall)->args[i];
-                                        bool isRef =
-                                            methodInfo &&
-                                            methodInfo->params[i]
-                                                .type.value.ends_with("&");
-                                        if (isRef) {
-                                            auto *va = std::get_if<
-                                                std::unique_ptr<VarAccessNode>>(
-                                                &argNode);
-                                            if (!va) {
-                                                cg_error(Position(),
-                                                         "L-value required for "
-                                                         "ref param");
-                                                return nullptr;
-                                            }
-                                            methodArgs.push_back(getVarAddress(
-                                                (*va)->var_name_tok.value));
-                                        } else {
-                                            llvm::Value *arg =
-                                                emitExpr(argNode);
-                                            if (!arg)
-                                                return nullptr;
-                                            methodArgs.push_back(arg);
-                                        }
-                                    }
-                                    llvm::Function *method = findMethodOverload(
-                                        fieldClassName, methodName, methodArgs);
-                                    if (!method) {
-                                        cg_error(Position(),
-                                                 "No matching overload for " +
-                                                     methodName);
-                                        return nullptr;
-                                    }
-                                    std::vector<llvm::Value *> reconciledArgs;
-                                    reconciledArgs.push_back(fieldPtr);
-                                    for (size_t i = 0; i < methodArgs.size();
-                                         i++) {
-                                        llvm::Type *expected =
-                                            method->getFunctionType()
-                                                ->getParamType(i + 1);
-                                        llvm::Value *actual = methodArgs[i];
-                                        if (actual->getType() != expected) {
-                                            if (!expected->isPointerTy() &&
-                                                actual->getType()
-                                                    ->isPointerTy()) {
-                                                reconciledArgs.push_back(
-                                                    builder->CreateLoad(
-                                                        expected, actual));
-                                            } else {
-                                                reconciledArgs.push_back(
-                                                    builder->CreateBitCast(
-                                                        actual, expected));
-                                            }
-                                        } else {
-                                            reconciledArgs.push_back(actual);
-                                        }
-                                    }
-                                    return builder->CreateCall(
-                                        method, reconciledArgs,
-                                        methodName + "_result");
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    llvm::Value *varAlloc = getVarAddress(varName);
-                    if (varAlloc) {
-                        llvm::Type *varTy = getPointeeType(varName);
-                        if (auto structTy =
-                                llvm::dyn_cast<llvm::StructType>(varTy)) {
-                            std::string typeName = structTy->getName().str();
-                            if (classTypes.find(typeName) != classTypes.end()) {
-                                int fieldIdx =
-                                    getFlattenedFieldIndex(typeName, propName);
-                                if (fieldIdx != -1) {
-                                    llvm::Type *fieldTy =
-                                        structTy->getElementType(fieldIdx);
-
-                                    if (auto fieldStructTy =
-                                            llvm::dyn_cast<llvm::StructType>(
-                                                fieldTy)) {
-                                        if (fieldStructTy->hasName()) {
-                                            std::string fieldClassName =
-                                                fieldStructTy->getName().str();
-
-                                            if (classTypes.find(
-                                                    fieldClassName) !=
-                                                classTypes.end()) {
-                                                llvm::Value *fieldPtr =
-                                                    builder->CreateStructGEP(
-                                                        structTy, varAlloc,
-                                                        fieldIdx);
-                                                ClassMethodInfo *methodInfo =
-                                                    nullptr;
-                                                std::string currentClass =
-                                                    fieldClassName;
-                                                while (!currentClass.empty()) {
-                                                    for (auto &m :
-                                                         userTypes[currentClass]
-                                                             .classMethods) {
-                                                        if (m.name_tok.value ==
-                                                                methodName &&
-                                                            m.params.size() ==
-                                                                (*methodCall)
-                                                                    ->args
-                                                                    .size()) {
-                                                            methodInfo = &m;
-                                                            break;
-                                                        }
-                                                    }
-                                                    if (methodInfo)
-                                                        break;
-                                                    currentClass =
-                                                        userTypes[currentClass]
-                                                            .baseClassName;
-                                                }
-                                                std::vector<llvm::Value *>
-                                                    methodArgs;
-                                                for (size_t i = 0;
-                                                     i <
-                                                     (*methodCall)->args.size();
-                                                     i++) {
-                                                    auto &argNode =
-                                                        (*methodCall)->args[i];
-                                                    bool isRef =
-                                                        methodInfo &&
-                                                        methodInfo->params[i]
-                                                            .type.value
-                                                            .ends_with("&");
-                                                    if (isRef) {
-                                                        auto *va = std::get_if<
-                                                            std::unique_ptr<
-                                                                VarAccessNode>>(
-                                                            &argNode);
-                                                        if (!va) {
-                                                            cg_error(
-                                                                Position(),
-                                                                "L-value "
-                                                                "required for "
-                                                                "ref param");
-                                                            return nullptr;
-                                                        }
-                                                        methodArgs.push_back(
-                                                            getVarAddress(
-                                                                (*va)
-                                                                    ->var_name_tok
-                                                                    .value));
-                                                    } else {
-                                                        llvm::Value *arg =
-                                                            emitExpr(argNode);
-                                                        if (!arg)
-                                                            return nullptr;
-                                                        methodArgs.push_back(
-                                                            arg);
-                                                    }
-                                                }
-                                                llvm::Function *method =
-                                                    findMethodOverload(
-                                                        fieldClassName,
-                                                        methodName, methodArgs);
-                                                if (!method) {
-                                                    cg_error(Position(),
-                                                             "No matching "
-                                                             "overload for " +
-                                                                 methodName);
-                                                    return nullptr;
-                                                }
-                                                std::vector<llvm::Value *>
-                                                    reconciledArgs;
-                                                reconciledArgs.push_back(
-                                                    fieldPtr);
-                                                for (size_t i = 0;
-                                                     i < methodArgs.size();
-                                                     i++) {
-                                                    llvm::Type *expected =
-                                                        method
-                                                            ->getFunctionType()
-                                                            ->getParamType(i +
-                                                                           1);
-                                                    llvm::Value *actual =
-                                                        methodArgs[i];
-                                                    if (actual->getType() !=
-                                                        expected) {
-                                                        if (!expected
-                                                                 ->isPointerTy() &&
-                                                            actual->getType()
-                                                                ->isPointerTy()) {
-                                                            reconciledArgs.push_back(
-                                                                builder
-                                                                    ->CreateLoad(
-                                                                        expected,
-                                                                        actual));
-                                                        } else {
-                                                            reconciledArgs.push_back(
-                                                                builder->CreateBitCast(
-                                                                    actual,
-                                                                    expected));
-                                                        }
-                                                    } else {
-                                                        reconciledArgs
-                                                            .push_back(actual);
-                                                    }
-                                                }
-                                                return builder->CreateCall(
-                                                    method, reconciledArgs,
-                                                    methodName + "_result");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            auto userTypeIt = userTypes.find(typeName);
-                            if (userTypeIt != userTypes.end() &&
-                                userTypeIt->second.kind ==
-                                    UserTypeKind::Struct) {
-                                int fieldIdx = -1;
-                                for (size_t i = 0;
-                                     i < userTypeIt->second.fields.size();
-                                     i++) {
-                                    if (userTypeIt->second.fields[i].name ==
-                                        propName) {
-                                        fieldIdx = i;
-                                        break;
-                                    }
-                                }
-
-                                if (fieldIdx != -1) {
-                                    llvm::Type *fieldTy =
-                                        structTy->getElementType(fieldIdx);
-
-                                    if (auto fieldStructTy =
-                                            llvm::dyn_cast<llvm::StructType>(
-                                                fieldTy)) {
-                                        if (fieldStructTy->hasName()) {
-                                            std::string fieldClassName =
-                                                fieldStructTy->getName().str();
-                                            if (classTypes.find(
-                                                    fieldClassName) !=
-                                                classTypes.end()) {
-                                                llvm::Value *fieldPtr =
-                                                    builder->CreateStructGEP(
-                                                        structTy, varAlloc,
-                                                        fieldIdx);
-                                                ClassMethodInfo *methodInfo =
-                                                    nullptr;
-                                                std::string currentClass =
-                                                    fieldClassName;
-                                                while (!currentClass.empty()) {
-                                                    for (auto &m :
-                                                         userTypes[currentClass]
-                                                             .classMethods) {
-                                                        if (m.name_tok.value ==
-                                                                methodName &&
-                                                            m.params.size() ==
-                                                                (*methodCall)
-                                                                    ->args
-                                                                    .size()) {
-                                                            methodInfo = &m;
-                                                            break;
-                                                        }
-                                                    }
-                                                    if (methodInfo)
-                                                        break;
-                                                    currentClass =
-                                                        userTypes[currentClass]
-                                                            .baseClassName;
-                                                }
-                                                std::vector<llvm::Value *>
-                                                    methodArgs;
-                                                for (size_t i = 0;
-                                                     i <
-                                                     (*methodCall)->args.size();
-                                                     i++) {
-                                                    auto &argNode =
-                                                        (*methodCall)->args[i];
-                                                    bool isRef =
-                                                        methodInfo &&
-                                                        methodInfo->params[i]
-                                                            .type.value
-                                                            .ends_with("&");
-                                                    if (isRef) {
-                                                        auto *va = std::get_if<
-                                                            std::unique_ptr<
-                                                                VarAccessNode>>(
-                                                            &argNode);
-                                                        if (!va) {
-                                                            cg_error(
-                                                                Position(),
-                                                                "L-value "
-                                                                "required for "
-                                                                "ref param");
-                                                            return nullptr;
-                                                        }
-                                                        methodArgs.push_back(
-                                                            getVarAddress(
-                                                                (*va)
-                                                                    ->var_name_tok
-                                                                    .value));
-                                                    } else {
-                                                        llvm::Value *arg =
-                                                            emitExpr(argNode);
-                                                        if (!arg)
-                                                            return nullptr;
-                                                        methodArgs.push_back(
-                                                            arg);
-                                                    }
-                                                }
-                                                llvm::Function *method =
-                                                    findMethodOverload(
-                                                        fieldClassName,
-                                                        methodName, methodArgs);
-                                                if (!method) {
-                                                    cg_error(Position(),
-                                                             "No matching "
-                                                             "overload for " +
-                                                                 methodName);
-                                                    return nullptr;
-                                                }
-                                                std::vector<llvm::Value *>
-                                                    reconciledArgs;
-                                                reconciledArgs.push_back(
-                                                    fieldPtr);
-                                                for (size_t i = 0;
-                                                     i < methodArgs.size();
-                                                     i++) {
-                                                    llvm::Type *expected =
-                                                        method
-                                                            ->getFunctionType()
-                                                            ->getParamType(i +
-                                                                           1);
-                                                    llvm::Value *actual =
-                                                        methodArgs[i];
-                                                    if (actual->getType() !=
-                                                        expected) {
-                                                        if (!expected
-                                                                 ->isPointerTy() &&
-                                                            actual->getType()
-                                                                ->isPointerTy()) {
-                                                            reconciledArgs.push_back(
-                                                                builder
-                                                                    ->CreateLoad(
-                                                                        expected,
-                                                                        actual));
-                                                        } else {
-                                                            reconciledArgs.push_back(
-                                                                builder->CreateBitCast(
-                                                                    actual,
-                                                                    expected));
-                                                        }
-                                                    } else {
-                                                        reconciledArgs
-                                                            .push_back(actual);
-                                                    }
-                                                }
-                                                return builder->CreateCall(
-                                                    method, reconciledArgs,
-                                                    methodName + "_result");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+        } else if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(&call->base)) {
+            llvm::Value* baseAddr = emitExpr(*((*propAcc)->base)); 
+            std::string ownerClass = getExpressionType(*((*propAcc)->base));
+            llvm::StructType* structType = llvm::StructType::getTypeByName(context, ownerClass);
+            unsigned fieldIndex = 0;
+            bool found = false;
+            const auto& fields = userTypes[ownerClass].classFields;
+            for (size_t i = 0; i < fields.size(); ++i) {
+                if (fields[i].name == (*propAcc)->property_name.value) {
+                    fieldIndex = static_cast<unsigned>(i);
+                    found = true;
+                    break;
                 }
             }
+            if (!found) {
+                return (cg_error(call->method_name.pos, "Field not found"), nullptr);
+            }
+            llvm::Value* fieldAddr = builder->CreateStructGEP(structType, baseAddr, fieldIndex);
+            thisPtr = builder->CreateLoad(builder->getPtrTy(), fieldAddr, "ptr_ld");
+            AnyNode temp = *propAcc;
+            targetClass = getExpressionType(temp);
+        } else {
+            llvm::Value* baseVal = emitExpr(call->base);
+            if (auto* sTy = llvm::dyn_cast<llvm::StructType>(baseVal->getType())) {
+                targetClass = sTy->getName().str();
+                thisPtr = createEntryAlloca("temp_this", sTy);
+                builder->CreateStore(baseVal, thisPtr);
+            }
         }
-        if (!baseVal)
-            return nullptr;
+
+        if (targetClass.empty())
+            return (cg_error(call->method_name.pos, "Cannot resolve target"), nullptr);
+        if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, call, thisPtr)) {
+            return specializedCall;
+        }
+        llvm::Value* baseVal = thisPtr;
         if (methodName == "push") {
             if ((*methodCall)->args.empty()) {
                 cg_error((*methodCall)->method_name.pos,
-                         "push() requires 1 argument");
+                    "push() requires 1 argument");
                 return nullptr;
             }
 
-            llvm::Value *argVal = emitExpr((*methodCall)->args[0]);
+            llvm::Value* argVal = emitExpr((*methodCall)->args[0]);
             if (!argVal)
                 return nullptr;
 
             int typeCode = -1;
-            llvm::Type *argTy = argVal->getType();
+            llvm::Type* argTy = argVal->getType();
 
-            if (argTy->isIntegerTy(32))
+            if (argTy->isIntegerTy(32) || argTy->isIntegerTy(64) || argTy->isIntegerTy(16))
                 typeCode = 0;
             else if (argTy->isFloatTy())
                 typeCode = 1;
@@ -20062,116 +19194,107 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 typeCode = 6;
             else {
                 cg_error((*methodCall)->method_name.pos,
-                         "Unsupported type for push");
+                    "Unsupported type for push");
                 return nullptr;
             }
 
-            llvm::Function *pushFn = module->getFunction("qc_list_push");
+            llvm::Function* pushFn = module->getFunction("qc_list_push");
             if (!pushFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     builder->getVoidTy(),
                     {llvm::PointerType::get(context, 0),
-                     llvm::PointerType::get(context, 0), builder->getInt32Ty()},
+                        llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 pushFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_push", module.get());
+                        "qc_list_push", module.get());
             }
-
-            llvm::AllocaInst *argAlloc =
-                createEntryAlloca("push_arg", argVal->getType());
+            llvm::AllocaInst* argAlloc = createEntryAlloca("push_arg", argVal->getType());
             builder->CreateStore(argVal, argAlloc);
-
-            llvm::Value *argPtr = builder->CreateBitCast(
-                argAlloc, llvm::PointerType::get(context, 0), "arg_void_ptr");
-
-            builder->CreateCall(pushFn,
-                                {baseVal, argPtr, builder->getInt32(typeCode)});
+            llvm::Value* argPtr = builder->CreateBitCast(argAlloc, builder->getPtrTy());
+            builder->CreateCall(pushFn, {baseVal, argPtr, builder->getInt32(6)});
             return nullptr;
         }
 
         if (methodName == "pop") {
-            llvm::Function *popFn = module->getFunction("qc_list_pop");
+            llvm::Function* popFn = module->getFunction("qc_list_pop");
             if (!popFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     llvm::PointerType::get(context, 0),
                     {llvm::PointerType::get(context, 0)}, false);
                 popFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_pop", module.get());
+                        "qc_list_pop", module.get());
             }
             return builder->CreateCall(popFn, {baseVal}, "list_pop");
         }
 
         if (methodName == "set") {
             if ((*methodCall)->args.size() != 2) {
-                cg_error((*methodCall)->method_name.pos,
-                         "set() requires 2 arguments");
+                cg_error((*methodCall)->method_name.pos, "set() requires 2 arguments");
                 return nullptr;
             }
-
-            llvm::Value *keyVal = emitExpr((*methodCall)->args[0]);
-            llvm::Value *valueVal = emitExpr((*methodCall)->args[1]);
+            llvm::Value* keyVal = emitExpr((*methodCall)->args[0]);
+            llvm::Value* valueVal = emitExpr((*methodCall)->args[1]);
             if (!keyVal || !valueVal)
                 return nullptr;
 
-            llvm::AllocaInst *keyAlloc =
-                createEntryAlloca("set_key", keyVal->getType());
-            llvm::AllocaInst *valAlloc =
-                createEntryAlloca("set_val", valueVal->getType());
-            builder->CreateStore(keyVal, keyAlloc);
-            builder->CreateStore(valueVal, valAlloc);
-
-            llvm::Value *keyPtr = builder->CreateBitCast(
-                keyAlloc, llvm::PointerType::get(context, 0));
-            llvm::Value *valPtr = builder->CreateBitCast(
-                valAlloc, llvm::PointerType::get(context, 0));
-
-            llvm::Function *setFn = module->getFunction("qc_map_set");
-            if (!setFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy = llvm::FunctionType::get(
-                    builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy},
-                    false);
-                setFn = llvm::Function::Create(fnTy,
-                                               llvm::Function::ExternalLinkage,
-                                               "qc_map_set", module.get());
-            }
-
-            builder->CreateCall(setFn, {baseVal, keyPtr, valPtr});
-            return llvm::ConstantInt::get(builder->getInt32Ty(), 0);
-        }
-
-        if (methodName == "has") {
-            if ((*methodCall)->args.size() != 1) {
-                cg_error((*methodCall)->method_name.pos,
-                         "has() requires 1 argument");
-                return nullptr;
-            }
-
-            llvm::Value *keyVal = emitExpr((*methodCall)->args[0]);
-            if (!keyVal)
-                return nullptr;
-
-            llvm::Value *keyPtr;
+            llvm::Value* keyPtr = nullptr;
             if (keyVal->getType()->isPointerTy()) {
                 keyPtr = keyVal;
             } else {
-                llvm::AllocaInst *keyAlloc =
+                llvm::AllocaInst* keyAlloc = createEntryAlloca("set_key", keyVal->getType());
+                builder->CreateStore(keyVal, keyAlloc);
+                keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(context, 0));
+            }
+            llvm::Value* valPtr = nullptr;
+            if (valueVal->getType()->isPointerTy()) {
+                valPtr = valueVal;
+            } else {
+                llvm::AllocaInst* valAlloc = createEntryAlloca("set_val", valueVal->getType());
+                builder->CreateStore(valueVal, valAlloc);
+                valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(context, 0));
+            }
+            llvm::Function* setFn = module->getFunction("qc_map_set");
+            if (!setFn) {
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(
+                    builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
+                setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_map_set", module.get());
+            }
+            builder->CreateCall(setFn, {baseVal, keyPtr, valPtr});
+            return llvm::ConstantInt::get(builder->getInt32Ty(), 0);
+        }
+        if (methodName == "has") {
+            if ((*methodCall)->args.size() != 1) {
+                cg_error((*methodCall)->method_name.pos,
+                    "has() requires 1 argument");
+                return nullptr;
+            }
+
+            llvm::Value* keyVal = emitExpr((*methodCall)->args[0]);
+            if (!keyVal)
+                return nullptr;
+
+            llvm::Value* keyPtr;
+            if (keyVal->getType()->isPointerTy()) {
+                keyPtr = keyVal;
+            } else {
+                llvm::AllocaInst* keyAlloc =
                     createEntryAlloca("has_key", keyVal->getType());
                 builder->CreateStore(keyVal, keyAlloc);
                 keyPtr = builder->CreateBitCast(
                     keyAlloc, llvm::PointerType::get(context, 0));
             }
 
-            llvm::Function *hasFn = module->getFunction("qc_map_has");
+            llvm::Function* hasFn = module->getFunction("qc_map_has");
             if (!hasFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getInt1Ty(), {voidPtrTy, voidPtrTy}, false);
                 hasFn = llvm::Function::Create(fnTy,
-                                               llvm::Function::ExternalLinkage,
-                                               "qc_map_has", module.get());
+                    llvm::Function::ExternalLinkage,
+                    "qc_map_has", module.get());
             }
 
             return builder->CreateCall(hasFn, {baseVal, keyPtr}, "map_has");
@@ -20180,29 +19303,29 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         if (methodName == "remove") {
             if ((*methodCall)->args.size() != 1) {
                 cg_error((*methodCall)->method_name.pos,
-                         "remove() requires 1 argument");
+                    "remove() requires 1 argument");
                 return nullptr;
             }
 
-            llvm::Value *keyVal = emitExpr((*methodCall)->args[0]);
+            llvm::Value* keyVal = emitExpr((*methodCall)->args[0]);
             if (!keyVal)
                 return nullptr;
 
-            llvm::Value *keyPtr;
+            llvm::Value* keyPtr;
             if (keyVal->getType()->isPointerTy()) {
                 keyPtr = keyVal;
             } else {
-                llvm::AllocaInst *keyAlloc =
+                llvm::AllocaInst* keyAlloc =
                     createEntryAlloca("remove_key", keyVal->getType());
                 builder->CreateStore(keyVal, keyAlloc);
                 keyPtr = builder->CreateBitCast(
                     keyAlloc, llvm::PointerType::get(context, 0));
             }
 
-            llvm::Function *removeFn = module->getFunction("qc_map_remove");
+            llvm::Function* removeFn = module->getFunction("qc_map_remove");
             if (!removeFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy}, false);
                 removeFn = llvm::Function::Create(
                     fnTy, llvm::Function::ExternalLinkage, "qc_map_remove",
@@ -20213,22 +19336,75 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
             return llvm::ConstantInt::get(builder->getInt32Ty(), 0);
         }
         if (methodName == "keys") {
-            llvm::Function *keysFn = module->getFunction("qc_map_keys");
+            llvm::Function* keysFn = module->getFunction("qc_map_keys");
             if (!keysFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy =
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy =
                     llvm::FunctionType::get(voidPtrTy, {voidPtrTy}, false);
                 keysFn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_map_keys", module.get());
+                    llvm::Function::ExternalLinkage,
+                    "qc_map_keys", module.get());
             }
 
             return builder->CreateCall(keysFn, {baseVal}, "map_keys");
         }
-
-        cg_error((*methodCall)->method_name.pos,
-                 "Unknown method: " + methodName);
-        return nullptr;
+        ClassMethodInfo* info = nullptr;
+        std::string searchClass = targetClass;
+        while (!searchClass.empty() && !info) {
+            for (auto& m : userTypes[searchClass].classMethods) {
+                bool isVar = !m.params.empty() && m.params.back().type.value == "...";
+                if (m.name_tok.value == methodName) {
+                    if (isVar && call->args.size() >= m.params.size() - 1) {
+                        info = &m;
+                        break;
+                    } else if (m.params.size() == call->args.size()) {
+                        info = &m;
+                        break;
+                    }
+                }
+            }
+            searchClass = userTypes[searchClass].baseClassName;
+        }
+        auto args = prepareArgs(info, call->args);
+        llvm::StructType* VariadicStructTy = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty(), builder->getInt32Ty()});
+        bool isVariadic = (info && !info->params.empty() && info->params.back().type.value == "...");
+        if (isVariadic) {
+            size_t numFixedParams = info->params.size() - 1;
+            std::vector<llvm::Value*> varVals;
+            if (args.size() > numFixedParams) {
+                varVals.assign(args.begin() + numFixedParams, args.end());
+                args.resize(numFixedParams);
+            }
+            llvm::Value* args_cnt = builder->getInt32(varVals.size());
+            llvm::Value* items_array = builder->CreateAlloca(builder->getPtrTy(), args_cnt, "var_array");
+            for (size_t i = 0; i < varVals.size(); ++i) {
+                llvm::Value* element_ptr = builder->CreateGEP(builder->getPtrTy(), items_array, builder->getInt32(i));
+                llvm::Value* val = varVals[i];
+                if (val->getType()->isStructTy()) {
+                    llvm::Value* tempAlloc = builder->CreateAlloca(val->getType(), nullptr, "var_struct_tmp");
+                    builder->CreateStore(val, tempAlloc);
+                    val = tempAlloc; 
+                } else if (val->getType()->isIntegerTy()) {
+                    val = builder->CreateIntToPtr(val, builder->getPtrTy());
+                } else if (val->getType()->isFloatingPointTy()) {
+                    llvm::Value* asInt = builder->CreateBitCast(val, builder->getInt64Ty());
+                    val = builder->CreateIntToPtr(asInt, builder->getPtrTy());
+                }
+                builder->CreateStore(val, element_ptr);
+            }
+            llvm::Value* varStructAlloc = builder->CreateAlloca(VariadicStructTy, nullptr, "var_struct_alloc");
+            llvm::Value* ptrField = builder->CreateStructGEP(VariadicStructTy, varStructAlloc, 0);
+            builder->CreateStore(items_array, ptrField);
+            llvm::Value* lenField = builder->CreateStructGEP(VariadicStructTy, varStructAlloc, 1);
+            builder->CreateStore(args_cnt, lenField);
+            llvm::Value* capField = builder->CreateStructGEP(VariadicStructTy, varStructAlloc, 2);
+            builder->CreateStore(builder->getInt32(0), capField);
+            args.push_back(varStructAlloc);
+        }
+        llvm::Function* method = findMethodOverload(targetClass, methodName, args);
+        if (!method)
+            return (cg_error(call->method_name.pos, "No overload found"), nullptr);
+        return emitMethodCall(method, thisPtr, args, methodName);
     } else if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&node)) {
         cg_error(Position(), "Spread operator can only be used in array/list "
                              "literals or function calls");
@@ -20244,24 +19420,24 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 targetTypeStr = getFieldType(currentClassName, fieldName);
             }
         }
-        llvm::Value *valueVal = nullptr;
+        llvm::Value* valueVal = nullptr;
         if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                 &(*fieldAssign)->value)) {
             if ((*arrLit)->elements.empty() &&
                 targetTypeStr.find("list<") == 0) {
                 std::string inner = getElementType(targetTypeStr);
                 int typeCode = getTypeCode(inner);
-                llvm::Function *createListFn =
+                llvm::Function* createListFn =
                     module->getFunction("qc_create_list");
                 if (!createListFn) {
-                    llvm::FunctionType *ft = llvm::FunctionType::get(
+                    llvm::FunctionType* ft = llvm::FunctionType::get(
                         builder->getPtrTy(), {builder->getInt32Ty()}, false);
                     createListFn = llvm::Function::Create(
                         ft, llvm::Function::ExternalLinkage, "qc_create_list",
                         module.get());
                 }
                 valueVal = builder->CreateCall(createListFn,
-                                               {builder->getInt32(typeCode)});
+                    {builder->getInt32(typeCode)});
             }
         }
         if (!valueVal) {
@@ -20284,22 +19460,22 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                 auto [fieldOwnerClass, fieldAccess] =
                     getFieldOwner(currentClassName, fieldName);
                 if (!canAccessField(currentClassName, fieldOwnerClass,
-                                    fieldAccess)) {
+                        fieldAccess)) {
                     cg_error(Position(),
-                             "Cannot access " + fieldAccess + " field");
+                        "Cannot access " + fieldAccess + " field");
                     return nullptr;
                 }
 
-                llvm::StructType *classTy = classTypes[currentClassName];
-                llvm::Value *fieldPtr =
+                llvm::StructType* classTy = classTypes[currentClassName];
+                llvm::Value* fieldPtr =
                     builder->CreateStructGEP(classTy, currentThis, fieldIdx);
                 builder->CreateStore(valueVal, fieldPtr);
                 return builder->getInt32(0);
             }
         }
         PropertyAccessNode tempProp(std::move((*fieldAssign)->base), Token(),
-                                    (*fieldAssign)->field_name);
-        llvm::Value *fieldPtr = emitPropertyAddress(tempProp);
+            (*fieldAssign)->field_name);
+        llvm::Value* fieldPtr = emitPropertyAddress(tempProp);
         AnyNode tempVariant =
             std::make_shared<PropertyAccessNode>(std::move(tempProp));
         std::string fieldTypeStr = getExpressionType(tempVariant, true);
@@ -20309,8 +19485,8 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
         }
         if (!fieldPtr)
             return nullptr;
-        llvm::Type *destTy = llvmTypeFor(fieldTypeStr);
-        llvm::Value *rhsVal = emitExpr((*fieldAssign)->value);
+        llvm::Type* destTy = llvmTypeFor(fieldTypeStr);
+        llvm::Value* rhsVal = emitExpr((*fieldAssign)->value);
         if (!rhsVal)
             return nullptr;
         builder->CreateStore(rhsVal, fieldPtr);
@@ -20334,23 +19510,23 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
                     "globals already have global lifetime.");
             return nullptr;
         } else if (getVarAddress(ref->target_tok.value) != nullptr) {
-            llvm::Value *destPtr = getVarAddress(ref->target_tok.value);
+            llvm::Value* destPtr = getVarAddress(ref->target_tok.value);
             std::string varT = resolveVarType(ref->target_tok.value);
             if (varT.ends_with("&")) {
                 cg_error(ref->target_tok.pos,
-                         ref->target_tok.value +
-                             " is a reference, and you cannot "
-                             "create references-to-references");
+                    ref->target_tok.value +
+                        " is a reference, and you cannot "
+                        "create references-to-references");
             }
-            llvm::AllocaInst *refStore =
+            llvm::AllocaInst* refStore =
                 builder->CreateAlloca(builder->getPtrTy(), nullptr, fullName);
             builder->CreateStore(destPtr, refStore);
             locals[fullName] = refStore;
         } else {
             cg_error(ref->target_tok.pos,
-                     ref->target_tok.value +
-                         " is not defined when creating reference " +
-                         ref->var_name_tok.value);
+                ref->target_tok.value +
+                    " is not defined when creating reference " +
+                    ref->var_name_tok.value);
             return nullptr;
         }
         return nullptr;
@@ -20360,44 +19536,44 @@ llvm::Value *LLVMCompiler::emitExpr(AnyNode &node) {
     }
     return nullptr;
 }
-llvm::Value *LLVMCompiler::storeAndGetPointer(llvm::Value *val) {
-    llvm::Type *ty = val->getType();
+llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
+    llvm::Type* ty = val->getType();
 
     if (ty->isPointerTy()) {
         return builder->CreateBitCast(val, llvm::PointerType::get(context, 0));
     }
 
-    llvm::Function *mallocFn = module->getFunction("malloc");
+    llvm::Function* mallocFn = module->getFunction("malloc");
     if (!mallocFn) {
-        llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+        llvm::FunctionType* mallocTy = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
         mallocFn = llvm::Function::Create(
             mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
     }
 
-    const llvm::DataLayout &DL = module->getDataLayout();
+    const llvm::DataLayout& DL = module->getDataLayout();
     uint64_t size = DL.getTypeAllocSize(ty);
 
-    llvm::Value *heapPtr =
+    llvm::Value* heapPtr =
         builder->CreateCall(mallocFn, {builder->getInt64(size)}, "union_heap");
-    llvm::Value *typedPtr =
+    llvm::Value* typedPtr =
         builder->CreateBitCast(heapPtr, llvm::PointerType::get(context, 0));
     builder->CreateStore(val, typedPtr);
 
     return heapPtr;
 }
-int LLVMCompiler::findUnionVariantTag(const std::string &unionName,
-                                      AnyNode &valueNode, llvm::Value *val) {
+int LLVMCompiler::findUnionVariantTag(const std::string& unionName,
+    AnyNode& valueNode, llvm::Value* val) {
     auto typeIt = userTypes.find(unionName);
     if (typeIt == userTypes.end())
         return -1;
 
-    auto &members = typeIt->second.members;
+    auto& members = typeIt->second.members;
 
     for (size_t i = 0; i < members.size(); i++) {
-        auto &member = members[i];
+        auto& member = members[i];
 
-        const std::string &m = member.type;
+        const std::string& m = member.type;
         size_t colonPos = m.find(':');
 
         if (colonPos != std::string::npos) {
@@ -20438,8 +19614,8 @@ int LLVMCompiler::findUnionVariantTag(const std::string &unionName,
                 }
             }
         } else {
-            llvm::Type *valTy = val->getType();
-            llvm::Type *memberTy = llvmTypeFor(m);
+            llvm::Type* valTy = val->getType();
+            llvm::Type* memberTy = llvmTypeFor(m);
 
             if (valTy == memberTy) {
                 return i;
@@ -20449,74 +19625,74 @@ int LLVMCompiler::findUnionVariantTag(const std::string &unionName,
 
     return -1;
 }
-llvm::Value *LLVMCompiler::callStringConcat(llvm::Value *a, llvm::Value *b) {
-    llvm::Function *concatFn = module->getFunction("qc_string_concat");
+llvm::Value* LLVMCompiler::callStringConcat(llvm::Value* a, llvm::Value* b) {
+    llvm::Function* concatFn = module->getFunction("qc_string_concat");
     if (!concatFn) {
-        llvm::FunctionType *ty =
+        llvm::FunctionType* ty =
             llvm::FunctionType::get(llvm::PointerType::get(context, 0),
-                                    {llvm::PointerType::get(context, 0),
-                                     llvm::PointerType::get(context, 0)},
-                                    false);
+                {llvm::PointerType::get(context, 0),
+                    llvm::PointerType::get(context, 0)},
+                false);
         concatFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                          "qc_string_concat", module.get());
+            "qc_string_concat", module.get());
     }
     return builder->CreateCall(concatFn, {a, b});
 }
 void LLVMCompiler::generateStructReprFunctions() {
-    llvm::BasicBlock *savedBB = builder->GetInsertBlock();
+    llvm::BasicBlock* savedBB = builder->GetInsertBlock();
 
-    for (auto &[name, info] : userTypes) {
+    for (auto& [name, info] : userTypes) {
         if (info.kind != UserTypeKind::Struct)
             continue;
 
-        llvm::StructType *structTy = structTypes[name];
-        llvm::FunctionType *reprFnTy = llvm::FunctionType::get(
+        llvm::StructType* structTy = structTypes[name];
+        llvm::FunctionType* reprFnTy = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {structTy}, false);
 
-        llvm::Function *reprFn =
+        llvm::Function* reprFn =
             llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage,
-                                   name + "_repr", module.get());
-        llvm::BasicBlock *entryBB =
+                name + "_repr", module.get());
+        llvm::BasicBlock* entryBB =
             llvm::BasicBlock::Create(context, "entry", reprFn);
         builder->SetInsertPoint(entryBB);
-        llvm::Value *structArg = reprFn->arg_begin();
-        llvm::Value *result = builder->CreateGlobalString(name + "(");
+        llvm::Value* structArg = reprFn->arg_begin();
+        llvm::Value* result = builder->CreateGlobalString(name + "(");
         for (size_t i = 0; i < info.fields.size(); i++) {
-            auto &field = info.fields[i];
+            auto& field = info.fields[i];
             if (i > 0) {
-                llvm::Value *comma = builder->CreateGlobalString(", ");
+                llvm::Value* comma = builder->CreateGlobalString(", ");
                 result = callStringConcat(result, comma);
             }
-            llvm::Value *fieldLabel =
+            llvm::Value* fieldLabel =
                 builder->CreateGlobalString(field.name + "=");
             result = callStringConcat(result, fieldLabel);
-            llvm::Value *fieldVal = builder->CreateExtractValue(structArg, i);
-            llvm::Value *fieldStr = nullptr;
+            llvm::Value* fieldVal = builder->CreateExtractValue(structArg, i);
+            llvm::Value* fieldStr = nullptr;
 
             if (field.type == "int") {
-                llvm::Function *toStrFn =
+                llvm::Function* toStrFn =
                     module->getFunction("qc_to_string_int");
                 fieldStr = builder->CreateCall(toStrFn, {fieldVal});
             } else if (field.type == "float") {
-                llvm::Function *toStrFn =
+                llvm::Function* toStrFn =
                     module->getFunction("qc_to_string_float");
                 fieldStr = builder->CreateCall(toStrFn, {fieldVal});
             } else if (field.type == "double") {
-                llvm::Function *toStrFn =
+                llvm::Function* toStrFn =
                     module->getFunction("qc_to_string_double");
                 fieldStr = builder->CreateCall(toStrFn, {fieldVal});
             } else if (field.type == "bool") {
-                llvm::Function *toStrFn =
+                llvm::Function* toStrFn =
                     module->getFunction("qc_to_string_bool");
                 fieldStr = builder->CreateCall(toStrFn, {fieldVal});
             } else if (field.type == "char") {
-                llvm::Function *toStrFn =
+                llvm::Function* toStrFn =
                     module->getFunction("qc_to_string_char");
                 fieldStr = builder->CreateCall(toStrFn, {fieldVal});
             } else if (field.type == "string") {
                 fieldStr = fieldVal;
             } else if (structTypes.find(field.type) != structTypes.end()) {
-                llvm::Function *nestedReprFn =
+                llvm::Function* nestedReprFn =
                     module->getFunction(field.type + "_repr");
                 if (nestedReprFn) {
                     fieldStr = builder->CreateCall(nestedReprFn, {fieldVal});
@@ -20529,7 +19705,7 @@ void LLVMCompiler::generateStructReprFunctions() {
 
             result = callStringConcat(result, fieldStr);
         }
-        llvm::Value *closeParen = builder->CreateGlobalString(")");
+        llvm::Value* closeParen = builder->CreateGlobalString(")");
         result = callStringConcat(result, closeParen);
 
         builder->CreateRet(result);
@@ -20538,8 +19714,8 @@ void LLVMCompiler::generateStructReprFunctions() {
         builder->SetInsertPoint(savedBB);
     }
 }
-llvm::Value *LLVMCompiler::convertToString(llvm::Value *val, AnyNode &expr) {
-    llvm::Type *ty = val->getType();
+llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
+    llvm::Type* ty = val->getType();
 
     if (ty->isPointerTy()) {
         if (auto varAccess =
@@ -20550,14 +19726,14 @@ llvm::Value *LLVMCompiler::convertToString(llvm::Value *val, AnyNode &expr) {
                     return currentThis;
                 } else {
                     cg_error((*varAccess)->var_name_tok.pos,
-                             "'this' used outside of class method");
+                        "'this' used outside of class method");
                     return nullptr;
                 }
             }
             if (hasList(varName)) {
-                llvm::Function *fn = module->getFunction("qc_list_to_string");
+                llvm::Function* fn = module->getFunction("qc_list_to_string");
                 if (!fn) {
-                    llvm::FunctionType *ty = llvm::FunctionType::get(
+                    llvm::FunctionType* ty = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
@@ -20567,9 +19743,9 @@ llvm::Value *LLVMCompiler::convertToString(llvm::Value *val, AnyNode &expr) {
                 return builder->CreateCall(fn, {val}, "list_str");
             }
             if (hasMap(varName)) {
-                llvm::Function *fn = module->getFunction("qc_map_to_string");
+                llvm::Function* fn = module->getFunction("qc_map_to_string");
                 if (!fn) {
-                    llvm::FunctionType *ty = llvm::FunctionType::get(
+                    llvm::FunctionType* ty = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
@@ -20579,9 +19755,9 @@ llvm::Value *LLVMCompiler::convertToString(llvm::Value *val, AnyNode &expr) {
                 return builder->CreateCall(fn, {val}, "map_str");
             }
             if (hasJaggedArray(varName)) {
-                llvm::Function *fn = module->getFunction("qc_jagged_to_string");
+                llvm::Function* fn = module->getFunction("qc_jagged_to_string");
                 if (!fn) {
-                    llvm::FunctionType *ty = llvm::FunctionType::get(
+                    llvm::FunctionType* ty = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
@@ -20611,25 +19787,25 @@ llvm::Value *LLVMCompiler::convertToString(llvm::Value *val, AnyNode &expr) {
         return nullptr;
     }
 
-    llvm::Function *fn = module->getFunction(fnName);
+    llvm::Function* fn = module->getFunction(fnName);
     if (!fn) {
-        llvm::FunctionType *fty = llvm::FunctionType::get(
+        llvm::FunctionType* fty = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {val->getType()}, false);
         fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage,
-                                    fnName, module.get());
+            fnName, module.get());
     }
 
     return builder->CreateCall(fn, {val}, "to_str");
 }
-llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
-                                                  llvm::FunctionType *fnTy,
-                                                  CallNode &call) {
-    llvm::Value *totalArgsCount = builder->getInt32(0);
+llvm::Value* LLVMCompiler::emitSpreadFunctionCall(llvm::Value* calleeVal,
+    llvm::FunctionType* fnTy,
+    CallNode& call) {
+    llvm::Value* totalArgsCount = builder->getInt32(0);
 
-    for (auto &argNode : call.arg_nodes) {
+    for (auto& argNode : call.arg_nodes) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&argNode)) {
-            llvm::Value *collVal = emitExpr((*spread)->expr);
-            llvm::Value *spreadLen =
+            llvm::Value* collVal = emitExpr((*spread)->expr);
+            llvm::Value* spreadLen =
                 getCollectionLength(collVal, (*spread)->expr);
             totalArgsCount = builder->CreateAdd(totalArgsCount, spreadLen);
         } else {
@@ -20638,33 +19814,33 @@ llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
         }
     }
 
-    llvm::AllocaInst *argsArray =
+    llvm::AllocaInst* argsArray =
         builder->CreateAlloca(llvm::PointerType::get(context, 0),
-                              totalArgsCount, "spread_args_array");
+            totalArgsCount, "spread_args_array");
 
-    llvm::AllocaInst *typesArray = builder->CreateAlloca(
+    llvm::AllocaInst* typesArray = builder->CreateAlloca(
         builder->getInt32Ty(), totalArgsCount, "spread_types_array");
 
-    llvm::Value *currentIndex = builder->getInt32(0);
-    
-    for (auto &argNode : call.arg_nodes) {
+    llvm::Value* currentIndex = builder->getInt32(0);
+
+    for (auto& argNode : call.arg_nodes) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&argNode)) {
-            llvm::Value *collVal = emitExpr((*spread)->expr);
+            llvm::Value* collVal = emitExpr((*spread)->expr);
             currentIndex = expandSpreadIntoArrays(
                 collVal, (*spread)->expr, argsArray, typesArray, currentIndex);
         } else {
-            llvm::Value *argVal = emitExpr(argNode);
+            llvm::Value* argVal = emitExpr(argNode);
             if (!argVal)
                 return nullptr;
 
             argVal = normalizeValue(argVal, argNode);
-            llvm::Type *ty = argVal->getType();
-            
-            llvm::Value *argPtr;
+            llvm::Type* ty = argVal->getType();
+
+            llvm::Value* argPtr;
             if (ty->isPointerTy()) {
                 argPtr = argVal;
             } else {
-                llvm::AllocaInst *tempAlloc = createEntryAlloca("arg_temp", ty);
+                llvm::AllocaInst* tempAlloc = createEntryAlloca("arg_temp", ty);
                 builder->CreateStore(argVal, tempAlloc);
                 argPtr = builder->CreateBitCast(
                     tempAlloc, llvm::PointerType::get(context, 0));
@@ -20672,11 +19848,11 @@ llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
 
             int typeCode = getTypeCodeFromLLVM(ty);
 
-            llvm::Value *slot = builder->CreateGEP(
+            llvm::Value* slot = builder->CreateGEP(
                 llvm::PointerType::get(context, 0), argsArray, currentIndex);
             builder->CreateStore(argPtr, slot);
 
-            llvm::Value *typeSlot = builder->CreateGEP(
+            llvm::Value* typeSlot = builder->CreateGEP(
                 builder->getInt32Ty(), typesArray, currentIndex);
             builder->CreateStore(builder->getInt32(typeCode), typeSlot);
 
@@ -20685,54 +19861,54 @@ llvm::Value *LLVMCompiler::emitSpreadFunctionCall(llvm::Value *calleeVal,
         }
     }
 
-    llvm::Function *spreadFn = module->getFunction("qc_spread_call");
+    llvm::Function* spreadFn = module->getFunction("qc_spread_call");
     if (!spreadFn) {
-        llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-        llvm::FunctionType *ty = llvm::FunctionType::get(
+        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+        llvm::FunctionType* ty = llvm::FunctionType::get(
             builder->getVoidTy(),
             {voidPtrTy, builder->getInt32Ty(),
-             llvm::PointerType::get(context, 0),
-             llvm::PointerType::get(context, 0), builder->getInt32Ty()},
+                llvm::PointerType::get(context, 0),
+                llvm::PointerType::get(context, 0), builder->getInt32Ty()},
             false);
         spreadFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                          "qc_spread_call", module.get());
+            "qc_spread_call", module.get());
     }
 
-    llvm::Type *retTy = fnTy->getReturnType();
+    llvm::Type* retTy = fnTy->getReturnType();
     int retTypeCode = -1;
     if (!retTy->isVoidTy()) {
         retTypeCode = getTypeCodeFromLLVM(retTy);
     }
 
-    llvm::Value *funcPtr =
+    llvm::Value* funcPtr =
         builder->CreateBitCast(calleeVal, llvm::PointerType::get(context, 0));
     if (retTy->isVoidTy()) {
         builder->CreateCall(spreadFn,
-                            {funcPtr, totalArgsCount, argsArray, typesArray,
-                             builder->getInt32(retTypeCode),
-                             llvm::ConstantPointerNull::get(
-                                 llvm::PointerType::get(context, 0))});
+            {funcPtr, totalArgsCount, argsArray, typesArray,
+                builder->getInt32(retTypeCode),
+                llvm::ConstantPointerNull::get(
+                    llvm::PointerType::get(context, 0))});
         return nullptr;
     } else {
-        llvm::AllocaInst *retAlloc = createEntryAlloca("spread_ret", retTy);
-        llvm::Value *retPtr = builder->CreateBitCast(
+        llvm::AllocaInst* retAlloc = createEntryAlloca("spread_ret", retTy);
+        llvm::Value* retPtr = builder->CreateBitCast(
             retAlloc, llvm::PointerType::get(context, 0));
 
         builder->CreateCall(spreadFn,
-                            {funcPtr, totalArgsCount, argsArray, typesArray,
-                             builder->getInt32(retTypeCode), retPtr});
+            {funcPtr, totalArgsCount, argsArray, typesArray,
+                builder->getInt32(retTypeCode), retPtr});
 
         return builder->CreateLoad(retTy, retAlloc, "spread_result");
     }
 }
 void LLVMCompiler::expandSpreadIntoVector(
-    llvm::Value *collVal, AnyNode &collExpr,
-    std::vector<llvm::Value *> &elements) {
-    llvm::Value *lengthVal = getCollectionLength(collVal, collExpr);
+    llvm::Value* collVal, AnyNode& collExpr,
+    std::vector<llvm::Value*>& elements) {
+    llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
     if (!lengthVal)
         return;
 
-    if (auto *constLen = llvm::dyn_cast<llvm::ConstantInt>(lengthVal)) {
+    if (auto* constLen = llvm::dyn_cast<llvm::ConstantInt>(lengthVal)) {
         int length = constLen->getSExtValue();
 
         bool isList = false;
@@ -20754,30 +19930,30 @@ void LLVMCompiler::expandSpreadIntoVector(
         }
 
         for (int i = 0; i < length; i++) {
-            llvm::Value *elemVal;
+            llvm::Value* elemVal;
 
             if (isList) {
-                llvm::Function *getFn = module->getFunction("qc_list_get");
+                llvm::Function* getFn = module->getFunction("qc_list_get");
                 if (!getFn) {
-                    llvm::FunctionType *ty = llvm::FunctionType::get(
+                    llvm::FunctionType* ty = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0),
-                         builder->getInt32Ty()},
+                            builder->getInt32Ty()},
                         false);
                     getFn = llvm::Function::Create(
                         ty, llvm::Function::ExternalLinkage, "qc_list_get",
                         module.get());
                 }
-                llvm::Value *elemPtr =
+                llvm::Value* elemPtr =
                     builder->CreateCall(getFn, {collVal, builder->getInt32(i)});
 
-                llvm::Type *elemTy = getTypeFromCode(elemTypeCode);
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     elemPtr, llvm::PointerType::get(context, 0));
                 elemVal = builder->CreateLoad(elemTy, typedPtr);
             } else {
-                llvm::Type *elemTy = getTypeFromCode(elemTypeCode);
-                llvm::Value *gepPtr =
+                llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
+                llvm::Value* gepPtr =
                     builder->CreateGEP(elemTy, collVal, builder->getInt32(i));
                 elemVal = builder->CreateLoad(elemTy, gepPtr);
             }
@@ -20786,19 +19962,19 @@ void LLVMCompiler::expandSpreadIntoVector(
         }
     } else {
         cg_error(Position(),
-                 "Cannot spread runtime-sized collection into array literal");
+            "Cannot spread runtime-sized collection into array literal");
     }
 }
-void LLVMCompiler::expandSpreadIntoList(llvm::Value *collVal, AnyNode &collExpr,
-                                        llvm::Value *listPtr,
-                                        llvm::Function *pushFn,
-                                        int elemTypeCode) {
-    llvm::Value *lengthVal = getCollectionLength(collVal, collExpr);
+void LLVMCompiler::expandSpreadIntoList(llvm::Value* collVal, AnyNode& collExpr,
+    llvm::Value* listPtr,
+    llvm::Function* pushFn,
+    int elemTypeCode) {
+    llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
     if (!lengthVal)
         return;
 
     bool isList = false;
-    llvm::Value *actualCollVal = collVal;
+    llvm::Value* actualCollVal = collVal;
 
     if (auto varAccess =
             std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
@@ -20808,13 +19984,13 @@ void LLVMCompiler::expandSpreadIntoList(llvm::Value *collVal, AnyNode &collExpr,
         } else {
             auto locAlloc = getVarAddress(collName);
             if (locAlloc) {
-                llvm::Type *allocTy = getPointeeType(collName);
+                llvm::Type* allocTy = getPointeeType(collName);
                 if (allocTy->isPointerTy()) {
                     actualCollVal =
                         builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
                 } else if (allocTy->isArrayTy()) {
-                    std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                                          builder->getInt32(0)};
+                    std::vector<llvm::Value*> indices = {builder->getInt32(0),
+                        builder->getInt32(0)};
                     actualCollVal = builder->CreateInBoundsGEP(
                         allocTy, locAlloc, indices, "arr_ptr");
                 }
@@ -20822,58 +19998,58 @@ void LLVMCompiler::expandSpreadIntoList(llvm::Value *collVal, AnyNode &collExpr,
         }
     }
 
-    llvm::BasicBlock *loopBB =
+    llvm::BasicBlock* loopBB =
         llvm::BasicBlock::Create(context, "spread_push_loop", currentFunction);
-    llvm::BasicBlock *bodyBB =
+    llvm::BasicBlock* bodyBB =
         llvm::BasicBlock::Create(context, "spread_push_body", currentFunction);
-    llvm::BasicBlock *endBB =
+    llvm::BasicBlock* endBB =
         llvm::BasicBlock::Create(context, "spread_push_end", currentFunction);
 
-    llvm::AllocaInst *iAlloc =
+    llvm::AllocaInst* iAlloc =
         createEntryAlloca("spread_push_i", builder->getInt32Ty());
     builder->CreateStore(builder->getInt32(0), iAlloc);
     builder->CreateBr(loopBB);
 
     builder->SetInsertPoint(loopBB);
-    llvm::Value *iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
-    llvm::Value *cond = builder->CreateICmpSLT(iVal, lengthVal);
+    llvm::Value* iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
+    llvm::Value* cond = builder->CreateICmpSLT(iVal, lengthVal);
     builder->CreateCondBr(cond, bodyBB, endBB);
 
     builder->SetInsertPoint(bodyBB);
 
-    llvm::Value *elemPtr;
+    llvm::Value* elemPtr;
     if (isList) {
-        llvm::Function *getFn = module->getFunction("qc_list_get");
+        llvm::Function* getFn = module->getFunction("qc_list_get");
         if (!getFn) {
-            llvm::FunctionType *ty = llvm::FunctionType::get(
+            llvm::FunctionType* ty = llvm::FunctionType::get(
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
             getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_get", module.get());
+                "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal});
     } else {
-        llvm::Type *elemTy = getTypeFromCode(elemTypeCode);
-        llvm::Value *gepPtr = builder->CreateGEP(elemTy, actualCollVal, iVal);
+        llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
+        llvm::Value* gepPtr = builder->CreateGEP(elemTy, actualCollVal, iVal);
         elemPtr =
             builder->CreateBitCast(gepPtr, llvm::PointerType::get(context, 0));
     }
 
     builder->CreateCall(pushFn,
-                        {listPtr, elemPtr, builder->getInt32(elemTypeCode)});
+        {listPtr, elemPtr, builder->getInt32(elemTypeCode)});
 
-    llvm::Value *nextI = builder->CreateAdd(iVal, builder->getInt32(1));
+    llvm::Value* nextI = builder->CreateAdd(iVal, builder->getInt32(1));
     builder->CreateStore(nextI, iAlloc);
     builder->CreateBr(loopBB);
     builder->SetInsertPoint(endBB);
 }
-llvm::Value *LLVMCompiler::expandSpreadIntoArrays(llvm::Value *collVal,
-                                                  AnyNode &collExpr,
-                                                  llvm::AllocaInst *argsArray,
-                                                  llvm::AllocaInst *typesArray,
-                                                  llvm::Value *startIndex) {
-    llvm::Value *lengthVal = getCollectionLength(collVal, collExpr);
+llvm::Value* LLVMCompiler::expandSpreadIntoArrays(llvm::Value* collVal,
+    AnyNode& collExpr,
+    llvm::AllocaInst* argsArray,
+    llvm::AllocaInst* typesArray,
+    llvm::Value* startIndex) {
+    llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
     if (!lengthVal)
         return startIndex;
 
@@ -20895,16 +20071,16 @@ llvm::Value *LLVMCompiler::expandSpreadIntoArrays(llvm::Value *collVal,
         }
     }
 
-    llvm::BasicBlock *loopBB =
+    llvm::BasicBlock* loopBB =
         llvm::BasicBlock::Create(context, "expand_loop", currentFunction);
-    llvm::BasicBlock *bodyBB =
+    llvm::BasicBlock* bodyBB =
         llvm::BasicBlock::Create(context, "expand_body", currentFunction);
-    llvm::BasicBlock *endBB =
+    llvm::BasicBlock* endBB =
         llvm::BasicBlock::Create(context, "expand_end", currentFunction);
 
-    llvm::AllocaInst *iAlloc =
+    llvm::AllocaInst* iAlloc =
         createEntryAlloca("expand_i", builder->getInt32Ty());
-    llvm::AllocaInst *currentIdxAlloc =
+    llvm::AllocaInst* currentIdxAlloc =
         createEntryAlloca("expand_idx", builder->getInt32Ty());
 
     builder->CreateStore(builder->getInt32(0), iAlloc);
@@ -20912,36 +20088,36 @@ llvm::Value *LLVMCompiler::expandSpreadIntoArrays(llvm::Value *collVal,
     builder->CreateBr(loopBB);
 
     builder->SetInsertPoint(loopBB);
-    llvm::Value *iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
-    llvm::Value *cond = builder->CreateICmpSLT(iVal, lengthVal);
+    llvm::Value* iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
+    llvm::Value* cond = builder->CreateICmpSLT(iVal, lengthVal);
     builder->CreateCondBr(cond, bodyBB, endBB);
 
     builder->SetInsertPoint(bodyBB);
-    llvm::Value *currentIdx =
+    llvm::Value* currentIdx =
         builder->CreateLoad(builder->getInt32Ty(), currentIdxAlloc);
 
-    llvm::Value *elemPtr;
+    llvm::Value* elemPtr;
 
     if (isList) {
-        llvm::Function *getFn = module->getFunction("qc_list_get");
+        llvm::Function* getFn = module->getFunction("qc_list_get");
         if (!getFn) {
-            llvm::FunctionType *ty = llvm::FunctionType::get(
+            llvm::FunctionType* ty = llvm::FunctionType::get(
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
             getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_get", module.get());
+                "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal}, "list_elem");
     } else {
-        llvm::Type *elemTy = getTypeFromCode(elemTypeCode);
-        llvm::Value *arrayPtr = collVal;
+        llvm::Type* elemTy = getTypeFromCode(elemTypeCode);
+        llvm::Value* arrayPtr = collVal;
         if (auto varAccess =
                 std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
             std::string collName = (*varAccess)->var_name_tok.value;
-            llvm::Value *locAlloc = getVarAddress(collName);
+            llvm::Value* locAlloc = getVarAddress(collName);
             if (locAlloc) {
-                llvm::Type *allocTy = getPointeeType(collName);
+                llvm::Type* allocTy = getPointeeType(collName);
                 if (allocTy->isPointerTy()) {
                     arrayPtr =
                         builder->CreateLoad(allocTy, locAlloc, "arr_ptr");
@@ -20949,46 +20125,46 @@ llvm::Value *LLVMCompiler::expandSpreadIntoArrays(llvm::Value *collVal,
             }
         }
 
-        llvm::Value *gepPtr =
+        llvm::Value* gepPtr =
             builder->CreateGEP(elemTy, arrayPtr, iVal, "arr_elem_ptr");
         elemPtr =
             builder->CreateBitCast(gepPtr, llvm::PointerType::get(context, 0));
     }
 
-    llvm::Value *argSlot = builder->CreateGEP(
+    llvm::Value* argSlot = builder->CreateGEP(
         llvm::PointerType::get(context, 0), argsArray, currentIdx);
     builder->CreateStore(elemPtr, argSlot);
 
-    llvm::Value *typeSlot =
+    llvm::Value* typeSlot =
         builder->CreateGEP(builder->getInt32Ty(), typesArray, currentIdx);
     builder->CreateStore(builder->getInt32(elemTypeCode), typeSlot);
 
-    llvm::Value *nextI = builder->CreateAdd(iVal, builder->getInt32(1));
+    llvm::Value* nextI = builder->CreateAdd(iVal, builder->getInt32(1));
     builder->CreateStore(nextI, iAlloc);
-    llvm::Value *nextIdx = builder->CreateAdd(currentIdx, builder->getInt32(1));
+    llvm::Value* nextIdx = builder->CreateAdd(currentIdx, builder->getInt32(1));
     builder->CreateStore(nextIdx, currentIdxAlloc);
     builder->CreateBr(loopBB);
 
     builder->SetInsertPoint(endBB);
-    llvm::Value *finalIdx =
+    llvm::Value* finalIdx =
         builder->CreateLoad(builder->getInt32Ty(), currentIdxAlloc);
     return finalIdx;
 }
-llvm::Value *LLVMCompiler::getCollectionLength(llvm::Value *collVal,
-                                               AnyNode &collExpr) {
+llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal,
+    AnyNode& collExpr) {
     if (auto varAccess =
             std::get_if<std::unique_ptr<VarAccessNode>>(&collExpr)) {
         std::string collName = (*varAccess)->var_name_tok.value;
         if (hasList(collName)) {
             auto listIt = findList(collName);
-            llvm::Function *lenFn = module->getFunction("qc_list_length");
+            llvm::Function* lenFn = module->getFunction("qc_list_length");
             if (!lenFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_length", module.get());
+                        "qc_list_length", module.get());
             }
             return builder->CreateCall(lenFn, {collVal}, "list_len");
         }
@@ -20996,17 +20172,17 @@ llvm::Value *LLVMCompiler::getCollectionLength(llvm::Value *collVal,
             auto arrLenIt = findArrayLength(collName);
             return builder->getInt32(arrLenIt->second);
         }
-        llvm::Value *locAlloc = getVarAddress(collName);
+        llvm::Value* locAlloc = getVarAddress(collName);
         if (locAlloc) {
-            llvm::Type *allocTy = getPointeeType(collName);
+            llvm::Type* allocTy = getPointeeType(collName);
 
             if (allocTy && allocTy->isArrayTy()) {
                 return builder->getInt32(allocTy->getArrayNumElements());
             }
             if (allocTy && allocTy->isPointerTy()) {
-                llvm::Function *lenFn = module->getFunction("qc_list_length");
+                llvm::Function* lenFn = module->getFunction("qc_list_length");
                 if (!lenFn) {
-                    llvm::FunctionType *ty = llvm::FunctionType::get(
+                    llvm::FunctionType* ty = llvm::FunctionType::get(
                         builder->getInt32Ty(),
                         {llvm::PointerType::get(context, 0)}, false);
                     lenFn = llvm::Function::Create(
@@ -21025,11 +20201,11 @@ llvm::Value *LLVMCompiler::getCollectionLength(llvm::Value *collVal,
     cg_error(Position(), "Cannot determine collection length for spread");
     return nullptr;
 }
-llvm::Value *
-LLVMCompiler::copySpreadToArray(llvm::Value *collVal, AnyNode &collExpr,
-                                llvm::Value *destArray, llvm::Value *startIndex,
-                                llvm::Type *elemTy, int elemTypeCode) {
-    llvm::Value *lengthVal = getCollectionLength(collVal, collExpr);
+llvm::Value*
+LLVMCompiler::copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr,
+    llvm::Value* destArray, llvm::Value* startIndex,
+    llvm::Type* elemTy, int elemTypeCode) {
+    llvm::Value* lengthVal = getCollectionLength(collVal, collExpr);
     if (!lengthVal)
         return startIndex;
     bool isList = false;
@@ -21046,72 +20222,72 @@ LLVMCompiler::copySpreadToArray(llvm::Value *collVal, AnyNode &collExpr,
         }
     }
 
-    llvm::BasicBlock *loopBB =
+    llvm::BasicBlock* loopBB =
         llvm::BasicBlock::Create(context, "copy_loop", currentFunction);
-    llvm::BasicBlock *bodyBB =
+    llvm::BasicBlock* bodyBB =
         llvm::BasicBlock::Create(context, "copy_body", currentFunction);
-    llvm::BasicBlock *endBB =
+    llvm::BasicBlock* endBB =
         llvm::BasicBlock::Create(context, "copy_end", currentFunction);
 
-    llvm::AllocaInst *iAlloc =
+    llvm::AllocaInst* iAlloc =
         createEntryAlloca("copy_i", builder->getInt32Ty());
-    llvm::AllocaInst *destIdxAlloc =
+    llvm::AllocaInst* destIdxAlloc =
         createEntryAlloca("copy_dest_idx", builder->getInt32Ty());
     builder->CreateStore(builder->getInt32(0), iAlloc);
     builder->CreateStore(startIndex, destIdxAlloc);
     builder->CreateBr(loopBB);
     builder->SetInsertPoint(loopBB);
-    llvm::Value *iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
-    llvm::Value *cond = builder->CreateICmpSLT(iVal, lengthVal);
+    llvm::Value* iVal = builder->CreateLoad(builder->getInt32Ty(), iAlloc);
+    llvm::Value* cond = builder->CreateICmpSLT(iVal, lengthVal);
     builder->CreateCondBr(cond, bodyBB, endBB);
     builder->SetInsertPoint(bodyBB);
-    llvm::Value *destIdx =
+    llvm::Value* destIdx =
         builder->CreateLoad(builder->getInt32Ty(), destIdxAlloc);
-    llvm::Value *elemVal;
+    llvm::Value* elemVal;
     if (isList) {
-        llvm::Function *getFn = module->getFunction("qc_list_get");
+        llvm::Function* getFn = module->getFunction("qc_list_get");
         if (!getFn) {
-            llvm::FunctionType *ty = llvm::FunctionType::get(
+            llvm::FunctionType* ty = llvm::FunctionType::get(
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
             getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_get", module.get());
+                "qc_list_get", module.get());
         }
-        llvm::Value *elemPtr = builder->CreateCall(getFn, {collVal, iVal});
+        llvm::Value* elemPtr = builder->CreateCall(getFn, {collVal, iVal});
         if (elemTypeCode == 6) {
             elemVal = elemPtr;
         } else {
-            llvm::Value *typedPtr = builder->CreateBitCast(
+            llvm::Value* typedPtr = builder->CreateBitCast(
                 elemPtr, llvm::PointerType::get(context, 0));
             elemVal = builder->CreateLoad(elemTy, typedPtr);
         }
     } else {
-        llvm::Value *srcPtr = builder->CreateGEP(elemTy, collVal, iVal);
+        llvm::Value* srcPtr = builder->CreateGEP(elemTy, collVal, iVal);
         elemVal = builder->CreateLoad(elemTy, srcPtr);
     }
-    llvm::Value *destPtr = builder->CreateGEP(elemTy, destArray, destIdx);
+    llvm::Value* destPtr = builder->CreateGEP(elemTy, destArray, destIdx);
     builder->CreateStore(elemVal, destPtr);
 
-    llvm::Value *nextI = builder->CreateAdd(iVal, builder->getInt32(1));
+    llvm::Value* nextI = builder->CreateAdd(iVal, builder->getInt32(1));
     builder->CreateStore(nextI, iAlloc);
 
-    llvm::Value *nextDestIdx =
+    llvm::Value* nextDestIdx =
         builder->CreateAdd(destIdx, builder->getInt32(1));
     builder->CreateStore(nextDestIdx, destIdxAlloc);
 
     builder->CreateBr(loopBB);
     builder->SetInsertPoint(endBB);
-    llvm::Value *finalDestIdx =
+    llvm::Value* finalDestIdx =
         builder->CreateLoad(builder->getInt32Ty(), destIdxAlloc);
     return finalDestIdx;
 }
-llvm::Value *
-LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode> &elements,
-                                      llvm::Value *totalSize) {
-    llvm::Type *elemTy = nullptr;
+llvm::Value*
+LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& elements,
+    llvm::Value* totalSize) {
+    llvm::Type* elemTy = nullptr;
     int elemTypeCode = 0;
-    for (auto &elem : elements) {
+    for (auto& elem : elements) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                     &(*spread)->expr)) {
@@ -21134,7 +20310,7 @@ LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode> &elements,
                 }
             }
         } else {
-            llvm::Value *v = emitExpr(elem);
+            llvm::Value* v = emitExpr(elem);
             if (v) {
                 elemTy = v->getType();
                 elemTypeCode = getTypeCodeFromLLVM(elemTy);
@@ -21147,40 +20323,40 @@ LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode> &elements,
         cg_error(Position(), "Cannot determine element type for runtime array");
         return nullptr;
     }
-    llvm::Function *mallocFn = module->getFunction("malloc");
+    llvm::Function* mallocFn = module->getFunction("malloc");
     if (!mallocFn) {
-        llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+        llvm::FunctionType* mallocTy = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
         mallocFn = llvm::Function::Create(
             mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
     }
 
-    const llvm::DataLayout &DL = module->getDataLayout();
+    const llvm::DataLayout& DL = module->getDataLayout();
     uint64_t elemSize = DL.getTypeAllocSize(elemTy);
-    llvm::Value *totalSizeExt =
+    llvm::Value* totalSizeExt =
         builder->CreateZExt(totalSize, builder->getInt64Ty());
-    llvm::Value *sizeBytes =
+    llvm::Value* sizeBytes =
         builder->CreateMul(totalSizeExt, builder->getInt64(elemSize));
 
-    llvm::Value *mallocCall =
+    llvm::Value* mallocCall =
         builder->CreateCall(mallocFn, {sizeBytes}, "runtime_arr");
-    llvm::Value *arrPtr =
+    llvm::Value* arrPtr =
         builder->CreateBitCast(mallocCall, llvm::PointerType::get(context, 0));
 
-    llvm::Value *currentIndex = builder->getInt32(0);
+    llvm::Value* currentIndex = builder->getInt32(0);
 
-    for (auto &elem : elements) {
+    for (auto& elem : elements) {
         if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
-            llvm::Value *collVal = emitExpr((*spread)->expr);
+            llvm::Value* collVal = emitExpr((*spread)->expr);
             currentIndex =
                 copySpreadToArray(collVal, (*spread)->expr, arrPtr,
-                                  currentIndex, elemTy, elemTypeCode);
+                    currentIndex, elemTy, elemTypeCode);
         } else {
-            llvm::Value *elemVal = emitExpr(elem);
+            llvm::Value* elemVal = emitExpr(elem);
             if (!elemVal)
                 continue;
 
-            llvm::Value *elemPtr =
+            llvm::Value* elemPtr =
                 builder->CreateGEP(elemTy, arrPtr, currentIndex);
             builder->CreateStore(elemVal, elemPtr);
 
@@ -21190,21 +20366,21 @@ LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode> &elements,
     }
     return arrPtr;
 }
-llvm::AllocaInst *LLVMCompiler::createEntryAlloca(const std::string &name,
-                                                  llvm::Type *ty) {
+llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name,
+    llvm::Type* ty) {
     if (!currentFunction) {
-        llvm::Constant *initVal = llvm::Constant::getNullValue(ty);
+        llvm::Constant* initVal = llvm::Constant::getNullValue(ty);
 
-        llvm::GlobalVariable *gv = new llvm::GlobalVariable(
+        llvm::GlobalVariable* gv = new llvm::GlobalVariable(
             *module, ty, false, llvm::GlobalValue::ExternalLinkage, initVal,
             name);
-        return reinterpret_cast<llvm::AllocaInst *>(gv);
+        return reinterpret_cast<llvm::AllocaInst*>(gv);
     }
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(),
-                          currentFunction->getEntryBlock().begin());
+        currentFunction->getEntryBlock().begin());
     return tmp.CreateAlloca(ty, nullptr, name);
 }
-llvm::Function *LLVMCompiler::emitFuncDef(const FuncDefNode &fn) {
+llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     std::string name;
     if (fn.name_tok) {
         name = fn.name_tok->value;
@@ -21214,30 +20390,30 @@ llvm::Function *LLVMCompiler::emitFuncDef(const FuncDefNode &fn) {
     } else {
         name = lambdaName();
     }
-    llvm::FunctionType *fTy = llvmFuncTypeFor(fn.return_types, fn.params);
-    auto *existing = module->getFunction(name);
+    llvm::FunctionType* fTy = llvmFuncTypeFor(fn.return_types, fn.params);
+    auto* existing = module->getFunction(name);
     if (existing)
         return existing;
     functionSignatures[name] = {fTy, {}};
 
-    auto *func = llvm::Function::Create(fTy, llvm::Function::ExternalLinkage,
-                                        name, module.get());
+    auto* func = llvm::Function::Create(fTy, llvm::Function::ExternalLinkage,
+        name, module.get());
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
-    llvm::BasicBlock *savedInsertBlock = builder->GetInsertBlock();
-    auto *entryBB = llvm::BasicBlock::Create(context, "entry", func);
+    llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+    auto* entryBB = llvm::BasicBlock::Create(context, "entry", func);
     builder->SetInsertPoint(entryBB);
 
-    auto *oldFunction = currentFunction;
+    auto* oldFunction = currentFunction;
     auto oldLocals = locals;
 
     currentFunction = func;
     unsigned idx = 0;
-    for (auto &arg : func->args()) {
-        auto &param = *std::next(fn.params.begin(), idx);
+    for (auto& arg : func->args()) {
+        auto& param = *std::next(fn.params.begin(), idx);
         arg.setName(param.name.value);
 
-        auto *alloca = createEntryAlloca(arg.getName().str(), arg.getType());
+        auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
         builder->CreateStore(&arg, alloca);
         locals[param.name.value] = alloca;
         if (param.signature.has_value()) {
@@ -21281,16 +20457,16 @@ llvm::Function *LLVMCompiler::emitFuncDef(const FuncDefNode &fn) {
         idx++;
     }
 
-    for (auto &stmt : fn.body->statements) {
+    for (auto& stmt : fn.body->statements) {
         emitStmt(stmt);
     }
 
     if (!builder->GetInsertBlock()->getTerminator()) {
         if (fn.is_multi_return()) {
-            llvm::Type *retTy = fTy->getReturnType();
+            llvm::Type* retTy = fTy->getReturnType();
             builder->CreateRet(llvm::UndefValue::get(retTy));
         } else {
-            llvm::Type *retTy = fTy->getReturnType();
+            llvm::Type* retTy = fTy->getReturnType();
             if (retTy->isVoidTy()) {
                 builder->CreateRetVoid();
             } else if (retTy->isIntegerTy()) {
@@ -21314,7 +20490,7 @@ llvm::Function *LLVMCompiler::emitFuncDef(const FuncDefNode &fn) {
     exitScope();
     return func;
 }
-std::string LLVMCompiler::mangleName(const FuncDefNode &fn) {
+std::string LLVMCompiler::mangleName(const FuncDefNode& fn) {
     std::string base = fn.name_tok ? fn.name_tok->value : "lambda";
     if (!fn.namespace_path.empty()) {
         base = fn.namespace_path + "::" + base;
@@ -21325,7 +20501,7 @@ std::string LLVMCompiler::lambdaName() {
     static int counter = 0;
     return "__lambda_" + std::to_string(counter++);
 }
-void LLVMCompiler::emitStmt(AnyNode &node) {
+void LLVMCompiler::emitStmt(AnyNode& node) {
     if (std::holds_alternative<std::unique_ptr<VarAssignNode>>(node) ||
         std::holds_alternative<std::unique_ptr<AssignExprNode>>(node) ||
         std::holds_alternative<std::unique_ptr<BinOpNode>>(node) ||
@@ -21347,23 +20523,23 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         emitExpr(node);
     } else if (auto mret =
                    std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
-        llvm::Type *retTy = currentFunction->getReturnType();
+        llvm::Type* retTy = currentFunction->getReturnType();
 
         if (!retTy->isStructTy()) {
             cg_error((*mret)->pos, "Multi-return in non-multi-return function");
             return;
         }
 
-        llvm::Value *agg = llvm::UndefValue::get(retTy);
-        llvm::StructType *retStructTy = llvm::cast<llvm::StructType>(retTy);
+        llvm::Value* agg = llvm::UndefValue::get(retTy);
+        llvm::StructType* retStructTy = llvm::cast<llvm::StructType>(retTy);
         for (size_t i = 0; i < (*mret)->values.size(); ++i) {
-            llvm::Value *val = nullptr;
+            llvm::Value* val = nullptr;
             if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                     &(*mret)->values[i])) {
                 std::string name = (*varAccess)->var_name_tok.value;
-                llvm::Value *alloc = getVarAddress(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (alloc) {
-                    llvm::Type *allocatedTy = getPointeeType(name);
+                    llvm::Type* allocatedTy = getPointeeType(name);
                     if (allocatedTy->isArrayTy()) {
                         val = builder->CreateBitCast(
                             alloc, llvm::PointerType::get(context, 0),
@@ -21379,26 +20555,26 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                     std::string funcName = (*varAccess)->var_name_tok.value;
 
                     if (classTypes.find(funcName) != classTypes.end()) {
-                        llvm::StructType *classTy = classTypes[funcName];
+                        llvm::StructType* classTy = classTypes[funcName];
 
-                        std::vector<llvm::Value *> ctorArgs;
-                        for (auto &argNode : (*call)->arg_nodes) {
-                            llvm::Value *arg = emitExpr(argNode);
+                        std::vector<llvm::Value*> ctorArgs;
+                        for (auto& argNode : (*call)->arg_nodes) {
+                            llvm::Value* arg = emitExpr(argNode);
                             if (!arg)
                                 return;
                             ctorArgs.push_back(arg);
                         }
 
-                        llvm::Function *ctor =
+                        llvm::Function* ctor =
                             findMethodOverload(funcName, funcName, ctorArgs);
 
                         if (ctor) {
-                            llvm::AllocaInst *retVal = createEntryAlloca(
+                            llvm::AllocaInst* retVal = createEntryAlloca(
                                 "mret_val_" + std::to_string(i), classTy);
 
-                            std::vector<llvm::Value *> allArgs = {retVal};
+                            std::vector<llvm::Value*> allArgs = {retVal};
                             allArgs.insert(allArgs.end(), ctorArgs.begin(),
-                                           ctorArgs.end());
+                                ctorArgs.end());
                             builder->CreateCall(ctor, allArgs);
 
                             val = builder->CreateLoad(classTy, retVal);
@@ -21412,28 +20588,28 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 if (!val)
                     return;
 
-                llvm::Type *srcTy = val->getType();
-                llvm::Type *destTy = retStructTy->getElementType(i);
+                llvm::Type* srcTy = val->getType();
+                llvm::Type* destTy = retStructTy->getElementType(i);
                 if (destTy->isPointerTy() && srcTy->isArrayTy()) {
-                    llvm::ArrayType *arrayType =
+                    llvm::ArrayType* arrayType =
                         llvm::cast<llvm::ArrayType>(srcTy);
-                    llvm::Type *i64Ty = builder->getInt64Ty();
-                    llvm::Value *size = llvm::ConstantInt::get(
+                    llvm::Type* i64Ty = builder->getInt64Ty();
+                    llvm::Value* size = llvm::ConstantInt::get(
                         i64Ty,
                         module->getDataLayout().getTypeAllocSize(arrayType));
 
-                    llvm::Function *mallocFn = module->getFunction("malloc");
+                    llvm::Function* mallocFn = module->getFunction("malloc");
                     if (!mallocFn) {
-                        llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+                        llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                             builder->getPtrTy(), {i64Ty}, false);
                         mallocFn = llvm::Function::Create(
                             mallocTy, llvm::Function::ExternalLinkage, "malloc",
                             module.get());
                     }
 
-                    llvm::Value *heapPtr =
+                    llvm::Value* heapPtr =
                         builder->CreateCall(mallocFn, {size});
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         heapPtr, llvm::PointerType::get(context, 0));
 
                     builder->CreateStore(val, typedPtr);
@@ -21446,16 +20622,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             }
             if (!val)
                 return;
-            llvm::Type *srcTy = val->getType();
-            llvm::Type *destTy = retStructTy->getElementType(i);
-            for (auto &[unionName, unionTy] : unionTypes) {
+            llvm::Type* srcTy = val->getType();
+            llvm::Type* destTy = retStructTy->getElementType(i);
+            for (auto& [unionName, unionTy] : unionTypes) {
                 if (srcTy == unionTy && !isUnionType(destTy)) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(val, 1, "union_data");
                     if (destTy->isPointerTy()) {
                         val = builder->CreateBitCast(dataPtr, destTy);
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
                         val = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -21467,28 +20643,28 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         findUnionVariantTag(unionName, (*mret)->values[i], val);
                     if (tag == -1) {
                         cg_error((*mret)->pos,
-                                 "Return value doesn't match union variant");
+                            "Return value doesn't match union variant");
                         return;
                     }
 
-                    llvm::Value *unionVal = llvm::UndefValue::get(unionTy);
+                    llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
                     unionVal = builder->CreateInsertValue(
                         unionVal, builder->getInt32(tag), 0);
-                    llvm::Value *dataPtr = storeAndGetPointer(val);
+                    llvm::Value* dataPtr = storeAndGetPointer(val);
                     val = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
                     srcTy = destTy;
                     break;
                 }
             }
-            for (auto &[enumName, enumTy] : enumTypes) {
+            for (auto& [enumName, enumTy] : enumTypes) {
                 if (srcTy == enumTy && !isEnumType(destTy)) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(val, 1, "enum_data");
                     if (destTy->isPointerTy()) {
                         val = builder->CreateBitCast(dataPtr, destTy);
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
                         val = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -21500,14 +20676,14 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         findEnumVariantTag(enumName, (*mret)->values[i], val);
                     if (tag == -1) {
                         cg_error((*mret)->pos,
-                                 "Return value doesn't match enum variant");
+                            "Return value doesn't match enum variant");
                         return;
                     }
 
-                    llvm::Value *enumVal = llvm::UndefValue::get(enumTy);
+                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
                     enumVal = builder->CreateInsertValue(
                         enumVal, builder->getInt32(tag), 0);
-                    llvm::Value *dataPtr = storeAndGetPointer(val);
+                    llvm::Value* dataPtr = storeAndGetPointer(val);
                     enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
 
                     val = enumVal;
@@ -21524,11 +20700,11 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if (auto varAccess =
                 std::get_if<std::unique_ptr<VarAccessNode>>(&(*ret)->value)) {
             std::string name = (*varAccess)->var_name_tok.value;
-            llvm::Value *alloc = getVarAddress(name);
+            llvm::Value* alloc = getVarAddress(name);
             if (alloc) {
-                llvm::Type *allocatedTy = getPointeeType(name);
+                llvm::Type* allocatedTy = getPointeeType(name);
                 if (allocatedTy && allocatedTy->isArrayTy()) {
-                    llvm::Value *arrayPtr = builder->CreateBitCast(
+                    llvm::Value* arrayPtr = builder->CreateBitCast(
                         alloc, llvm::PointerType::get(context, 0),
                         "array_ret_ptr");
                     builder->CreateRet(arrayPtr);
@@ -21543,37 +20719,37 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 std::string funcName = (*varAccess)->var_name_tok.value;
 
                 if (classTypes.find(funcName) != classTypes.end()) {
-                    llvm::StructType *classTy = classTypes[funcName];
-                    std::vector<llvm::Value *> ctorArgs;
-                    for (auto &argNode : (*call)->arg_nodes) {
-                        llvm::Value *arg = emitExpr(argNode);
+                    llvm::StructType* classTy = classTypes[funcName];
+                    std::vector<llvm::Value*> ctorArgs;
+                    for (auto& argNode : (*call)->arg_nodes) {
+                        llvm::Value* arg = emitExpr(argNode);
                         if (!arg)
                             return;
                         ctorArgs.push_back(arg);
                     }
 
                     std::string ctorName = funcName;
-                    llvm::Function *ctor =
+                    llvm::Function* ctor =
                         findMethodOverload(funcName, ctorName, ctorArgs);
 
                     if (ctor) {
-                        llvm::AllocaInst *retVal =
+                        llvm::AllocaInst* retVal =
                             createEntryAlloca("ret_val", classTy);
 
-                        std::vector<llvm::Value *> allArgs = {retVal};
+                        std::vector<llvm::Value*> allArgs = {retVal};
                         allArgs.insert(allArgs.end(), ctorArgs.begin(),
-                                       ctorArgs.end());
+                            ctorArgs.end());
                         builder->CreateCall(ctor, allArgs);
 
-                        llvm::Value *result = llvm::UndefValue::get(classTy);
+                        llvm::Value* result = llvm::UndefValue::get(classTy);
                         for (unsigned i = 0; i < classTy->getNumElements();
-                             i++) {
-                            std::vector<llvm::Value *> indices = {
+                            i++) {
+                            std::vector<llvm::Value*> indices = {
                                 builder->getInt32(0), builder->getInt32(i)};
-                            llvm::Value *fieldPtr = builder->CreateInBoundsGEP(
+                            llvm::Value* fieldPtr = builder->CreateInBoundsGEP(
                                 classTy, retVal, indices);
-                            llvm::Type *fieldTy = classTy->getElementType(i);
-                            llvm::Value *fieldVal =
+                            llvm::Type* fieldTy = classTy->getElementType(i);
+                            llvm::Value* fieldVal =
                                 builder->CreateLoad(fieldTy, fieldPtr);
 
                             result =
@@ -21586,52 +20762,52 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 }
             }
         }
-        llvm::Value *v = emitExpr((*ret)->value);
+        llvm::Value* v = emitExpr((*ret)->value);
         if (!v) {
             if (currentFunction->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
                 cg_error((*ret)->pos,
-                         "Return without value in non-void function");
+                    "Return without value in non-void function");
             }
             return;
         }
-        llvm::Type *srcTy = v->getType();
-        llvm::Type *destTy = currentFunction->getReturnType();
+        llvm::Type* srcTy = v->getType();
+        llvm::Type* destTy = currentFunction->getReturnType();
         if (auto arrayLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                 &(*ret)->value)) {
             if (destTy->isPointerTy() && srcTy->isArrayTy()) {
-                llvm::ArrayType *arrayType = llvm::cast<llvm::ArrayType>(srcTy);
-                llvm::Type *i64Ty = builder->getInt64Ty();
-                llvm::Value *size = llvm::ConstantInt::get(
+                llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
+                llvm::Type* i64Ty = builder->getInt64Ty();
+                llvm::Value* size = llvm::ConstantInt::get(
                     i64Ty, module->getDataLayout().getTypeAllocSize(arrayType));
-                llvm::Function *mallocFn = module->getFunction("malloc");
+                llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                         builder->getPtrTy(), {i64Ty}, false);
                     mallocFn = llvm::Function::Create(
                         mallocTy, llvm::Function::ExternalLinkage, "malloc",
                         module.get());
                 }
 
-                llvm::Value *heapPtr = builder->CreateCall(mallocFn, {size});
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     heapPtr, llvm::PointerType::get(context, 0));
                 builder->CreateStore(v, typedPtr);
-                llvm::Value *retPtr = builder->CreateBitCast(typedPtr, destTy);
+                llvm::Value* retPtr = builder->CreateBitCast(typedPtr, destTy);
 
                 builder->CreateRet(retPtr);
                 return;
             }
         }
-        for (auto &[unionName, unionTy] : unionTypes) {
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (srcTy == unionTy && !isUnionType(destTy)) {
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(v, 1, "union_data");
                 if (destTy->isPointerTy()) {
                     v = builder->CreateBitCast(dataPtr, destTy);
                 } else {
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     v = builder->CreateLoad(destTy, typedPtr);
                 }
@@ -21642,28 +20818,28 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 int tag = findUnionVariantTag(unionName, (*ret)->value, v);
                 if (tag == -1) {
                     cg_error((*ret)->pos,
-                             "Return value doesn't match union variant");
+                        "Return value doesn't match union variant");
                     return;
                 }
 
-                llvm::Value *unionVal = llvm::UndefValue::get(unionTy);
+                llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
                 unionVal = builder->CreateInsertValue(
                     unionVal, builder->getInt32(tag), 0);
-                llvm::Value *dataPtr = storeAndGetPointer(v);
+                llvm::Value* dataPtr = storeAndGetPointer(v);
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
                 builder->CreateRet(unionVal);
                 return;
             }
         }
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (srcTy == enumTy && !isEnumType(destTy)) {
-                llvm::Value *dataPtr =
+                llvm::Value* dataPtr =
                     builder->CreateExtractValue(v, 1, "enum_data");
                 if (destTy->isPointerTy()) {
                     v = builder->CreateBitCast(dataPtr, destTy);
                 } else {
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         dataPtr, llvm::PointerType::get(context, 0));
                     v = builder->CreateLoad(destTy, typedPtr);
                 }
@@ -21674,14 +20850,14 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 int tag = findEnumVariantTag(enumName, (*ret)->value, v);
                 if (tag == -1) {
                     cg_error((*ret)->pos,
-                             "Return value doesn't match enum variant");
+                        "Return value doesn't match enum variant");
                     return;
                 }
 
-                llvm::Value *enumVal = llvm::UndefValue::get(enumTy);
+                llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
                 enumVal = builder->CreateInsertValue(enumVal,
-                                                     builder->getInt32(tag), 0);
-                llvm::Value *dataPtr = storeAndGetPointer(v);
+                    builder->getInt32(tag), 0);
+                llvm::Value* dataPtr = storeAndGetPointer(v);
                 enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
 
                 builder->CreateRet(enumVal);
@@ -21693,23 +20869,23 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         return;
     } else if (auto mv =
                    std::get_if<std::unique_ptr<MultiVarDeclNode>>(&node)) {
-        llvm::Value *callVal = emitExpr((*mv)->value);
+        llvm::Value* callVal = emitExpr((*mv)->value);
         if (!callVal) {
             cg_error((*mv)->var_names[0].pos,
-                     "Failed to compile multi-var initializer");
+                "Failed to compile multi-var initializer");
             return;
         }
 
-        llvm::Type *retTy = callVal->getType();
+        llvm::Type* retTy = callVal->getType();
         if (!retTy->isStructTy() ||
             retTy->getStructNumElements() != (*mv)->var_names.size()) {
             cg_error((*mv)->var_names[0].pos,
-                     "Multi-return arity/type mismatch");
+                "Multi-return arity/type mismatch");
             return;
         }
 
         for (size_t i = 0; i < (*mv)->var_names.size(); ++i) {
-            llvm::Value *field = builder->CreateExtractValue(callVal, i);
+            llvm::Value* field = builder->CreateExtractValue(callVal, i);
             std::string name = (*mv)->var_names[i].value;
             std::string typeStr = (*mv)->type_toks[i].value;
             if (typeStr.find("[]") != std::string::npos) {
@@ -21719,16 +20895,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 }
                 arrayTypeStrings[name] = baseType;
             }
-            llvm::Type *srcTy = field->getType();
-            llvm::Type *destTy = llvmTypeFor(typeStr);
-            for (auto &[unionName, unionTy] : unionTypes) {
+            llvm::Type* srcTy = field->getType();
+            llvm::Type* destTy = llvmTypeFor(typeStr);
+            for (auto& [unionName, unionTy] : unionTypes) {
                 if (srcTy == unionTy && !isUnionType(destTy)) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(field, 1, "union_data");
                     if (destTy->isPointerTy()) {
                         field = builder->CreateBitCast(dataPtr, destTy);
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
                         field = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -21736,14 +20912,14 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                     break;
                 }
             }
-            for (auto &[enumName, enumTy] : enumTypes) {
+            for (auto& [enumName, enumTy] : enumTypes) {
                 if (srcTy == enumTy && !isEnumType(destTy)) {
-                    llvm::Value *dataPtr =
+                    llvm::Value* dataPtr =
                         builder->CreateExtractValue(field, 1, "enum_data");
                     if (destTy->isPointerTy()) {
                         field = builder->CreateBitCast(dataPtr, destTy);
                     } else {
-                        llvm::Value *typedPtr = builder->CreateBitCast(
+                        llvm::Value* typedPtr = builder->CreateBitCast(
                             dataPtr, llvm::PointerType::get(context, 0));
                         field = builder->CreateLoad(destTy, typedPtr);
                     }
@@ -21751,7 +20927,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                     break;
                 }
             }
-            llvm::AllocaInst *alloc = createEntryAlloca(name, destTy);
+            llvm::AllocaInst* alloc = createEntryAlloca(name, destTy);
             builder->CreateStore(field, alloc);
             std::string fullName = getCurrentNamespace().empty()
                                        ? name
@@ -21765,16 +20941,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if ((*if_node)->init.has_value()) {
             emitStmt((*if_node)->init.value());
         }
-        llvm::Value *cond = emitExpr((*if_node)->condition);
+        llvm::Value* cond = emitExpr((*if_node)->condition);
         if (!cond)
             return;
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (cond->getType() == enumTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(cond, 1);
+                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
 
-                llvm::Type *targetTy = builder->getInt1Ty();
+                llvm::Type* targetTy = builder->getInt1Ty();
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     dataPtr, llvm::PointerType::get(context, 0));
                 cond = builder->CreateLoad(targetTy, typedPtr);
                 break;
@@ -21784,30 +20960,30 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         cond = toTruthiness(cond, Position("", "", 0, 0, 0));
         if (!cond)
             return;
-        llvm::BasicBlock *thenBB =
+        llvm::BasicBlock* thenBB =
             llvm::BasicBlock::Create(context, "then", currentFunction);
-        llvm::BasicBlock *mergeBB =
+        llvm::BasicBlock* mergeBB =
             llvm::BasicBlock::Create(context, "ifcont", currentFunction);
-        std::vector<std::pair<llvm::BasicBlock *, llvm::BasicBlock *>>
+        std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>>
             elifBlocks;
         for (size_t i = 0; i < (*if_node)->elif_branches.size(); i++) {
-            llvm::BasicBlock *elifCondBB =
+            llvm::BasicBlock* elifCondBB =
                 llvm::BasicBlock::Create(context, "elif.cond", currentFunction);
-            llvm::BasicBlock *elifBodyBB =
+            llvm::BasicBlock* elifBodyBB =
                 llvm::BasicBlock::Create(context, "elif.body", currentFunction);
             elifBlocks.push_back({elifCondBB, elifBodyBB});
         }
 
-        llvm::BasicBlock *elseBB = nullptr;
+        llvm::BasicBlock* elseBB = nullptr;
         if ((*if_node)->else_branch) {
             elseBB = llvm::BasicBlock::Create(context, "else", currentFunction);
         }
-        llvm::BasicBlock *nextBB = elifBlocks.empty()
+        llvm::BasicBlock* nextBB = elifBlocks.empty()
                                        ? (elseBB ? elseBB : mergeBB)
                                        : elifBlocks[0].first;
         builder->CreateCondBr(cond, thenBB, nextBB);
         builder->SetInsertPoint(thenBB);
-        for (auto &stmt : (*if_node)->then_branch->statements) {
+        for (auto& stmt : (*if_node)->then_branch->statements) {
             emitStmt(stmt);
         }
         if (!builder->GetInsertBlock()->getTerminator()) {
@@ -21815,16 +20991,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         }
         for (size_t i = 0; i < elifBlocks.size(); i++) {
             builder->SetInsertPoint(elifBlocks[i].first);
-            llvm::Value *elifCond =
+            llvm::Value* elifCond =
                 emitExpr((*if_node)->elif_branches[i].first);
 
-            llvm::BasicBlock *nextElifBB = (i + 1 < elifBlocks.size())
+            llvm::BasicBlock* nextElifBB = (i + 1 < elifBlocks.size())
                                                ? elifBlocks[i + 1].first
                                                : (elseBB ? elseBB : mergeBB);
             builder->CreateCondBr(elifCond, elifBlocks[i].second, nextElifBB);
 
             builder->SetInsertPoint(elifBlocks[i].second);
-            for (auto &stmt : (*if_node)->elif_branches[i].second->statements) {
+            for (auto& stmt : (*if_node)->elif_branches[i].second->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -21833,7 +21009,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         }
         if (elseBB) {
             builder->SetInsertPoint(elseBB);
-            for (auto &stmt : (*if_node)->else_branch->statements) {
+            for (auto& stmt : (*if_node)->else_branch->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -21845,27 +21021,27 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
     } else if (auto while_node =
                    std::get_if<std::unique_ptr<WhileNode>>(&node)) {
         enterScope();
-        llvm::BasicBlock *condBB =
+        llvm::BasicBlock* condBB =
             llvm::BasicBlock::Create(context, "while.cond", currentFunction);
-        llvm::BasicBlock *bodyBB =
+        llvm::BasicBlock* bodyBB =
             llvm::BasicBlock::Create(context, "while.body", currentFunction);
-        llvm::BasicBlock *endBB =
+        llvm::BasicBlock* endBB =
             llvm::BasicBlock::Create(context, "while.end", currentFunction);
-        llvm::BasicBlock *oldBreakBB = currentBreakBB;
-        llvm::BasicBlock *oldContinueBB = currentContinueBB;
+        llvm::BasicBlock* oldBreakBB = currentBreakBB;
+        llvm::BasicBlock* oldContinueBB = currentContinueBB;
         currentBreakBB = endBB;
         currentContinueBB = condBB;
         builder->CreateBr(condBB);
         builder->SetInsertPoint(condBB);
-        llvm::Value *cond = emitExpr((*while_node)->condition);
+        llvm::Value* cond = emitExpr((*while_node)->condition);
         if (!cond)
             return;
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (cond->getType() == enumTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(cond, 1);
-                llvm::Type *targetTy = builder->getInt1Ty();
+                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+                llvm::Type* targetTy = builder->getInt1Ty();
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     dataPtr, llvm::PointerType::get(context, 0));
                 cond = builder->CreateLoad(targetTy, typedPtr);
                 break;
@@ -21877,7 +21053,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             return;
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
-        for (auto &stmt : (*while_node)->body->statements) {
+        for (auto& stmt : (*while_node)->body->statements) {
             emitStmt(stmt);
         }
         if (!builder->GetInsertBlock()->getTerminator()) {
@@ -21904,29 +21080,29 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if ((*for_node)->init.has_value()) {
             emitStmt((*for_node)->init.value());
         }
-        llvm::BasicBlock *condBB =
+        llvm::BasicBlock* condBB =
             llvm::BasicBlock::Create(context, "for.cond", currentFunction);
-        llvm::BasicBlock *bodyBB =
+        llvm::BasicBlock* bodyBB =
             llvm::BasicBlock::Create(context, "for.body", currentFunction);
-        llvm::BasicBlock *incBB =
+        llvm::BasicBlock* incBB =
             llvm::BasicBlock::Create(context, "for.inc", currentFunction);
-        llvm::BasicBlock *endBB =
+        llvm::BasicBlock* endBB =
             llvm::BasicBlock::Create(context, "for.end", currentFunction);
-        llvm::BasicBlock *oldBreakBB = currentBreakBB;
-        llvm::BasicBlock *oldContinueBB = currentContinueBB;
+        llvm::BasicBlock* oldBreakBB = currentBreakBB;
+        llvm::BasicBlock* oldContinueBB = currentContinueBB;
         currentBreakBB = endBB;
         currentContinueBB = incBB;
         builder->CreateBr(condBB);
         builder->SetInsertPoint(condBB);
-        llvm::Value *cond = emitExpr((*for_node)->condition);
+        llvm::Value* cond = emitExpr((*for_node)->condition);
         if (!cond)
             return;
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (cond->getType() == enumTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(cond, 1);
-                llvm::Type *targetTy = builder->getInt1Ty();
+                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+                llvm::Type* targetTy = builder->getInt1Ty();
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     dataPtr, llvm::PointerType::get(context, 0));
                 cond = builder->CreateLoad(targetTy, typedPtr);
                 break;
@@ -21938,7 +21114,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             return;
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
-        for (auto &stmt : (*for_node)->body->statements) {
+        for (auto& stmt : (*for_node)->body->statements) {
             emitStmt(stmt);
         }
         if (!builder->GetInsertBlock()->getTerminator()) {
@@ -21956,35 +21132,35 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
     } else if (auto switch_node =
                    std::get_if<std::unique_ptr<SwitchNode>>(&node)) {
         enterScope();
-        llvm::Value *switchVal = emitExpr((*switch_node)->value);
+        llvm::Value* switchVal = emitExpr((*switch_node)->value);
         if (!switchVal)
             return;
 
-        llvm::Type *switchTy = switchVal->getType();
+        llvm::Type* switchTy = switchVal->getType();
 
         bool canUseSwitch = switchTy->isIntegerTy();
 
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (switchTy == enumTy) {
                 canUseSwitch = false;
                 break;
             }
         }
 
-        for (auto &[unionName, unionTy] : unionTypes) {
+        for (auto& [unionName, unionTy] : unionTypes) {
             if (switchTy == unionTy) {
                 canUseSwitch = false;
                 break;
             }
         }
 
-        llvm::BasicBlock *endBB =
+        llvm::BasicBlock* endBB =
             llvm::BasicBlock::Create(context, "switch.end", currentFunction);
-        std::vector<llvm::BasicBlock *> sectionBlocks;
-        llvm::BasicBlock *defaultBB = nullptr;
+        std::vector<llvm::BasicBlock*> sectionBlocks;
+        llvm::BasicBlock* defaultBB = nullptr;
 
-        for (auto &section : (*switch_node)->sections) {
-            llvm::BasicBlock *bb = llvm::BasicBlock::Create(
+        for (auto& section : (*switch_node)->sections) {
+            llvm::BasicBlock* bb = llvm::BasicBlock::Create(
                 context, "switch.case", currentFunction);
             sectionBlocks.push_back(bb);
             if (section.is_default) {
@@ -21997,16 +21173,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         }
 
         if (canUseSwitch) {
-            llvm::SwitchInst *switchInst = builder->CreateSwitch(
+            llvm::SwitchInst* switchInst = builder->CreateSwitch(
                 switchVal, defaultBB, (*switch_node)->sections.size());
 
             for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
-                auto &section = (*switch_node)->sections[i];
+                auto& section = (*switch_node)->sections[i];
                 if (section.is_default)
                     continue;
 
-                for (auto &caseLabel : section.cases) {
-                    llvm::Value *caseVal = emitExpr(caseLabel.expr);
+                for (auto& caseLabel : section.cases) {
+                    llvm::Value* caseVal = emitExpr(caseLabel.expr);
                     if (auto constInt =
                             llvm::dyn_cast<llvm::ConstantInt>(caseVal)) {
                         switchInst->addCase(constInt, sectionBlocks[i]);
@@ -22014,51 +21190,51 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 }
             }
         } else {
-            llvm::BasicBlock *currentCheckBB = builder->GetInsertBlock();
+            llvm::BasicBlock* currentCheckBB = builder->GetInsertBlock();
 
             for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
-                auto &section = (*switch_node)->sections[i];
+                auto& section = (*switch_node)->sections[i];
 
                 if (section.is_default) {
                     continue;
                 }
-                llvm::BasicBlock *nextCheckBB =
+                llvm::BasicBlock* nextCheckBB =
                     (i + 1 < (*switch_node)->sections.size())
                         ? llvm::BasicBlock::Create(context, "switch.check",
-                                                   currentFunction)
+                              currentFunction)
                         : defaultBB;
 
                 builder->SetInsertPoint(currentCheckBB);
 
-                llvm::Value *matches = nullptr;
-                for (auto &caseLabel : section.cases) {
-                    llvm::Value *caseVal = emitExpr(caseLabel.expr);
+                llvm::Value* matches = nullptr;
+                for (auto& caseLabel : section.cases) {
+                    llvm::Value* caseVal = emitExpr(caseLabel.expr);
 
-                    llvm::Value *cmp = nullptr;
+                    llvm::Value* cmp = nullptr;
 
                     if (switchTy->isPointerTy() &&
                         caseVal->getType()->isPointerTy()) {
-                        llvm::Function *strcmp_fn =
+                        llvm::Function* strcmp_fn =
                             module->getFunction("qc_string_eq");
                         cmp = builder->CreateCall(strcmp_fn,
-                                                  {switchVal, caseVal});
+                            {switchVal, caseVal});
                     } else if (switchTy->isIntegerTy()) {
                         cmp = builder->CreateICmpEQ(switchVal, caseVal);
                     } else if (switchTy->isFloatingPointTy()) {
                         cmp = builder->CreateFCmpOEQ(switchVal, caseVal);
                     } else {
-                        llvm::Value *switchTag =
+                        llvm::Value* switchTag =
                             builder->CreateExtractValue(switchVal, 0);
-                        llvm::Value *caseTag =
+                        llvm::Value* caseTag =
                             builder->CreateExtractValue(caseVal, 0);
-                        llvm::Value *tagMatch =
+                        llvm::Value* tagMatch =
                             builder->CreateICmpEQ(switchTag, caseTag);
 
-                        llvm::Value *switchData =
+                        llvm::Value* switchData =
                             builder->CreateExtractValue(switchVal, 1);
-                        llvm::Value *caseData =
+                        llvm::Value* caseData =
                             builder->CreateExtractValue(caseVal, 1);
-                        llvm::Value *dataMatch =
+                        llvm::Value* dataMatch =
                             builder->CreateICmpEQ(switchData, caseData);
 
                         cmp = builder->CreateAnd(tagMatch, dataMatch);
@@ -22075,13 +21251,13 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             }
         }
 
-        llvm::BasicBlock *oldBreakBB = currentBreakBB;
+        llvm::BasicBlock* oldBreakBB = currentBreakBB;
         currentBreakBB = endBB;
 
         for (size_t i = 0; i < (*switch_node)->sections.size(); i++) {
             builder->SetInsertPoint(sectionBlocks[i]);
 
-            for (auto &stmt : (*switch_node)->sections[i].body->statements) {
+            for (auto& stmt : (*switch_node)->sections[i].body->statements) {
                 emitStmt(stmt);
             }
 
@@ -22102,39 +21278,39 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if ((*qif_node)->init.has_value()) {
             emitStmt((*qif_node)->init.value());
         }
-        llvm::BasicBlock *endBB =
+        llvm::BasicBlock* endBB =
             llvm::BasicBlock::Create(context, "qif.end", currentFunction);
 
-        llvm::Value *qifCond = emitExpr((*qif_node)->condition);
-        for (auto &[enumName, enumTy] : enumTypes) {
+        llvm::Value* qifCond = emitExpr((*qif_node)->condition);
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (qifCond->getType() == enumTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(qifCond, 1);
-                llvm::Type *targetTy = builder->getIntNTy(2);
+                llvm::Value* dataPtr = builder->CreateExtractValue(qifCond, 1);
+                llvm::Type* targetTy = builder->getIntNTy(2);
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     dataPtr, llvm::PointerType::get(context, 0));
                 qifCond = builder->CreateLoad(targetTy, typedPtr);
                 break;
             }
         }
         qifCond = normalizeValue(qifCond, (*qif_node)->condition);
-        llvm::Value *qifBit1 =
+        llvm::Value* qifBit1 =
             builder->CreateAnd(qifCond, builder->getIntN(2, 0b10));
-        llvm::Value *qif_is_true =
+        llvm::Value* qif_is_true =
             builder->CreateICmpNE(qifBit1, builder->getIntN(2, 0));
 
-        llvm::BasicBlock *qifBodyBB =
+        llvm::BasicBlock* qifBodyBB =
             llvm::BasicBlock::Create(context, "qif.body", currentFunction);
-        llvm::BasicBlock *nextBB =
+        llvm::BasicBlock* nextBB =
             ((*qif_node)->qelif_branches.empty() && !(*qif_node)->qelse_branch)
                 ? endBB
                 : llvm::BasicBlock::Create(context, "qelif.check",
-                                           currentFunction);
+                      currentFunction);
 
         builder->CreateCondBr(qif_is_true, qifBodyBB, nextBB);
 
         builder->SetInsertPoint(qifBodyBB);
-        for (auto &stmt : (*qif_node)->then_branch->statements) {
+        for (auto& stmt : (*qif_node)->then_branch->statements) {
             emitStmt(stmt);
         }
         if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22144,27 +21320,27 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         for (size_t i = 0; i < (*qif_node)->qelif_branches.size(); i++) {
             builder->SetInsertPoint(nextBB);
 
-            llvm::Value *elifCond =
+            llvm::Value* elifCond =
                 emitExpr((*qif_node)->qelif_branches[i].first);
-            llvm::Value *elifBit1 =
+            llvm::Value* elifBit1 =
                 builder->CreateAnd(elifCond, builder->getIntN(2, 0b10));
-            llvm::Value *elif_is_true =
+            llvm::Value* elif_is_true =
                 builder->CreateICmpNE(elifBit1, builder->getIntN(2, 0));
 
-            llvm::BasicBlock *elifBodyBB = llvm::BasicBlock::Create(
+            llvm::BasicBlock* elifBodyBB = llvm::BasicBlock::Create(
                 context, "qelif.body", currentFunction);
-            llvm::BasicBlock *nextElifBB =
+            llvm::BasicBlock* nextElifBB =
                 (i + 1 < (*qif_node)->qelif_branches.size() ||
-                 (*qif_node)->qelse_branch)
+                    (*qif_node)->qelse_branch)
                     ? llvm::BasicBlock::Create(context, "qelif.check",
-                                               currentFunction)
+                          currentFunction)
                     : endBB;
 
             builder->CreateCondBr(elif_is_true, elifBodyBB, nextElifBB);
 
             builder->SetInsertPoint(elifBodyBB);
-            for (auto &stmt :
-                 (*qif_node)->qelif_branches[i].second->statements) {
+            for (auto& stmt :
+                (*qif_node)->qelif_branches[i].second->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22176,25 +21352,25 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
 
         if ((*qif_node)->qelse_branch) {
             builder->SetInsertPoint(nextBB);
-            llvm::Value *qifBit0 =
+            llvm::Value* qifBit0 =
                 builder->CreateAnd(qifCond, builder->getIntN(2, 0b01));
-            llvm::Value *all_false =
+            llvm::Value* all_false =
                 builder->CreateICmpNE(qifBit0, builder->getIntN(2, 0));
-            for (auto &qelif : (*qif_node)->qelif_branches) {
-                llvm::Value *elifCond = emitExpr(qelif.first);
-                llvm::Value *elifBit0 =
+            for (auto& qelif : (*qif_node)->qelif_branches) {
+                llvm::Value* elifCond = emitExpr(qelif.first);
+                llvm::Value* elifBit0 =
                     builder->CreateAnd(elifCond, builder->getIntN(2, 0b01));
-                llvm::Value *elif_false =
+                llvm::Value* elif_false =
                     builder->CreateICmpNE(elifBit0, builder->getIntN(2, 0));
                 all_false = builder->CreateAnd(all_false, elif_false);
             }
 
-            llvm::BasicBlock *qelseBodyBB = llvm::BasicBlock::Create(
+            llvm::BasicBlock* qelseBodyBB = llvm::BasicBlock::Create(
                 context, "qelse.body", currentFunction);
             builder->CreateCondBr(all_false, qelseBodyBB, endBB);
 
             builder->SetInsertPoint(qelseBodyBB);
-            for (auto &stmt : (*qif_node)->qelse_branch->statements) {
+            for (auto& stmt : (*qif_node)->qelse_branch->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22205,18 +21381,18 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         builder->SetInsertPoint(endBB);
     } else if (auto qsw = std::get_if<std::unique_ptr<QSwitchNode>>(&node)) {
         enterScope();
-        llvm::Value *qb_val = emitExpr((*qsw)->value);
+        llvm::Value* qb_val = emitExpr((*qsw)->value);
         if (!qb_val) {
             cg_error(Position("", "", 0, 0, 0),
-                     "Failed to compile qswitch value");
+                "Failed to compile qswitch value");
             return;
         }
-        for (auto &[enumName, enumTy] : enumTypes) {
+        for (auto& [enumName, enumTy] : enumTypes) {
             if (qb_val->getType() == enumTy) {
-                llvm::Value *dataPtr = builder->CreateExtractValue(qb_val, 1);
-                llvm::Type *targetTy = builder->getIntNTy(2);
+                llvm::Value* dataPtr = builder->CreateExtractValue(qb_val, 1);
+                llvm::Type* targetTy = builder->getIntNTy(2);
 
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     dataPtr, llvm::PointerType::get(context, 0));
                 qb_val = builder->CreateLoad(targetTy, typedPtr);
                 break;
@@ -22227,75 +21403,75 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             cg_error(Position("", "", 0, 0, 0), "qswitch requires qbool type");
             return;
         }
-        llvm::BasicBlock *check_true = llvm::BasicBlock::Create(
+        llvm::BasicBlock* check_true = llvm::BasicBlock::Create(
             context, "qsw.check_true", currentFunction);
-        llvm::BasicBlock *check_false = llvm::BasicBlock::Create(
+        llvm::BasicBlock* check_false = llvm::BasicBlock::Create(
             context, "qsw.check_false", currentFunction);
-        llvm::BasicBlock *case_t_block = nullptr;
-        llvm::BasicBlock *case_f_block = nullptr;
-        llvm::BasicBlock *case_n_block = nullptr;
-        llvm::BasicBlock *case_b_block = nullptr;
-        llvm::BasicBlock *qswitch_end =
+        llvm::BasicBlock* case_t_block = nullptr;
+        llvm::BasicBlock* case_f_block = nullptr;
+        llvm::BasicBlock* case_n_block = nullptr;
+        llvm::BasicBlock* case_b_block = nullptr;
+        llvm::BasicBlock* qswitch_end =
             llvm::BasicBlock::Create(context, "qswitch.end", currentFunction);
         if ((*qsw)->case_t) {
             case_t_block = llvm::BasicBlock::Create(context, "qsw.case_t",
-                                                    currentFunction);
+                currentFunction);
         }
         if ((*qsw)->case_f) {
             case_f_block = llvm::BasicBlock::Create(context, "qsw.case_f",
-                                                    currentFunction);
+                currentFunction);
         }
         if ((*qsw)->case_n) {
             case_n_block = llvm::BasicBlock::Create(context, "qsw.case_n",
-                                                    currentFunction);
+                currentFunction);
         }
         if ((*qsw)->case_b) {
             case_b_block = llvm::BasicBlock::Create(context, "qsw.case_b",
-                                                    currentFunction);
+                currentFunction);
         }
         builder->CreateBr(check_true);
         builder->SetInsertPoint(check_true);
-        llvm::Value *has_true =
+        llvm::Value* has_true =
             builder->CreateAnd(qb_val, builder->getIntN(2, 2), "has_true");
-        llvm::Value *is_true =
+        llvm::Value* is_true =
             builder->CreateICmpNE(has_true, builder->getIntN(2, 0), "is_true");
         builder->CreateCondBr(is_true, check_false, check_false);
         builder->SetInsertPoint(check_false);
-        llvm::Value *has_false =
+        llvm::Value* has_false =
             builder->CreateAnd(qb_val, builder->getIntN(2, 1), "has_false");
-        llvm::Value *is_false = builder->CreateICmpNE(
+        llvm::Value* is_false = builder->CreateICmpNE(
             has_false, builder->getIntN(2, 0), "is_false");
-        llvm::Value *is_both = builder->CreateAnd(is_true, is_false, "is_both");
-        llvm::Value *not_false = builder->CreateNot(is_false, "not_false");
-        llvm::Value *is_qtrue_only =
+        llvm::Value* is_both = builder->CreateAnd(is_true, is_false, "is_both");
+        llvm::Value* not_false = builder->CreateNot(is_false, "not_false");
+        llvm::Value* is_qtrue_only =
             builder->CreateAnd(is_true, not_false, "is_qtrue_only");
-        llvm::Value *not_true = builder->CreateNot(is_true, "not_true");
-        llvm::Value *is_qfalse_only =
+        llvm::Value* not_true = builder->CreateNot(is_true, "not_true");
+        llvm::Value* is_qfalse_only =
             builder->CreateAnd(not_true, is_false, "is_qfalse_only");
-        llvm::Value *is_none =
+        llvm::Value* is_none =
             builder->CreateAnd(not_true, not_false, "is_none");
-        llvm::BasicBlock *check_qtrue = llvm::BasicBlock::Create(
+        llvm::BasicBlock* check_qtrue = llvm::BasicBlock::Create(
             context, "qsw.check_qtrue", currentFunction);
-        llvm::BasicBlock *check_qfalse = llvm::BasicBlock::Create(
+        llvm::BasicBlock* check_qfalse = llvm::BasicBlock::Create(
             context, "qsw.check_qfalse", currentFunction);
-        llvm::BasicBlock *check_none_final = llvm::BasicBlock::Create(
+        llvm::BasicBlock* check_none_final = llvm::BasicBlock::Create(
             context, "qsw.check_none_final", currentFunction);
         builder->CreateCondBr(
             is_both, case_b_block ? case_b_block : qswitch_end, check_qtrue);
         builder->SetInsertPoint(check_qtrue);
         builder->CreateCondBr(is_qtrue_only,
-                              case_t_block ? case_t_block : qswitch_end,
-                              check_qfalse);
+            case_t_block ? case_t_block : qswitch_end,
+            check_qfalse);
         builder->SetInsertPoint(check_qfalse);
         builder->CreateCondBr(is_qfalse_only,
-                              case_f_block ? case_f_block : qswitch_end,
-                              check_none_final);
+            case_f_block ? case_f_block : qswitch_end,
+            check_none_final);
         builder->SetInsertPoint(check_none_final);
         builder->CreateCondBr(
             is_none, case_n_block ? case_n_block : qswitch_end, qswitch_end);
         if (case_t_block && (*qsw)->case_t) {
             builder->SetInsertPoint(case_t_block);
-            for (auto &stmt : (*qsw)->case_t->statements) {
+            for (auto& stmt : (*qsw)->case_t->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22305,7 +21481,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
 
         if (case_f_block && (*qsw)->case_f) {
             builder->SetInsertPoint(case_f_block);
-            for (auto &stmt : (*qsw)->case_f->statements) {
+            for (auto& stmt : (*qsw)->case_f->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22315,7 +21491,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
 
         if (case_n_block && (*qsw)->case_n) {
             builder->SetInsertPoint(case_n_block);
-            for (auto &stmt : (*qsw)->case_n->statements) {
+            for (auto& stmt : (*qsw)->case_n->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22324,7 +21500,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         }
         if (case_b_block && (*qsw)->case_b) {
             builder->SetInsertPoint(case_b_block);
-            for (auto &stmt : (*qsw)->case_b->statements) {
+            for (auto& stmt : (*qsw)->case_b->statements) {
                 emitStmt(stmt);
             }
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -22338,16 +21514,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         std::string name = (*arrDecl)->var_name_tok.value;
         std::string elemType = (*arrDecl)->type_tok.value;
         arrayTypeStrings[name] = elemType;
-        llvm::Type *elemTy = llvmTypeFor(elemType);
+        llvm::Type* elemTy = llvmTypeFor(elemType);
         if (!std::holds_alternative<std::unique_ptr<ArrayLiteralNode>>(
                 (*arrDecl)->value) &&
             !std::holds_alternative<std::monostate>((*arrDecl)->value)) {
 
-            llvm::Value *arrPtr = emitExpr((*arrDecl)->value);
+            llvm::Value* arrPtr = emitExpr((*arrDecl)->value);
             if (!arrPtr)
                 return;
 
-            llvm::AllocaInst *alloc =
+            llvm::AllocaInst* alloc =
                 createEntryAlloca(name, arrPtr->getType());
             builder->CreateStore(arrPtr, alloc);
             locals[name] = alloc;
@@ -22357,7 +21533,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                 &(*arrDecl)->value)) {
             bool hasSpread = false;
-            for (auto &elem : (*arrLit)->elements) {
+            for (auto& elem : (*arrLit)->elements) {
                 if (std::holds_alternative<std::unique_ptr<SpreadNode>>(elem)) {
                     hasSpread = true;
                     break;
@@ -22365,19 +21541,19 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             }
 
             if (hasSpread) {
-                llvm::Value *arrPtr = emitExpr((*arrDecl)->value);
+                llvm::Value* arrPtr = emitExpr((*arrDecl)->value);
                 if (!arrPtr)
                     return;
-                llvm::Value *totalSize = builder->getInt32(0);
+                llvm::Value* totalSize = builder->getInt32(0);
                 if (auto arrLit =
                         std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                             &(*arrDecl)->value)) {
-                    for (auto &elem : (*arrLit)->elements) {
+                    for (auto& elem : (*arrLit)->elements) {
                         if (auto spread =
                                 std::get_if<std::unique_ptr<SpreadNode>>(
                                     &elem)) {
-                            llvm::Value *collVal = emitExpr((*spread)->expr);
-                            llvm::Value *spreadLen =
+                            llvm::Value* collVal = emitExpr((*spread)->expr);
+                            llvm::Value* spreadLen =
                                 getCollectionLength(collVal, (*spread)->expr);
                             totalSize =
                                 builder->CreateAdd(totalSize, spreadLen);
@@ -22392,16 +21568,16 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                     (*arrDecl)->sizes[0].has_value()) {
                     int userSize = *(*arrDecl)->sizes[0];
                     arrayLengths[name] = userSize;
-                } else if (auto *constSize =
+                } else if (auto* constSize =
                                llvm::dyn_cast<llvm::ConstantInt>(totalSize)) {
                     arrayLengths[name] = constSize->getSExtValue();
                 } else {
-                    llvm::AllocaInst *sizeAlloc = createEntryAlloca(
+                    llvm::AllocaInst* sizeAlloc = createEntryAlloca(
                         name + "_size", builder->getInt32Ty());
                     builder->CreateStore(totalSize, sizeAlloc);
                     runtimeArraySizes[name] = sizeAlloc;
                 }
-                llvm::AllocaInst *alloc =
+                llvm::AllocaInst* alloc =
                     createEntryAlloca(name, arrPtr->getType());
                 builder->CreateStore(arrPtr, alloc);
                 std::string fullName =
@@ -22432,10 +21608,10 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 else if (elemType == "string")
                     elemTypeCode = 6;
 
-                llvm::Value *jaggedArr = createJaggedArray(
+                llvm::Value* jaggedArr = createJaggedArray(
                     (*arrDecl)->value, elemTypeCode, depth - 1);
-                llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-                llvm::AllocaInst *alloc = createEntryAlloca(name, ptrTy);
+                llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+                llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
                 builder->CreateStore(jaggedArr, alloc);
                 std::string fullName =
                     getCurrentNamespace().empty()
@@ -22449,8 +21625,8 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
 
             std::vector<uint64_t> actualSizes;
 
-            std::function<void(AnyNode &, int)> inferDims;
-            inferDims = [&](AnyNode &node, int depth) {
+            std::function<void(AnyNode&, int)> inferDims;
+            inferDims = [&](AnyNode& node, int depth) {
                 if (auto lit =
                         std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
                     if (actualSizes.size() <= depth) {
@@ -22463,18 +21639,18 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             };
 
             inferDims((*arrDecl)->value, 0);
-            llvm::Type *arrTy = elemTy;
+            llvm::Type* arrTy = elemTy;
             for (int i = actualSizes.size() - 1; i >= 0; i--) {
                 arrTy = llvm::ArrayType::get(arrTy, actualSizes[i]);
             }
 
             bool useHeap = (currentFunction != nullptr);
 
-            llvm::AllocaInst *alloc;
+            llvm::AllocaInst* alloc;
             if (useHeap) {
-                llvm::Function *mallocFn = module->getFunction("malloc");
+                llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType *mallocTy = llvm::FunctionType::get(
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0),
                         {builder->getInt64Ty()}, false);
                     mallocFn = llvm::Function::Create(
@@ -22482,12 +21658,12 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         module.get());
                 }
 
-                const llvm::DataLayout &DL = module->getDataLayout();
+                const llvm::DataLayout& DL = module->getDataLayout();
                 uint64_t sizeBytes = DL.getTypeAllocSize(arrTy);
 
-                llvm::Value *mallocCall = builder->CreateCall(
+                llvm::Value* mallocCall = builder->CreateCall(
                     mallocFn, {builder->getInt64(sizeBytes)}, "heap_arr");
-                llvm::Value *arrPtr = builder->CreateBitCast(
+                llvm::Value* arrPtr = builder->CreateBitCast(
                     mallocCall, llvm::PointerType::get(context, 0), "arr_cast");
 
                 alloc =
@@ -22501,11 +21677,11 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                                        ? name
                                        : getCurrentNamespace() + "::" + name;
             locals[fullName] = alloc;
-            std::function<void(llvm::Value *, llvm::Type *, AnyNode &,
-                               std::vector<uint64_t> &)>
+            std::function<void(llvm::Value*, llvm::Type*, AnyNode&,
+                std::vector<uint64_t>&)>
                 initArray;
-            initArray = [&](llvm::Value *ptr, llvm::Type *ty, AnyNode &node,
-                            std::vector<uint64_t> &indices) {
+            initArray = [&](llvm::Value* ptr, llvm::Type* ty, AnyNode& node,
+                            std::vector<uint64_t>& indices) {
                 if (auto lit =
                         std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
                     for (size_t i = 0; i < (*lit)->elements.size(); i++) {
@@ -22516,31 +21692,31 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                                 (*lit)->elements[i])) {
                             initArray(ptr, ty, (*lit)->elements[i], indices);
                         } else {
-                            llvm::Value *elemVal =
+                            llvm::Value* elemVal =
                                 emitExpr((*lit)->elements[i]);
                             if (!elemVal)
                                 return;
 
-                            std::vector<llvm::Value *> llvmIndices =
+                            std::vector<llvm::Value*> llvmIndices =
                                 useHeap
-                                    ? std::vector<llvm::Value *>{builder
-                                                                     ->getInt32(
-                                                                         0)}
-                                    : std::vector<llvm::Value *>{
+                                    ? std::vector<llvm::Value*>{builder
+                                              ->getInt32(
+                                                  0)}
+                                    : std::vector<llvm::Value*>{
                                           builder->getInt32(0)};
 
                             for (auto idx : indices) {
                                 llvmIndices.push_back(builder->getInt32(idx));
                             }
 
-                            llvm::Value *basePtr =
+                            llvm::Value* basePtr =
                                 useHeap
                                     ? builder->CreateLoad(
                                           llvm::PointerType::get(context, 0),
                                           alloc, "heap_ptr")
-                                    : static_cast<llvm::Value *>(alloc);
+                                    : static_cast<llvm::Value*>(alloc);
 
-                            llvm::Value *elemPtr = builder->CreateInBoundsGEP(
+                            llvm::Value* elemPtr = builder->CreateInBoundsGEP(
                                 arrTy, basePtr, llvmIndices);
                             builder->CreateStore(elemVal, elemPtr);
                         }
@@ -22556,10 +21732,10 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         if (!(*arrDecl)->sizes.empty() && (*arrDecl)->sizes[0].has_value()) {
             int arraySize = *(*arrDecl)->sizes[0];
             if (std::holds_alternative<std::monostate>((*arrDecl)->value)) {
-                llvm::ArrayType *arrTy =
+                llvm::ArrayType* arrTy =
                     llvm::ArrayType::get(elemTy, arraySize);
-                llvm::AllocaInst *alloc = createEntryAlloca(name, arrTy);
-                llvm::Value *zeroInit = llvm::ConstantAggregateZero::get(arrTy);
+                llvm::AllocaInst* alloc = createEntryAlloca(name, arrTy);
+                llvm::Value* zeroInit = llvm::ConstantAggregateZero::get(arrTy);
                 builder->CreateStore(zeroInit, alloc);
                 locals[name] = alloc;
                 arrayTypeStrings[name] = elemType;
@@ -22581,7 +21757,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 }
                 if (ptrTy.starts_with("void*")) {
                     cg_error(Position(),
-                             "You cannot dereference or indice void*");
+                        "You cannot dereference or indice void*");
                     return;
                 }
                 std::string valueTy = getExpressionType((*arrAcc)->indices[0]);
@@ -22590,12 +21766,12 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                                          "non-integer value.");
                     return;
                 }
-                llvm::Value *value = emitExpr((*arrAcc)->indices[0]);
+                llvm::Value* value = emitExpr((*arrAcc)->indices[0]);
                 ptrTy.pop_back();
-                llvm::Value *addr = builder->CreateGEP(
+                llvm::Value* addr = builder->CreateGEP(
                     llvmTypeFor(ptrTy), emitExpr((*arrAcc)->base), value,
                     "ptr_arr_asi");
-                llvm::Value *valToStore = emitExpr((*arrAssign)->value);
+                llvm::Value* valToStore = emitExpr((*arrAssign)->value);
                 builder->CreateStore(valToStore, addr);
             }
             if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(
@@ -22609,34 +21785,34 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         return;
                     }
 
-                    llvm::Value *jaggedPtr =
+                    llvm::Value* jaggedPtr =
                         builder->CreateLoad(llvm::PointerType::get(context, 0),
-                                            it->second, "jagged_ptr");
-                    llvm::ArrayType *indicesArrTy = llvm::ArrayType::get(
+                            it->second, "jagged_ptr");
+                    llvm::ArrayType* indicesArrTy = llvm::ArrayType::get(
                         builder->getInt32Ty(), (*arrAcc)->indices.size());
-                    llvm::AllocaInst *indicesAlloc =
+                    llvm::AllocaInst* indicesAlloc =
                         createEntryAlloca("indices_arr", indicesArrTy);
 
                     for (size_t i = 0; i < (*arrAcc)->indices.size(); i++) {
-                        llvm::Value *indexVal = emitExpr((*arrAcc)->indices[i]);
+                        llvm::Value* indexVal = emitExpr((*arrAcc)->indices[i]);
                         if (!indexVal)
                             return;
 
-                        std::vector<llvm::Value *> indices = {
+                        std::vector<llvm::Value*> indices = {
                             builder->getInt32(0), builder->getInt32(i)};
-                        llvm::Value *idxPtr = builder->CreateInBoundsGEP(
+                        llvm::Value* idxPtr = builder->CreateInBoundsGEP(
                             indicesArrTy, indicesAlloc, indices);
                         builder->CreateStore(indexVal, idxPtr);
                     }
 
-                    llvm::Function *getFn =
+                    llvm::Function* getFn =
                         module->getFunction("qc_jagged_array_get");
                     if (!getFn) {
-                        llvm::Type *voidPtrTy =
+                        llvm::Type* voidPtrTy =
                             llvm::PointerType::get(context, 0);
-                        llvm::Type *intPtrTy =
+                        llvm::Type* intPtrTy =
                             llvm::PointerType::get(context, 0);
-                        llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                        llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             voidPtrTy,
                             {voidPtrTy, intPtrTy, builder->getInt32Ty()},
                             false);
@@ -22645,23 +21821,23 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                             "qc_jagged_array_get", module.get());
                     }
 
-                    std::vector<llvm::Value *> idxIndices = {
+                    std::vector<llvm::Value*> idxIndices = {
                         builder->getInt32(0), builder->getInt32(0)};
-                    llvm::Value *indicesPtr = builder->CreateInBoundsGEP(
+                    llvm::Value* indicesPtr = builder->CreateInBoundsGEP(
                         indicesArrTy, indicesAlloc, idxIndices);
 
-                    llvm::Value *elemPtr = builder->CreateCall(
+                    llvm::Value* elemPtr = builder->CreateCall(
                         getFn,
                         {jaggedPtr, indicesPtr,
-                         builder->getInt32((*arrAcc)->indices.size())},
+                            builder->getInt32((*arrAcc)->indices.size())},
                         "jagged_elem_ptr");
 
-                    llvm::Value *valueVal = emitExpr((*arrAssign)->value);
+                    llvm::Value* valueVal = emitExpr((*arrAssign)->value);
                     if (!valueVal)
                         return;
 
                     int elemTypeCode = jagIt->second.first;
-                    llvm::Type *elemTy = nullptr;
+                    llvm::Type* elemTy = nullptr;
                     switch (elemTypeCode) {
                     case 0:
                         elemTy = builder->getInt32Ty();
@@ -22686,7 +21862,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         break;
                     }
 
-                    llvm::Value *typedPtr = builder->CreateBitCast(
+                    llvm::Value* typedPtr = builder->CreateBitCast(
                         elemPtr, llvm::PointerType::get(context, 0));
                     builder->CreateStore(valueVal, typedPtr);
 
@@ -22700,41 +21876,41 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                         return;
                     }
 
-                    llvm::Value *mapPtr =
+                    llvm::Value* mapPtr =
                         builder->CreateLoad(llvm::PointerType::get(context, 0),
-                                            it->second, "map_ptr");
+                            it->second, "map_ptr");
 
-                    llvm::Value *keyVal = emitExpr((*arrAcc)->indices[0]);
-                    llvm::Value *valueVal = emitExpr((*arrAssign)->value);
+                    llvm::Value* keyVal = emitExpr((*arrAcc)->indices[0]);
+                    llvm::Value* valueVal = emitExpr((*arrAssign)->value);
                     if (!keyVal || !valueVal)
                         return;
 
-                    llvm::Value *keyPtr;
+                    llvm::Value* keyPtr;
                     if (keyVal->getType()->isPointerTy()) {
                         keyPtr = keyVal;
                     } else {
-                        llvm::AllocaInst *keyAlloc =
+                        llvm::AllocaInst* keyAlloc =
                             createEntryAlloca("map_key", keyVal->getType());
                         builder->CreateStore(keyVal, keyAlloc);
                         keyPtr = builder->CreateBitCast(
                             keyAlloc, llvm::PointerType::get(context, 0));
                     }
 
-                    llvm::Value *valPtr;
+                    llvm::Value* valPtr;
                     if (valueVal->getType()->isPointerTy()) {
                         valPtr = valueVal;
                     } else {
-                        llvm::AllocaInst *valAlloc =
+                        llvm::AllocaInst* valAlloc =
                             createEntryAlloca("map_val", valueVal->getType());
                         builder->CreateStore(valueVal, valAlloc);
                         valPtr = builder->CreateBitCast(
                             valAlloc, llvm::PointerType::get(context, 0));
                     }
-                    llvm::Function *setFn = module->getFunction("qc_map_set");
+                    llvm::Function* setFn = module->getFunction("qc_map_set");
                     if (!setFn) {
-                        llvm::Type *voidPtrTy =
+                        llvm::Type* voidPtrTy =
                             llvm::PointerType::get(context, 0);
-                        llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                        llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             {voidPtrTy, voidPtrTy, voidPtrTy}, false);
                         setFn = llvm::Function::Create(
@@ -22747,34 +21923,34 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 }
                 if (hasList(name)) {
                     auto listIt = findList(name);
-                    llvm::Value *alloc = getVarAddress(name);
+                    llvm::Value* alloc = getVarAddress(name);
                     if (!alloc) {
                         cg_error(Position(), "Unknown list: " + name);
                         return;
                     }
 
-                    llvm::Value *listPtr = builder->CreateLoad(
+                    llvm::Value* listPtr = builder->CreateLoad(
                         llvm::PointerType::get(context, 0), alloc, "list_ptr");
 
-                    llvm::Value *indexVal = emitExpr((*arrAcc)->indices[0]);
+                    llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                     if (!indexVal)
                         return;
 
-                    llvm::Value *valueVal = emitExpr((*arrAssign)->value);
+                    llvm::Value* valueVal = emitExpr((*arrAssign)->value);
                     if (!valueVal)
                         return;
 
-                    llvm::AllocaInst *valAlloc =
+                    llvm::AllocaInst* valAlloc =
                         createEntryAlloca("list_set_val", valueVal->getType());
                     builder->CreateStore(valueVal, valAlloc);
-                    llvm::Value *valPtr = builder->CreateBitCast(
+                    llvm::Value* valPtr = builder->CreateBitCast(
                         valAlloc, llvm::PointerType::get(context, 0));
 
-                    llvm::Function *setFn = module->getFunction("qc_list_set");
+                    llvm::Function* setFn = module->getFunction("qc_list_set");
                     if (!setFn) {
-                        llvm::Type *voidPtrTy =
+                        llvm::Type* voidPtrTy =
                             llvm::PointerType::get(context, 0);
-                        llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                        llvm::FunctionType* fnTy = llvm::FunctionType::get(
                             builder->getVoidTy(),
                             {voidPtrTy, builder->getInt32Ty(), voidPtrTy},
                             false);
@@ -22786,35 +21962,35 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                     builder->CreateCall(setFn, {listPtr, indexVal, valPtr});
                     return;
                 }
-                llvm::Value *alloc = getVarAddress(name);
+                llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
                     cg_error(Position(), "Unknown array: " + name);
                     return;
                 }
 
-                llvm::Value *arrAlloc = alloc;
-                llvm::Type *arrTy = getPointeeType(name);
+                llvm::Value* arrAlloc = alloc;
+                llvm::Type* arrTy = getPointeeType(name);
 
-                llvm::Value *indexVal = emitExpr((*arrAcc)->indices[0]);
+                llvm::Value* indexVal = emitExpr((*arrAcc)->indices[0]);
                 if (!indexVal)
                     return;
 
-                llvm::Value *valueVal = emitExpr((*arrAssign)->value);
+                llvm::Value* valueVal = emitExpr((*arrAssign)->value);
                 if (!valueVal)
                     return;
                 if (arrTy->isPointerTy()) {
-                    llvm::Value *ptr =
+                    llvm::Value* ptr =
                         builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
-                    llvm::Type *elemTy = valueVal->getType();
+                    llvm::Type* elemTy = valueVal->getType();
 
-                    llvm::Value *elemPtr = builder->CreateGEP(
+                    llvm::Value* elemPtr = builder->CreateGEP(
                         elemTy, ptr, indexVal, "arr_elem_ptr");
 
                     builder->CreateStore(valueVal, elemPtr);
                 } else if (arrTy->isArrayTy()) {
-                    std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                                          indexVal};
-                    llvm::Value *elemPtr = builder->CreateInBoundsGEP(
+                    std::vector<llvm::Value*> indices = {builder->getInt32(0),
+                        indexVal};
+                    llvm::Value* elemPtr = builder->CreateInBoundsGEP(
                         arrTy, arrAlloc, indices, "arr_elem_ptr");
 
                     builder->CreateStore(valueVal, elemPtr);
@@ -22846,17 +22022,17 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             elemTypeCode = 5;
         else if (elemType == "string")
             elemTypeCode = 6;
-        llvm::Function *createFn = module->getFunction("qc_create_list");
+        llvm::Function* createFn = module->getFunction("qc_create_list");
         if (!createFn) {
-            llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy =
+            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy =
                 llvm::FunctionType::get(ptrTy, {builder->getInt32Ty()}, false);
             createFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_create_list", module.get());
+                    "qc_create_list", module.get());
         }
 
-        llvm::Value *listPtr = builder->CreateCall(
+        llvm::Value* listPtr = builder->CreateCall(
             createFn, {builder->getInt32(elemTypeCode)}, "list_ptr");
         if (auto callNode =
                 std::get_if<std::unique_ptr<CallNode>>(&(*listDecl)->value)) {
@@ -22865,32 +22041,32 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 return;
         } else if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(
                        &(*listDecl)->value)) {
-            llvm::Function *pushFn = module->getFunction("qc_list_push");
+            llvm::Function* pushFn = module->getFunction("qc_list_push");
             if (!pushFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy}, false);
                 pushFn = llvm::Function::Create(fnTy,
-                                                llvm::Function::ExternalLinkage,
-                                                "qc_list_push", module.get());
+                    llvm::Function::ExternalLinkage,
+                    "qc_list_push", module.get());
             }
 
-            for (auto &elem : (*arrLit)->elements) {
+            for (auto& elem : (*arrLit)->elements) {
                 if (auto spread =
                         std::get_if<std::unique_ptr<SpreadNode>>(&elem)) {
-                    llvm::Value *collVal = emitExpr((*spread)->expr);
+                    llvm::Value* collVal = emitExpr((*spread)->expr);
                     expandSpreadIntoList(collVal, (*spread)->expr, listPtr,
-                                         pushFn, elemTypeCode);
+                        pushFn, elemTypeCode);
                 } else {
-                    llvm::Value *elemVal = emitExpr(elem);
+                    llvm::Value* elemVal = emitExpr(elem);
                     if (!elemVal)
                         continue;
 
-                    llvm::AllocaInst *tempAlloc =
+                    llvm::AllocaInst* tempAlloc =
                         createEntryAlloca("temp_elem", elemVal->getType());
                     builder->CreateStore(elemVal, tempAlloc);
 
-                    llvm::Value *elemPtr = builder->CreateBitCast(
+                    llvm::Value* elemPtr = builder->CreateBitCast(
                         tempAlloc, llvm::PointerType::get(context, 0));
 
                     builder->CreateCall(
@@ -22909,8 +22085,8 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             if (!listPtr)
                 return;
         }
-        llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-        llvm::AllocaInst *alloc = createEntryAlloca(name, ptrTy);
+        llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+        llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
         builder->CreateStore(listPtr, alloc);
         std::string fullName = getCurrentNamespace().empty()
                                    ? name
@@ -22924,22 +22100,22 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         std::string elemName = (*foreach)->elem_name.value;
         std::string iterName = "__foreach_i_" + elemName;
 
-        llvm::Value *collVal = emitExpr((*foreach)->collection);
+        llvm::Value* collVal = emitExpr((*foreach)->collection);
         if (!collVal)
             return;
 
-        llvm::Value *lengthVal = nullptr;
+        llvm::Value* lengthVal = nullptr;
         bool isArray = false;
-        llvm::Value *arrayAlloc = nullptr;
-        llvm::Type *arrayElemTy = nullptr;
+        llvm::Value* arrayAlloc = nullptr;
+        llvm::Type* arrayElemTy = nullptr;
         std::string collName = "";
         if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(
                 &(*foreach)->collection)) {
             collName = (*varAccess)->var_name_tok.value;
 
-            llvm::Value *alloc = getVarAddress(collName);
+            llvm::Value* alloc = getVarAddress(collName);
             if (alloc) {
-                llvm::Type *allocTy = getPointeeType(collName);
+                llvm::Type* allocTy = getPointeeType(collName);
 
                 if (allocTy->isArrayTy()) {
                     isArray = true;
@@ -22962,7 +22138,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                                runtimeArraySizes.end()) {
                         isArray = true;
                         arrayAlloc = alloc;
-                        llvm::AllocaInst *sizeAlloc =
+                        llvm::AllocaInst* sizeAlloc =
                             runtimeArraySizes[collName];
                         lengthVal = builder->CreateLoad(
                             builder->getInt32Ty(), sizeAlloc, "runtime_len");
@@ -22976,84 +22152,84 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             }
         }
         if (!lengthVal) {
-            llvm::Function *lenFn = module->getFunction("qc_list_length");
+            llvm::Function* lenFn = module->getFunction("qc_list_length");
             if (!lenFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_length", module.get());
+                        "qc_list_length", module.get());
             }
             lengthVal = builder->CreateCall(lenFn, {collVal}, "coll_len");
         }
         enterScope();
-        llvm::Type *elemTy = llvmTypeFor((*foreach)->elem_type.value);
-        llvm::AllocaInst *iterAlloc =
+        llvm::Type* elemTy = llvmTypeFor((*foreach)->elem_type.value);
+        llvm::AllocaInst* iterAlloc =
             createEntryAlloca(iterName, builder->getInt32Ty());
-        llvm::AllocaInst *elemAlloc = createEntryAlloca(elemName, elemTy);
+        llvm::AllocaInst* elemAlloc = createEntryAlloca(elemName, elemTy);
         locals[iterName] = iterAlloc;
         locals[elemName] = elemAlloc;
         varTypes[elemName] = (*foreach)->elem_type.value;
         varTypes[iterName] = "int";
         builder->CreateStore(builder->getInt32(0), iterAlloc);
 
-        llvm::BasicBlock *condBB =
+        llvm::BasicBlock* condBB =
             llvm::BasicBlock::Create(context, "foreach.cond", currentFunction);
-        llvm::BasicBlock *bodyBB =
+        llvm::BasicBlock* bodyBB =
             llvm::BasicBlock::Create(context, "foreach.body", currentFunction);
-        llvm::BasicBlock *incBB =
+        llvm::BasicBlock* incBB =
             llvm::BasicBlock::Create(context, "foreach.inc", currentFunction);
-        llvm::BasicBlock *endBB =
+        llvm::BasicBlock* endBB =
             llvm::BasicBlock::Create(context, "foreach.end", currentFunction);
 
         builder->CreateBr(condBB);
 
         builder->SetInsertPoint(condBB);
-        llvm::Value *iVal =
+        llvm::Value* iVal =
             builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
-        llvm::Value *cmpVal =
+        llvm::Value* cmpVal =
             builder->CreateICmpSLT(iVal, lengthVal, "foreach_cmp");
         builder->CreateCondBr(cmpVal, bodyBB, endBB);
 
         builder->SetInsertPoint(bodyBB);
 
-        llvm::Value *elemVal = nullptr;
+        llvm::Value* elemVal = nullptr;
 
         if (isArray && arrayAlloc) {
-            llvm::Type *allocTy = getPointeeType(collName);
+            llvm::Type* allocTy = getPointeeType(collName);
 
             if (allocTy->isArrayTy()) {
-                std::vector<llvm::Value *> indices = {builder->getInt32(0),
-                                                      iVal};
-                llvm::Value *elemPtr = builder->CreateInBoundsGEP(
+                std::vector<llvm::Value*> indices = {builder->getInt32(0),
+                    iVal};
+                llvm::Value* elemPtr = builder->CreateInBoundsGEP(
                     allocTy, arrayAlloc, indices, "elem_ptr");
                 elemVal = builder->CreateLoad(elemTy, elemPtr, "elem");
             } else if (allocTy->isPointerTy() && arrayElemTy) {
-                llvm::Value *heapPtr =
+                llvm::Value* heapPtr =
                     builder->CreateLoad(allocTy, arrayAlloc, "heap_ptr");
-                llvm::Value *elemPtr = builder->CreateGEP(
+                llvm::Value* elemPtr = builder->CreateGEP(
                     arrayElemTy, heapPtr, iVal, "heap_elem_ptr");
 
                 elemVal = builder->CreateLoad(elemTy, elemPtr, "elem");
             }
         } else {
-            llvm::Function *getFn = module->getFunction("qc_list_get");
+            llvm::Function* getFn = module->getFunction("qc_list_get");
             if (!getFn) {
-                llvm::FunctionType *ty = llvm::FunctionType::get(
+                llvm::FunctionType* ty = llvm::FunctionType::get(
                     llvm::PointerType::get(context, 0),
                     {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 getFn =
                     llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
-                                           "qc_list_get", module.get());
+                        "qc_list_get", module.get());
             }
-            llvm::Value *elemPtr =
+            llvm::Value* elemPtr =
                 builder->CreateCall(getFn, {collVal, iVal}, "elem_ptr");
             if ((*foreach)->elem_type.value == "string") {
                 elemVal = elemPtr;
             } else {
-                llvm::Value *typedPtr = builder->CreateBitCast(
+                llvm::Value* typedPtr = builder->CreateBitCast(
                     elemPtr, llvm::PointerType::get(context, 0));
                 elemVal = builder->CreateLoad(elemTy, typedPtr, "elem");
             }
@@ -23066,9 +22242,9 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         builder->CreateBr(incBB);
 
         builder->SetInsertPoint(incBB);
-        llvm::Value *iVal2 =
+        llvm::Value* iVal2 =
             builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
-        llvm::Value *incVal =
+        llvm::Value* incVal =
             builder->CreateAdd(iVal2, builder->getInt32(1), "i_inc");
         builder->CreateStore(incVal, iterAlloc);
         builder->CreateBr(condBB);
@@ -23081,7 +22257,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         return;
     } else if (auto stmts =
                    std::get_if<std::unique_ptr<StatementsNode>>(&node)) {
-        for (auto &stmt : (*stmts)->statements) {
+        for (auto& stmt : (*stmts)->statements) {
             emitStmt(stmt);
         }
         return;
@@ -23094,46 +22270,46 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
 
         int keyTypeCode = getTypeCode(keyType);
         int valueTypeCode = getTypeCode(valueType);
-        llvm::Function *createFn = module->getFunction("qc_create_map");
+        llvm::Function* createFn = module->getFunction("qc_create_map");
         if (!createFn) {
-            llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType *fnTy = llvm::FunctionType::get(
+            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+            llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
                 llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
-                                       "qc_create_map", module.get());
+                    "qc_create_map", module.get());
         }
 
-        llvm::Value *mapPtr = builder->CreateCall(
+        llvm::Value* mapPtr = builder->CreateCall(
             createFn,
             {builder->getInt32(keyTypeCode), builder->getInt32(valueTypeCode)},
             "map_ptr");
 
         if (!(*mapDecl)->init_pairs.empty()) {
-            llvm::Function *setFn = module->getFunction("qc_map_set");
+            llvm::Function* setFn = module->getFunction("qc_map_set");
             if (!setFn) {
-                llvm::Type *voidPtrTy = llvm::PointerType::get(context, 0);
-                llvm::FunctionType *fnTy = llvm::FunctionType::get(
+                llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
+                llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy},
                     false);
                 setFn = llvm::Function::Create(fnTy,
-                                               llvm::Function::ExternalLinkage,
-                                               "qc_map_set", module.get());
+                    llvm::Function::ExternalLinkage,
+                    "qc_map_set", module.get());
             }
 
-            for (auto &pair : (*mapDecl)->init_pairs) {
-                llvm::Value *keyVal = emitExpr(pair.first);
-                llvm::Value *valueVal = emitExpr(pair.second);
+            for (auto& pair : (*mapDecl)->init_pairs) {
+                llvm::Value* keyVal = emitExpr(pair.first);
+                llvm::Value* valueVal = emitExpr(pair.second);
                 if (!keyVal || !valueVal)
                     continue;
 
-                llvm::Value *keyPtr;
-                llvm::Value *valPtr;
+                llvm::Value* keyPtr;
+                llvm::Value* valPtr;
 
                 if (keyVal->getType()->isPointerTy()) {
                     keyPtr = keyVal;
                 } else {
-                    llvm::AllocaInst *keyAlloc =
+                    llvm::AllocaInst* keyAlloc =
                         createEntryAlloca("temp_key", keyVal->getType());
                     builder->CreateStore(keyVal, keyAlloc);
                     keyPtr = builder->CreateBitCast(
@@ -23143,7 +22319,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
                 if (valueVal->getType()->isPointerTy()) {
                     valPtr = valueVal;
                 } else {
-                    llvm::AllocaInst *valAlloc =
+                    llvm::AllocaInst* valAlloc =
                         createEntryAlloca("temp_val", valueVal->getType());
                     builder->CreateStore(valueVal, valAlloc);
                     valPtr = builder->CreateBitCast(
@@ -23154,8 +22330,8 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
             }
         }
 
-        llvm::Type *ptrTy = llvm::PointerType::get(context, 0);
-        llvm::AllocaInst *alloc = createEntryAlloca(name, ptrTy);
+        llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
+        llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
         builder->CreateStore(mapPtr, alloc);
         std::string fullName = getCurrentNamespace().empty()
                                    ? name
@@ -23166,7 +22342,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         return;
     } else if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&node)) {
         namespaceStack.push_back((*ns)->name);
-        for (auto &decl : (*ns)->body) {
+        for (auto& decl : (*ns)->body) {
             emitStmt(decl);
         }
         namespaceStack.pop_back();
@@ -23174,7 +22350,7 @@ void LLVMCompiler::emitStmt(AnyNode &node) {
         return;
     }
 }
-std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode &node) {
+std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
     if (auto lit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
         if ((*lit)->elements.empty())
             return {false, 0};
@@ -23189,7 +22365,7 @@ std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode &node) {
         bool isJagged = firstJagged;
         int maxDepth = firstDepth;
 
-        for (auto &elem : (*lit)->elements) {
+        for (auto& elem : (*lit)->elements) {
             auto [elemJagged, elemDepth] = checkJagged(elem);
             maxDepth = std::max(maxDepth, elemDepth);
             isJagged = isJagged || elemJagged;
@@ -23206,8 +22382,8 @@ std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode &node) {
     }
     return {false, 0};
 }
-std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
-                                           const std::string &outPath) {
+std::vector<CTError> LLVMCompiler::compile(StatementsNode* root,
+    const std::string& outPath) {
     errors.clear();
     locals.clear();
     globals.clear();
@@ -23231,16 +22407,16 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
 
     createUserTypes();
 
-    std::function<void(NamespaceNode &)> createGlobals =
-        [&](NamespaceNode &ns) {
+    std::function<void(NamespaceNode&)> createGlobals =
+        [&](NamespaceNode& ns) {
             namespaceStack.push_back(ns.name);
-            for (auto &decl : ns.body) {
+            for (auto& decl : ns.body) {
                 if (auto va =
                         std::get_if<std::unique_ptr<VarAssignNode>>(&decl)) {
                     std::string fullName = getCurrentNamespace() +
                                            "::" + (*va)->var_name_tok.value;
-                    llvm::Type *ty = llvmTypeFor((*va)->type_tok.value);
-                    auto *gv = new llvm::GlobalVariable(
+                    llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
+                    auto* gv = new llvm::GlobalVariable(
                         *module, ty, false, llvm::GlobalValue::InternalLinkage,
                         llvm::Constant::getNullValue(ty), fullName);
                     globals[fullName] = gv;
@@ -23254,25 +22430,25 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             namespaceStack.pop_back();
         };
 
-    for (auto &stmt : root->statements) {
+    for (auto& stmt : root->statements) {
         if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
             createGlobals(**ns);
         } else if (auto va =
                        std::get_if<std::unique_ptr<VarAssignNode>>(&stmt)) {
             std::string name = (*va)->var_name_tok.value;
-            llvm::Type *ty = llvmTypeFor((*va)->type_tok.value);
-            auto *gv = new llvm::GlobalVariable(
+            llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
+            auto* gv = new llvm::GlobalVariable(
                 *module, ty, false, llvm::GlobalValue::InternalLinkage,
                 llvm::Constant::getNullValue(ty), name);
             globals[name] = gv;
             varTypes[name] = (*va)->type_tok.value;
         }
     }
-    std::function<void(NamespaceNode &)> scanAutoFunctions =
-        [&](NamespaceNode &ns) {
+    std::function<void(NamespaceNode&)> scanAutoFunctions =
+        [&](NamespaceNode& ns) {
             namespaceStack.push_back(ns.name);
 
-            for (auto &decl : ns.body) {
+            for (auto& decl : ns.body) {
                 if (auto fn =
                         std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
                     if ((*fn)->name_tok.has_value()) {
@@ -23291,7 +22467,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             namespaceStack.pop_back();
         };
 
-    for (auto &stmt : root->statements) {
+    for (auto& stmt : root->statements) {
         if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
             scanAutoFunctions(**ns);
         } else if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
@@ -23303,15 +22479,15 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             functionDefs[funcName] = fnPtr;
         }
     }
-    for (auto &[className, info] : userTypes) {
+    for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class)
             continue;
 
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size();
-             methodIdx++) {
-            auto &method = info.classMethods[methodIdx];
+            methodIdx++) {
+            auto& method = info.classMethods[methodIdx];
             bool hasAutoParam = false;
-            for (auto &param : method.params) {
+            for (auto& param : method.params) {
                 if (param.type.value == "auto") {
                     hasAutoParam = true;
                     break;
@@ -23326,11 +22502,11 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             }
         }
     }
-    std::function<void(NamespaceNode &)> compileNamespaceFunctions =
-        [&](NamespaceNode &ns) {
+    std::function<void(NamespaceNode&)> compileNamespaceFunctions =
+        [&](NamespaceNode& ns) {
             namespaceStack.push_back(ns.name);
 
-            for (auto &decl : ns.body) {
+            for (auto& decl : ns.body) {
                 if (auto fn =
                         std::get_if<std::shared_ptr<FuncDefNode>>(&decl)) {
                     if ((*fn)->name_tok.has_value()) {
@@ -23348,7 +22524,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             namespaceStack.pop_back();
         };
 
-    for (auto &stmt : root->statements) {
+    for (auto& stmt : root->statements) {
         if (auto ns = std::get_if<std::unique_ptr<NamespaceNode>>(&stmt)) {
             compileNamespaceFunctions(**ns);
         } else if (std::holds_alternative<std::shared_ptr<FuncDefNode>>(stmt)) {
@@ -23360,7 +22536,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             }
         }
     }
-    for (auto &[className, info] : userTypes) {
+    for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class)
             continue;
         if (!info.namespace_path.empty()) {
@@ -23368,23 +22544,23 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
         }
 
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size();
-             methodIdx++) {
-            auto &method = info.classMethods[methodIdx];
+            methodIdx++) {
+            auto& method = info.classMethods[methodIdx];
             if (std::find(autoMethodIndices[className].begin(),
-                          autoMethodIndices[className].end(),
-                          methodIdx) != autoMethodIndices[className].end()) {
+                    autoMethodIndices[className].end(),
+                    methodIdx) != autoMethodIndices[className].end()) {
                 continue;
             }
 
-            llvm::Function *fn = nullptr;
-            auto &overloads = classMethods[className][method.name_tok.value];
+            llvm::Function* fn = nullptr;
+            auto& overloads = classMethods[className][method.name_tok.value];
 
-            for (auto *overload : overloads) {
+            for (auto* overload : overloads) {
                 if (overload->arg_size() - 1 == method.params.size()) {
                     bool matches = true;
                     for (size_t i = 0; i < method.params.size(); i++) {
-                        auto &param = method.params[i];
-                        llvm::Type *expectedType;
+                        auto& param = method.params[i];
+                        llvm::Type* expectedType;
                         if (param.signature.has_value()) {
                             expectedType = llvm::PointerType::get(context, 0);
                         } else {
@@ -23393,9 +22569,9 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
                             expectedType = llvmTypeFor(resolvedType);
                         }
 
-                        llvm::Type *actualType =
+                        llvm::Type* actualType =
                             overload->getFunctionType()->getParamType(i + 1);
-                        if (expectedType != actualType) {
+                        if (expectedType != actualType && param.type.value == "...") {
                             matches = false;
                             break;
                         }
@@ -23410,7 +22586,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             if (!fn || !fn->empty())
                 continue;
 
-            llvm::BasicBlock *entry =
+            llvm::BasicBlock* entry =
                 llvm::BasicBlock::Create(context, "entry", fn);
             builder->SetInsertPoint(entry);
 
@@ -23425,8 +22601,8 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             currentFunction = fn;
 
             for (size_t i = 0; i < method.params.size(); i++) {
-                auto &param = method.params[i];
-                llvm::Type *paramTy;
+                auto& param = method.params[i];
+                llvm::Type* paramTy;
                 std::string typeDescriptor;
 
                 if (param.signature.has_value()) {
@@ -23436,7 +22612,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
                     typeDescriptor = resolveTypeName(param.type.value);
                     paramTy = llvmTypeFor(typeDescriptor);
                 }
-                llvm::AllocaInst *alloc =
+                llvm::AllocaInst* alloc =
                     createEntryAlloca(param.name.value, paramTy);
                 builder->CreateStore(fn->getArg(i + 1), alloc);
                 locals[param.name.value] = alloc;
@@ -23445,7 +22621,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             size_t bodyStartIdx = 0;
             if (method.is_constructor && !info.baseClassName.empty()) {
                 if (method.body && !method.body->statements.empty()) {
-                    auto &firstStmt = method.body->statements[0];
+                    auto& firstStmt = method.body->statements[0];
                     if (auto call = std::get_if<std::unique_ptr<CallNode>>(
                             &firstStmt)) {
                         if (auto varAccess =
@@ -23454,22 +22630,22 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
                             std::string callName =
                                 (*varAccess)->var_name_tok.value;
                             if (callName == info.baseClassName) {
-                                std::vector<llvm::Value *> parentArgs;
-                                for (auto &argNode : (*call)->arg_nodes) {
-                                    llvm::Value *arg = emitExpr(argNode);
+                                std::vector<llvm::Value*> parentArgs;
+                                for (auto& argNode : (*call)->arg_nodes) {
+                                    llvm::Value* arg = emitExpr(argNode);
                                     if (!arg)
                                         continue;
                                     parentArgs.push_back(arg);
                                 }
-                                llvm::Function *parentCtor = findMethodOverload(
+                                llvm::Function* parentCtor = findMethodOverload(
                                     info.baseClassName, info.baseClassName,
                                     parentArgs);
                                 if (parentCtor) {
-                                    std::vector<llvm::Value *> allArgs = {
+                                    std::vector<llvm::Value*> allArgs = {
                                         currentThis};
                                     allArgs.insert(allArgs.end(),
-                                                   parentArgs.begin(),
-                                                   parentArgs.end());
+                                        parentArgs.begin(),
+                                        parentArgs.end());
                                     builder->CreateCall(parentCtor, allArgs);
                                     bodyStartIdx = 1;
                                 } else {
@@ -23486,7 +22662,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
 
             if (method.body) {
                 for (size_t i = bodyStartIdx;
-                     i < method.body->statements.size(); i++) {
+                    i < method.body->statements.size(); i++) {
                     emitStmt(method.body->statements[i]);
                 }
             }
@@ -23511,24 +22687,24 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
             namespaceStack.pop_back();
         }
     }
-    llvm::Function *userEntry = module->getFunction(entrypointName);
+    llvm::Function* userEntry = module->getFunction(entrypointName);
     if (userEntry) {
         userEntry->setName("__user_entry");
 
-        llvm::FunctionType *mainTy =
+        llvm::FunctionType* mainTy =
             llvm::FunctionType::get(builder->getInt32Ty(), {}, false);
-        llvm::Function *realMain = llvm::Function::Create(
+        llvm::Function* realMain = llvm::Function::Create(
             mainTy, llvm::Function::ExternalLinkage, "main", module.get());
-        llvm::BasicBlock *entry =
+        llvm::BasicBlock* entry =
             llvm::BasicBlock::Create(context, "entry", realMain);
         builder->SetInsertPoint(entry);
         currentFunction = realMain;
-        llvm::Value *result =
+        llvm::Value* result =
             builder->CreateCall(userEntry, {}, "entry_result");
         builder->CreateRet(result);
     } else {
         cg_error(Position(),
-                 "Entrypoint function '" + entrypointName + "' not defined");
+            "Entrypoint function '" + entrypointName + "' not defined");
     }
 
     currentFunction = nullptr;
@@ -23550,7 +22726,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode *root,
 // RUN
 // //////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
-std::string collapse_inline_brackets(const std::string &s) {
+std::string collapse_inline_brackets(const std::string& s) {
     std::string out;
     for (size_t i = 0; i < s.size(); ++i) {
         if (s[i] == '[') {
@@ -23571,7 +22747,7 @@ std::string collapse_inline_brackets(const std::string &s) {
 
             bool prev_is_value_starter =
                 (prev == '=' || prev == '(' || prev == ',' || prev == '{' ||
-                 prev == '[');
+                    prev == '[');
 
             if (j < s.size() && s[j] == ']' && prev_is_value_starter) {
                 out += "[]";
@@ -23584,7 +22760,7 @@ std::string collapse_inline_brackets(const std::string &s) {
     }
     return out;
 }
-std::string bst_diagram(const std::string &input) {
+std::string bst_diagram(const std::string& input) {
     std::string s = collapse_inline_brackets(input);
 
     struct Node {
@@ -23592,8 +22768,8 @@ std::string bst_diagram(const std::string &input) {
         std::vector<Node> children;
     };
 
-    std::function<Node(const std::string &, size_t &)> parse_node;
-    parse_node = [&](const std::string &str, size_t &pos) -> Node {
+    std::function<Node(const std::string&, size_t&)> parse_node;
+    parse_node = [&](const std::string& str, size_t& pos) -> Node {
         Node n;
         std::string token;
         while (pos < str.size()) {
@@ -23627,8 +22803,8 @@ std::string bst_diagram(const std::string &input) {
         int middle = 0;
     };
 
-    std::function<ASCIINode(const Node &)> build;
-    build = [&](const Node &n) -> ASCIINode {
+    std::function<ASCIINode(const Node&)> build;
+    build = [&](const Node& n) -> ASCIINode {
         ASCIINode res;
         res.lines.push_back(n.val);
         res.width = n.val.size();
@@ -23640,7 +22816,7 @@ std::string bst_diagram(const std::string &input) {
 
         std::vector<ASCIINode> child_nodes;
         int total_width = 0;
-        for (const auto &c : n.children) {
+        for (const auto& c : n.children) {
             ASCIINode cn = build(c);
             child_nodes.push_back(cn);
             total_width += cn.width;
@@ -23664,14 +22840,14 @@ std::string bst_diagram(const std::string &input) {
         res.height++;
 
         int max_child_height = 0;
-        for (auto &c : child_nodes)
+        for (auto& c : child_nodes)
             max_child_height = std::max(max_child_height, (int)c.lines.size());
 
         for (int i = 0; i < max_child_height; i++) {
             std::string line(res.width, ' ');
             int pos = 0;
             for (size_t j = 0; j < child_nodes.size(); j++) {
-                ASCIINode &c = child_nodes[j];
+                ASCIINode& c = child_nodes[j];
                 std::string part = (i < (int)c.lines.size())
                                        ? c.lines[i]
                                        : std::string(c.width, ' ');
@@ -23688,12 +22864,12 @@ std::string bst_diagram(const std::string &input) {
 
     ASCIINode diagram = build(root);
     std::ostringstream out;
-    for (auto &l : diagram.lines)
+    for (auto& l : diagram.lines)
         out << l << "\n";
     return out.str();
 }
 
-std::string indent_ast(const std::string &input) {
+std::string indent_ast(const std::string& input) {
     std::string s = collapse_inline_brackets(input);
 
     std::string out;
@@ -23739,7 +22915,7 @@ std::string indent_ast(const std::string &input) {
     out += '\n';
     return out;
 }
-std::string asciiTreeAST(const std::string &input) {
+std::string asciiTreeAST(const std::string& input) {
     std::string s = collapse_inline_brackets(input);
 
     std::string out;
@@ -23793,7 +22969,7 @@ std::string asciiTreeAST(const std::string &input) {
     out += '\n';
     return out;
 }
-std::string removeExtension(const std::string &filename) {
+std::string removeExtension(const std::string& filename) {
     size_t lastDot = filename.find_last_of('.');
     if (lastDot == std::string::npos) {
         return filename;
@@ -23838,20 +23014,21 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     auto start = std::chrono::high_resolution_clock::now();
     try {
         text = preprocess_includes(text, file);
-    } catch (std::runtime_error &e) {
+    } catch (std::runtime_error& e) {
         return Mer{Aer{nullptr, nullptr},
-                   Ler{std::vector<Token>{},
-                       std::make_unique<InvalidSyntaxError>(
-                           "QC-IX01: Include Error", Position())},
-                   ""};
+            Ler{std::vector<Token>{},
+                std::make_unique<InvalidSyntaxError>(
+                    "QC-IX01: Include Error", Position())},
+            ""};
     }
     // Lexer
     Lexer lexer(text, file);
     Ler resp;
     try {
         resp = lexer.make_tokens();
-    } catch (InvalidSyntaxError &e) {
-        std::cout << '\n' << e.as_string() << '\n';
+    } catch (InvalidSyntaxError& e) {
+        std::cout << '\n'
+                  << e.as_string() << '\n';
         return Mer{Aer{nullptr, nullptr}, std::move(resp), ""};
     }
 
@@ -23862,11 +23039,12 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Print tokens if requested
     if (config.print_tokens) {
         std::cout << "=== TOKENS ===" << std::endl;
-        for (const auto &tok : resp.Tkns) {
+        for (const auto& tok : resp.Tkns) {
             std::cout << "Type: " << get_token_name(tok.type) << " | Value: '"
                       << tok.value << "'" << std::endl;
         }
-        std::cout << "==============" << std::endl << std::endl;
+        std::cout << "==============" << std::endl
+                  << std::endl;
     }
 
     // Parser
@@ -23880,28 +23058,31 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Print AST if requested
     if (config.print_ast && config.raw) {
         std::cout << "=== AST ===" << std::endl;
-        for (const auto &stmt : ast.statements->statements) {
+        for (const auto& stmt : ast.statements->statements) {
             std::cout << indent_ast(printAny(stmt));
         }
-        std::cout << "===========" << std::endl << std::endl;
+        std::cout << "===========" << std::endl
+                  << std::endl;
     } else if (config.print_ast && config.bst) {
         std::cout << "=== AST ===" << std::endl;
-        for (const auto &stmt : ast.statements->statements) {
+        for (const auto& stmt : ast.statements->statements) {
             std::cout << bst_diagram(printAny(stmt));
         }
-        std::cout << "===========" << std::endl << std::endl;
+        std::cout << "===========" << std::endl
+                  << std::endl;
     } else if (config.print_ast) {
         std::cout << "=== AST ===" << std::endl;
-        for (const auto &stmt : ast.statements->statements) {
+        for (const auto& stmt : ast.statements->statements) {
             std::cout << asciiTreeAST(printAny(stmt));
         }
-        std::cout << "===========" << std::endl << std::endl;
+        std::cout << "===========" << std::endl
+                  << std::endl;
     }
     // compiler
     // Interpreter
     if (config.interpret_mode) {
-        Context *ctx = new Context();
-        for (auto &[name, info] : ast.user_types) {
+        Context* ctx = new Context();
+        for (auto& [name, info] : ast.user_types) {
             ctx->define_user_type(std::move(info), name);
         }
         Interpreter interpreter(ctx);
@@ -23909,7 +23090,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         int exit_code = 0;
 
         try {
-            for (auto &stmt : ast.statements->statements) {
+            for (auto& stmt : ast.statements->statements) {
                 if (std::holds_alternative<std::unique_ptr<NamespaceNode>>(
                         stmt)) {
                     interpreter.process(stmt);
@@ -23935,7 +23116,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             NumberVariant result = std::move(interpreter.process(node_variant));
 
             exit_code = std::visit(
-                [](auto &&v) -> int {
+                [](auto&& v) -> int {
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, Number<int>>) {
                         return v.value;
@@ -23961,25 +23142,25 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     "Execution time: " + std::to_string(duration.count()) +
                     "ms";
             }
-        } catch (RTError &e) {
+        } catch (RTError& e) {
             delete ctx;
             std::unique_ptr<Error> err = std::make_unique<RTError>(e);
             ast = Aer(std::move(ast.statements), std::move(err),
-                      std::move(ast.user_types));
+                std::move(ast.user_types));
             return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
         } catch (NumberVariant nv) {
             delete ctx;
             std::unique_ptr<Error> err = std::make_unique<RTError>(
                 interpreter.value_to_string(nv), Position("", "", 0, 0, 0));
             ast = Aer(std::move(ast.statements), std::move(err),
-                      std::move(ast.user_types));
+                std::move(ast.user_types));
             return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
         } catch (...) {
             delete ctx;
             std::unique_ptr<Error> err = std::make_unique<RTError>(
                 "Unknown exception", Position("", "", 0, 0, 0));
             ast = Aer(std::move(ast.statements), std::move(err),
-                      std::move(ast.user_types));
+                std::move(ast.user_types));
             return Mer{std::move(ast), std::move(resp), "", interpreter.errors};
         }
 
@@ -24011,7 +23192,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         auto end = std::chrono::high_resolution_clock::now();
         std::vector<Diagnostic> diagnostics;
         bool error_found = false;
-        for (auto &err : compile_errors) {
+        for (auto& err : compile_errors) {
             error_found = true;
             diagnostics.push_back({RTError(err.details, err.pos), "Error"});
         }
@@ -24035,8 +23216,8 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (llc_result != 0) {
             diagnostics.push_back(
                 {RTError("Failed to compile IR to object file",
-                         Position("", "", 0, 0, 0)),
-                 "Error"});
+                     Position("", "", 0, 0, 0)),
+                    "Error"});
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
 
@@ -24054,8 +23235,8 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         int link_result = system(link_cmd.c_str());
         if (link_result != 0) {
             diagnostics.push_back({RTError("Failed to link object file",
-                                           Position("", "", 0, 0, 0)),
-                                   "Error"});
+                                       Position("", "", 0, 0, 0)),
+                "Error"});
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
         std::remove(ll_file.c_str());
@@ -24288,7 +23469,7 @@ Token Lexer::make_char() {
     }
     if (this->current_char != '\'') {
         throw IllegalCharError("QC-IC01: Expected closing single quote",
-                               this->pos);
+            this->pos);
     }
     this->advance();
 
@@ -24376,7 +23557,7 @@ Token Lexer::make_fstring() {
 
             if (brace_depth != 0)
                 throw IllegalCharError("QC-IC02: Unclosed brace in f-string",
-                                       this->pos);
+                    this->pos);
 
             exprs.push_back(expr);
         } else {
@@ -24409,7 +23590,7 @@ Token Lexer::make_raw_string() {
     this->advance();
     std::string end_marker = start_delim;
     std::reverse(end_marker.begin(), end_marker.end());
-    for (char &c : end_marker) {
+    for (char& c : end_marker) {
         if (c == '(')
             c = ')';
         else if (c == ')')
@@ -24767,8 +23948,8 @@ Ler Lexer::make_tokens() {
             default:
                 std::string unknown = std::string(1, this->current_char);
                 return Ler{std::vector<Token>(),
-                           std::make_unique<IllegalCharError>(
-                               "QC-IC03:" + unknown, this->pos)};
+                    std::make_unique<IllegalCharError>(
+                        "QC-IC03:" + unknown, this->pos)};
             }
         }
     }
@@ -24780,14 +23961,14 @@ Ler Lexer::make_tokens() {
 ///////////////////////////////////////////////////////////////////////////////////////////
 // PREPROCCESERS /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
-std::string trim(const std::string &str) {
+std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r");
     if (first == std::string::npos)
         return "";
     size_t last = str.find_last_not_of(" \t\n\r");
     return str.substr(first, last - first + 1);
 }
-std::string read_file(const std::string &path) {
+std::string read_file(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
         throw std::runtime_error("QC-IX03: Could not open file: " + path);
@@ -24796,8 +23977,8 @@ std::string read_file(const std::string &path) {
     buffer << file.rdbuf();
     return buffer.str();
 }
-std::string resolve_path(const std::string &current_file,
-                         const std::string &include_path) {
+std::string resolve_path(const std::string& current_file,
+    const std::string& include_path) {
     std::filesystem::path current(current_file);
     std::filesystem::path include(include_path);
     if (include.is_absolute()) {
@@ -24807,8 +23988,8 @@ std::string resolve_path(const std::string &current_file,
     std::filesystem::path resolved = current.parent_path() / include;
     return resolved.string();
 }
-std::string extract_namespace(const std::string &source,
-                              const std::string &ns_name) {
+std::string extract_namespace(const std::string& source,
+    const std::string& ns_name) {
     std::string search = "namespace " + ns_name;
     size_t pos = source.find(search);
 
@@ -24838,8 +24019,8 @@ std::string extract_namespace(const std::string &source,
 
     return source.substr(pos, i - pos);
 }
-std::string preprocess_includes(const std::string &source,
-                                const std::string &current_file) {
+std::string preprocess_includes(const std::string& source,
+    const std::string& current_file) {
     entrypointName = "main";
     std::set<std::pair<std::string, std::string>> included_namespaces;
     std::vector<std::string> exported_blocks;
@@ -24862,9 +24043,9 @@ std::string preprocess_includes(const std::string &source,
             entrypointName = trim(directive);
         }
     }
-    std::function<void(const std::string &, const std::string &)> process_file;
-    process_file = [&](const std::string &file_path,
-                       const std::string &ns_to_include) {
+    std::function<void(const std::string&, const std::string&)> process_file;
+    process_file = [&](const std::string& file_path,
+                       const std::string& ns_to_include) {
         std::pair<std::string, std::string> key = {file_path, ns_to_include};
         if (included_namespaces.count(key))
             return;
@@ -24872,7 +24053,7 @@ std::string preprocess_includes(const std::string &source,
 
         std::string file_content = read_file(file_path);
         std::pair<std::string, std::string> exported_key = {file_path,
-                                                            "Exported"};
+            "Exported"};
         if (!included_namespaces.count(exported_key)) {
             included_namespaces.insert(exported_key);
 
@@ -24921,7 +24102,7 @@ std::string preprocess_includes(const std::string &source,
                     for (size_t check = 0; check < inc_pos; check++) {
                         if (exported_content[check] == '"' &&
                             (check == 0 ||
-                             exported_content[check - 1] != '\\')) {
+                                exported_content[check - 1] != '\\')) {
                             in_str = !in_str;
                         }
                     }
@@ -24966,7 +24147,7 @@ std::string preprocess_includes(const std::string &source,
                     for (size_t check = 0; check < inc_pos; check++) {
                         if (exported_content[check] == '"' &&
                             (check == 0 ||
-                             exported_content[check - 1] != '\\')) {
+                                exported_content[check - 1] != '\\')) {
                             in_str = !in_str;
                         }
                     }
@@ -25025,9 +24206,9 @@ std::string preprocess_includes(const std::string &source,
                 size_t name_end = ns_pos + 10 + ns_to_include.length();
                 if (name_end < file_content.size() &&
                     (file_content[name_end] == ' ' ||
-                     file_content[name_end] == '\t' ||
-                     file_content[name_end] == '\n' ||
-                     file_content[name_end] == '{')) {
+                        file_content[name_end] == '\t' ||
+                        file_content[name_end] == '\n' ||
+                        file_content[name_end] == '{')) {
 
                     size_t brace_start = file_content.find('{', ns_pos);
                     int depth = 1;
@@ -25089,7 +24270,7 @@ std::string preprocess_includes(const std::string &source,
 
         std::string full_path;
         if (path == "std") {
-            const char *home = std::getenv("QC_STDLIB");
+            const char* home = std::getenv("QC_STDLIB");
             if (!home) {
                 throw std::runtime_error(
                     "QC_STDLIB environment variable not set");
@@ -25180,7 +24361,7 @@ std::string preprocess_includes(const std::string &source,
         }
 
         std::string all_exported = "";
-        for (auto &block : exported_blocks) {
+        for (auto& block : exported_blocks) {
             all_exported += "\nnamespace Exported {\n" + block + "\n}\n";
         }
 
@@ -25189,7 +24370,7 @@ std::string preprocess_includes(const std::string &source,
         insert_pos += all_exported.length();
     }
 
-    for (auto &ns : namespace_order) {
+    for (auto& ns : namespace_order) {
         result.insert(insert_pos, "\n" + ns + "\n");
         insert_pos += ns.length() + 2;
     }

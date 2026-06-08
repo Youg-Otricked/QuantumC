@@ -19,6 +19,10 @@ test.text
 *.o
 *.out
 qc
+*CMakeCache*/
+.cache*/
+.cache/
+libffi*/
 
 qc-linux
 qc-*

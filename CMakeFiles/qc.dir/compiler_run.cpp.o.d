@@ -184,14 +184,66 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: /home/luca/C^4/compiler_run.cpp \
  /usr/include/c++/15/bits/unicode-data.h \
  /usr/include/c++/15/bits/ostream.tcc /usr/include/c++/15/istream \
  /usr/include/c++/15/bits/istream.tcc /home/luca/C^4/./compiler.h \
- /usr/include/c++/15/memory /usr/include/c++/15/bits/stl_uninitialized.h \
- /usr/include/c++/15/bits/stl_raw_storage_iter.h \
- /usr/include/c++/15/bits/align.h /usr/include/c++/15/bits/unique_ptr.h \
+ /usr/include/c++/15/algorithm /usr/include/c++/15/bits/ranges_algo.h \
+ /usr/include/c++/15/pstl/glue_algorithm_defs.h \
+ /usr/include/c++/15/pstl/execution_defs.h /usr/include/c++/15/cmath \
+ /usr/include/math.h /usr/include/x86_64-linux-gnu/bits/math-vector.h \
+ /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
+ /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h \
+ /usr/include/x86_64-linux-gnu/bits/fp-logb.h \
+ /usr/include/x86_64-linux-gnu/bits/fp-fast.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls-macros.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls.h \
+ /usr/include/x86_64-linux-gnu/bits/mathcalls-narrow.h \
+ /usr/include/x86_64-linux-gnu/bits/iscanonical.h \
+ /usr/include/c++/15/bits/specfun.h /usr/include/c++/15/tr1/gamma.tcc \
+ /usr/include/c++/15/tr1/special_function_util.h \
+ /usr/include/c++/15/tr1/bessel_function.tcc \
+ /usr/include/c++/15/tr1/beta_function.tcc \
+ /usr/include/c++/15/tr1/ell_integral.tcc \
+ /usr/include/c++/15/tr1/exp_integral.tcc \
+ /usr/include/c++/15/tr1/hypergeometric.tcc \
+ /usr/include/c++/15/tr1/legendre_function.tcc \
+ /usr/include/c++/15/tr1/modified_bessel_func.tcc \
+ /usr/include/c++/15/tr1/poly_hermite.tcc \
+ /usr/include/c++/15/tr1/poly_laguerre.tcc \
+ /usr/include/c++/15/tr1/riemann_zeta.tcc /usr/include/c++/15/filesystem \
+ /usr/include/c++/15/bits/fs_fwd.h /usr/include/c++/15/bits/chrono.h \
+ /usr/include/c++/15/ratio /usr/include/c++/15/bits/parse_numbers.h \
+ /usr/include/c++/15/bits/fs_path.h /usr/include/c++/15/iomanip \
+ /usr/include/c++/15/bits/quoted_string.h /usr/include/c++/15/sstream \
+ /usr/include/c++/15/bits/sstream.tcc /usr/include/c++/15/codecvt \
+ /usr/include/c++/15/ext/concurrence.h \
  /usr/include/c++/15/bits/shared_ptr.h \
  /usr/include/c++/15/bits/shared_ptr_base.h \
  /usr/include/c++/15/bits/allocated_ptr.h \
+ /usr/include/c++/15/bits/unique_ptr.h \
  /usr/include/c++/15/ext/aligned_buffer.h \
- /usr/include/c++/15/ext/concurrence.h \
+ /usr/include/c++/15/bits/align.h \
+ /usr/include/c++/15/bits/stl_uninitialized.h \
+ /usr/include/c++/15/bits/fs_dir.h /usr/include/c++/15/bits/fs_ops.h \
+ /usr/include/c++/15/fstream \
+ /usr/include/x86_64-linux-gnu/c++/15/bits/basic_file.h \
+ /usr/include/x86_64-linux-gnu/c++/15/bits/c++io.h \
+ /usr/include/c++/15/bits/fstream.tcc /usr/include/c++/15/functional \
+ /usr/include/c++/15/bits/std_function.h \
+ /usr/include/c++/15/unordered_map \
+ /usr/include/c++/15/bits/unordered_map.h \
+ /usr/include/c++/15/bits/hashtable.h \
+ /usr/include/c++/15/bits/hashtable_policy.h \
+ /usr/include/c++/15/bits/node_handle.h \
+ /usr/include/c++/15/bits/erase_if.h /usr/include/c++/15/vector \
+ /usr/include/c++/15/bits/stl_vector.h \
+ /usr/include/c++/15/bits/stl_bvector.h \
+ /usr/include/c++/15/bits/vector.tcc \
+ /usr/include/c++/15/bits/move_only_function.h \
+ /usr/include/c++/15/bits/mofunc_impl.h /usr/include/c++/15/list \
+ /usr/include/c++/15/bits/stl_list.h /usr/include/c++/15/bits/list.tcc \
+ /usr/include/c++/15/map /usr/include/c++/15/bits/stl_tree.h \
+ /usr/include/c++/15/bits/stl_map.h \
+ /usr/include/c++/15/bits/stl_multimap.h /usr/include/c++/15/memory \
+ /usr/include/c++/15/bits/stl_raw_storage_iter.h \
  /usr/include/c++/15/bits/shared_ptr_atomic.h \
  /usr/include/c++/15/bits/atomic_base.h \
  /usr/include/c++/15/bits/atomic_lockfree_defines.h \
@@ -219,94 +271,40 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: /home/luca/C^4/compiler_run.cpp \
  /usr/include/c++/15/backward/auto_ptr.h \
  /usr/include/c++/15/bits/ranges_uninitialized.h \
  /usr/include/c++/15/bits/out_ptr.h \
- /usr/include/c++/15/pstl/glue_memory_defs.h \
- /usr/include/c++/15/pstl/execution_defs.h /usr/include/c++/15/list \
- /usr/include/c++/15/bits/stl_list.h /usr/include/c++/15/bits/list.tcc \
- /usr/include/c++/15/variant /usr/include/c++/15/bits/parse_numbers.h \
- /usr/include/c++/15/functional /usr/include/c++/15/bits/std_function.h \
- /usr/include/c++/15/unordered_map \
- /usr/include/c++/15/bits/unordered_map.h \
- /usr/include/c++/15/bits/hashtable.h \
- /usr/include/c++/15/bits/hashtable_policy.h \
- /usr/include/c++/15/bits/node_handle.h \
- /usr/include/c++/15/bits/erase_if.h /usr/include/c++/15/vector \
- /usr/include/c++/15/bits/stl_vector.h \
- /usr/include/c++/15/bits/stl_bvector.h \
- /usr/include/c++/15/bits/vector.tcc \
- /usr/include/c++/15/bits/move_only_function.h \
- /usr/include/c++/15/bits/mofunc_impl.h /usr/include/c++/15/cmath \
- /usr/include/math.h /usr/include/x86_64-linux-gnu/bits/math-vector.h \
- /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
- /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h \
- /usr/include/x86_64-linux-gnu/bits/fp-logb.h \
- /usr/include/x86_64-linux-gnu/bits/fp-fast.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls-macros.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls.h \
- /usr/include/x86_64-linux-gnu/bits/mathcalls-narrow.h \
- /usr/include/x86_64-linux-gnu/bits/iscanonical.h \
- /usr/include/c++/15/bits/specfun.h /usr/include/c++/15/tr1/gamma.tcc \
- /usr/include/c++/15/tr1/special_function_util.h \
- /usr/include/c++/15/tr1/bessel_function.tcc \
- /usr/include/c++/15/tr1/beta_function.tcc \
- /usr/include/c++/15/tr1/ell_integral.tcc \
- /usr/include/c++/15/tr1/exp_integral.tcc \
- /usr/include/c++/15/tr1/hypergeometric.tcc \
- /usr/include/c++/15/tr1/legendre_function.tcc \
- /usr/include/c++/15/tr1/modified_bessel_func.tcc \
- /usr/include/c++/15/tr1/poly_hermite.tcc \
- /usr/include/c++/15/tr1/poly_laguerre.tcc \
- /usr/include/c++/15/tr1/riemann_zeta.tcc /usr/include/c++/15/map \
- /usr/include/c++/15/bits/stl_tree.h /usr/include/c++/15/bits/stl_map.h \
- /usr/include/c++/15/bits/stl_multimap.h /usr/include/c++/15/mutex \
- /usr/include/c++/15/bits/chrono.h /usr/include/c++/15/ratio \
- /usr/include/c++/15/bits/unique_lock.h /usr/include/c++/15/unordered_set \
- /usr/include/c++/15/bits/unordered_set.h /usr/include/c++/15/ranges \
+ /usr/include/c++/15/pstl/glue_memory_defs.h /usr/include/c++/15/mutex \
+ /usr/include/c++/15/bits/unique_lock.h /usr/include/c++/15/ranges \
  /usr/include/c++/15/iterator /usr/include/c++/15/bits/stream_iterator.h \
  /usr/include/c++/15/utility /usr/include/c++/15/bits/stl_relops.h \
- /usr/include/c++/15/bits/elements_of.h /usr/include/c++/15/fstream \
- /usr/include/x86_64-linux-gnu/c++/15/bits/basic_file.h \
- /usr/include/x86_64-linux-gnu/c++/15/bits/c++io.h \
- /usr/include/c++/15/bits/fstream.tcc /usr/include/c++/15/sstream \
- /usr/include/c++/15/bits/sstream.tcc /usr/include/c++/15/filesystem \
- /usr/include/c++/15/bits/fs_fwd.h /usr/include/c++/15/bits/fs_path.h \
- /usr/include/c++/15/iomanip /usr/include/c++/15/bits/quoted_string.h \
- /usr/include/c++/15/codecvt /usr/include/c++/15/bits/fs_dir.h \
- /usr/include/c++/15/bits/fs_ops.h /usr/include/c++/15/set \
- /usr/include/c++/15/bits/stl_set.h \
- /usr/include/c++/15/bits/stl_multiset.h /usr/include/c++/15/algorithm \
- /usr/include/c++/15/bits/ranges_algo.h \
- /usr/include/c++/15/pstl/glue_algorithm_defs.h \
- /usr/lib/llvm-21/include/llvm/IR/LLVMContext.h \
+ /usr/include/c++/15/variant /usr/include/c++/15/bits/elements_of.h \
+ /usr/include/c++/15/set /usr/include/c++/15/bits/stl_set.h \
+ /usr/include/c++/15/bits/stl_multiset.h \
+ /usr/include/c++/15/unordered_set \
+ /usr/include/c++/15/bits/unordered_set.h \
+ /usr/lib/llvm-21/include/llvm/IR/IRBuilder.h \
  /usr/lib/llvm-21/include/llvm-c/Types.h \
  /usr/lib/llvm-21/include/llvm-c/DataTypes.h /usr/include/inttypes.h \
  /usr/lib/llvm-21/include/llvm-c/ExternC.h \
- /usr/lib/llvm-21/include/llvm/IR/DiagnosticHandler.h \
- /usr/lib/llvm-21/include/llvm/ADT/StringRef.h \
- /usr/lib/llvm-21/include/llvm/ADT/DenseMapInfo.h \
- /usr/include/c++/15/cassert /usr/include/assert.h \
- /usr/lib/llvm-21/include/llvm/ADT/STLFunctionalExtras.h \
- /usr/lib/llvm-21/include/llvm/ADT/STLForwardCompat.h \
- /usr/lib/llvm-21/include/llvm/Support/Compiler.h \
- /usr/lib/llvm-21/include/llvm/Config/llvm-config.h \
- /usr/lib/llvm-21/include/llvm/ADT/iterator_range.h \
- /usr/lib/llvm-21/include/llvm/ADT/ADL.h /usr/include/c++/15/cstring \
- /usr/include/string.h /usr/include/strings.h \
- /usr/lib/llvm-21/include/llvm/Support/CBindingWrapping.h \
- /usr/lib/llvm-21/include/llvm/Support/Casting.h \
- /usr/lib/llvm-21/include/llvm/Support/type_traits.h \
- /usr/lib/llvm-21/include/llvm/IR/FixedMetadataKinds.def \
- /usr/lib/llvm-21/include/llvm/IR/IRBuilder.h \
  /usr/lib/llvm-21/include/llvm/ADT/ArrayRef.h \
  /usr/lib/llvm-21/include/llvm/ADT/Hashing.h \
+ /usr/lib/llvm-21/include/llvm/ADT/ADL.h \
  /usr/lib/llvm-21/include/llvm/Config/abi-breaking.h \
  /usr/lib/llvm-21/include/llvm/Support/DataTypes.h \
  /usr/lib/llvm-21/include/llvm/Support/ErrorHandling.h \
+ /usr/lib/llvm-21/include/llvm/Support/Compiler.h \
+ /usr/lib/llvm-21/include/llvm/Config/llvm-config.h \
  /usr/lib/llvm-21/include/llvm/Support/SwapByteOrder.h \
+ /usr/lib/llvm-21/include/llvm/ADT/STLForwardCompat.h \
  /usr/lib/llvm-21/include/llvm/ADT/bit.h \
+ /usr/lib/llvm-21/include/llvm/Support/type_traits.h \
+ /usr/include/c++/15/cassert /usr/include/assert.h \
+ /usr/include/c++/15/cstring /usr/include/string.h /usr/include/strings.h \
  /usr/lib/llvm-21/include/llvm/ADT/SmallVector.h \
+ /usr/lib/llvm-21/include/llvm/ADT/DenseMapInfo.h \
  /usr/lib/llvm-21/include/llvm/ADT/STLExtras.h \
+ /usr/lib/llvm-21/include/llvm/ADT/STLFunctionalExtras.h \
  /usr/lib/llvm-21/include/llvm/ADT/iterator.h \
+ /usr/lib/llvm-21/include/llvm/ADT/iterator_range.h \
+ /usr/lib/llvm-21/include/llvm/ADT/StringRef.h \
  /usr/lib/llvm-21/include/llvm/ADT/Twine.h \
  /usr/lib/llvm-21/include/llvm/IR/BasicBlock.h \
  /usr/lib/llvm-21/include/llvm/ADT/DenseMap.h \
@@ -330,12 +328,17 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: /home/luca/C^4/compiler_run.cpp \
  /usr/lib/llvm-21/include/llvm/IR/TrackingMDRef.h \
  /usr/lib/llvm-21/include/llvm/IR/Metadata.h \
  /usr/lib/llvm-21/include/llvm/ADT/PointerUnion.h \
+ /usr/lib/llvm-21/include/llvm/Support/Casting.h \
  /usr/lib/llvm-21/include/llvm/IR/Constant.h \
  /usr/lib/llvm-21/include/llvm/IR/User.h \
  /usr/lib/llvm-21/include/llvm/IR/Use.h \
+ /usr/lib/llvm-21/include/llvm/Support/CBindingWrapping.h \
  /usr/lib/llvm-21/include/llvm/IR/Value.h \
  /usr/lib/llvm-21/include/llvm/Support/Alignment.h \
  /usr/lib/llvm-21/include/llvm/IR/Value.def \
+ /usr/lib/llvm-21/include/llvm/IR/LLVMContext.h \
+ /usr/lib/llvm-21/include/llvm/IR/DiagnosticHandler.h \
+ /usr/lib/llvm-21/include/llvm/IR/FixedMetadataKinds.def \
  /usr/lib/llvm-21/include/llvm/IR/Metadata.def \
  /usr/lib/llvm-21/include/llvm/IR/Instruction.h \
  /usr/lib/llvm-21/include/llvm/ADT/Bitfields.h \
@@ -388,6 +391,7 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: /home/luca/C^4/compiler_run.cpp \
  /usr/lib/llvm-21/include/llvm/ADT/GraphTraits.h \
  /usr/lib/llvm-21/include/llvm/IR/CmpPredicate.h \
  /usr/lib/llvm-21/include/llvm/IR/ValueHandle.h \
+ /usr/lib/llvm-21/include/llvm/IR/IntrinsicsX86.h \
  /usr/lib/llvm-21/include/llvm/IR/Module.h \
  /usr/lib/llvm-21/include/llvm/IR/Comdat.h \
  /usr/lib/llvm-21/include/llvm/ADT/SmallPtrSet.h \
@@ -412,7 +416,6 @@ CMakeFiles/qc.dir/compiler_run.cpp.o: /home/luca/C^4/compiler_run.cpp \
  /usr/lib/llvm-21/include/llvm/Support/FileSystem/UniqueID.h \
  /usr/lib/llvm-21/include/llvm/Support/MD5.h \
  /usr/lib/llvm-21/include/llvm/Support/Endian.h \
- /usr/lib/llvm-21/include/llvm/IR/IntrinsicsX86.h \
  /usr/include/c++/15/thread /usr/include/c++/15/stop_token \
  /usr/include/c++/15/atomic /usr/include/c++/15/bits/std_thread.h \
  /usr/include/c++/15/semaphore /usr/include/c++/15/bits/semaphore_base.h \

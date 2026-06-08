@@ -61,7 +61,7 @@ target triple = "x86_64-pc-linux-gnu"
 @ffi_type_void = external global %struct._ffi_type, align 8
 @switch.table.qc_print_array_qbool = private unnamed_addr constant [4 x ptr] [ptr @.str.25, ptr @.str.26, ptr @.str.27, ptr @.str.28], align 8
 @switch.table.qc_set_leaf_element.51 = private unnamed_addr constant [5 x i64] [i64 8, i64 1, i64 1, i64 1, i64 8], align 8
-@switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_ = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
+@switch.table.stringify_jagged_helper = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
 @switch.table.qc_map_set.53 = private unnamed_addr constant [4 x i64] [i64 8, i64 1, i64 1, i64 1], align 8
 @switch.table.qc_spread_call = private unnamed_addr constant [7 x ptr] [ptr @ffi_type_void, ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
 @switch.table.qc_spread_call.54 = private unnamed_addr constant [6 x ptr] [ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
@@ -1986,7 +1986,7 @@ define dso_local range(i32 1, 9) i32 @sizeof_type(i32 noundef %0) local_unnamed_
 
 4:                                                ; preds = %1
   %5 = zext nneg i32 %2 to i64
-  %6 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %5
+  %6 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %5
   %7 = load i32, ptr %6, align 4
   br label %8
 
@@ -2083,7 +2083,7 @@ define dso_local noundef ptr @qc_array_to_string_recursive(ptr noundef readonly 
 
 48:                                               ; preds = %45
   %49 = zext nneg i32 %46 to i64
-  %50 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %49
+  %50 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %49
   %51 = load i32, ptr %50, align 4
   br label %52
 
@@ -2326,7 +2326,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef readonly captures(no
 
 46:                                               ; preds = %41
   %47 = zext nneg i32 %44 to i64
-  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %47
+  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %47
   %49 = load i32, ptr %48, align 4
   br label %50
 
@@ -2573,7 +2573,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef readonly capt
 
 42:                                               ; preds = %37
   %43 = zext nneg i32 %40 to i64
-  %44 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %43
+  %44 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %43
   %45 = load i32, ptr %44, align 4
   br label %46
 
@@ -2759,7 +2759,7 @@ define dso_local ptr @qc_jagged_array_get(ptr noundef readonly captures(address_
 
 46:                                               ; preds = %38
   %47 = zext nneg i32 %44 to i64
-  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %47
+  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %47
   %49 = load i32, ptr %48, align 4
   br label %50
 
@@ -2801,7 +2801,7 @@ define dso_local ptr @qc_jagged_array_get(ptr noundef readonly captures(address_
 
 76:                                               ; preds = %71
   %77 = zext nneg i32 %74 to i64
-  %78 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %77
+  %78 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %77
   %79 = load i32, ptr %78, align 4
   br label %80
 
@@ -2837,7 +2837,7 @@ define dso_local noalias noundef ptr @qc_create_leaf_row(i32 noundef %0, i32 nou
 
 5:                                                ; preds = %2
   %6 = zext nneg i32 %3 to i64
-  %7 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %6
+  %7 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %6
   %8 = load i32, ptr %7, align 4
   br label %9
 
@@ -2857,7 +2857,7 @@ define dso_local void @qc_set_leaf_element(ptr noundef writeonly captures(none) 
 
 7:                                                ; preds = %4
   %8 = zext nneg i32 %5 to i64
-  %9 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %8
+  %9 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %8
   %10 = load i32, ptr %9, align 4
   br label %11
 
@@ -2883,33 +2883,7 @@ define dso_local void @qc_set_leaf_element(ptr noundef writeonly captures(none) 
 }
 
 ; Function Attrs: mustprogress nounwind uwtable
-define dso_local ptr @qc_jagged_to_string(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
-  %2 = alloca i32, align 4
-  %3 = alloca ptr, align 8
-  %4 = alloca ptr, align 8
-  %5 = alloca i32, align 4
-  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %2) #37
-  store i32 1024, ptr %2, align 4, !tbaa !19
-  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %3) #37
-  %6 = tail call noalias dereferenceable_or_null(1024) ptr @malloc(i64 noundef 1024) #36
-  store ptr %6, ptr %3, align 8, !tbaa !28
-  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #37
-  store ptr %6, ptr %4, align 8, !tbaa !28
-  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %5) #37
-  store i32 1024, ptr %5, align 4, !tbaa !19
-  call fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(ptr noundef %0, ptr noundef %4, ptr noundef %5, ptr noundef %2, ptr noundef %3)
-  %7 = load ptr, ptr %4, align 8, !tbaa !28
-  store i8 0, ptr %7, align 1, !tbaa !7
-  %8 = load ptr, ptr %3, align 8, !tbaa !28
-  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %5) #37
-  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #37
-  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %3) #37
-  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %2) #37
-  ret ptr %8
-}
-
-; Function Attrs: mustprogress nounwind uwtable
-define internal fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(ptr noundef readonly captures(none) %0, ptr noundef nonnull captures(none) %1, ptr noundef nonnull captures(none) %2, ptr noundef nonnull captures(none) %3, ptr noundef nonnull captures(none) %4) unnamed_addr #17 {
+define dso_local void @stringify_jagged_helper(ptr noundef readonly captures(none) %0, ptr noundef captures(none) %1, ptr noundef captures(none) %2, ptr noundef captures(none) %3, ptr noundef captures(none) %4) local_unnamed_addr #17 {
   %6 = alloca [64 x i8], align 16
   %7 = load ptr, ptr %1, align 8, !tbaa !28
   store i8 91, ptr %7, align 1, !tbaa !7
@@ -2955,7 +2929,7 @@ define internal fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPi
   %32 = load ptr, ptr %0, align 8, !tbaa !47
   %33 = getelementptr inbounds nuw ptr, ptr %32, i64 %28
   %34 = load ptr, ptr %33, align 8, !tbaa !55
-  tail call fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_(ptr noundef %34, ptr noundef %1, ptr noundef %2, ptr noundef %3, ptr noundef %4)
+  tail call void @stringify_jagged_helper(ptr noundef %34, ptr noundef nonnull %1, ptr noundef nonnull %2, ptr noundef %3, ptr noundef %4)
   br label %151
 
 35:                                               ; preds = %27
@@ -2996,7 +2970,7 @@ define internal fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPi
 
 59:                                               ; preds = %54
   %60 = zext nneg i32 %57 to i64
-  %61 = getelementptr inbounds nuw [5 x i32], ptr @switch.table._ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPiS3_S2_, i64 0, i64 %60
+  %61 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %60
   %62 = load i32, ptr %61, align 4
   br label %63
 
@@ -3173,6 +3147,32 @@ define internal fastcc void @_ZL23stringify_jagged_helperP15qc_jagged_arrayPPcPi
   %168 = sext i32 %166 to i64
   %169 = icmp slt i64 %167, %168
   br i1 %169, label %27, label %19, !llvm.loop !61
+}
+
+; Function Attrs: mustprogress nounwind uwtable
+define dso_local ptr @qc_jagged_to_string(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
+  %2 = alloca i32, align 4
+  %3 = alloca ptr, align 8
+  %4 = alloca ptr, align 8
+  %5 = alloca i32, align 4
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %2) #37
+  store i32 1024, ptr %2, align 4, !tbaa !19
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %3) #37
+  %6 = tail call noalias dereferenceable_or_null(1024) ptr @malloc(i64 noundef 1024) #36
+  store ptr %6, ptr %3, align 8, !tbaa !28
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #37
+  store ptr %6, ptr %4, align 8, !tbaa !28
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %5) #37
+  store i32 1024, ptr %5, align 4, !tbaa !19
+  call void @stringify_jagged_helper(ptr noundef %0, ptr noundef nonnull %4, ptr noundef nonnull %5, ptr noundef nonnull %2, ptr noundef nonnull %3)
+  %7 = load ptr, ptr %4, align 8, !tbaa !28
+  store i8 0, ptr %7, align 1, !tbaa !7
+  %8 = load ptr, ptr %3, align 8, !tbaa !28
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %5) #37
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %3) #37
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %2) #37
+  ret ptr %8
 }
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(write, argmem: none, inaccessiblemem: readwrite) uwtable

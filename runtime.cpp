@@ -872,9 +872,7 @@ extern "C" {
         void* dest = (char*)row + (idx * sizeof_type(elem_type));
         memcpy(dest, value, sizeof_type(elem_type));
     }
-    static void stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result);
-
-    static void stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result) {
+    void stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result) {
         **p = '['; (*p)++; (*remaining)--;
         
         for (int i = 0; i < arr->count; i++) {
