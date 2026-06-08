@@ -377,7 +377,7 @@ was ~8% faster end-to-end.
 QuantumC follows 4 core rules:
 
 - Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convinient for language', it means what it should be. Clean is not a "pythonic" equievalant, it is self explanitory.
-- Your Memory, Your Problem: QuantumC does not stop you from doing somthing cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. Quantum C is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, Quantum C does not force exhaustive narrowing before every union operation. I will give you a sharp sword. If you cut yourself, don't blame the blacksmith.
+- Your Memory, Your Problem: QuantumC does not stop you from doing somthing cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. Quantum C is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, Quantum C does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
 - No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacoamb. If it is a intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
   Made by [Me](https://github.com/Youg-Otricked)
