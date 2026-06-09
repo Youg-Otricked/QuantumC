@@ -2613,32 +2613,15 @@ class LLVMCompiler {
                 return getTypeName(var->getType());
             }
         } else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
-            if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
-                std::string name = (*varAcc)->var_name_tok.value;
-                if (hasList(name)) {
-                    auto it = findList(name);
-                    int code = it->second;
-                    if (code == 0)
-                        return "int";
-                    if (code == 1)
-                        return "float";
-                    if (code == 2)
-                        return "double";
-                    if (code == 3)
-                        return "char";
-                    if (code == 4)
-                        return "bool";
-                    if (code == 5)
-                        return "qbool";
-                    if (code == 6)
-                        return "string";
-                }
-                if (hasArrayType(name)) {
-                    return arrayTypeStrings[name];
-                }
-                if (hasMap(name)) {
-                    auto it = findMap(name);
-                    auto codeToType = [](int code) -> std::string {
+            std::string baseType = getExpressionType((*arrAcc)->base);
+            if (baseType.ends_with("*")) {
+                return baseType.substr(0, baseType.size() - 1);
+            } else {
+                if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
+                    std::string name = (*varAcc)->var_name_tok.value;
+                    if (hasList(name)) {
+                        auto it = findList(name);
+                        int code = it->second;
                         if (code == 0)
                             return "int";
                         if (code == 1)
@@ -2653,18 +2636,40 @@ class LLVMCompiler {
                             return "qbool";
                         if (code == 6)
                             return "string";
-                        return "auto";
-                    };
-                    std::string keyType = codeToType(it->second.first);
-                    std::string valType = codeToType(it->second.second);
-                    return "map<" + keyType + "," + valType + ">";
+                    }
+                    if (hasArrayType(name)) {
+                        return arrayTypeStrings[name];
+                    }
+                    if (hasMap(name)) {
+                        auto it = findMap(name);
+                        auto codeToType = [](int code) -> std::string {
+                            if (code == 0)
+                                return "int";
+                            if (code == 1)
+                                return "float";
+                            if (code == 2)
+                                return "double";
+                            if (code == 3)
+                                return "char";
+                            if (code == 4)
+                                return "bool";
+                            if (code == 5)
+                                return "qbool";
+                            if (code == 6)
+                                return "string";
+                            return "auto";
+                        };
+                        std::string keyType = codeToType(it->second.first);
+                        std::string valType = codeToType(it->second.second);
+                        return "map<" + keyType + "," + valType + ">";
+                    }
                 }
             }
             return "unknown";
         } else if (auto nullp = std::get_if<NullptrNode>(&node)) {
             return "@nullptr";
         } else if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
-            std::string currentType = getExpressionType(*((*propAcc)->base), true);
+            std::string currentType = getExpressionType(*((*propAcc)->base));
             if (currentType.ends_with("*") || currentType.ends_with("&")) {
                 currentType.pop_back();
             }
@@ -2672,8 +2677,9 @@ class LLVMCompiler {
             while (!currentType.empty() && userTypes.contains(currentType)) {
                 auto& info = userTypes[currentType];
                 for (const auto& f : info.fields) {
-                    if (f.name == fieldName)
+                    if (f.name == fieldName) {
                         return f.type;
+                    }
                 }
                 for (const auto& f : info.classFields) {
                     if (f.name == fieldName)
@@ -2693,8 +2699,10 @@ class LLVMCompiler {
             baseAddr = createEntryAlloca("temp_lval_base", rval->getType());
             builder->CreateStore(rval, baseAddr);
         }
-        std::string typeName = getExpressionType(*prop.base, true);
+        std::string typeName = getExpressionType(*prop.base);
+        std::cout << "base type name = " << typeName << '\n';
         if (classTypes.count(typeName)) {
+            std::cout << "Found type in classes" << '\n';
             int fieldIdx = getFlattenedFieldIndex(typeName, propName);
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
@@ -2708,6 +2716,7 @@ class LLVMCompiler {
             return builder->CreateStructGEP(classTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
         }
         if (structTypes.count(typeName)) {
+            std::cout << "Found type in structs" << '\n';
             auto& info = userTypes[typeName];
             int fieldIdx = -1;
             for (size_t i = 0; i < info.fields.size(); i++) {
@@ -2716,6 +2725,7 @@ class LLVMCompiler {
                     break;
                 }
             }
+            std::cout << "Field index is " << fieldIdx << '\n';
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in struct " + typeName + ": " + propName);
                 return nullptr;
@@ -2762,7 +2772,7 @@ class LLVMCompiler {
         } else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
             if ((*unary)->op_tok.type == TokenType::MUL) {
                 return emitExpr((*unary)->node);
-            }
+            } 
         } else if (auto prop = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
             return emitPropertyAddress(**prop);
         } else if (auto call = std::get_if<std::unique_ptr<CallNode>>(&node)) {

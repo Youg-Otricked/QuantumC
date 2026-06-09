@@ -2376,19 +2376,179 @@ Prs Parser::atom() {
                 }
             }
         }
-        if (this->current_tok.type == TokenType::INCREMENT ||
-            this->current_tok.type == TokenType::DECREMENT) {
+        if (this->current_tok.type == TokenType::INCREMENT || this->current_tok.type == TokenType::DECREMENT) {
             Token op = this->current_tok;
             this->advance();
-            AnyNode target = std::make_unique<VarAccessNode>(ident);
-            AnyNode value_node = std::make_unique<UnaryOpNode>(
-                op, std::make_unique<VarAccessNode>(ident));
+            AnyNode value_node = std::make_unique<UnaryOpNode>(op, std::move(base));
+            return res.success(std::move(value_node));
+        } 
+        while (true) {
+            if (this->current_tok.type == TokenType::LPAREN) {
+                base = res.reg(this->call(std::move(base)));
+            } else if (this->current_tok.type == TokenType::LBRACKET) {
+                std::vector<AnyNode> indices;
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    AnyNode index = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "QC-S049: Expected ']'",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    indices.push_back(std::move(index));
+                }
+                base = std::make_unique<ArrayAccessNode>(std::move(base), std::move(indices));
+            } else if (this->current_tok.type == TokenType::DOT || this->current_tok.type == TokenType::ARROW) {
+                if (this->current_tok.type == TokenType::ARROW) {
+                    this->advance();
 
-            return res.success(std::make_unique<AssignExprNode>(
-                std::move(target), Token(TokenType::EQ, "=", op.pos),
-                std::move(value_node)));
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected property or method name after '->'",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
+
+                    Token property_name = this->current_tok;
+                    this->advance();
+                    Token base_name_tok;
+                    if (auto var =
+                            std::get_if<std::unique_ptr<VarAccessNode>>(&base)) {
+                        base_name_tok = (*var)->var_name_tok;
+                    } else {
+                        base_name_tok =
+                            Token(TokenType::IDENTIFIER, "", property_name.pos);
+                    }
+
+                    auto deref = std::make_unique<UnaryOpNode>(
+                        Token(TokenType::MUL, "*", property_name.pos),
+                        std::move(base));
+
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        this->advance();
+
+                        std::vector<AnyNode> args;
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error)
+                                        return res.to_prs();
+                                    args.push_back(std::make_unique<SpreadNode>(
+                                        std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error)
+                                        return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+                                if (this->current_tok.type != TokenType::COMMA)
+                                    break;
+                                this->advance();
+                            }
+                        }
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "Expected ')' after method arguments",
+                                this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        base = std::make_unique<MethodCallNode>(
+                            std::move(deref), property_name, std::move(args));
+                    } else {
+                        base = std::make_shared<PropertyAccessNode>(
+                            std::move(deref), base_name_tok, property_name);
+                    }
+                } else if (this->current_tok.type == TokenType::DOT) {
+                    this->advance();
+
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(std::make_unique<InvalidSyntaxError>(
+                            "Expected property or method name after '.'",
+                            this->current_tok.pos));
+                        return res.to_prs();
+                    }
+
+                    Token property_name = this->current_tok;
+                    this->advance();
+
+                    if (this->current_tok.type == TokenType::LPAREN) {
+                        this->advance();
+                        std::vector<AnyNode> args;
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            while (true) {
+                                if (this->current_tok.type == TokenType::AT) {
+                                    this->advance();
+                                    AnyNode expr = res.reg(this->logical_or());
+                                    if (res.error)
+                                        return res.to_prs();
+                                    args.push_back(std::make_unique<SpreadNode>(
+                                        std::move(expr)));
+                                } else {
+                                    AnyNode arg = res.reg(this->logical_or());
+                                    if (res.error)
+                                        return res.to_prs();
+                                    args.push_back(std::move(arg));
+                                }
+                                if (this->current_tok.type != TokenType::COMMA)
+                                    break;
+                                this->advance();
+                            }
+                        }
+
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(std::make_unique<InvalidSyntaxError>(
+                                "QC-S044: Expected ')' after function arguments",
+                                this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+
+                        base = std::make_unique<MethodCallNode>(
+                            std::move(base), property_name, std::move(args));
+                    } else {
+                        base = std::make_shared<PropertyAccessNode>(
+                            std::move(base), ident, property_name);
+                    }
+
+                    while (this->current_tok.type == TokenType::LBRACKET) {
+                        std::vector<AnyNode> indices;
+                        while (this->current_tok.type == TokenType::LBRACKET) {
+                            this->advance();
+                            AnyNode index = res.reg(this->logical_or());
+                            if (res.error)
+                                return res.to_prs();
+                            if (this->current_tok.type != TokenType::RBRACKET) {
+                                res.failure(std::make_unique<InvalidSyntaxError>(
+                                    "QC-S049: Expected ']'",
+                                    this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                            indices.push_back(std::move(index));
+                        }
+                        base = std::make_unique<ArrayAccessNode>(
+                            std::move(base), std::move(indices));
+                    }
+                }
+            } else if (this->current_tok.type == TokenType::INCREMENT || this->current_tok.type == TokenType::DECREMENT) {
+                Token op = this->current_tok;
+                this->advance();
+                AnyNode value_node = std::make_unique<UnaryOpNode>(op, std::move(base));
+                return res.success(std::move(value_node));
+            } else {
+                break;
+            }
+            if (res.error) return res.to_prs();
         }
-
         return res.success(std::move(base));
     } else if (tok.type == TokenType::LPAREN) {
         this->advance();
@@ -12817,7 +12977,7 @@ void LLVMCompiler::createUserTypes() {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 baseFuncTy->getReturnType(), paramTypes, false);
             llvm::Function* fn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     methodName, module.get());
 
             classMethods[mapKey][method.name_tok.value].push_back(fn);
@@ -12873,8 +13033,7 @@ ParamTypeInfo toTypeInfo(const Parameter& p) {
 
     return out;
 }
-llvm::FunctionType*
-LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>& returnTypes,
+llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>& returnTypes,
     const std::vector<ParamTypeInfo>& params) {
     std::vector<llvm::Type*> paramTypes;
     bool is_c_varargs = false;
@@ -12960,7 +13119,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 voidPtrTy, {builder->getInt32Ty(), builder->getInt32Ty()},
                 false);
             createRowFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_create_leaf_row", module.get());
         }
 
@@ -12978,7 +13137,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                         voidPtrTy, builder->getInt32Ty()},
                     false);
             setLeafFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_set_leaf_element", module.get());
         }
 
@@ -13009,7 +13168,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 builder->getInt32Ty()},
             false);
         createFn =
-            llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+            llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                 "qc_create_jagged_array", module.get());
     }
 
@@ -13028,7 +13187,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 {voidPtrTy, builder->getInt32Ty(),
                     voidPtrTy, builder->getInt32Ty()},
                 false);
-        setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+        setFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
             "qc_set_jagged_element", module.get());
     }
 
@@ -13162,7 +13321,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     auto* fnTy = llvm::FunctionType::get(
                         llvm::PointerType::get(context, 0), {}, false);
                     qinFn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage, "qc_qin",
+                        fnTy, llvm::Function::InternalLinkage, "qc_qin",
                         module.get());
                 }
 
@@ -13191,7 +13350,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt32Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_int_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13203,7 +13362,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt16Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_short_int_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13215,7 +13374,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt64Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_long_int_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13227,7 +13386,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getFloatTy(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_float_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13239,7 +13398,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getDoubleTy(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_double_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13251,7 +13410,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt8Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_char_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13263,7 +13422,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt1Ty(),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_bool_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13275,7 +13434,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getIntNTy(2),
                                 {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_to_qbool_from_string", module.get());
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -13391,7 +13550,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_string_eq", module.get());
                         }
                         payloadMatch = builder->CreateCall(
@@ -13480,7 +13639,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_string_eq", module.get());
                         }
                         payloadMatch = builder->CreateCall(
@@ -13671,7 +13830,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_string_eq", module.get());
                         }
                         payloadMatch = builder->CreateCall(
@@ -13761,7 +13920,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             auto* fnTy = llvm::FunctionType::get(
                                 builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
                             strcmp_fn = llvm::Function::Create(
-                                fnTy, llvm::Function::ExternalLinkage,
+                                fnTy, llvm::Function::InternalLinkage,
                                 "qc_string_eq", module.get());
                         }
                         payloadMatch = builder->CreateCall(
@@ -13921,7 +14080,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt32Ty()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_int", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i32");
@@ -13933,7 +14092,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt16Ty()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_short_int", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i16");
@@ -13945,7 +14104,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt64Ty()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_long_int", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i64");
@@ -13957,7 +14116,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getDoubleTy()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_double", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_f64");
@@ -13969,7 +14128,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getDoubleTy()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_float", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_f32");
@@ -13981,7 +14140,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt1Ty()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_bool", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_bool");
@@ -13993,7 +14152,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getInt32Ty()}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_char", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i8");
@@ -14008,7 +14167,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         auto* fnTy = llvm::FunctionType::get(
                             i8Ptr, {builder->getIntNTy(2)}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_to_string_qbool", module.get());
                     }
                     return builder->CreateCall(fn, {v}, "fstr_qbool");
@@ -14073,7 +14232,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt32Ty(), intPtrTy},
                             false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_array_to_string_recursive", module.get());
                     }
 
@@ -14189,7 +14348,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 std::vector<llvm::Type*> argTypes = {i8Ptr, i8Ptr};
                 auto* fnTy = llvm::FunctionType::get(i8Ptr, argTypes, false);
                 concatFn = llvm::Function::Create(
-                    fnTy, llvm::Function::ExternalLinkage, "qc_string_concat",
+                    fnTy, llvm::Function::InternalLinkage, "qc_string_concat",
                     module.get());
             }
 
@@ -14593,7 +14752,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 std::string rType = getExpressionType((*bin)->right_node);
 
                 if (lType.ends_with("*") || lType == "@nullptr") {
-                    if (lType.starts_with("void*")) {
+                    if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos,
                             "Pointer arithmetic cannot be preformed on "
                             "void pointers");
@@ -14626,7 +14785,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::FunctionType* fnTy =
                             llvm::FunctionType::get(i8PtrTy, argTypes, false);
                         concatFn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_string_concat", module.get());
                     }
                     return builder->CreateCall(concatFn, {L, R}, "str_concat");
@@ -14661,13 +14820,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
 
                 if ((lType.ends_with("*") || lType == "@nullptr") &&
                     (rType.ends_with("*") || rType == "@nullptr")) {
-                    if (lType.starts_with("void*")) {
+                    if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos,
                             "Pointer arithmetic cannot be preformed on "
                             "void pointers");
                         return nullptr;
                     }
-                    if (rType.starts_with("void*")) {
+                    if (rType == "void*") {
                         cg_error((*bin)->op_tok.pos,
                             "Pointer arithmetic cannot be preformed on "
                             "void pointers");
@@ -14867,7 +15026,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt32Ty(),
                         {builder->getInt32Ty(), builder->getInt32Ty()}, false);
                     qc_powi = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage, "qc_powi_i32",
+                        fnTy, llvm::Function::InternalLinkage, "qc_powi_i32",
                         module.get());
                 }
                 return builder->CreateCall(qc_powi, {L, R}, "powi");
@@ -15055,7 +15214,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                        llvm::Function::ExternalLinkage,
+                        llvm::Function::InternalLinkage,
                         "qc_qand", module.get());
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
@@ -15073,7 +15232,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                        llvm::Function::ExternalLinkage,
+                        llvm::Function::InternalLinkage,
                         "qc_qor", module.get());
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
@@ -15092,7 +15251,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt8Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                        llvm::Function::ExternalLinkage,
+                        llvm::Function::InternalLinkage,
                         "qc_qxor", module.get());
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
@@ -15110,7 +15269,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt1Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage,
+                        fnTy, llvm::Function::InternalLinkage,
                         "qc_qand_collapse", module.get());
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
@@ -15128,7 +15287,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->getInt1Ty(),
                         {builder->getInt8Ty(), builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage,
+                        fnTy, llvm::Function::InternalLinkage,
                         "qc_qor_collapse", module.get());
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
@@ -15156,7 +15315,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         ptrTy, {builder->getInt32Ty()}, false);
                     createFn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage, "qc_create_list",
+                        fnTy, llvm::Function::InternalLinkage, "qc_create_list",
                         module.get());
                 }
 
@@ -16182,7 +16341,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         builder->getInt8Ty(), {builder->getInt8Ty()}, false);
                     fn = llvm::Function::Create(fnTy,
-                        llvm::Function::ExternalLinkage,
+                        llvm::Function::InternalLinkage,
                         "qc_qnot", module.get());
                 }
                 llvm::Value* op8 =
@@ -16205,32 +16364,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         }
         if ((*unary)->op_tok.type == TokenType::INCREMENT ||
             (*unary)->op_tok.type == TokenType::DECREMENT) {
-            auto* varPtr =
-                std::get_if<std::unique_ptr<VarAccessNode>>(&(*unary)->node);
-            if (!varPtr) {
+            llvm::Value* lhsVal = emitExpr((*unary)->node);
+            llvm::Value* lhs = emitLValue((*unary)->node);
+            if (!lhsVal->getType()->isIntegerTy()) {
                 cg_error((*unary)->op_tok.pos,
-                    "++/-- only supported on variables in compiled mode");
+                    "++/-- only valid on int-like");
                 return nullptr;
             }
 
-            std::string name = (*varPtr)->var_name_tok.value;
-            llvm::Value* alloc = getVarAddress(name);
-            if (!alloc) {
-                cg_error((*varPtr)->var_name_tok.pos,
-                    "Use of undeclared variable '" + name + "'");
-                return nullptr;
-            }
-            llvm::Type* ty = getPointeeType(name);
-
-            if (!ty->isIntegerTy() || ty->getIntegerBitWidth() <= 2) {
-                cg_error((*unary)->op_tok.pos,
-                    "++/-- only valid on int-like (not bool/qbool)");
-                return nullptr;
-            }
-
-            llvm::Value* oldVal = builder->CreateLoad(ty, alloc, name);
-            llvm::Value* one = llvm::ConstantInt::get(ty, 1);
-
+            llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, "inc_deref");
+            llvm::Value* one = llvm::ConstantInt::get(lhsVal->getType(), 1);
             llvm::Value* newVal;
             if ((*unary)->op_tok.type == TokenType::INCREMENT) {
                 newVal = builder->CreateAdd(oldVal, one, "inc");
@@ -16238,8 +16381,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 newVal = builder->CreateSub(oldVal, one, "dec");
             }
 
-            builder->CreateStore(newVal, alloc);
-
+            builder->CreateStore(newVal, lhs);
             bool isPostfix = (*unary)->is_postfix;
             return isPostfix ? oldVal : newVal;
         }
@@ -16267,7 +16409,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         type);
                 return nullptr;
             }
-            if (type.starts_with("void*")) {
+            if (type == "void*") {
                 cg_error((*unary)->op_tok.pos, "you canot dereference void*");
                 return nullptr;
             }
@@ -16310,7 +16452,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_create_map", module.get());
         }
 
@@ -16325,7 +16467,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
             setFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_map_set", module.get());
         }
 
@@ -16368,7 +16510,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                         builder->getPtrTy(), {builder->getInt64Ty()}, false);
                     mallocFn = llvm::Function::Create(
-                        mallocTy, llvm::Function::ExternalLinkage, "malloc",
+                        mallocTy, llvm::Function::InternalLinkage, "malloc",
                         module.get());
                 }
                 llvm::Value* size = builder->getInt64(0);
@@ -16776,7 +16918,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 llvm::PointerType::get(context, 0)},
                             false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage, "qc_fopen",
+                            fnTy, llvm::Function::InternalLinkage, "qc_fopen",
                             module.get());
                     }
                     return builder->CreateCall(fn, args, "fopen_result");
@@ -16791,7 +16933,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0)}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage, "qc_fclose",
+                            fnTy, llvm::Function::InternalLinkage, "qc_fclose",
                             module.get());
                     }
                     builder->CreateCall(fn, {arg});
@@ -16807,7 +16949,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::PointerType::get(context, 0),
                             {llvm::PointerType::get(context, 0)}, false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage, "qc_fread",
+                            fnTy, llvm::Function::InternalLinkage, "qc_fread",
                             module.get());
                     }
                     return builder->CreateCall(fn, {arg}, "fread_result");
@@ -16828,7 +16970,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 llvm::PointerType::get(context, 0)},
                             false);
                         fn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage, "qc_fwrite",
+                            fnTy, llvm::Function::InternalLinkage, "qc_fwrite",
                             module.get());
                     }
                     builder->CreateCall(fn, args);
@@ -16889,7 +17031,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0)}, false);
                         printString = llvm::Function::Create(
-                            prStrFnTy, llvm::Function::ExternalLinkage,
+                            prStrFnTy, llvm::Function::InternalLinkage,
                             "qc_print_string", module.get());
                     }
                     llvm::Function* fmtStr =
@@ -16901,7 +17043,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt32Ty(), builder->getInt1Ty()},
                             false);
                         fmtStr = llvm::Function::Create(
-                            prStrFnTy, llvm::Function::ExternalLinkage,
+                            prStrFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_string", module.get());
                     }
                     llvm::Function* fmtInt = module->getFunction("qc_fmt_int");
@@ -16913,7 +17055,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtInt = llvm::Function::Create(
-                            fmtIntFnTy, llvm::Function::ExternalLinkage,
+                            fmtIntFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_int", module.get());
                     }
                     llvm::Function* fmtUInt =
@@ -16926,7 +17068,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtUInt = llvm::Function::Create(
-                            fmtUIntFnTy, llvm::Function::ExternalLinkage,
+                            fmtUIntFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_unsigned_int", module.get());
                     }
                     llvm::Function* fmtFloat =
@@ -16939,7 +17081,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtFloat = llvm::Function::Create(
-                            fmtFloatFnTy, llvm::Function::ExternalLinkage,
+                            fmtFloatFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_float", module.get());
                     }
                     llvm::Function* fmtDouble =
@@ -16952,7 +17094,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtDouble = llvm::Function::Create(
-                            fmtDoubleFnTy, llvm::Function::ExternalLinkage,
+                            fmtDoubleFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_double", module.get());
                     }
                     llvm::Function* fmtChar =
@@ -16965,7 +17107,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty()},
                                 false);
                         fmtChar = llvm::Function::Create(
-                            fmtCharFnTy, llvm::Function::ExternalLinkage,
+                            fmtCharFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_char", module.get());
                     }
                     llvm::Function* fmtQBool =
@@ -16978,7 +17120,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty()},
                                 false);
                         fmtQBool = llvm::Function::Create(
-                            fmtQBoolFnTy, llvm::Function::ExternalLinkage,
+                            fmtQBoolFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_qbool", module.get());
                     }
                     llvm::Function* fmtBool =
@@ -16991,7 +17133,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty()},
                                 false);
                         fmtBool = llvm::Function::Create(
-                            fmtBoolFnTy, llvm::Function::ExternalLinkage,
+                            fmtBoolFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_bool", module.get());
                     }
                     llvm::Function* fmtPtr = module->getFunction("qc_fmt_ptr");
@@ -17003,7 +17145,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtPtr = llvm::Function::Create(
-                            fmtPtrFnTy, llvm::Function::ExternalLinkage,
+                            fmtPtrFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_ptr", module.get());
                     }
                     llvm::Function* fmtOctal =
@@ -17016,7 +17158,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt1Ty()},
                                 false);
                         fmtOctal = llvm::Function::Create(
-                            fmtOctalFnTy, llvm::Function::ExternalLinkage,
+                            fmtOctalFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_octal", module.get());
                     }
                     llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
@@ -17028,7 +17170,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt1Ty()},
                                 false);
                         fmtHex = llvm::Function::Create(
-                            fmtHexFnTy, llvm::Function::ExternalLinkage,
+                            fmtHexFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_hex", module.get());
                     }
                     llvm::Function* fmtScientific =
@@ -17041,7 +17183,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt32Ty()},
                                 false);
                         fmtScientific = llvm::Function::Create(
-                            fmtScientificFnTy, llvm::Function::ExternalLinkage,
+                            fmtScientificFnTy, llvm::Function::InternalLinkage,
                             "qc_fmt_scientific", module.get());
                     }
                     for (size_t i = 0; i < fmtString.length(); i++) {
@@ -18263,7 +18405,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     {llvm::PointerType::get(context, 0)},
                                     false);
                             nextElem = llvm::Function::Create(
-                                nextElemFnTy, llvm::Function::ExternalLinkage,
+                                nextElemFnTy, llvm::Function::InternalLinkage,
                                 "qc_variadic_next", module.get());
                         }
                         llvm::Value* VariableAddr = resolveVariable(var_name);
@@ -18308,7 +18450,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     {llvm::PointerType::get(context, 0)},
                                     false);
                             isEmpty = llvm::Function::Create(
-                                isEmptyFnTy, llvm::Function::ExternalLinkage,
+                                isEmptyFnTy, llvm::Function::InternalLinkage,
                                 "qc_variadic_is_empty", module.get());
                         }
                         llvm::Value* VariableAddr = resolveVariable(var_name);
@@ -18465,7 +18607,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 cg_error(Position(), "Attempted to dereference nullptr");
                 return nullptr;
             }
-            if (ptrTy.starts_with("void*")) {
+            if (ptrTy == "void*") {
                 cg_error(
                     (*bin)->op_tok.pos,
                     "Pointer arithmetic cannot be preformed on void pointers");
@@ -18523,7 +18665,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         voidPtrTy, {voidPtrTy, intPtrTy, builder->getInt32Ty()},
                         false);
                     getFn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage,
+                        fnTy, llvm::Function::InternalLinkage,
                         "qc_jagged_array_get", module.get());
                 }
 
@@ -18583,7 +18725,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy, {voidPtrTy, builder->getInt32Ty()}, false);
                     getFn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage, "qc_list_get",
+                        fnTy, llvm::Function::InternalLinkage, "qc_list_get",
                         module.get());
                 }
 
@@ -18720,7 +18862,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* fnTy = llvm::FunctionType::get(
                         voidPtrTy, {voidPtrTy, voidPtrTy}, false);
                     getFn = llvm::Function::Create(
-                        fnTy, llvm::Function::ExternalLinkage, "qc_map_get",
+                        fnTy, llvm::Function::InternalLinkage, "qc_map_get",
                         module.get());
                 }
 
@@ -18880,7 +19022,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_length", module.get());
             }
 
@@ -18897,7 +19039,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 sizeFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_map_size", module.get());
             }
 
@@ -19206,7 +19348,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 pushFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_push", module.get());
             }
             llvm::AllocaInst* argAlloc = createEntryAlloca("push_arg", argVal->getType());
@@ -19223,7 +19365,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::PointerType::get(context, 0),
                     {llvm::PointerType::get(context, 0)}, false);
                 popFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_pop", module.get());
             }
             return builder->CreateCall(popFn, {baseVal}, "list_pop");
@@ -19260,7 +19402,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
-                setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_map_set", module.get());
+                setFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_map_set", module.get());
             }
             builder->CreateCall(setFn, {baseVal, keyPtr, valPtr});
             return llvm::ConstantInt::get(builder->getInt32Ty(), 0);
@@ -19293,7 +19435,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getInt1Ty(), {voidPtrTy, voidPtrTy}, false);
                 hasFn = llvm::Function::Create(fnTy,
-                    llvm::Function::ExternalLinkage,
+                    llvm::Function::InternalLinkage,
                     "qc_map_has", module.get());
             }
 
@@ -19328,7 +19470,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy}, false);
                 removeFn = llvm::Function::Create(
-                    fnTy, llvm::Function::ExternalLinkage, "qc_map_remove",
+                    fnTy, llvm::Function::InternalLinkage, "qc_map_remove",
                     module.get());
             }
 
@@ -19342,7 +19484,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::FunctionType* fnTy =
                     llvm::FunctionType::get(voidPtrTy, {voidPtrTy}, false);
                 keysFn = llvm::Function::Create(fnTy,
-                    llvm::Function::ExternalLinkage,
+                    llvm::Function::InternalLinkage,
                     "qc_map_keys", module.get());
             }
 
@@ -19433,7 +19575,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::FunctionType* ft = llvm::FunctionType::get(
                         builder->getPtrTy(), {builder->getInt32Ty()}, false);
                     createListFn = llvm::Function::Create(
-                        ft, llvm::Function::ExternalLinkage, "qc_create_list",
+                        ft, llvm::Function::InternalLinkage, "qc_create_list",
                         module.get());
                 }
                 valueVal = builder->CreateCall(createListFn,
@@ -19548,7 +19690,7 @@ llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
         llvm::FunctionType* mallocTy = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
         mallocFn = llvm::Function::Create(
-            mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
+            mallocTy, llvm::Function::InternalLinkage, "malloc", module.get());
     }
 
     const llvm::DataLayout& DL = module->getDataLayout();
@@ -19633,7 +19775,7 @@ llvm::Value* LLVMCompiler::callStringConcat(llvm::Value* a, llvm::Value* b) {
                 {llvm::PointerType::get(context, 0),
                     llvm::PointerType::get(context, 0)},
                 false);
-        concatFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+        concatFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
             "qc_string_concat", module.get());
     }
     return builder->CreateCall(concatFn, {a, b});
@@ -19650,7 +19792,7 @@ void LLVMCompiler::generateStructReprFunctions() {
             llvm::PointerType::get(context, 0), {structTy}, false);
 
         llvm::Function* reprFn =
-            llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage,
+            llvm::Function::Create(reprFnTy, llvm::Function::InternalLinkage,
                 name + "_repr", module.get());
         llvm::BasicBlock* entryBB =
             llvm::BasicBlock::Create(context, "entry", reprFn);
@@ -19737,7 +19879,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
-                        ty, llvm::Function::ExternalLinkage,
+                        ty, llvm::Function::InternalLinkage,
                         "qc_list_to_string", module.get());
                 }
                 return builder->CreateCall(fn, {val}, "list_str");
@@ -19749,7 +19891,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
-                        ty, llvm::Function::ExternalLinkage, "qc_map_to_string",
+                        ty, llvm::Function::InternalLinkage, "qc_map_to_string",
                         module.get());
                 }
                 return builder->CreateCall(fn, {val}, "map_str");
@@ -19761,7 +19903,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
                         llvm::PointerType::get(context, 0),
                         {llvm::PointerType::get(context, 0)}, false);
                     fn = llvm::Function::Create(
-                        ty, llvm::Function::ExternalLinkage,
+                        ty, llvm::Function::InternalLinkage,
                         "qc_jagged_to_string", module.get());
                 }
                 return builder->CreateCall(fn, {val}, "jagged_str");
@@ -19791,7 +19933,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
     if (!fn) {
         llvm::FunctionType* fty = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {val->getType()}, false);
-        fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage,
+        fn = llvm::Function::Create(fty, llvm::Function::InternalLinkage,
             fnName, module.get());
     }
 
@@ -19870,7 +20012,7 @@ llvm::Value* LLVMCompiler::emitSpreadFunctionCall(llvm::Value* calleeVal,
                 llvm::PointerType::get(context, 0),
                 llvm::PointerType::get(context, 0), builder->getInt32Ty()},
             false);
-        spreadFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+        spreadFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
             "qc_spread_call", module.get());
     }
 
@@ -19941,7 +20083,7 @@ void LLVMCompiler::expandSpreadIntoVector(
                             builder->getInt32Ty()},
                         false);
                     getFn = llvm::Function::Create(
-                        ty, llvm::Function::ExternalLinkage, "qc_list_get",
+                        ty, llvm::Function::InternalLinkage, "qc_list_get",
                         module.get());
                 }
                 llvm::Value* elemPtr =
@@ -20025,7 +20167,7 @@ void LLVMCompiler::expandSpreadIntoList(llvm::Value* collVal, AnyNode& collExpr,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                 "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal});
@@ -20105,7 +20247,7 @@ llvm::Value* LLVMCompiler::expandSpreadIntoArrays(llvm::Value* collVal,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                 "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal}, "list_elem");
@@ -20163,7 +20305,7 @@ llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal,
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_length", module.get());
             }
             return builder->CreateCall(lenFn, {collVal}, "list_len");
@@ -20186,7 +20328,7 @@ llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal,
                         builder->getInt32Ty(),
                         {llvm::PointerType::get(context, 0)}, false);
                     lenFn = llvm::Function::Create(
-                        ty, llvm::Function::ExternalLinkage, "qc_list_length",
+                        ty, llvm::Function::InternalLinkage, "qc_list_length",
                         module.get());
                 }
                 return builder->CreateCall(lenFn, {collVal}, "list_len");
@@ -20251,7 +20393,7 @@ LLVMCompiler::copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                 "qc_list_get", module.get());
         }
         llvm::Value* elemPtr = builder->CreateCall(getFn, {collVal, iVal});
@@ -20328,7 +20470,7 @@ LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& elements,
         llvm::FunctionType* mallocTy = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
         mallocFn = llvm::Function::Create(
-            mallocTy, llvm::Function::ExternalLinkage, "malloc", module.get());
+            mallocTy, llvm::Function::InternalLinkage, "malloc", module.get());
     }
 
     const llvm::DataLayout& DL = module->getDataLayout();
@@ -20372,7 +20514,7 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name,
         llvm::Constant* initVal = llvm::Constant::getNullValue(ty);
 
         llvm::GlobalVariable* gv = new llvm::GlobalVariable(
-            *module, ty, false, llvm::GlobalValue::ExternalLinkage, initVal,
+            *module, ty, false, llvm::GlobalValue::InternalLinkage, initVal,
             name);
         return reinterpret_cast<llvm::AllocaInst*>(gv);
     }
@@ -20396,7 +20538,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         return existing;
     functionSignatures[name] = {fTy, {}};
 
-    auto* func = llvm::Function::Create(fTy, llvm::Function::ExternalLinkage,
+    auto* func = llvm::Function::Create(fTy, llvm::Function::InternalLinkage,
         name, module.get());
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
@@ -20603,7 +20745,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                         llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                             builder->getPtrTy(), {i64Ty}, false);
                         mallocFn = llvm::Function::Create(
-                            mallocTy, llvm::Function::ExternalLinkage, "malloc",
+                            mallocTy, llvm::Function::InternalLinkage, "malloc",
                             module.get());
                     }
 
@@ -20786,7 +20928,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(
                         builder->getPtrTy(), {i64Ty}, false);
                     mallocFn = llvm::Function::Create(
-                        mallocTy, llvm::Function::ExternalLinkage, "malloc",
+                        mallocTy, llvm::Function::InternalLinkage, "malloc",
                         module.get());
                 }
 
@@ -21654,7 +21796,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                         llvm::PointerType::get(context, 0),
                         {builder->getInt64Ty()}, false);
                     mallocFn = llvm::Function::Create(
-                        mallocTy, llvm::Function::ExternalLinkage, "malloc",
+                        mallocTy, llvm::Function::InternalLinkage, "malloc",
                         module.get());
                 }
 
@@ -21755,7 +21897,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     cg_error(Position(), "Attempted to dereference nullptr");
                     return;
                 }
-                if (ptrTy.starts_with("void*")) {
+                if (ptrTy == "void*") {
                     cg_error(Position(),
                         "You cannot dereference or indice void*");
                     return;
@@ -21817,7 +21959,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                             {voidPtrTy, intPtrTy, builder->getInt32Ty()},
                             false);
                         getFn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_jagged_array_get", module.get());
                     }
 
@@ -21914,7 +22056,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                             builder->getVoidTy(),
                             {voidPtrTy, voidPtrTy, voidPtrTy}, false);
                         setFn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage, "qc_map_set",
+                            fnTy, llvm::Function::InternalLinkage, "qc_map_set",
                             module.get());
                     }
 
@@ -21955,7 +22097,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                             {voidPtrTy, builder->getInt32Ty(), voidPtrTy},
                             false);
                         setFn = llvm::Function::Create(
-                            fnTy, llvm::Function::ExternalLinkage,
+                            fnTy, llvm::Function::InternalLinkage,
                             "qc_list_set", module.get());
                     }
 
@@ -22028,7 +22170,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             llvm::FunctionType* fnTy =
                 llvm::FunctionType::get(ptrTy, {builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_create_list", module.get());
         }
 
@@ -22047,7 +22189,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy}, false);
                 pushFn = llvm::Function::Create(fnTy,
-                    llvm::Function::ExternalLinkage,
+                    llvm::Function::InternalLinkage,
                     "qc_list_push", module.get());
             }
 
@@ -22158,7 +22300,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_length", module.get());
             }
             lengthVal = builder->CreateCall(lenFn, {collVal}, "coll_len");
@@ -22221,7 +22363,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 getFn =
-                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
                         "qc_list_get", module.get());
             }
             llvm::Value* elemPtr =
@@ -22276,7 +22418,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
                     "qc_create_map", module.get());
         }
 
@@ -22293,7 +22435,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy},
                     false);
                 setFn = llvm::Function::Create(fnTy,
-                    llvm::Function::ExternalLinkage,
+                    llvm::Function::InternalLinkage,
                     "qc_map_set", module.get());
             }
 
@@ -23203,6 +23345,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (!diagnostics.empty()) {
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
+        system(std::string("opt -passes=internalize,globaldce,dce,adce -internalize-public-api-list=main " + ll_file + " -S -o " + ll_file).c_str());
         if (config.compile_only) {
             message += ". Compiled to " + ll_file;
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
@@ -23212,7 +23355,6 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (config.debug)
             llc_cmd += " --debugger-tune=gdb";
         int llc_result = system(llc_cmd.c_str());
-
         if (llc_result != 0) {
             diagnostics.push_back(
                 {RTError("Failed to compile IR to object file",
@@ -23220,7 +23362,6 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     "Error"});
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
-
         if (config.object_only) {
             std::remove(ll_file.c_str());
             message += ". Compiled to " + obj_file;
