@@ -22483,42 +22483,6 @@ std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
 }
 std::vector<CTError> LLVMCompiler::compile(StatementsNode* root,
     const std::string& outPath, bool optimize, std::string opt_level) {
-    if (optimize) {
-        llvm::PassBuilder PB;
-        llvm::LoopAnalysisManager LAM;
-        llvm::FunctionAnalysisManager FAM;
-        llvm::CGSCCAnalysisManager CGAM;
-        llvm::ModuleAnalysisManager MAM;
-        PB.registerModuleAnalyses(MAM);
-        PB.registerCGSCCAnalyses(CGAM);
-        PB.registerFunctionAnalyses(FAM);
-        PB.registerLoopAnalyses(LAM);
-        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-        llvm::ModulePassManager MPM;
-        auto optimization_level = llvm::OptimizationLevel::O2;
-        switch (opt_level[1]) {
-            case '0':
-                optimization_level = llvm::OptimizationLevel::O0;
-                break;
-            case '1':
-                optimization_level = llvm::OptimizationLevel::O1;
-                break;
-            case '2':
-                optimization_level = llvm::OptimizationLevel::O2;
-                break;
-            case '3':
-                optimization_level = llvm::OptimizationLevel::O3;
-                break;
-            case 'z':
-                optimization_level = llvm::OptimizationLevel::Oz;
-                break;
-            default: 
-                optimization_level = llvm::OptimizationLevel::O2;
-                break;
-        }
-        MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
-        MPM.run(*(this->module), MAM);
-    }
     errors.clear();
     locals.clear();
     globals.clear();
@@ -22857,6 +22821,42 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root,
     if (EC) {
         llvm::errs() << "Failed to open output: " << EC.message() << "\n";
         return errors;
+    }
+    if (optimize) {
+        llvm::PassBuilder PB;
+        llvm::LoopAnalysisManager LAM;
+        llvm::FunctionAnalysisManager FAM;
+        llvm::CGSCCAnalysisManager CGAM;
+        llvm::ModuleAnalysisManager MAM;
+        PB.registerModuleAnalyses(MAM);
+        PB.registerCGSCCAnalyses(CGAM);
+        PB.registerFunctionAnalyses(FAM);
+        PB.registerLoopAnalyses(LAM);
+        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+        llvm::ModulePassManager MPM;
+        auto optimization_level = llvm::OptimizationLevel::O2;
+        switch (opt_level[1]) {
+            case '0':
+                optimization_level = llvm::OptimizationLevel::O0;
+                break;
+            case '1':
+                optimization_level = llvm::OptimizationLevel::O1;
+                break;
+            case '2':
+                optimization_level = llvm::OptimizationLevel::O2;
+                break;
+            case '3':
+                optimization_level = llvm::OptimizationLevel::O3;
+                break;
+            case 'z':
+                optimization_level = llvm::OptimizationLevel::Oz;
+                break;
+            default: 
+                optimization_level = llvm::OptimizationLevel::O2;
+                break;
+        }
+        MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
+        MPM.run(*(this->module), MAM);
     }
     module->print(out, nullptr);
     return errors;

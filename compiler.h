@@ -2707,9 +2707,7 @@ class LLVMCompiler {
             builder->CreateStore(rval, baseAddr);
         }
         std::string typeName = getExpressionType(*prop.base);
-        std::cout << "base type name = " << typeName << '\n';
         if (classTypes.count(typeName)) {
-            std::cout << "Found type in classes" << '\n';
             int fieldIdx = getFlattenedFieldIndex(typeName, propName);
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
@@ -2723,7 +2721,6 @@ class LLVMCompiler {
             return builder->CreateStructGEP(classTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
         }
         if (structTypes.count(typeName)) {
-            std::cout << "Found type in structs" << '\n';
             auto& info = userTypes[typeName];
             int fieldIdx = -1;
             for (size_t i = 0; i < info.fields.size(); i++) {
@@ -2732,7 +2729,6 @@ class LLVMCompiler {
                     break;
                 }
             }
-            std::cout << "Field index is " << fieldIdx << '\n';
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in struct " + typeName + ": " + propName);
                 return nullptr;
