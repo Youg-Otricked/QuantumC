@@ -5,8 +5,6 @@
 #include <cstdio>
 #include <cctype>
 #include <ctime>
-#include <ffi.h>
-
 extern "C" {
     void* qc_malloc(uintptr_t size) {
         return malloc(size);
@@ -20,7 +18,7 @@ extern "C" {
     void* qc_calloc(uintptr_t num, uintptr_t size) {
         return calloc(num, size);
     }
-    char* qc_fmt_int(long long v, int width, int precision, int zero_pad) {
+    char* qc_fmt_int(long long v, int width, int precision, bool zero_pad) {
         char fmt[32];
         if (precision >= 0) {
             if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%d.%dd", zero_pad ? "0" : "", width, precision);
@@ -38,7 +36,7 @@ extern "C" {
     void qc_flush() {
         fflush(NULL);
     }
-    char* qc_fmt_unsigned_int(uintptr_t v, int zero_pad) {
+    char* qc_fmt_unsigned_int(uintptr_t v, bool zero_pad) {
         char fmt[32];
         if (zero_pad) {
             snprintf(fmt, sizeof(fmt), "%%llu"); 
@@ -55,7 +53,7 @@ extern "C" {
     }
 
 
-    char* qc_fmt_float(double v, int width, int precision, int zero_pad) {
+    char* qc_fmt_float(double v, int width, int precision, bool zero_pad) {
         char fmt[32];
         if (precision >= 0) {
             if (width > 0) {
@@ -78,10 +76,10 @@ extern "C" {
         return out;
     }
 
-    char* qc_fmt_double(double v, int width, int precision, int zero_pad) {
+    char* qc_fmt_double(double v, int width, int precision, bool zero_pad) {
         return qc_fmt_float(v, width, precision, zero_pad);
     }
-    char* qc_fmt_scientific(double v, int width, int precision, int zero_pad) {
+    char* qc_fmt_scientific(double v, int width, int precision, bool zero_pad) {
         char fmt[32];
         if (precision >= 0) {
             if (width > 0) {
@@ -103,7 +101,7 @@ extern "C" {
         snprintf(out, len + 1, fmt, v);
         return out;
     }
-    char* qc_fmt_char(char c, int width, int zero_pad) {
+    char* qc_fmt_char(char c, int width, bool zero_pad) {
         char fmt[16];
         if (width > 0) {
             snprintf(fmt, sizeof(fmt), "%%%s%dc", zero_pad ? "0" : "", width);
@@ -118,7 +116,7 @@ extern "C" {
         return out;
     }
 
-    char* qc_fmt_string(const char* s, int width, int zero_pad) {
+    char* qc_fmt_string(const char* s, int width, bool zero_pad) {
         if (!s) s = "";
         char fmt[16];
         if (width > 0) {
@@ -134,7 +132,7 @@ extern "C" {
         return out;
     }
 
-    char* qc_fmt_hex(long long v, int width, int zero_pad) {
+    char* qc_fmt_hex(long long v, int width, bool zero_pad) {
         char fmt[32];
         if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%dx", zero_pad ? "0" : "", width);
         else snprintf(fmt, sizeof(fmt), "%%x");
@@ -144,7 +142,7 @@ extern "C" {
         snprintf(out, len + 1, fmt, v);
         return out;
     }
-    char* qc_fmt_octal(long long v, int width, int zero_pad) {
+    char* qc_fmt_octal(long long v, int width, bool zero_pad) {
         char fmt[32];
         if (width > 0) snprintf(fmt, sizeof(fmt), "%%%s%do", zero_pad ? "0" : "", width);
         else snprintf(fmt, sizeof(fmt), "%%o");
@@ -154,12 +152,12 @@ extern "C" {
         snprintf(out, len + 1, fmt, v);
         return out;
     }
-    char* qc_fmt_bool(bool v, int width, int zero_pad) {
+    char* qc_fmt_bool(bool v, int width, bool zero_pad) {
         const char* s = v ? "true" : "false";
         return qc_fmt_string(s, width, zero_pad);
     }
 
-    char* qc_fmt_qbool(uint8_t q, int width, int zero_pad) {
+    char* qc_fmt_qbool(uint8_t q, int width, bool zero_pad) {
         const char* s;
         switch (q & 0x3) {
             case 0: s = "none"; break;
@@ -170,7 +168,7 @@ extern "C" {
         return qc_fmt_string(s, width, zero_pad);
     }
 
-    char* qc_fmt_ptr(void* p, int width, int zero_pad) {
+    char* qc_fmt_ptr(void* p, int width, bool zero_pad) {
         char buf[64];
         if (zero_pad && width > 0) snprintf(buf, sizeof(buf), "0x%0*jx", width, (uintmax_t)(uintptr_t)p);
         else if (width > 0) snprintf(buf, sizeof(buf), "%*p", width, p);
@@ -647,7 +645,7 @@ extern "C" {
         }
         printf("]");
     }
-    int sizeof_type(int elem_type) {
+    int qc_sizeof_type(int elem_type) {
         switch (elem_type) {
             case 0: return sizeof(int);
             case 1: return sizeof(float);
@@ -681,7 +679,7 @@ extern "C" {
             return result;
         }
         int total_len = 2;
-        int elem_size = sizeof_type(elem_type);
+        int elem_size = qc_sizeof_type(elem_type);
         for (int i = 1; i < ndims; i++) {
             elem_size *= dims[i];
         }
@@ -737,7 +735,7 @@ extern "C" {
             return;
         }
         printf("[");
-        int elem_size = sizeof_type(elem_type);
+        int elem_size = qc_sizeof_type(elem_type);
         for (int i = 1; i < ndims; i++) {
             elem_size *= dims[i];
         }
@@ -795,7 +793,7 @@ extern "C" {
                 void* row = arr->data[i];
                 printf("[");
                 for (int j = 0; j < arr->sizes[i]; j++) {
-                    void* elem_ptr = (char*)row + (j * sizeof_type(arr->elem_type));
+                    void* elem_ptr = (char*)row + (j * qc_sizeof_type(arr->elem_type));
                     
                     switch (arr->elem_type) {
                         case 0: printf("%d", *(int*)elem_ptr); break;
@@ -841,7 +839,7 @@ extern "C" {
                     return nullptr;
                 }
                 void* row = arr->data[idx];
-                return (char*)row + (elem_idx * sizeof_type(arr->elem_type));
+                return (char*)row + (elem_idx * qc_sizeof_type(arr->elem_type));
             }
         } else if (arr->depth == 1) {
             void* row = arr->data[idx];
@@ -853,7 +851,7 @@ extern "C" {
                 if (elem_idx < 0 || elem_idx >= arr->sizes[idx]) {
                     return nullptr;
                 }
-                return (char*)row + (elem_idx * sizeof_type(arr->elem_type));
+                return (char*)row + (elem_idx * qc_sizeof_type(arr->elem_type));
             }
         } else {
             qc_jagged_array* sub = (qc_jagged_array*)arr->data[idx];
@@ -863,27 +861,27 @@ extern "C" {
         }
     }
     void* qc_create_leaf_row(int size, int elem_type) {
-        int elem_size = sizeof_type(elem_type);
+        int elem_size = qc_sizeof_type(elem_type);
         int total = size * elem_size;
         void* row = malloc(total);
         return row;
     }
     void qc_set_leaf_element(void* row, int idx, void* value, int elem_type) {
-        void* dest = (char*)row + (idx * sizeof_type(elem_type));
-        memcpy(dest, value, sizeof_type(elem_type));
+        void* dest = (char*)row + (idx * qc_sizeof_type(elem_type));
+        memcpy(dest, value, qc_sizeof_type(elem_type));
     }
-    void stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result) {
+    void qc_stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result) {
         **p = '['; (*p)++; (*remaining)--;
         
         for (int i = 0; i < arr->count; i++) {
             if (arr->depth > 0) {
-                stringify_jagged_helper((qc_jagged_array*)arr->data[i], p, remaining, est_size, result);
+                qc_stringify_jagged_helper((qc_jagged_array*)arr->data[i], p, remaining, est_size, result);
             } else {
                 **p = '['; (*p)++; (*remaining)--;
                 void* row = arr->data[i];
                 
                 for (int j = 0; j < arr->sizes[i]; j++) {
-                    void* elem_ptr = (char*)row + (j * sizeof_type(arr->elem_type));
+                    void* elem_ptr = (char*)row + (j * qc_sizeof_type(arr->elem_type));
                     
                     char buf[64];
                     switch (arr->elem_type) {
@@ -936,7 +934,7 @@ extern "C" {
         char* p = result;
         int remaining = est_size;
         
-        stringify_jagged_helper(arr, &p, &remaining, &est_size, &result);
+        qc_stringify_jagged_helper(arr, &p, &remaining, &est_size, &result);
         *p = '\0';
         
         return result;
@@ -964,7 +962,7 @@ extern "C" {
         }
 
         if (elem_type <= 5) {
-            int size = sizeof_type(elem_type);
+            int size = qc_sizeof_type(elem_type);
             void* copy = malloc(size);
             memcpy(copy, elem, size);
             list->data[list->size++] = copy;
@@ -978,7 +976,7 @@ extern "C" {
         if (index < 0 || index >= list->size) return;
 
         if (list->elem_type <= 5) {
-            int size = sizeof_type(list->elem_type);
+            int size = qc_sizeof_type(list->elem_type);
             void* copy = malloc(size);
             memcpy(copy, value, size);
             free(list->data[index]);
@@ -1040,7 +1038,7 @@ extern "C" {
         for (int i = 0; i < map->size; i++) {
             if (qc_compare_keys(map->keys[i], key, map->key_type)) {
                 if (map->value_type <= 5) {
-                    int size = sizeof_type(map->value_type);
+                    int size = qc_sizeof_type(map->value_type);
                     if (!map->values[i]) {
                         map->values[i] = malloc(size);
                     }
@@ -1061,7 +1059,7 @@ extern "C" {
             map->values = (void**)realloc(map->values, map->capacity * sizeof(void*));
         }
         if (map->key_type <= 5) {
-            int size = sizeof_type(map->key_type);
+            int size = qc_sizeof_type(map->key_type);
             void* key_copy = malloc(size);
             memcpy(key_copy, key, size);
             map->keys[map->size] = key_copy;
@@ -1073,7 +1071,7 @@ extern "C" {
         }
         
         if (map->value_type <= 5) {
-            int size = sizeof_type(map->value_type);
+            int size = qc_sizeof_type(map->value_type);
             void* val_copy = malloc(size);
             memcpy(val_copy, value, size);
             map->values[map->size] = val_copy;
@@ -1247,7 +1245,7 @@ extern "C" {
         for (int i = 0; i < map->size; i++) {
             
             if (map->key_type <= 5) {
-                int size = sizeof_type(map->key_type);
+                int size = qc_sizeof_type(map->key_type);
                 void* copy = malloc(size);
                 memcpy(copy, map->keys[i], size);
                 list->data[i] = copy;
@@ -1259,50 +1257,6 @@ extern "C" {
         }
         list->size = map->size;
         return list;
-    }
-    void* qc_spread_call(
-        void* func_ptr,
-        int arg_count,
-        void** args,
-        int* arg_types,
-        int return_type,
-        void* return_buffer
-    ) {
-        ffi_cif cif;
-        ffi_type** ffi_args = (ffi_type**)malloc(arg_count * sizeof(ffi_type*));
-        
-        for (int i = 0; i < arg_count; i++) {
-            switch (arg_types[i]) {
-                case 0: ffi_args[i] = &ffi_type_sint32; break;
-                case 1: ffi_args[i] = &ffi_type_float; break;
-                case 2: ffi_args[i] = &ffi_type_double; break;
-                case 3: ffi_args[i] = &ffi_type_sint8; break;
-                case 4: ffi_args[i] = &ffi_type_uint8; break;
-                case 5: ffi_args[i] = &ffi_type_uint8; break;
-                case 6: ffi_args[i] = &ffi_type_pointer; break;
-                default: ffi_args[i] = &ffi_type_pointer; break;
-            }
-        }
-        
-        ffi_type* ret_type;
-        switch (return_type) {
-            case -1: ret_type = &ffi_type_void; break;
-            case 0:  ret_type = &ffi_type_sint32; break;
-            case 1:  ret_type = &ffi_type_float; break;
-            case 2:  ret_type = &ffi_type_double; break;
-            case 3:  ret_type = &ffi_type_sint8; break;
-            case 4:  ret_type = &ffi_type_uint8; break;
-            case 5:  ret_type = &ffi_type_uint8; break;
-            case 6:  ret_type = &ffi_type_pointer; break;
-            default: ret_type = &ffi_type_pointer; break;
-        }
-        
-        if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, arg_count, ret_type, ffi_args) == FFI_OK) {
-            ffi_call(&cif, FFI_FN(func_ptr), return_buffer, args);
-        }
-        
-        free(ffi_args);
-        return return_buffer;
     }
     char* qc_list_to_string(qc_list* list) {
         int est_size = 256;

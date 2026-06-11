@@ -54,10 +54,16 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/TargetParser/Host.h>
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/PassPlugin.h>
+#include <llvm/IR/PassManager.h>
+#include <llvm/Target/TargetOptions.h>
+#include <llvm/Analysis/CGSCCPassManager.h>
 #endif
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
+bool no_main = false;
 static bool random_seeded = false;
 bool isCharInSet(char c, const std::string& charSet) {
     return charSet.find(c) != std::string::npos;
@@ -2381,7 +2387,7 @@ Prs Parser::atom() {
             this->advance();
             AnyNode value_node = std::make_unique<UnaryOpNode>(op, std::move(base));
             return res.success(std::move(value_node));
-        } 
+        }
         while (true) {
             if (this->current_tok.type == TokenType::LPAREN) {
                 base = res.reg(this->call(std::move(base)));
@@ -2390,7 +2396,8 @@ Prs Parser::atom() {
                 while (this->current_tok.type == TokenType::LBRACKET) {
                     this->advance();
                     AnyNode index = res.reg(this->logical_or());
-                    if (res.error) return res.to_prs();
+                    if (res.error)
+                        return res.to_prs();
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(std::make_unique<InvalidSyntaxError>(
                             "QC-S049: Expected ']'",
@@ -2547,7 +2554,8 @@ Prs Parser::atom() {
             } else {
                 break;
             }
-            if (res.error) return res.to_prs();
+            if (res.error)
+                return res.to_prs();
         }
         return res.success(std::move(base));
     } else if (tok.type == TokenType::LPAREN) {
@@ -3304,7 +3312,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
                 p.type.value += "[]";
             }
         } else {
-            p.name == Token(TokenType::IDENTIFIER, "<varadic>", Position());
+            p.name = Token(TokenType::IDENTIFIER, "<varadic>", Position());
         }
     }
     if (!type_only) {
@@ -3365,13 +3373,28 @@ Prs Parser::func_def_multi(std::vector<Token> return_types,
         }
     }
     if (this->current_tok.type != TokenType::LBRACE) {
+        if (this->in_foreign) {
+            this->advance();
+            std::list<Parameter> params_list(std::make_move_iterator(params.begin()),
+                std::make_move_iterator(params.end()));
+            std::vector<AnyNode> body;
+            body.emplace_back(std::monostate{});
+            return res.success(std::make_unique<FuncDefNode>(
+                return_types, func_name, std::move(params_list), std::move(std::make_unique<StatementsNode>(std::move(body), true)),
+                currentNamespace, this->in_extern, this->in_foreign));
+        }
         res.failure(std::make_unique<InvalidSyntaxError>(
             "QC-S003: Expected '{' to start function body",
             this->current_tok.pos));
         return res.to_prs();
     }
     this->advance();
-
+    if (this->in_foreign) {
+        res.failure(std::make_unique<InvalidSyntaxError>(
+            "QC-S003: Expected no function body for a foreign function.",
+            this->current_tok.pos));
+        return res.to_prs();
+    }
     std::vector<AnyNode> body_stmts;
     while (true) {
         if (this->current_tok.type == TokenType::RBRACE)
@@ -3408,7 +3431,6 @@ Prs Parser::func_def_multi(std::vector<Token> return_types,
             "Expected '}' to end function body", this->current_tok.pos));
         return res.to_prs();
     }
-
     auto body = std::make_unique<StatementsNode>(std::move(body_stmts), true);
     this->advance();
     std::list<Parameter> params_list(std::make_move_iterator(params.begin()),
@@ -3416,12 +3438,49 @@ Prs Parser::func_def_multi(std::vector<Token> return_types,
 
     return res.success(std::make_unique<FuncDefNode>(
         return_types, func_name, std::move(params_list), std::move(body),
-        currentNamespace));
+        currentNamespace, this->in_extern, this->in_foreign));
 }
 Prs Parser::statement() {
     ParseResult res;
     Token tok = this->current_tok;
-
+    if (tok.type == TokenType::KEYWORD && tok.value == "extern") {
+        this->advance();
+        if (this->current_tok.type == TokenType::COLON) {
+            this->advance();
+            tok = this->current_tok;
+            this->in_extern = true;
+        } else {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ':' after 'extern'", this->current_tok.pos));
+            return res.to_prs();
+        }
+    }
+    if (tok.type == TokenType::COLON && peek().value == "extern") {
+        this->advance();
+        this->advance();
+        tok = this->current_tok;
+        this->in_extern = false;
+        return res.success(std::monostate{});
+    }
+    if (tok.type == TokenType::KEYWORD && tok.value == "foreign") {
+        this->advance();
+        if (this->current_tok.type == TokenType::COLON) {
+            this->advance();
+            tok = this->current_tok;
+            this->in_foreign = true;
+        } else {
+            res.failure(std::make_unique<InvalidSyntaxError>(
+                "Expected ':' after 'foreign'", this->current_tok.pos));
+            return res.to_prs();
+        }
+    }
+    if (tok.type == TokenType::COLON && peek().value == "foreign") {
+        this->advance();
+        this->advance();
+        tok = this->current_tok;
+        this->in_foreign = false;
+        return res.success(std::monostate{});
+    }
     if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
         this->advance();
 
@@ -5622,7 +5681,7 @@ Aer Parser::parse() {
         stmts.push_back(std::move(stmt));
     }
 
-    if (!has_main) {
+    if (!has_main && !no_main) {
         return Aer{nullptr,
             std::make_unique<Error>(
                 "Missing the entrypoint function",
@@ -13119,7 +13178,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 voidPtrTy, {builder->getInt32Ty(), builder->getInt32Ty()},
                 false);
             createRowFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_create_leaf_row", module.get());
         }
 
@@ -13137,7 +13196,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                         voidPtrTy, builder->getInt32Ty()},
                     false);
             setLeafFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_set_leaf_element", module.get());
         }
 
@@ -13168,7 +13227,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 builder->getInt32Ty()},
             false);
         createFn =
-            llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+            llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                 "qc_create_jagged_array", module.get());
     }
 
@@ -13187,7 +13246,7 @@ llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode,
                 {voidPtrTy, builder->getInt32Ty(),
                     voidPtrTy, builder->getInt32Ty()},
                 false);
-        setFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+        setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
             "qc_set_jagged_element", module.get());
     }
 
@@ -13223,7 +13282,6 @@ void LLVMCompiler::addRuntimeToModule() {
     std::unique_ptr<llvm::Module> runtimeMod =
         llvm::parseIR(bufRef, err, context);
     if (!runtimeMod) {
-        err.print("qc", llvm::errs());
         errors.emplace_back("Failed to load runtime.ll", Position());
         return;
     }
@@ -16452,7 +16510,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_create_map", module.get());
         }
 
@@ -16467,7 +16525,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
             setFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_map_set", module.get());
         }
 
@@ -16646,16 +16704,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             ++paramIt;
                     }
                     if (hasSpread) {
-                        std::string sig = makeTypeSignature(argTypes);
-                        std::string specializedName = funcName + "_" + sig;
-                        if (specializedFunctions[funcName].count(sig) == 0) {
-                            llvm::Function* specializedFn = generateSpecializedFunction(funcDef, argTypes, specializedName);
-                            if (!specializedFn)
-                                return nullptr;
-                            specializedFunctions[funcName][sig] = specializedFn;
-                        }
-                        llvm::Function* fn = specializedFunctions[funcName][sig];
-                        return emitSpreadFunctionCall(fn, fn->getFunctionType(), call);
+                        cg_error(Position(), "Spread is no longer allowed in function calls.");
+                        return nullptr;
                     }
                     std::string sig = makeTypeSignature(argTypes);
                     std::string specializedName = funcName + "_" + sig;
@@ -17031,7 +17081,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             builder->getVoidTy(),
                             {llvm::PointerType::get(context, 0)}, false);
                         printString = llvm::Function::Create(
-                            prStrFnTy, llvm::Function::InternalLinkage,
+                            prStrFnTy, llvm::Function::ExternalLinkage,
                             "qc_print_string", module.get());
                     }
                     llvm::Function* fmtStr =
@@ -17043,7 +17093,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 builder->getInt32Ty(), builder->getInt1Ty()},
                             false);
                         fmtStr = llvm::Function::Create(
-                            prStrFnTy, llvm::Function::InternalLinkage,
+                            prStrFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_string", module.get());
                     }
                     llvm::Function* fmtInt = module->getFunction("qc_fmt_int");
@@ -17052,10 +17102,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                    builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtInt = llvm::Function::Create(
-                            fmtIntFnTy, llvm::Function::InternalLinkage,
+                            fmtIntFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_int", module.get());
                     }
                     llvm::Function* fmtUInt =
@@ -17065,10 +17115,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getInt64Ty(), builder->getInt32Ty(),
-                                    builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtUInt = llvm::Function::Create(
-                            fmtUIntFnTy, llvm::Function::InternalLinkage,
+                            fmtUIntFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_unsigned_int", module.get());
                     }
                     llvm::Function* fmtFloat =
@@ -17078,10 +17128,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                    builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtFloat = llvm::Function::Create(
-                            fmtFloatFnTy, llvm::Function::InternalLinkage,
+                            fmtFloatFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_float", module.get());
                     }
                     llvm::Function* fmtDouble =
@@ -17091,10 +17141,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                    builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtDouble = llvm::Function::Create(
-                            fmtDoubleFnTy, llvm::Function::InternalLinkage,
+                            fmtDoubleFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_double", module.get());
                     }
                     llvm::Function* fmtChar =
@@ -17103,11 +17153,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::FunctionType* fmtCharFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
-                                {builder->getInt8Ty(), builder->getInt32Ty(),
-                                    builder->getInt32Ty()},
+                                {builder->getInt8Ty(), builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtChar = llvm::Function::Create(
-                            fmtCharFnTy, llvm::Function::InternalLinkage,
+                            fmtCharFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_char", module.get());
                     }
                     llvm::Function* fmtQBool =
@@ -17116,11 +17165,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::FunctionType* fmtQBoolFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
-                                {builder->getInt1Ty(), builder->getInt32Ty(),
-                                    builder->getInt32Ty()},
+                                {builder->getInt1Ty(), builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtQBool = llvm::Function::Create(
-                            fmtQBoolFnTy, llvm::Function::InternalLinkage,
+                            fmtQBoolFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_qbool", module.get());
                     }
                     llvm::Function* fmtBool =
@@ -17129,11 +17177,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::FunctionType* fmtBoolFnTy =
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
-                                {builder->getInt8Ty(), builder->getInt32Ty(),
-                                    builder->getInt32Ty()},
+                                {builder->getInt8Ty(), builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtBool = llvm::Function::Create(
-                            fmtBoolFnTy, llvm::Function::InternalLinkage,
+                            fmtBoolFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_bool", module.get());
                     }
                     llvm::Function* fmtPtr = module->getFunction("qc_fmt_ptr");
@@ -17145,7 +17192,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtPtr = llvm::Function::Create(
-                            fmtPtrFnTy, llvm::Function::InternalLinkage,
+                            fmtPtrFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_ptr", module.get());
                     }
                     llvm::Function* fmtOctal =
@@ -17158,7 +17205,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt1Ty()},
                                 false);
                         fmtOctal = llvm::Function::Create(
-                            fmtOctalFnTy, llvm::Function::InternalLinkage,
+                            fmtOctalFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_octal", module.get());
                     }
                     llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
@@ -17170,7 +17217,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                     builder->getInt1Ty()},
                                 false);
                         fmtHex = llvm::Function::Create(
-                            fmtHexFnTy, llvm::Function::InternalLinkage,
+                            fmtHexFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_hex", module.get());
                     }
                     llvm::Function* fmtScientific =
@@ -17180,10 +17227,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             llvm::FunctionType::get(
                                 llvm::PointerType::get(context, 0),
                                 {builder->getDoubleTy(), builder->getInt32Ty(),
-                                    builder->getInt32Ty(), builder->getInt32Ty()},
+                                    builder->getInt32Ty(), builder->getInt1Ty()},
                                 false);
                         fmtScientific = llvm::Function::Create(
-                            fmtScientificFnTy, llvm::Function::InternalLinkage,
+                            fmtScientificFnTy, llvm::Function::ExternalLinkage,
                             "qc_fmt_scientific", module.get());
                     }
                     for (size_t i = 0; i < fmtString.length(); i++) {
@@ -18517,14 +18564,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         }
 
         if (hasSpread) {
-            return emitSpreadFunctionCall(calleeVal, fnTy, call);
+            cg_error(Position(), "Spread is no longer allowed in function calls.");
+            return nullptr;
         }
 
         std::vector<std::string> paramTypeStrings;
+        std::string lastVarName = "";
         auto defIt = functionDefs.find(funcName);
         if (defIt != functionDefs.end()) {
             for (auto& p : defIt->second->params) {
                 paramTypeStrings.push_back(p.type.value);
+                lastVarName = p.name.value;
             }
         }
         std::vector<llvm::Value*> args =
@@ -18534,39 +18584,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             return nullptr;
         }
         if (!paramTypeStrings.empty() && paramTypeStrings.back() == "...") {
-            size_t num_fixed_args = paramTypeStrings.size() - 1;
-            std::vector<llvm::Value*> var_vals(args.begin() + num_fixed_args, args.end());
-            args.resize(num_fixed_args);
-            llvm::Value* args_cnt = builder->getInt32(var_vals.size());
-            llvm::Value* items_array = builder->CreateAlloca(builder->getPtrTy(), args_cnt, "varadics_array");
-            for (size_t i = 0; i < var_vals.size(); ++i) {
-                llvm::Value* index = builder->getInt32(i);
-                llvm::Value* element_ptr = builder->CreateGEP(builder->getPtrTy(), items_array, index);
-                llvm::Value* ValueToStore = var_vals[i];
-                llvm::Type* valTy = ValueToStore->getType();
-                if (valTy->isIntegerTy()) {
-                    ValueToStore = builder->CreateIntToPtr(ValueToStore, builder->getPtrTy(), "vararg_int_to_ptr");
-                } else if (valTy->isFloatingPointTy()) {
-                    llvm::Value* Int64Bits = nullptr;
-                    if (valTy->isFloatTy()) {
-                        llvm::Value* Int32Bits = builder->CreateBitCast(ValueToStore, builder->getInt32Ty(), "float_to_i32");
-                        Int64Bits = builder->CreateZExt(Int32Bits, builder->getInt64Ty(), "i32_to_i64");
-                    } else {
-                        Int64Bits = builder->CreateBitCast(ValueToStore, builder->getInt64Ty(), "double_to_i64");
+            if (lastVarName == "<varadic>") {
+                
+            } else {
+                size_t num_fixed_args = paramTypeStrings.size() - 1;
+                std::vector<llvm::Value*> var_vals(args.begin() + num_fixed_args, args.end());
+                args.resize(num_fixed_args);
+                llvm::Value* args_cnt = builder->getInt32(var_vals.size());
+                llvm::Value* items_array = builder->CreateAlloca(builder->getPtrTy(), args_cnt, "varadics_array");
+                for (size_t i = 0; i < var_vals.size(); ++i) {
+                    llvm::Value* index = builder->getInt32(i);
+                    llvm::Value* element_ptr = builder->CreateGEP(builder->getPtrTy(), items_array, index);
+                    llvm::Value* ValueToStore = var_vals[i];
+                    llvm::Type* valTy = ValueToStore->getType();
+                    if (valTy->isIntegerTy()) {
+                        ValueToStore = builder->CreateIntToPtr(ValueToStore, builder->getPtrTy(), "vararg_int_to_ptr");
+                    } else if (valTy->isFloatingPointTy()) {
+                        llvm::Value* Int64Bits = nullptr;
+                        if (valTy->isFloatTy()) {
+                            llvm::Value* Int32Bits = builder->CreateBitCast(ValueToStore, builder->getInt32Ty(), "float_to_i32");
+                            Int64Bits = builder->CreateZExt(Int32Bits, builder->getInt64Ty(), "i32_to_i64");
+                        } else {
+                            Int64Bits = builder->CreateBitCast(ValueToStore, builder->getInt64Ty(), "double_to_i64");
+                        }
+                        ValueToStore = builder->CreateIntToPtr(Int64Bits, builder->getPtrTy(), "fp_bits_to_ptr");
                     }
-                    ValueToStore = builder->CreateIntToPtr(Int64Bits, builder->getPtrTy(), "fp_bits_to_ptr");
+                    builder->CreateStore(ValueToStore, element_ptr);
                 }
-                builder->CreateStore(ValueToStore, element_ptr);
+                llvm::StructType* VaradicStructTy = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty(), builder->getInt32Ty()});
+                llvm::Value* variadic_struct = builder->CreateAlloca(VaradicStructTy, nullptr, "variadic_struct");
+                llvm::Value* Field0Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 0);
+                builder->CreateStore(items_array, Field0Ptr);
+                llvm::Value* Field1Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 1);
+                builder->CreateStore(args_cnt, Field1Ptr);
+                llvm::Value* Field2Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 2);
+                builder->CreateStore(builder->getInt32(0), Field2Ptr);
+                args.push_back(variadic_struct);
             }
-            llvm::StructType* VaradicStructTy = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty(), builder->getInt32Ty()});
-            llvm::Value* variadic_struct = builder->CreateAlloca(VaradicStructTy, nullptr, "variadic_struct");
-            llvm::Value* Field0Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 0);
-            builder->CreateStore(items_array, Field0Ptr);
-            llvm::Value* Field1Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 1);
-            builder->CreateStore(args_cnt, Field1Ptr);
-            llvm::Value* Field2Ptr = builder->CreateStructGEP(VaradicStructTy, variadic_struct, 2);
-            builder->CreateStore(builder->getInt32(0), Field2Ptr);
-            args.push_back(variadic_struct);
         }
         if (defIt != functionDefs.end()) {
             auto& fnDef = defIt->second;
@@ -19022,7 +19076,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_length", module.get());
             }
 
@@ -19039,7 +19093,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 sizeFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_map_size", module.get());
             }
 
@@ -19271,7 +19325,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     targetClass = sTy->getName().str();
             }
         } else if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(&call->base)) {
-            llvm::Value* baseAddr = emitExpr(*((*propAcc)->base)); 
+            llvm::Value* baseAddr = emitExpr(*((*propAcc)->base));
             std::string ownerClass = getExpressionType(*((*propAcc)->base));
             llvm::StructType* structType = llvm::StructType::getTypeByName(context, ownerClass);
             unsigned fieldIndex = 0;
@@ -19348,7 +19402,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 pushFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_push", module.get());
             }
             llvm::AllocaInst* argAlloc = createEntryAlloca("push_arg", argVal->getType());
@@ -19365,7 +19419,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::PointerType::get(context, 0),
                     {llvm::PointerType::get(context, 0)}, false);
                 popFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_pop", module.get());
             }
             return builder->CreateCall(popFn, {baseVal}, "list_pop");
@@ -19402,7 +19456,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
                 llvm::FunctionType* fnTy = llvm::FunctionType::get(
                     builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
-                setFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_map_set", module.get());
+                setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_map_set", module.get());
             }
             builder->CreateCall(setFn, {baseVal, keyPtr, valPtr});
             return llvm::ConstantInt::get(builder->getInt32Ty(), 0);
@@ -19525,7 +19579,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 if (val->getType()->isStructTy()) {
                     llvm::Value* tempAlloc = builder->CreateAlloca(val->getType(), nullptr, "var_struct_tmp");
                     builder->CreateStore(val, tempAlloc);
-                    val = tempAlloc; 
+                    val = tempAlloc;
                 } else if (val->getType()->isIntegerTy()) {
                     val = builder->CreateIntToPtr(val, builder->getPtrTy());
                 } else if (val->getType()->isFloatingPointTy()) {
@@ -19775,7 +19829,7 @@ llvm::Value* LLVMCompiler::callStringConcat(llvm::Value* a, llvm::Value* b) {
                 {llvm::PointerType::get(context, 0),
                     llvm::PointerType::get(context, 0)},
                 false);
-        concatFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+        concatFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
             "qc_string_concat", module.get());
     }
     return builder->CreateCall(concatFn, {a, b});
@@ -19933,115 +19987,11 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
     if (!fn) {
         llvm::FunctionType* fty = llvm::FunctionType::get(
             llvm::PointerType::get(context, 0), {val->getType()}, false);
-        fn = llvm::Function::Create(fty, llvm::Function::InternalLinkage,
+        fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage,
             fnName, module.get());
     }
 
     return builder->CreateCall(fn, {val}, "to_str");
-}
-llvm::Value* LLVMCompiler::emitSpreadFunctionCall(llvm::Value* calleeVal,
-    llvm::FunctionType* fnTy,
-    CallNode& call) {
-    llvm::Value* totalArgsCount = builder->getInt32(0);
-
-    for (auto& argNode : call.arg_nodes) {
-        if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&argNode)) {
-            llvm::Value* collVal = emitExpr((*spread)->expr);
-            llvm::Value* spreadLen =
-                getCollectionLength(collVal, (*spread)->expr);
-            totalArgsCount = builder->CreateAdd(totalArgsCount, spreadLen);
-        } else {
-            totalArgsCount =
-                builder->CreateAdd(totalArgsCount, builder->getInt32(1));
-        }
-    }
-
-    llvm::AllocaInst* argsArray =
-        builder->CreateAlloca(llvm::PointerType::get(context, 0),
-            totalArgsCount, "spread_args_array");
-
-    llvm::AllocaInst* typesArray = builder->CreateAlloca(
-        builder->getInt32Ty(), totalArgsCount, "spread_types_array");
-
-    llvm::Value* currentIndex = builder->getInt32(0);
-
-    for (auto& argNode : call.arg_nodes) {
-        if (auto spread = std::get_if<std::unique_ptr<SpreadNode>>(&argNode)) {
-            llvm::Value* collVal = emitExpr((*spread)->expr);
-            currentIndex = expandSpreadIntoArrays(
-                collVal, (*spread)->expr, argsArray, typesArray, currentIndex);
-        } else {
-            llvm::Value* argVal = emitExpr(argNode);
-            if (!argVal)
-                return nullptr;
-
-            argVal = normalizeValue(argVal, argNode);
-            llvm::Type* ty = argVal->getType();
-
-            llvm::Value* argPtr;
-            if (ty->isPointerTy()) {
-                argPtr = argVal;
-            } else {
-                llvm::AllocaInst* tempAlloc = createEntryAlloca("arg_temp", ty);
-                builder->CreateStore(argVal, tempAlloc);
-                argPtr = builder->CreateBitCast(
-                    tempAlloc, llvm::PointerType::get(context, 0));
-            }
-
-            int typeCode = getTypeCodeFromLLVM(ty);
-
-            llvm::Value* slot = builder->CreateGEP(
-                llvm::PointerType::get(context, 0), argsArray, currentIndex);
-            builder->CreateStore(argPtr, slot);
-
-            llvm::Value* typeSlot = builder->CreateGEP(
-                builder->getInt32Ty(), typesArray, currentIndex);
-            builder->CreateStore(builder->getInt32(typeCode), typeSlot);
-
-            currentIndex =
-                builder->CreateAdd(currentIndex, builder->getInt32(1));
-        }
-    }
-
-    llvm::Function* spreadFn = module->getFunction("qc_spread_call");
-    if (!spreadFn) {
-        llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
-        llvm::FunctionType* ty = llvm::FunctionType::get(
-            builder->getVoidTy(),
-            {voidPtrTy, builder->getInt32Ty(),
-                llvm::PointerType::get(context, 0),
-                llvm::PointerType::get(context, 0), builder->getInt32Ty()},
-            false);
-        spreadFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
-            "qc_spread_call", module.get());
-    }
-
-    llvm::Type* retTy = fnTy->getReturnType();
-    int retTypeCode = -1;
-    if (!retTy->isVoidTy()) {
-        retTypeCode = getTypeCodeFromLLVM(retTy);
-    }
-
-    llvm::Value* funcPtr =
-        builder->CreateBitCast(calleeVal, llvm::PointerType::get(context, 0));
-    if (retTy->isVoidTy()) {
-        builder->CreateCall(spreadFn,
-            {funcPtr, totalArgsCount, argsArray, typesArray,
-                builder->getInt32(retTypeCode),
-                llvm::ConstantPointerNull::get(
-                    llvm::PointerType::get(context, 0))});
-        return nullptr;
-    } else {
-        llvm::AllocaInst* retAlloc = createEntryAlloca("spread_ret", retTy);
-        llvm::Value* retPtr = builder->CreateBitCast(
-            retAlloc, llvm::PointerType::get(context, 0));
-
-        builder->CreateCall(spreadFn,
-            {funcPtr, totalArgsCount, argsArray, typesArray,
-                builder->getInt32(retTypeCode), retPtr});
-
-        return builder->CreateLoad(retTy, retAlloc, "spread_result");
-    }
 }
 void LLVMCompiler::expandSpreadIntoVector(
     llvm::Value* collVal, AnyNode& collExpr,
@@ -20167,7 +20117,7 @@ void LLVMCompiler::expandSpreadIntoList(llvm::Value* collVal, AnyNode& collExpr,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                 "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal});
@@ -20247,7 +20197,7 @@ llvm::Value* LLVMCompiler::expandSpreadIntoArrays(llvm::Value* collVal,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                 "qc_list_get", module.get());
         }
         elemPtr = builder->CreateCall(getFn, {collVal, iVal}, "list_elem");
@@ -20305,7 +20255,7 @@ llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal,
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_length", module.get());
             }
             return builder->CreateCall(lenFn, {collVal}, "list_len");
@@ -20393,7 +20343,7 @@ LLVMCompiler::copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr,
                 llvm::PointerType::get(context, 0),
                 {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                 false);
-            getFn = llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+            getFn = llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                 "qc_list_get", module.get());
         }
         llvm::Value* elemPtr = builder->CreateCall(getFn, {collVal, iVal});
@@ -20537,9 +20487,16 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     if (existing)
         return existing;
     functionSignatures[name] = {fTy, {}};
+    llvm::GlobalValue::LinkageTypes linkage =
+        fn.is_extern || fn.is_foreign
+            ? llvm::Function::ExternalLinkage
+            : llvm::Function::InternalLinkage;
 
-    auto* func = llvm::Function::Create(fTy, llvm::Function::InternalLinkage,
-        name, module.get());
+    auto* func =
+        llvm::Function::Create(fTy, linkage, name, module.get());
+
+    if (fn.is_foreign)
+        return func;
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
     llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
@@ -22170,7 +22127,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             llvm::FunctionType* fnTy =
                 llvm::FunctionType::get(ptrTy, {builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_create_list", module.get());
         }
 
@@ -22300,7 +22257,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     builder->getInt32Ty(), {llvm::PointerType::get(context, 0)},
                     false);
                 lenFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_length", module.get());
             }
             lengthVal = builder->CreateCall(lenFn, {collVal}, "coll_len");
@@ -22363,7 +22320,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                     {llvm::PointerType::get(context, 0), builder->getInt32Ty()},
                     false);
                 getFn =
-                    llvm::Function::Create(ty, llvm::Function::InternalLinkage,
+                    llvm::Function::Create(ty, llvm::Function::ExternalLinkage,
                         "qc_list_get", module.get());
             }
             llvm::Value* elemPtr =
@@ -22418,7 +22375,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             llvm::FunctionType* fnTy = llvm::FunctionType::get(
                 ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
             createFn =
-                llvm::Function::Create(fnTy, llvm::Function::InternalLinkage,
+                llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage,
                     "qc_create_map", module.get());
         }
 
@@ -22525,7 +22482,43 @@ std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
     return {false, 0};
 }
 std::vector<CTError> LLVMCompiler::compile(StatementsNode* root,
-    const std::string& outPath) {
+    const std::string& outPath, bool optimize, std::string opt_level) {
+    if (optimize) {
+        llvm::PassBuilder PB;
+        llvm::LoopAnalysisManager LAM;
+        llvm::FunctionAnalysisManager FAM;
+        llvm::CGSCCAnalysisManager CGAM;
+        llvm::ModuleAnalysisManager MAM;
+        PB.registerModuleAnalyses(MAM);
+        PB.registerCGSCCAnalyses(CGAM);
+        PB.registerFunctionAnalyses(FAM);
+        PB.registerLoopAnalyses(LAM);
+        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+        llvm::ModulePassManager MPM;
+        auto optimization_level = llvm::OptimizationLevel::O2;
+        switch (opt_level[1]) {
+            case '0':
+                optimization_level = llvm::OptimizationLevel::O0;
+                break;
+            case '1':
+                optimization_level = llvm::OptimizationLevel::O1;
+                break;
+            case '2':
+                optimization_level = llvm::OptimizationLevel::O2;
+                break;
+            case '3':
+                optimization_level = llvm::OptimizationLevel::O3;
+                break;
+            case 'z':
+                optimization_level = llvm::OptimizationLevel::Oz;
+                break;
+            default: 
+                optimization_level = llvm::OptimizationLevel::O2;
+                break;
+        }
+        MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
+        MPM.run(*(this->module), MAM);
+    }
     errors.clear();
     locals.clear();
     globals.clear();
@@ -22829,28 +22822,33 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root,
             namespaceStack.pop_back();
         }
     }
-    llvm::Function* userEntry = module->getFunction(entrypointName);
-    if (userEntry) {
-        userEntry->setName("__user_entry");
+    if (!no_main) {
+        llvm::Function* userEntry = module->getFunction(entrypointName);
+        if (userEntry) {
+            userEntry->setName("__user_entry");
 
-        llvm::FunctionType* mainTy =
-            llvm::FunctionType::get(builder->getInt32Ty(), {}, false);
-        llvm::Function* realMain = llvm::Function::Create(
-            mainTy, llvm::Function::ExternalLinkage, "main", module.get());
-        llvm::BasicBlock* entry =
-            llvm::BasicBlock::Create(context, "entry", realMain);
-        builder->SetInsertPoint(entry);
-        currentFunction = realMain;
-        llvm::Value* result =
-            builder->CreateCall(userEntry, {}, "entry_result");
-        builder->CreateRet(result);
-    } else {
-        cg_error(Position(),
-            "Entrypoint function '" + entrypointName + "' not defined");
+            llvm::FunctionType* mainTy =
+                llvm::FunctionType::get(builder->getInt32Ty(), {}, false);
+            llvm::Function* realMain = llvm::Function::Create(
+                mainTy, llvm::Function::ExternalLinkage, "main", module.get());
+            llvm::BasicBlock* entry =
+                llvm::BasicBlock::Create(context, "entry", realMain);
+            builder->SetInsertPoint(entry);
+            currentFunction = realMain;
+            llvm::Value* result =
+                builder->CreateCall(userEntry, {}, "entry_result");
+            builder->CreateRet(result);
+        } else {
+            cg_error(Position(),
+                "Entrypoint function '" + entrypointName + "' not defined");
+        }
     }
-
     currentFunction = nullptr;
-
+    for (llvm::Function &F : module->functions()) {
+        if (F.getName().starts_with("qc_")) {
+            F.setLinkage(llvm::GlobalValue::InternalLinkage);
+        }
+    }
     if (!errors.empty())
         return errors;
 
@@ -23118,6 +23116,63 @@ std::string removeExtension(const std::string& filename) {
     }
     return filename.substr(0, lastDot);
 }
+int emitObjectFile(llvm::Module &M, const std::string &outputPath, bool debug) {
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmPrinters();
+    llvm::InitializeAllAsmParsers();
+
+    std::string triple = llvm::sys::getDefaultTargetTriple();
+    M.setTargetTriple(llvm::Triple(triple));
+
+    std::string err;
+    const llvm::Target *target = llvm::TargetRegistry::lookupTarget(triple, err);
+
+    if (!target) {
+        llvm::errs() << "Target error: " << err << "\n";
+        return 1;
+    }
+
+    llvm::TargetOptions opt;
+
+    if (debug) {
+        opt.DebuggerTuning = llvm::DebuggerKind::GDB;
+    }
+
+    auto RM = llvm::Reloc::PIC_;
+
+    llvm::TargetMachine* TM = target->createTargetMachine(
+        llvm::Triple(triple),
+        "generic",
+        "",
+        opt,
+        RM
+    );
+    M.setDataLayout(TM->createDataLayout());
+
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(outputPath, EC, llvm::sys::fs::OF_None);
+
+    if (EC) {
+        llvm::errs() << "Could not open file: " << EC.message() << "\n";
+        return 1;
+    }
+
+    llvm::legacy::PassManager PM;
+
+    if (TM->addPassesToEmitFile(
+            PM,
+            dest,
+            nullptr,
+            llvm::CodeGenFileType::ObjectFile)) {
+        llvm::errs() << "TargetMachine cannot emit file\n";
+        return 1;
+    }
+
+    PM.run(M);
+    delete TM;
+    return 0;
+}
 Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Check for inline directives
     if (text.find("// @no-context") != std::string::npos) {
@@ -23242,47 +23297,47 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     interpreter.process(stmt);
                 }
             }
+            if (!no_main) {
+                // Call main
+                std::shared_ptr<FuncDefNode> main_func =
+                    ctx->get_function(entrypointName);
+                if (!main_func) {
+                    throw RTError("No main() function found", Position());
+                }
 
-            // Call main
-            std::shared_ptr<FuncDefNode> main_func =
-                ctx->get_function(entrypointName);
-            if (!main_func) {
-                throw RTError("No main() function found", Position());
-            }
+                auto main_call_node = std::make_unique<CallNode>(
+                    std::make_unique<VarAccessNode>(
+                        Token(TokenType::IDENTIFIER, entrypointName, Position())),
+                    std::list<AnyNode>{});
+                AnyNode node_variant = std::move(main_call_node);
+                NumberVariant result = std::move(interpreter.process(node_variant));
 
-            auto main_call_node = std::make_unique<CallNode>(
-                std::make_unique<VarAccessNode>(
-                    Token(TokenType::IDENTIFIER, entrypointName, Position())),
-                std::list<AnyNode>{});
-            AnyNode node_variant = std::move(main_call_node);
-            NumberVariant result = std::move(interpreter.process(node_variant));
+                exit_code = std::visit(
+                    [](auto&& v) -> int {
+                        using T = std::decay_t<decltype(v)>;
+                        if constexpr (std::is_same_v<T, Number<int>>) {
+                            return v.value;
+                        }
+                        return 0;
+                    },
+                    result);
 
-            exit_code = std::visit(
-                [](auto&& v) -> int {
-                    using T = std::decay_t<decltype(v)>;
-                    if constexpr (std::is_same_v<T, Number<int>>) {
-                        return v.value;
-                    }
-                    return 0;
-                },
-                result);
+                auto end = std::chrono::high_resolution_clock::now();
 
-            auto end = std::chrono::high_resolution_clock::now();
-
-            if (!config.quiet_mode) {
-                output =
-                    "Program exited with code: " + std::to_string(exit_code);
-            }
-
-            if (config.show_time) {
-                auto duration =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                        end - start);
-                if (!config.quiet_mode)
-                    output += "\n";
-                output +=
-                    "Execution time: " + std::to_string(duration.count()) +
-                    "ms";
+                if (!config.quiet_mode) {
+                    output =
+                        "Program exited with code: " + std::to_string(exit_code);
+                }
+                if (config.show_time) {
+                    auto duration =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(
+                            end - start);
+                    if (!config.quiet_mode)
+                        output += "\n";
+                    output +=
+                        "Execution time: " + std::to_string(duration.count()) +
+                        "ms";
+                }
             }
         } catch (RTError& e) {
             delete ctx;
@@ -23330,7 +23385,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             config.object_only ? base_name + ".o" : dir + "temp_" + stem + ".o";
 
         std::vector<CTError> compile_errors =
-            comp.compile(ast.statements.get(), ll_file);
+            comp.compile(ast.statements.get(), ll_file, config.optimize, config.opt_level);
         auto end = std::chrono::high_resolution_clock::now();
         std::vector<Diagnostic> diagnostics;
         bool error_found = false;
@@ -23345,16 +23400,11 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (!diagnostics.empty()) {
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
-        system(std::string("opt -passes=internalize,globaldce,dce,adce -internalize-public-api-list=main " + ll_file + " -S -o " + ll_file).c_str());
         if (config.compile_only) {
             message += ". Compiled to " + ll_file;
             return Mer{std::move(ast), std::move(resp), message, diagnostics};
         }
-        std::string llc_cmd = "llc " + ll_file + " -o " + obj_file +
-                              " -filetype=obj -relocation-model=pic";
-        if (config.debug)
-            llc_cmd += " --debugger-tune=gdb";
-        int llc_result = system(llc_cmd.c_str());
+        int llc_result = emitObjectFile(*(comp.module), obj_file, config.debug);
         if (llc_result != 0) {
             diagnostics.push_back(
                 {RTError("Failed to compile IR to object file",
@@ -23370,7 +23420,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         std::string final_exe =
             config.output_file.empty() ? "a.out" : config.output_file;
         std::string link_cmd =
-            "gcc " + obj_file + " -o " + final_exe + " -lm -lffi";
+            "gcc " + obj_file + " -o " + final_exe + " -lm";
         if (config.debug)
             link_cmd += " -g";
         int link_result = system(link_cmd.c_str());
@@ -23509,8 +23559,8 @@ Token Lexer::make_identifier() {
         id == "const" || id == "default" || id == "class" || id == "struct" ||
         id == "enum" || id == "long" || id == "short" || id == "fn" ||
         id == "continue" || id == "auto" || id == "list" || id == "foreach" ||
-        id == "do" || id == "in" || id == "map" || id == "type" ||
-        id == "public" || id == "protected" || id == "private" ||
+        id == "do" || id == "in" || id == "map" || id == "type" || id == "foreign" ||
+        id == "public" || id == "protected" || id == "private" || id == "extern" ||
         id == "function" || id == "namespace" || id == "keyword" ||
         id == "operator" || id == "abstract" || id == "final" || id == "try" ||
         id == "catch" || id == "nullptr" || id == "addr_t") {
@@ -24167,6 +24217,7 @@ std::string preprocess_includes(const std::string& source,
     std::vector<std::string> exported_blocks;
     std::vector<std::string> namespace_order;
     size_t ep_pos = source.find("#entrypoint");
+    size_t nomain_pos = source.find("#nomain");
     if (ep_pos != std::string::npos) {
         bool in_string = false;
         for (size_t check = 0; check < ep_pos; check++) {
@@ -24182,6 +24233,18 @@ std::string preprocess_includes(const std::string& source,
             std::string directive = source.substr(
                 ep_pos + 12, line_end - ep_pos - 12); // +12 for "#entrypoint "
             entrypointName = trim(directive);
+        }
+    }
+    if (nomain_pos != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < nomain_pos; check++) {
+            if (source[check] == '"' &&
+                (check == 0 || source[check - 1] != '\\')) {
+                in_string = !in_string;
+            }
+        }
+        if (!in_string) {
+            no_main = true;
         }
     }
     std::function<void(const std::string&, const std::string&)> process_file;
@@ -24452,6 +24515,24 @@ std::string preprocess_includes(const std::string& source,
     result += source.substr(last_pos);
     pos = 0;
     while ((pos = result.find("#entrypoint", pos)) != std::string::npos) {
+        bool in_str = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (result[check] == '"' &&
+                (check == 0 || result[check - 1] != '\\')) {
+                in_str = !in_str;
+            }
+        }
+        if (!in_str) {
+            size_t line_end = result.find('\n', pos);
+            if (line_end == std::string::npos)
+                line_end = result.size();
+            result.erase(pos, line_end - pos + 1);
+        } else {
+            pos++;
+        }
+    }
+    pos = 0;
+    while ((pos = result.find("#nomain", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
             if (result[check] == '"' &&

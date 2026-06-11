@@ -3,9 +3,6 @@ source_filename = "/home/luca/C^4/runtime.cpp"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
-%struct._ffi_type = type { i64, i16, i16, ptr }
-%struct.ffi_cif = type { i32, i32, ptr, ptr, i32, i32 }
-
 @.str = private unnamed_addr constant [11 x i8] c"%%%s%d.%dd\00", align 1
 @.str.1 = private unnamed_addr constant [2 x i8] c"0\00", align 1
 @.str.2 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
@@ -52,19 +49,10 @@ target triple = "x86_64-pc-linux-gnu"
 @.str.45 = private unnamed_addr constant [5 x i8] c"'%c'\00", align 1
 @.str.46 = private unnamed_addr constant [6 x i8] c"ERROR\00", align 1
 @.str.48 = private unnamed_addr constant [3 x i8] c": \00", align 1
-@ffi_type_sint32 = external global %struct._ffi_type, align 8
-@ffi_type_float = external global %struct._ffi_type, align 8
-@ffi_type_double = external global %struct._ffi_type, align 8
-@ffi_type_sint8 = external global %struct._ffi_type, align 8
-@ffi_type_uint8 = external global %struct._ffi_type, align 8
-@ffi_type_pointer = external global %struct._ffi_type, align 8
-@ffi_type_void = external global %struct._ffi_type, align 8
 @switch.table.qc_print_array_qbool = private unnamed_addr constant [4 x ptr] [ptr @.str.25, ptr @.str.26, ptr @.str.27, ptr @.str.28], align 8
 @switch.table.qc_set_leaf_element.51 = private unnamed_addr constant [5 x i64] [i64 8, i64 1, i64 1, i64 1, i64 8], align 8
-@switch.table.stringify_jagged_helper = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
+@switch.table.qc_stringify_jagged_helper = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
 @switch.table.qc_map_set.53 = private unnamed_addr constant [4 x i64] [i64 8, i64 1, i64 1, i64 1], align 8
-@switch.table.qc_spread_call = private unnamed_addr constant [7 x ptr] [ptr @ffi_type_void, ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
-@switch.table.qc_spread_call.54 = private unnamed_addr constant [6 x ptr] [ptr @ffi_type_sint32, ptr @ffi_type_float, ptr @ffi_type_double, ptr @ffi_type_sint8, ptr @ffi_type_uint8, ptr @ffi_type_uint8], align 8
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define dso_local noalias noundef ptr @qc_malloc(i64 noundef %0) local_unnamed_addr #0 {
@@ -103,54 +91,52 @@ define dso_local noalias noundef ptr @qc_calloc(i64 noundef %0, i64 noundef %1) 
 declare noalias noundef ptr @calloc(i64 noundef, i64 noundef) local_unnamed_addr #5
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
-  br i1 %6, label %8, label %15
+  br i1 %6, label %8, label %14
 
 8:                                                ; preds = %4
-  br i1 %7, label %9, label %13
+  br i1 %7, label %9, label %12
 
 9:                                                ; preds = %8
-  %10 = icmp eq i32 %3, 0
-  %11 = select i1 %10, ptr @.str.2, ptr @.str.1
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str, ptr noundef nonnull %11, i32 noundef %1, i32 noundef %2) #37
-  br label %22
+  %10 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  br label %20
 
-13:                                               ; preds = %8
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.3, i32 noundef %2) #37
-  br label %22
+12:                                               ; preds = %8
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.3, i32 noundef %2) #37
+  br label %20
 
-15:                                               ; preds = %4
-  br i1 %7, label %16, label %20
+14:                                               ; preds = %4
+  br i1 %7, label %15, label %18
 
-16:                                               ; preds = %15
-  %17 = icmp eq i32 %3, 0
-  %18 = select i1 %17, ptr @.str.2, ptr @.str.1
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.4, ptr noundef nonnull %18, i32 noundef %1) #37
-  br label %22
+15:                                               ; preds = %14
+  %16 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.4, ptr noundef nonnull %16, i32 noundef %1) #37
+  br label %20
 
-20:                                               ; preds = %15
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.5) #37
-  br label %22
+18:                                               ; preds = %14
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.5) #37
+  br label %20
 
-22:                                               ; preds = %16, %20, %9, %13
-  %23 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, i64 noundef %0) #37
-  %24 = add nsw i32 %23, 1
-  %25 = sext i32 %24 to i64
-  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
-  %27 = icmp eq ptr %26, null
-  br i1 %27, label %30, label %28
+20:                                               ; preds = %15, %18, %9, %12
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, i64 noundef %0) #37
+  %22 = add nsw i32 %21, 1
+  %23 = sext i32 %22 to i64
+  %24 = tail call noalias ptr @malloc(i64 noundef %23) #36
+  %25 = icmp eq ptr %24, null
+  br i1 %25, label %28, label %26
 
-28:                                               ; preds = %22
-  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %26, i64 noundef %25, ptr noundef nonnull %5, i64 noundef %0) #37
-  br label %30
+26:                                               ; preds = %20
+  %27 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %24, i64 noundef %23, ptr noundef nonnull %5, i64 noundef %0) #37
+  br label %28
 
-30:                                               ; preds = %22, %28
+28:                                               ; preds = %20, %26
   call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
-  ret ptr %26
+  ret ptr %24
 }
 
 ; Function Attrs: mustprogress nocallback nofree nosync nounwind willreturn memory(argmem: readwrite)
@@ -172,7 +158,7 @@ define dso_local void @qc_flush() local_unnamed_addr #6 {
 declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 noundef %1) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i1 noundef zeroext %1) local_unnamed_addr #6 {
   %3 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %3) #37
   %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %3, i64 noundef 32, ptr noundef nonnull @.str.6) #37
@@ -198,283 +184,169 @@ define dso_local noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i32 no
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
-  br i1 %6, label %8, label %15
+  br i1 %6, label %8, label %14
 
 8:                                                ; preds = %4
-  br i1 %7, label %9, label %13
+  br i1 %7, label %9, label %12
 
 9:                                                ; preds = %8
-  %10 = icmp eq i32 %3, 0
-  %11 = select i1 %10, ptr @.str.2, ptr @.str.1
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.7, ptr noundef nonnull %11, i32 noundef %1, i32 noundef %2) #37
-  br label %22
+  %10 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.7, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  br label %20
 
-13:                                               ; preds = %8
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.8, i32 noundef %2) #37
-  br label %22
+12:                                               ; preds = %8
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.8, i32 noundef %2) #37
+  br label %20
 
-15:                                               ; preds = %4
-  br i1 %7, label %16, label %20
+14:                                               ; preds = %4
+  br i1 %7, label %15, label %18
 
-16:                                               ; preds = %15
-  %17 = icmp eq i32 %3, 0
-  %18 = select i1 %17, ptr @.str.2, ptr @.str.1
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.9, ptr noundef nonnull %18, i32 noundef %1) #37
-  br label %22
+15:                                               ; preds = %14
+  %16 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.9, ptr noundef nonnull %16, i32 noundef %1) #37
+  br label %20
 
-20:                                               ; preds = %15
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.10) #37
-  br label %22
+18:                                               ; preds = %14
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.10) #37
+  br label %20
 
-22:                                               ; preds = %16, %20, %9, %13
-  %23 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
-  %24 = icmp slt i32 %23, 0
-  br i1 %24, label %32, label %25
+20:                                               ; preds = %15, %18, %9, %12
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
+  %22 = icmp slt i32 %21, 0
+  br i1 %22, label %30, label %23
 
-25:                                               ; preds = %22
-  %26 = add nuw i32 %23, 1
-  %27 = zext i32 %26 to i64
-  %28 = tail call noalias ptr @malloc(i64 noundef %27) #36
-  %29 = icmp eq ptr %28, null
-  br i1 %29, label %32, label %30
+23:                                               ; preds = %20
+  %24 = add nuw i32 %21, 1
+  %25 = zext i32 %24 to i64
+  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
+  %27 = icmp eq ptr %26, null
+  br i1 %27, label %30, label %28
 
-30:                                               ; preds = %25
-  %31 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %28, i64 noundef %27, ptr noundef nonnull %5, double noundef %0) #37
-  br label %32
+28:                                               ; preds = %23
+  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #37
+  br label %30
 
-32:                                               ; preds = %30, %25, %22
-  %33 = phi ptr [ null, %22 ], [ %28, %30 ], [ null, %25 ]
+30:                                               ; preds = %28, %23, %20
+  %31 = phi ptr [ null, %20 ], [ %26, %28 ], [ null, %23 ]
   call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
-  ret ptr %33
+  ret ptr %31
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_double(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
-  %5 = tail call ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3)
+define dso_local noalias noundef ptr @qc_fmt_double(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
+  %5 = tail call ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3)
   ret ptr %5
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 noundef %1, i32 noundef %2, i32 noundef %3) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
-  br i1 %6, label %8, label %15
+  br i1 %6, label %8, label %14
 
 8:                                                ; preds = %4
-  br i1 %7, label %9, label %13
+  br i1 %7, label %9, label %12
 
 9:                                                ; preds = %8
-  %10 = icmp eq i32 %3, 0
-  %11 = select i1 %10, ptr @.str.2, ptr @.str.1
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.11, ptr noundef nonnull %11, i32 noundef %1, i32 noundef %2) #37
-  br label %22
+  %10 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.11, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  br label %20
 
-13:                                               ; preds = %8
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.12, i32 noundef %2) #37
-  br label %22
+12:                                               ; preds = %8
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.12, i32 noundef %2) #37
+  br label %20
 
-15:                                               ; preds = %4
-  br i1 %7, label %16, label %20
+14:                                               ; preds = %4
+  br i1 %7, label %15, label %18
 
-16:                                               ; preds = %15
-  %17 = icmp eq i32 %3, 0
-  %18 = select i1 %17, ptr @.str.2, ptr @.str.1
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.13, ptr noundef nonnull %18, i32 noundef %1) #37
-  br label %22
+15:                                               ; preds = %14
+  %16 = select i1 %3, ptr @.str.1, ptr @.str.2
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.13, ptr noundef nonnull %16, i32 noundef %1) #37
+  br label %20
 
-20:                                               ; preds = %15
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.14) #37
-  br label %22
+18:                                               ; preds = %14
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.14) #37
+  br label %20
 
-22:                                               ; preds = %16, %20, %9, %13
-  %23 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
-  %24 = icmp slt i32 %23, 0
-  br i1 %24, label %32, label %25
+20:                                               ; preds = %15, %18, %9, %12
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
+  %22 = icmp slt i32 %21, 0
+  br i1 %22, label %30, label %23
 
-25:                                               ; preds = %22
-  %26 = add nuw nsw i32 %23, 1
-  %27 = zext nneg i32 %26 to i64
-  %28 = tail call noalias ptr @malloc(i64 noundef %27) #36
-  %29 = icmp eq ptr %28, null
-  br i1 %29, label %32, label %30
+23:                                               ; preds = %20
+  %24 = add nuw nsw i32 %21, 1
+  %25 = zext nneg i32 %24 to i64
+  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
+  %27 = icmp eq ptr %26, null
+  br i1 %27, label %30, label %28
 
-30:                                               ; preds = %25
-  %31 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %28, i64 noundef %27, ptr noundef nonnull %5, double noundef %0) #37
-  br label %32
+28:                                               ; preds = %23
+  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #37
+  br label %30
 
-32:                                               ; preds = %30, %25, %22
-  %33 = phi ptr [ null, %22 ], [ %28, %30 ], [ null, %25 ]
+30:                                               ; preds = %28, %23, %20
+  %31 = phi ptr [ null, %20 ], [ %26, %28 ], [ null, %23 ]
   call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
-  ret ptr %33
+  ret ptr %31
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
   %5 = icmp sgt i32 %1, 0
-  br i1 %5, label %6, label %10
+  br i1 %5, label %6, label %9
 
 6:                                                ; preds = %3
-  %7 = icmp eq i32 %2, 0
-  %8 = select i1 %7, ptr @.str.2, ptr @.str.1
-  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.15, ptr noundef nonnull %8, i32 noundef %1) #37
-  br label %12
+  %7 = select i1 %2, ptr @.str.1, ptr @.str.2
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.15, ptr noundef nonnull %7, i32 noundef %1) #37
+  br label %11
 
-10:                                               ; preds = %3
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.16) #37
-  br label %12
+9:                                                ; preds = %3
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.16) #37
+  br label %11
 
-12:                                               ; preds = %10, %6
-  %13 = sext i8 %0 to i32
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i32 noundef %13) #37
-  %15 = icmp slt i32 %14, 0
-  br i1 %15, label %23, label %16
+11:                                               ; preds = %9, %6
+  %12 = sext i8 %0 to i32
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i32 noundef %12) #37
+  %14 = icmp slt i32 %13, 0
+  br i1 %14, label %22, label %15
 
-16:                                               ; preds = %12
-  %17 = add nuw nsw i32 %14, 1
-  %18 = zext nneg i32 %17 to i64
-  %19 = tail call noalias ptr @malloc(i64 noundef %18) #36
-  %20 = icmp eq ptr %19, null
-  br i1 %20, label %23, label %21
+15:                                               ; preds = %11
+  %16 = add nuw nsw i32 %13, 1
+  %17 = zext nneg i32 %16 to i64
+  %18 = tail call noalias ptr @malloc(i64 noundef %17) #36
+  %19 = icmp eq ptr %18, null
+  br i1 %19, label %22, label %20
 
-21:                                               ; preds = %16
-  %22 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %19, i64 noundef %18, ptr noundef nonnull %4, i32 noundef %13) #37
-  br label %23
+20:                                               ; preds = %15
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, i32 noundef %12) #37
+  br label %22
 
-23:                                               ; preds = %21, %16, %12
-  %24 = phi ptr [ null, %12 ], [ %19, %21 ], [ null, %16 ]
+22:                                               ; preds = %20, %15, %11
+  %23 = phi ptr [ null, %11 ], [ %18, %20 ], [ null, %15 ]
   call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
-  ret ptr %24
+  ret ptr %23
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = icmp eq ptr %0, null
   %6 = select i1 %5, ptr @.str.2, ptr %0
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
   %7 = icmp sgt i32 %1, 0
-  br i1 %7, label %8, label %12
+  br i1 %7, label %8, label %11
 
 8:                                                ; preds = %3
-  %9 = icmp eq i32 %2, 0
-  %10 = select i1 %9, ptr @.str.2, ptr @.str.1
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17, ptr noundef nonnull %10, i32 noundef %1) #37
-  br label %14
-
-12:                                               ; preds = %3
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18) #37
-  br label %14
-
-14:                                               ; preds = %12, %8
-  %15 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
-  %16 = icmp slt i32 %15, 0
-  br i1 %16, label %24, label %17
-
-17:                                               ; preds = %14
-  %18 = add nuw nsw i32 %15, 1
-  %19 = zext nneg i32 %18 to i64
-  %20 = tail call noalias ptr @malloc(i64 noundef %19) #36
-  %21 = icmp eq ptr %20, null
-  br i1 %21, label %24, label %22
-
-22:                                               ; preds = %17
-  %23 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %20, i64 noundef %19, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
-  br label %24
-
-24:                                               ; preds = %22, %17, %14
-  %25 = phi ptr [ null, %14 ], [ %20, %22 ], [ null, %17 ]
-  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
-  ret ptr %25
-}
-
-; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
-  %4 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
-  %5 = icmp sgt i32 %1, 0
-  br i1 %5, label %6, label %10
-
-6:                                                ; preds = %3
-  %7 = icmp eq i32 %2, 0
-  %8 = select i1 %7, ptr @.str.2, ptr @.str.1
-  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.19, ptr noundef nonnull %8, i32 noundef %1) #37
-  br label %12
-
-10:                                               ; preds = %3
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.20) #37
-  br label %12
-
-12:                                               ; preds = %10, %6
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
-  %14 = add nsw i32 %13, 1
-  %15 = sext i32 %14 to i64
-  %16 = tail call noalias ptr @malloc(i64 noundef %15) #36
-  %17 = icmp eq ptr %16, null
-  br i1 %17, label %20, label %18
-
-18:                                               ; preds = %12
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %16, i64 noundef %15, ptr noundef nonnull %4, i64 noundef %0) #37
-  br label %20
-
-20:                                               ; preds = %12, %18
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
-  ret ptr %16
-}
-
-; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
-  %4 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
-  %5 = icmp sgt i32 %1, 0
-  br i1 %5, label %6, label %10
-
-6:                                                ; preds = %3
-  %7 = icmp eq i32 %2, 0
-  %8 = select i1 %7, ptr @.str.2, ptr @.str.1
-  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.21, ptr noundef nonnull %8, i32 noundef %1) #37
-  br label %12
-
-10:                                               ; preds = %3
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.22) #37
-  br label %12
-
-12:                                               ; preds = %10, %6
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
-  %14 = add nsw i32 %13, 1
-  %15 = sext i32 %14 to i64
-  %16 = tail call noalias ptr @malloc(i64 noundef %15) #36
-  %17 = icmp eq ptr %16, null
-  br i1 %17, label %20, label %18
-
-18:                                               ; preds = %12
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %16, i64 noundef %15, ptr noundef nonnull %4, i64 noundef %0) #37
-  br label %20
-
-20:                                               ; preds = %12, %18
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
-  ret ptr %16
-}
-
-; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
-  %4 = alloca [16 x i8], align 16
-  %5 = select i1 %0, ptr @.str.23, ptr @.str.24
-  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
-  %6 = icmp sgt i32 %1, 0
-  br i1 %6, label %7, label %11
-
-7:                                                ; preds = %3
-  %8 = icmp eq i32 %2, 0
-  %9 = select i1 %8, ptr @.str.2, ptr @.str.1
+  %9 = select i1 %2, ptr @.str.1, ptr @.str.2
   %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17, ptr noundef nonnull %9, i32 noundef %1) #37
   br label %13
 
@@ -482,8 +354,8 @@ define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 nou
   %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18) #37
   br label %13
 
-13:                                               ; preds = %11, %7
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+13:                                               ; preds = %11, %8
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
   %15 = icmp slt i32 %14, 0
   br i1 %15, label %23, label %16
 
@@ -495,17 +367,122 @@ define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 nou
   br i1 %20, label %23, label %21
 
 21:                                               ; preds = %16
-  %22 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %19, i64 noundef %18, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+  %22 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %19, i64 noundef %18, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
   br label %23
 
-23:                                               ; preds = %13, %16, %21
+23:                                               ; preds = %21, %16, %13
   %24 = phi ptr [ null, %13 ], [ %19, %21 ], [ null, %16 ]
   call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
   ret ptr %24
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
+define dso_local noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
+  %4 = alloca [32 x i8], align 16
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
+  %5 = icmp sgt i32 %1, 0
+  br i1 %5, label %6, label %9
+
+6:                                                ; preds = %3
+  %7 = select i1 %2, ptr @.str.1, ptr @.str.2
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.19, ptr noundef nonnull %7, i32 noundef %1) #37
+  br label %11
+
+9:                                                ; preds = %3
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.20) #37
+  br label %11
+
+11:                                               ; preds = %9, %6
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
+  %13 = add nsw i32 %12, 1
+  %14 = sext i32 %13 to i64
+  %15 = tail call noalias ptr @malloc(i64 noundef %14) #36
+  %16 = icmp eq ptr %15, null
+  br i1 %16, label %19, label %17
+
+17:                                               ; preds = %11
+  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #37
+  br label %19
+
+19:                                               ; preds = %11, %17
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
+  ret ptr %15
+}
+
+; Function Attrs: mustprogress nofree nounwind uwtable
+define dso_local noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
+  %4 = alloca [32 x i8], align 16
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
+  %5 = icmp sgt i32 %1, 0
+  br i1 %5, label %6, label %9
+
+6:                                                ; preds = %3
+  %7 = select i1 %2, ptr @.str.1, ptr @.str.2
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.21, ptr noundef nonnull %7, i32 noundef %1) #37
+  br label %11
+
+9:                                                ; preds = %3
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.22) #37
+  br label %11
+
+11:                                               ; preds = %9, %6
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
+  %13 = add nsw i32 %12, 1
+  %14 = sext i32 %13 to i64
+  %15 = tail call noalias ptr @malloc(i64 noundef %14) #36
+  %16 = icmp eq ptr %15, null
+  br i1 %16, label %19, label %17
+
+17:                                               ; preds = %11
+  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #37
+  br label %19
+
+19:                                               ; preds = %11, %17
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
+  ret ptr %15
+}
+
+; Function Attrs: mustprogress nofree nounwind uwtable
+define dso_local noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
+  %4 = alloca [16 x i8], align 16
+  %5 = select i1 %0, ptr @.str.23, ptr @.str.24
+  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
+  %6 = icmp sgt i32 %1, 0
+  br i1 %6, label %7, label %10
+
+7:                                                ; preds = %3
+  %8 = select i1 %2, ptr @.str.1, ptr @.str.2
+  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17, ptr noundef nonnull %8, i32 noundef %1) #37
+  br label %12
+
+10:                                               ; preds = %3
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18) #37
+  br label %12
+
+12:                                               ; preds = %10, %7
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+  %14 = icmp slt i32 %13, 0
+  br i1 %14, label %22, label %15
+
+15:                                               ; preds = %12
+  %16 = add nuw nsw i32 %13, 1
+  %17 = zext nneg i32 %16 to i64
+  %18 = tail call noalias ptr @malloc(i64 noundef %17) #36
+  %19 = icmp eq ptr %18, null
+  br i1 %19, label %22, label %20
+
+20:                                               ; preds = %15
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+  br label %22
+
+22:                                               ; preds = %12, %15, %20
+  %23 = phi ptr [ null, %12 ], [ %18, %20 ], [ null, %15 ]
+  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
+  ret ptr %23
+}
+
+; Function Attrs: mustprogress nofree nounwind uwtable
+define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = and i8 %0, 3
   %6 = zext nneg i8 %5 to i64
@@ -513,69 +490,67 @@ define dso_local noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 no
   %8 = load ptr, ptr %7, align 8
   call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
   %9 = icmp sgt i32 %1, 0
-  br i1 %9, label %10, label %14
+  br i1 %9, label %10, label %13
 
 10:                                               ; preds = %3
-  %11 = icmp eq i32 %2, 0
-  %12 = select i1 %11, ptr @.str.2, ptr @.str.1
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17, ptr noundef nonnull %12, i32 noundef %1) #37
-  br label %16
+  %11 = select i1 %2, ptr @.str.1, ptr @.str.2
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17, ptr noundef nonnull %11, i32 noundef %1) #37
+  br label %15
 
-14:                                               ; preds = %3
-  %15 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18) #37
-  br label %16
+13:                                               ; preds = %3
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18) #37
+  br label %15
 
-16:                                               ; preds = %14, %10
-  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
-  %18 = icmp slt i32 %17, 0
-  br i1 %18, label %26, label %19
+15:                                               ; preds = %13, %10
+  %16 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
+  %17 = icmp slt i32 %16, 0
+  br i1 %17, label %25, label %18
 
-19:                                               ; preds = %16
-  %20 = add nuw nsw i32 %17, 1
-  %21 = zext nneg i32 %20 to i64
-  %22 = tail call noalias ptr @malloc(i64 noundef %21) #36
-  %23 = icmp eq ptr %22, null
-  br i1 %23, label %26, label %24
+18:                                               ; preds = %15
+  %19 = add nuw nsw i32 %16, 1
+  %20 = zext nneg i32 %19 to i64
+  %21 = tail call noalias ptr @malloc(i64 noundef %20) #36
+  %22 = icmp eq ptr %21, null
+  br i1 %22, label %25, label %23
 
-24:                                               ; preds = %19
-  %25 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %22, i64 noundef %21, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
-  br label %26
+23:                                               ; preds = %18
+  %24 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %21, i64 noundef %20, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
+  br label %25
 
-26:                                               ; preds = %16, %19, %24
-  %27 = phi ptr [ null, %16 ], [ %22, %24 ], [ null, %19 ]
+25:                                               ; preds = %15, %18, %23
+  %26 = phi ptr [ null, %15 ], [ %21, %23 ], [ null, %18 ]
   call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
-  ret ptr %27
+  ret ptr %26
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
-define dso_local noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #6 {
+define dso_local noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [64 x i8], align 16
   call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %4) #37
-  %5 = icmp ne i32 %2, 0
-  %6 = icmp sgt i32 %1, 0
-  %7 = and i1 %6, %5
-  br i1 %7, label %8, label %11
+  %5 = icmp sgt i32 %1, 0
+  %6 = and i1 %2, %5
+  br i1 %6, label %7, label %10
 
-8:                                                ; preds = %3
-  %9 = ptrtoint ptr %0 to i64
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.29, i32 noundef %1, i64 noundef %9) #37
-  br label %16
+7:                                                ; preds = %3
+  %8 = ptrtoint ptr %0 to i64
+  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.29, i32 noundef %1, i64 noundef %8) #37
+  br label %15
 
-11:                                               ; preds = %3
-  br i1 %6, label %12, label %14
+10:                                               ; preds = %3
+  br i1 %5, label %11, label %13
 
-12:                                               ; preds = %11
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.30, i32 noundef %1, ptr noundef %0) #37
-  br label %16
+11:                                               ; preds = %10
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.30, i32 noundef %1, ptr noundef %0) #37
+  br label %15
 
-14:                                               ; preds = %11
-  %15 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.31, ptr noundef %0) #37
-  br label %16
+13:                                               ; preds = %10
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.31, ptr noundef %0) #37
+  br label %15
 
-16:                                               ; preds = %12, %14, %8
-  %17 = call noalias ptr @strdup(ptr noundef nonnull %4) #37
+15:                                               ; preds = %11, %13, %7
+  %16 = call noalias ptr @strdup(ptr noundef nonnull %4) #37
   call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %4) #37
-  ret ptr %17
+  ret ptr %16
 }
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite)
@@ -1979,14 +1954,14 @@ define dso_local void @qc_print_array_qbool(ptr noundef readonly captures(none) 
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(none) uwtable
-define dso_local range(i32 1, 9) i32 @sizeof_type(i32 noundef %0) local_unnamed_addr #10 {
+define dso_local range(i32 1, 9) i32 @qc_sizeof_type(i32 noundef %0) local_unnamed_addr #10 {
   %2 = add i32 %0, -2
   %3 = icmp ult i32 %2, 5
   br i1 %3, label %4, label %8
 
 4:                                                ; preds = %1
   %5 = zext nneg i32 %2 to i64
-  %6 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %5
+  %6 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %5
   %7 = load i32, ptr %6, align 4
   br label %8
 
@@ -2083,7 +2058,7 @@ define dso_local noundef ptr @qc_array_to_string_recursive(ptr noundef readonly 
 
 48:                                               ; preds = %45
   %49 = zext nneg i32 %46 to i64
-  %50 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %49
+  %50 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %49
   %51 = load i32, ptr %50, align 4
   br label %52
 
@@ -2326,7 +2301,7 @@ define dso_local void @qc_print_array_recursive(ptr noundef readonly captures(no
 
 46:                                               ; preds = %41
   %47 = zext nneg i32 %44 to i64
-  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %47
+  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %47
   %49 = load i32, ptr %48, align 4
   br label %50
 
@@ -2573,7 +2548,7 @@ define dso_local void @qc_print_jagged_array_recursive(ptr noundef readonly capt
 
 42:                                               ; preds = %37
   %43 = zext nneg i32 %40 to i64
-  %44 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %43
+  %44 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %43
   %45 = load i32, ptr %44, align 4
   br label %46
 
@@ -2759,7 +2734,7 @@ define dso_local ptr @qc_jagged_array_get(ptr noundef readonly captures(address_
 
 46:                                               ; preds = %38
   %47 = zext nneg i32 %44 to i64
-  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %47
+  %48 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %47
   %49 = load i32, ptr %48, align 4
   br label %50
 
@@ -2801,7 +2776,7 @@ define dso_local ptr @qc_jagged_array_get(ptr noundef readonly captures(address_
 
 76:                                               ; preds = %71
   %77 = zext nneg i32 %74 to i64
-  %78 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %77
+  %78 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %77
   %79 = load i32, ptr %78, align 4
   br label %80
 
@@ -2837,7 +2812,7 @@ define dso_local noalias noundef ptr @qc_create_leaf_row(i32 noundef %0, i32 nou
 
 5:                                                ; preds = %2
   %6 = zext nneg i32 %3 to i64
-  %7 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %6
+  %7 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %6
   %8 = load i32, ptr %7, align 4
   br label %9
 
@@ -2857,7 +2832,7 @@ define dso_local void @qc_set_leaf_element(ptr noundef writeonly captures(none) 
 
 7:                                                ; preds = %4
   %8 = zext nneg i32 %5 to i64
-  %9 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %8
+  %9 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %8
   %10 = load i32, ptr %9, align 4
   br label %11
 
@@ -2883,7 +2858,7 @@ define dso_local void @qc_set_leaf_element(ptr noundef writeonly captures(none) 
 }
 
 ; Function Attrs: mustprogress nounwind uwtable
-define dso_local void @stringify_jagged_helper(ptr noundef readonly captures(none) %0, ptr noundef captures(none) %1, ptr noundef captures(none) %2, ptr noundef captures(none) %3, ptr noundef captures(none) %4) local_unnamed_addr #17 {
+define dso_local void @qc_stringify_jagged_helper(ptr noundef readonly captures(none) %0, ptr noundef captures(none) %1, ptr noundef captures(none) %2, ptr noundef captures(none) %3, ptr noundef captures(none) %4) local_unnamed_addr #17 {
   %6 = alloca [64 x i8], align 16
   %7 = load ptr, ptr %1, align 8, !tbaa !28
   store i8 91, ptr %7, align 1, !tbaa !7
@@ -2929,7 +2904,7 @@ define dso_local void @stringify_jagged_helper(ptr noundef readonly captures(non
   %32 = load ptr, ptr %0, align 8, !tbaa !47
   %33 = getelementptr inbounds nuw ptr, ptr %32, i64 %28
   %34 = load ptr, ptr %33, align 8, !tbaa !55
-  tail call void @stringify_jagged_helper(ptr noundef %34, ptr noundef nonnull %1, ptr noundef nonnull %2, ptr noundef %3, ptr noundef %4)
+  tail call void @qc_stringify_jagged_helper(ptr noundef %34, ptr noundef nonnull %1, ptr noundef nonnull %2, ptr noundef %3, ptr noundef %4)
   br label %151
 
 35:                                               ; preds = %27
@@ -2970,7 +2945,7 @@ define dso_local void @stringify_jagged_helper(ptr noundef readonly captures(non
 
 59:                                               ; preds = %54
   %60 = zext nneg i32 %57 to i64
-  %61 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.stringify_jagged_helper, i64 0, i64 %60
+  %61 = getelementptr inbounds nuw [5 x i32], ptr @switch.table.qc_stringify_jagged_helper, i64 0, i64 %60
   %62 = load i32, ptr %61, align 4
   br label %63
 
@@ -3164,7 +3139,7 @@ define dso_local ptr @qc_jagged_to_string(ptr noundef readonly captures(none) %0
   store ptr %6, ptr %4, align 8, !tbaa !28
   call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %5) #37
   store i32 1024, ptr %5, align 4, !tbaa !19
-  call void @stringify_jagged_helper(ptr noundef %0, ptr noundef nonnull %4, ptr noundef nonnull %5, ptr noundef nonnull %2, ptr noundef nonnull %3)
+  call void @qc_stringify_jagged_helper(ptr noundef %0, ptr noundef nonnull %4, ptr noundef nonnull %5, ptr noundef nonnull %2, ptr noundef nonnull %3)
   %7 = load ptr, ptr %4, align 8, !tbaa !28
   store i8 0, ptr %7, align 1, !tbaa !7
   %8 = load ptr, ptr %3, align 8, !tbaa !28
@@ -4839,119 +4814,6 @@ define dso_local noalias noundef ptr @qc_map_keys(ptr noundef readonly captures(
   br i1 %127, label %108, label %109, !llvm.loop !85
 }
 
-; Function Attrs: mustprogress uwtable
-define dso_local noundef ptr @qc_spread_call(ptr noundef %0, i32 noundef %1, ptr noundef %2, ptr noundef readonly captures(none) %3, i32 noundef %4, ptr noundef returned %5) local_unnamed_addr #21 {
-  %7 = alloca %struct.ffi_cif, align 8
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %7) #37
-  %8 = sext i32 %1 to i64
-  %9 = shl nsw i64 %8, 3
-  %10 = tail call noalias ptr @malloc(i64 noundef %9) #36
-  %11 = icmp sgt i32 %1, 0
-  br i1 %11, label %12, label %32
-
-12:                                               ; preds = %6
-  %13 = zext nneg i32 %1 to i64
-  %14 = and i64 %13, 1
-  %15 = icmp eq i32 %1, 1
-  br i1 %15, label %18, label %16
-
-16:                                               ; preds = %12
-  %17 = and i64 %13, 2147483646
-  br label %35
-
-18:                                               ; preds = %57, %12
-  %19 = phi i64 [ 0, %12 ], [ %59, %57 ]
-  %20 = icmp eq i64 %14, 0
-  br i1 %20, label %32, label %21
-
-21:                                               ; preds = %18
-  %22 = getelementptr inbounds nuw i32, ptr %3, i64 %19
-  %23 = load i32, ptr %22, align 4, !tbaa !19
-  %24 = getelementptr inbounds nuw ptr, ptr %10, i64 %19
-  %25 = icmp ult i32 %23, 6
-  br i1 %25, label %26, label %30
-
-26:                                               ; preds = %21
-  %27 = zext nneg i32 %23 to i64
-  %28 = getelementptr inbounds nuw [6 x ptr], ptr @switch.table.qc_spread_call.54, i64 0, i64 %27
-  %29 = load ptr, ptr %28, align 8
-  br label %30
-
-30:                                               ; preds = %26, %21
-  %31 = phi ptr [ %29, %26 ], [ @ffi_type_pointer, %21 ]
-  store ptr %31, ptr %24, align 8, !tbaa !86
-  br label %32
-
-32:                                               ; preds = %30, %18, %6
-  %33 = add i32 %4, 1
-  %34 = icmp ult i32 %33, 7
-  br i1 %34, label %62, label %66
-
-35:                                               ; preds = %57, %16
-  %36 = phi i64 [ 0, %16 ], [ %59, %57 ]
-  %37 = phi i64 [ 0, %16 ], [ %60, %57 ]
-  %38 = getelementptr inbounds nuw i32, ptr %3, i64 %36
-  %39 = load i32, ptr %38, align 4, !tbaa !19
-  %40 = getelementptr inbounds nuw ptr, ptr %10, i64 %36
-  %41 = icmp ult i32 %39, 6
-  br i1 %41, label %42, label %46
-
-42:                                               ; preds = %35
-  %43 = zext nneg i32 %39 to i64
-  %44 = getelementptr inbounds nuw [6 x ptr], ptr @switch.table.qc_spread_call.54, i64 0, i64 %43
-  %45 = load ptr, ptr %44, align 8
-  br label %46
-
-46:                                               ; preds = %35, %42
-  %47 = phi ptr [ %45, %42 ], [ @ffi_type_pointer, %35 ]
-  store ptr %47, ptr %40, align 8, !tbaa !86
-  %48 = or disjoint i64 %36, 1
-  %49 = getelementptr inbounds nuw i32, ptr %3, i64 %48
-  %50 = load i32, ptr %49, align 4, !tbaa !19
-  %51 = getelementptr inbounds nuw ptr, ptr %10, i64 %48
-  %52 = icmp ult i32 %50, 6
-  br i1 %52, label %53, label %57
-
-53:                                               ; preds = %46
-  %54 = zext nneg i32 %50 to i64
-  %55 = getelementptr inbounds nuw [6 x ptr], ptr @switch.table.qc_spread_call.54, i64 0, i64 %54
-  %56 = load ptr, ptr %55, align 8
-  br label %57
-
-57:                                               ; preds = %53, %46
-  %58 = phi ptr [ %56, %53 ], [ @ffi_type_pointer, %46 ]
-  store ptr %58, ptr %51, align 8, !tbaa !86
-  %59 = add nuw nsw i64 %36, 2
-  %60 = add i64 %37, 2
-  %61 = icmp eq i64 %60, %17
-  br i1 %61, label %18, label %35, !llvm.loop !88
-
-62:                                               ; preds = %32
-  %63 = zext nneg i32 %33 to i64
-  %64 = getelementptr inbounds nuw [7 x ptr], ptr @switch.table.qc_spread_call, i64 0, i64 %63
-  %65 = load ptr, ptr %64, align 8
-  br label %66
-
-66:                                               ; preds = %32, %62
-  %67 = phi ptr [ %65, %62 ], [ @ffi_type_pointer, %32 ]
-  %68 = call i32 @ffi_prep_cif(ptr noundef nonnull %7, i32 noundef 2, i32 noundef %1, ptr noundef nonnull %67, ptr noundef %10)
-  %69 = icmp eq i32 %68, 0
-  br i1 %69, label %70, label %71
-
-70:                                               ; preds = %66
-  call void @ffi_call(ptr noundef nonnull %7, ptr noundef %0, ptr noundef %5, ptr noundef %2)
-  br label %71
-
-71:                                               ; preds = %70, %66
-  call void @free(ptr noundef %10) #37
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %7) #37
-  ret ptr %5
-}
-
-declare i32 @ffi_prep_cif(ptr noundef, i32 noundef, i32 noundef, ptr noundef, ptr noundef) local_unnamed_addr #22
-
-declare void @ffi_call(ptr noundef, ptr noundef, ptr noundef, ptr noundef) local_unnamed_addr #22
-
 ; Function Attrs: mustprogress nounwind uwtable
 define dso_local ptr @qc_list_to_string(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
   %2 = alloca [128 x i8], align 16
@@ -5122,7 +4984,7 @@ define dso_local ptr @qc_list_to_string(ptr noundef readonly captures(none) %0) 
   %113 = add nuw nsw i64 %15, 1
   %114 = sext i32 %110 to i64
   %115 = icmp slt i64 %113, %114
-  br i1 %115, label %14, label %10, !llvm.loop !89
+  br i1 %115, label %14, label %10, !llvm.loop !86
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
@@ -5218,9 +5080,9 @@ declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unname
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
 define dso_local zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(none) %0) local_unnamed_addr #25 {
   %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
-  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %3 = load i32, ptr %2, align 4, !tbaa !87
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %5 = load i32, ptr %4, align 8, !tbaa !89
   %6 = icmp sge i32 %3, %5
   ret i1 %6
 }
@@ -5228,19 +5090,19 @@ define dso_local zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable
 define dso_local ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnamed_addr #30 {
   %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
-  %3 = load i32, ptr %2, align 4, !tbaa !90
+  %3 = load i32, ptr %2, align 4, !tbaa !87
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %5 = load i32, ptr %4, align 8, !tbaa !92
+  %5 = load i32, ptr %4, align 8, !tbaa !89
   %6 = icmp slt i32 %3, %5
   br i1 %6, label %7, label %13
 
 7:                                                ; preds = %1
-  %8 = load ptr, ptr %0, align 8, !tbaa !93
+  %8 = load ptr, ptr %0, align 8, !tbaa !90
   %9 = sext i32 %3 to i64
   %10 = getelementptr inbounds ptr, ptr %8, i64 %9
   %11 = load ptr, ptr %10, align 8, !tbaa !55
   %12 = add nsw i32 %3, 1
-  store i32 %12, ptr %2, align 4, !tbaa !90
+  store i32 %12, ptr %2, align 4, !tbaa !87
   br label %13
 
 13:                                               ; preds = %1, %7
@@ -5391,11 +5253,8 @@ attributes #40 = { nounwind willreturn memory(read) }
 !83 = distinct !{!83, !84}
 !84 = !{!"llvm.loop.unroll.disable"}
 !85 = distinct !{!85, !6, !39}
-!86 = !{!87, !87, i64 0}
-!87 = !{!"p1 _ZTS9_ffi_type", !12, i64 0}
-!88 = distinct !{!88, !6}
-!89 = distinct !{!89, !6}
-!90 = !{!91, !20, i64 12}
-!91 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
-!92 = !{!91, !20, i64 8}
-!93 = !{!91, !49, i64 0}
+!86 = distinct !{!86, !6}
+!87 = !{!88, !20, i64 12}
+!88 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
+!89 = !{!88, !20, i64 8}
+!90 = !{!88, !49, i64 0}

@@ -48,7 +48,25 @@ if(ENABLE_LLVM)
 
     target_compile_definitions(qc PRIVATE ENABLE_LLVM)
     target_include_directories(qc PRIVATE ${LLVM_INCLUDE_DIRS})
-    llvm_map_components_to_libnames(llvm_libs core support native mc linker irreader)
+    llvm_map_components_to_libnames(llvm_libs
+        Core
+        Support
+        IRReader
+        Passes
+        Analysis
+        TransformUtils
+        ScalarOpts
+        InstCombine
+        IPO
+        Target
+        MC
+        AsmPrinter
+        CodeGen
+        X86CodeGen
+        AllTargetsDescs
+        AllTargetsAsmParsers
+        AllTargetsCodeGens
+    )
     target_link_libraries(qc PRIVATE ${llvm_libs} ${LLVM_SYSTEM_LIBS})
 endif()
 

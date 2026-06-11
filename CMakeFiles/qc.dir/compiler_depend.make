@@ -117,6 +117,7 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/include/c++/15/bits/stl_map.h \
   /usr/include/c++/15/bits/stl_multimap.h \
   /usr/include/c++/15/bits/stl_multiset.h \
+  /usr/include/c++/15/bits/stl_numeric.h \
   /usr/include/c++/15/bits/stl_pair.h \
   /usr/include/c++/15/bits/stl_raw_storage_iter.h \
   /usr/include/c++/15/bits/stl_relops.h \
@@ -142,6 +143,7 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/include/c++/15/bits/utility.h \
   /usr/include/c++/15/bits/vector.tcc \
   /usr/include/c++/15/bits/version.h \
+  /usr/include/c++/15/bitset \
   /usr/include/c++/15/cassert \
   /usr/include/c++/15/cctype \
   /usr/include/c++/15/cerrno \
@@ -190,15 +192,18 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/include/c++/15/mutex \
   /usr/include/c++/15/new \
   /usr/include/c++/15/numbers \
+  /usr/include/c++/15/numeric \
   /usr/include/c++/15/optional \
   /usr/include/c++/15/ostream \
   /usr/include/c++/15/pstl/execution_defs.h \
   /usr/include/c++/15/pstl/glue_algorithm_defs.h \
   /usr/include/c++/15/pstl/glue_memory_defs.h \
+  /usr/include/c++/15/pstl/glue_numeric_defs.h \
   /usr/include/c++/15/pstl/pstl_config.h \
   /usr/include/c++/15/ranges \
   /usr/include/c++/15/ratio \
   /usr/include/c++/15/set \
+  /usr/include/c++/15/shared_mutex \
   /usr/include/c++/15/span \
   /usr/include/c++/15/sstream \
   /usr/include/c++/15/stdexcept \
@@ -382,28 +387,39 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/ADT/ADL.h \
   /usr/lib/llvm-21/include/llvm/ADT/APFloat.h \
   /usr/lib/llvm-21/include/llvm/ADT/APInt.h \
+  /usr/lib/llvm-21/include/llvm/ADT/Any.h \
   /usr/lib/llvm-21/include/llvm/ADT/ArrayRef.h \
+  /usr/lib/llvm-21/include/llvm/ADT/BitVector.h \
   /usr/lib/llvm-21/include/llvm/ADT/Bitfields.h \
   /usr/lib/llvm-21/include/llvm/ADT/BitmaskEnum.h \
   /usr/lib/llvm-21/include/llvm/ADT/DenseMap.h \
   /usr/lib/llvm-21/include/llvm/ADT/DenseMapInfo.h \
   /usr/lib/llvm-21/include/llvm/ADT/DenseSet.h \
+  /usr/lib/llvm-21/include/llvm/ADT/DepthFirstIterator.h \
   /usr/lib/llvm-21/include/llvm/ADT/EpochTracker.h \
+  /usr/lib/llvm-21/include/llvm/ADT/EquivalenceClasses.h \
   /usr/lib/llvm-21/include/llvm/ADT/FloatingPointMode.h \
+  /usr/lib/llvm-21/include/llvm/ADT/FoldingSet.h \
   /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h \
   /usr/lib/llvm-21/include/llvm/ADT/GraphTraits.h \
   /usr/lib/llvm-21/include/llvm/ADT/Hashing.h \
   /usr/lib/llvm-21/include/llvm/ADT/IntrusiveRefCntPtr.h \
   /usr/lib/llvm-21/include/llvm/ADT/MapVector.h \
   /usr/lib/llvm-21/include/llvm/ADT/PointerIntPair.h \
+  /usr/lib/llvm-21/include/llvm/ADT/PointerSumType.h \
   /usr/lib/llvm-21/include/llvm/ADT/PointerUnion.h \
+  /usr/lib/llvm-21/include/llvm/ADT/PostOrderIterator.h \
+  /usr/lib/llvm-21/include/llvm/ADT/PriorityWorklist.h \
   /usr/lib/llvm-21/include/llvm/ADT/STLExtras.h \
   /usr/lib/llvm-21/include/llvm/ADT/STLForwardCompat.h \
   /usr/lib/llvm-21/include/llvm/ADT/STLFunctionalExtras.h \
   /usr/lib/llvm-21/include/llvm/ADT/Sequence.h \
+  /usr/lib/llvm-21/include/llvm/ADT/SetOperations.h \
+  /usr/lib/llvm-21/include/llvm/ADT/SetVector.h \
   /usr/lib/llvm-21/include/llvm/ADT/SmallPtrSet.h \
   /usr/lib/llvm-21/include/llvm/ADT/SmallString.h \
   /usr/lib/llvm-21/include/llvm/ADT/SmallVector.h \
+  /usr/lib/llvm-21/include/llvm/ADT/SparseBitVector.h \
   /usr/lib/llvm-21/include/llvm/ADT/StringMap.h \
   /usr/lib/llvm-21/include/llvm/ADT/StringMapEntry.h \
   /usr/lib/llvm-21/include/llvm/ADT/StringRef.h \
@@ -421,10 +437,42 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/ADT/iterator.h \
   /usr/lib/llvm-21/include/llvm/ADT/iterator_range.h \
   /usr/lib/llvm-21/include/llvm/ADT/simple_ilist.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/CGSCCPassManager.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/IVDescriptors.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/InlineAdvisor.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/InlineCost.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/InlineModelFeatureMaps.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/LazyCallGraph.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/LoopAccessAnalysis.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/LoopAnalysisManager.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/LoopInfo.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/LoopNestAnalysis.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/MemoryLocation.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/ScalarEvolution.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/TargetLibraryInfo.def \
+  /usr/lib/llvm-21/include/llvm/Analysis/TargetLibraryInfo.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/TargetTransformInfo.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/TensorSpec.h \
+  /usr/lib/llvm-21/include/llvm/Analysis/Utils/ImportedFunctionsInliningStatistics.h \
   /usr/lib/llvm-21/include/llvm/BinaryFormat/Swift.def \
   /usr/lib/llvm-21/include/llvm/BinaryFormat/Swift.h \
   /usr/lib/llvm-21/include/llvm/Bitcode/BitcodeReader.h \
   /usr/lib/llvm-21/include/llvm/Bitstream/BitCodeEnums.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/GenVT.inc \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineBasicBlock.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineFunction.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineFunctionAnalysisManager.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineInstr.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineInstrBundleIterator.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineMemOperand.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachineOperand.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/MachinePassManager.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/PseudoSourceValue.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/RegAllocCommon.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/Register.h \
+  /usr/lib/llvm-21/include/llvm/CodeGen/TargetOpcodes.h \
+  /usr/lib/llvm-21/include/llvm/CodeGenTypes/LowLevelType.h \
+  /usr/lib/llvm-21/include/llvm/CodeGenTypes/MachineValueType.h \
   /usr/lib/llvm-21/include/llvm/Config/AsmParsers.def \
   /usr/lib/llvm-21/include/llvm/Config/AsmPrinters.def \
   /usr/lib/llvm-21/include/llvm/Config/Disassemblers.def \
@@ -454,6 +502,8 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/IR/DebugProgramInstruction.h \
   /usr/lib/llvm-21/include/llvm/IR/DerivedTypes.h \
   /usr/lib/llvm-21/include/llvm/IR/DiagnosticHandler.h \
+  /usr/lib/llvm-21/include/llvm/IR/DiagnosticInfo.h \
+  /usr/lib/llvm-21/include/llvm/IR/EHPersonalities.h \
   /usr/lib/llvm-21/include/llvm/IR/FMF.h \
   /usr/lib/llvm-21/include/llvm/IR/FPEnv.h \
   /usr/lib/llvm-21/include/llvm/IR/FixedMetadataKinds.def \
@@ -484,6 +534,7 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/IR/Module.h \
   /usr/lib/llvm-21/include/llvm/IR/OperandTraits.h \
   /usr/lib/llvm-21/include/llvm/IR/Operator.h \
+  /usr/lib/llvm-21/include/llvm/IR/PassInstrumentation.h \
   /usr/lib/llvm-21/include/llvm/IR/PassManager.h \
   /usr/lib/llvm-21/include/llvm/IR/PassManagerInternal.h \
   /usr/lib/llvm-21/include/llvm/IR/ProfileSummary.h \
@@ -496,24 +547,42 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/IR/Value.def \
   /usr/lib/llvm-21/include/llvm/IR/Value.h \
   /usr/lib/llvm-21/include/llvm/IR/ValueHandle.h \
+  /usr/lib/llvm-21/include/llvm/IR/ValueMap.h \
   /usr/lib/llvm-21/include/llvm/IR/Verifier.h \
   /usr/lib/llvm-21/include/llvm/IRReader/IRReader.h \
   /usr/lib/llvm-21/include/llvm/Linker/IRMover.h \
   /usr/lib/llvm-21/include/llvm/Linker/Linker.h \
+  /usr/lib/llvm-21/include/llvm/MC/LaneBitmask.h \
+  /usr/lib/llvm-21/include/llvm/MC/MCExpr.h \
   /usr/lib/llvm-21/include/llvm/MC/MCFixup.h \
   /usr/lib/llvm-21/include/llvm/MC/MCInst.h \
+  /usr/lib/llvm-21/include/llvm/MC/MCInstrDesc.h \
   /usr/lib/llvm-21/include/llvm/MC/MCObjectFileInfo.h \
   /usr/lib/llvm-21/include/llvm/MC/MCRegister.h \
   /usr/lib/llvm-21/include/llvm/MC/MCSection.h \
+  /usr/lib/llvm-21/include/llvm/MC/MCSymbol.h \
+  /usr/lib/llvm-21/include/llvm/MC/MCSymbolTableEntry.h \
   /usr/lib/llvm-21/include/llvm/MC/MCTargetOptions.h \
   /usr/lib/llvm-21/include/llvm/MC/SectionKind.h \
   /usr/lib/llvm-21/include/llvm/MC/TargetRegistry.h \
+  /usr/lib/llvm-21/include/llvm/Pass.h \
+  /usr/lib/llvm-21/include/llvm/PassAnalysisSupport.h \
+  /usr/lib/llvm-21/include/llvm/PassInfo.h \
+  /usr/lib/llvm-21/include/llvm/PassRegistry.h \
+  /usr/lib/llvm-21/include/llvm/PassSupport.h \
+  /usr/lib/llvm-21/include/llvm/Passes/OptimizationLevel.h \
+  /usr/lib/llvm-21/include/llvm/Passes/PassBuilder.h \
+  /usr/lib/llvm-21/include/llvm/Passes/PassPlugin.h \
   /usr/lib/llvm-21/include/llvm/Support/AlignOf.h \
   /usr/lib/llvm-21/include/llvm/Support/Alignment.h \
   /usr/lib/llvm-21/include/llvm/Support/Allocator.h \
   /usr/lib/llvm-21/include/llvm/Support/AllocatorBase.h \
+  /usr/lib/llvm-21/include/llvm/Support/ArrayRecycler.h \
   /usr/lib/llvm-21/include/llvm/Support/AtomicOrdering.h \
+  /usr/lib/llvm-21/include/llvm/Support/BranchProbability.h \
   /usr/lib/llvm-21/include/llvm/Support/CBindingWrapping.h \
+  /usr/lib/llvm-21/include/llvm/Support/CFGDiff.h \
+  /usr/lib/llvm-21/include/llvm/Support/CFGUpdate.h \
   /usr/lib/llvm-21/include/llvm/Support/Casting.h \
   /usr/lib/llvm-21/include/llvm/Support/Chrono.h \
   /usr/lib/llvm-21/include/llvm/Support/CodeGen.h \
@@ -523,6 +592,7 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/Support/DataTypes.h \
   /usr/lib/llvm-21/include/llvm/Support/Debug.h \
   /usr/lib/llvm-21/include/llvm/Support/Discriminator.h \
+  /usr/lib/llvm-21/include/llvm/Support/DynamicLibrary.h \
   /usr/lib/llvm-21/include/llvm/Support/Endian.h \
   /usr/lib/llvm-21/include/llvm/Support/Error.h \
   /usr/lib/llvm-21/include/llvm/Support/ErrorHandling.h \
@@ -533,33 +603,52 @@ CMakeFiles/qc.dir/compiler.cpp.o: compiler.cpp \
   /usr/lib/llvm-21/include/llvm/Support/FormatProviders.h \
   /usr/lib/llvm-21/include/llvm/Support/FormatVariadicDetails.h \
   /usr/lib/llvm-21/include/llvm/Support/FormattedStream.h \
+  /usr/lib/llvm-21/include/llvm/Support/GenericDomTree.h \
+  /usr/lib/llvm-21/include/llvm/Support/GenericLoopInfo.h \
+  /usr/lib/llvm-21/include/llvm/Support/GenericLoopInfoImpl.h \
+  /usr/lib/llvm-21/include/llvm/Support/InstructionCost.h \
   /usr/lib/llvm-21/include/llvm/Support/MD5.h \
   /usr/lib/llvm-21/include/llvm/Support/MathExtras.h \
   /usr/lib/llvm-21/include/llvm/Support/MemAlloc.h \
   /usr/lib/llvm-21/include/llvm/Support/MemoryBuffer.h \
   /usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h \
   /usr/lib/llvm-21/include/llvm/Support/ModRef.h \
+  /usr/lib/llvm-21/include/llvm/Support/Mutex.h \
   /usr/lib/llvm-21/include/llvm/Support/NativeFormatting.h \
   /usr/lib/llvm-21/include/llvm/Support/PGOOptions.h \
   /usr/lib/llvm-21/include/llvm/Support/PointerLikeTypeTraits.h \
+  /usr/lib/llvm-21/include/llvm/Support/Printable.h \
+  /usr/lib/llvm-21/include/llvm/Support/RWMutex.h \
+  /usr/lib/llvm-21/include/llvm/Support/Recycler.h \
   /usr/lib/llvm-21/include/llvm/Support/ReverseIteration.h \
   /usr/lib/llvm-21/include/llvm/Support/SMLoc.h \
   /usr/lib/llvm-21/include/llvm/Support/SourceMgr.h \
   /usr/lib/llvm-21/include/llvm/Support/StringSaver.h \
   /usr/lib/llvm-21/include/llvm/Support/SwapByteOrder.h \
+  /usr/lib/llvm-21/include/llvm/Support/TargetOpcodes.def \
   /usr/lib/llvm-21/include/llvm/Support/TargetSelect.h \
+  /usr/lib/llvm-21/include/llvm/Support/Threading.h \
   /usr/lib/llvm-21/include/llvm/Support/TrailingObjects.h \
   /usr/lib/llvm-21/include/llvm/Support/TypeName.h \
   /usr/lib/llvm-21/include/llvm/Support/TypeSize.h \
+  /usr/lib/llvm-21/include/llvm/Support/UniqueBBID.h \
   /usr/lib/llvm-21/include/llvm/Support/VersionTuple.h \
   /usr/lib/llvm-21/include/llvm/Support/float128.h \
   /usr/lib/llvm-21/include/llvm/Support/raw_ostream.h \
   /usr/lib/llvm-21/include/llvm/Support/type_traits.h \
+  /usr/lib/llvm-21/include/llvm/Support/xxhash.h \
   /usr/lib/llvm-21/include/llvm/Target/CGPassBuilderOption.h \
   /usr/lib/llvm-21/include/llvm/Target/TargetMachine.h \
   /usr/lib/llvm-21/include/llvm/Target/TargetOptions.h \
   /usr/lib/llvm-21/include/llvm/TargetParser/Host.h \
-  /usr/lib/llvm-21/include/llvm/TargetParser/Triple.h
+  /usr/lib/llvm-21/include/llvm/TargetParser/Triple.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/IPO/Inliner.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/IPO/ModuleInliner.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/Scalar/LoopPassManager.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/Utils/LCSSA.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/Utils/LoopSimplify.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/Utils/LoopUtils.h \
+  /usr/lib/llvm-21/include/llvm/Transforms/Utils/ValueMapper.h
 
 CMakeFiles/qc.dir/compiler_run.cpp.o: compiler_run.cpp \
   compiler.h \
@@ -1116,10 +1205,33 @@ qc: /lib64/ld-linux-x86-64.so.2 \
   /usr/lib/gcc/x86_64-linux-gnu/15/libgcc.a \
   /usr/lib/gcc/x86_64-linux-gnu/15/libgcc_s.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so \
+  /usr/lib/llvm-21/lib/libLLVMAArch64AsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMAArch64CodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMAArch64Desc.a \
+  /usr/lib/llvm-21/lib/libLLVMAArch64Info.a \
+  /usr/lib/llvm-21/lib/libLLVMAArch64Utils.a \
+  /usr/lib/llvm-21/lib/libLLVMAMDGPUAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMAMDGPUCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMAMDGPUDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMAMDGPUInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMAMDGPUUtils.a \
+  /usr/lib/llvm-21/lib/libLLVMARMAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMARMCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMARMDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMARMInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMARMUtils.a \
+  /usr/lib/llvm-21/lib/libLLVMAVRAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMAVRCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMAVRDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMAVRInfo.a \
   /usr/lib/llvm-21/lib/libLLVMAggressiveInstCombine.a \
   /usr/lib/llvm-21/lib/libLLVMAnalysis.a \
   /usr/lib/llvm-21/lib/libLLVMAsmParser.a \
   /usr/lib/llvm-21/lib/libLLVMAsmPrinter.a \
+  /usr/lib/llvm-21/lib/libLLVMBPFAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMBPFCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMBPFDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMBPFInfo.a \
   /usr/lib/llvm-21/lib/libLLVMBinaryFormat.a \
   /usr/lib/llvm-21/lib/libLLVMBitReader.a \
   /usr/lib/llvm-21/lib/libLLVMBitWriter.a \
@@ -1129,6 +1241,7 @@ qc: /lib64/ld-linux-x86-64.so.2 \
   /usr/lib/llvm-21/lib/libLLVMCodeGen.a \
   /usr/lib/llvm-21/lib/libLLVMCodeGenTypes.a \
   /usr/lib/llvm-21/lib/libLLVMCore.a \
+  /usr/lib/llvm-21/lib/libLLVMCoroutines.a \
   /usr/lib/llvm-21/lib/libLLVMDebugInfoBTF.a \
   /usr/lib/llvm-21/lib/libLLVMDebugInfoCodeView.a \
   /usr/lib/llvm-21/lib/libLLVMDebugInfoDWARF.a \
@@ -1137,32 +1250,105 @@ qc: /lib64/ld-linux-x86-64.so.2 \
   /usr/lib/llvm-21/lib/libLLVMDebugInfoMSF.a \
   /usr/lib/llvm-21/lib/libLLVMDebugInfoPDB.a \
   /usr/lib/llvm-21/lib/libLLVMDemangle.a \
+  /usr/lib/llvm-21/lib/libLLVMFrontendAtomic.a \
+  /usr/lib/llvm-21/lib/libLLVMFrontendDirective.a \
+  /usr/lib/llvm-21/lib/libLLVMFrontendOffloading.a \
+  /usr/lib/llvm-21/lib/libLLVMFrontendOpenMP.a \
   /usr/lib/llvm-21/lib/libLLVMGlobalISel.a \
+  /usr/lib/llvm-21/lib/libLLVMHexagonAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMHexagonCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMHexagonDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMHexagonInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMHipStdPar.a \
   /usr/lib/llvm-21/lib/libLLVMIRPrinter.a \
   /usr/lib/llvm-21/lib/libLLVMIRReader.a \
   /usr/lib/llvm-21/lib/libLLVMInstCombine.a \
   /usr/lib/llvm-21/lib/libLLVMInstrumentation.a \
+  /usr/lib/llvm-21/lib/libLLVMLanaiAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMLanaiCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMLanaiDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMLanaiInfo.a \
   /usr/lib/llvm-21/lib/libLLVMLinker.a \
+  /usr/lib/llvm-21/lib/libLLVMLoongArchAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMLoongArchCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMLoongArchDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMLoongArchInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMM68kAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMM68kCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMM68kDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMM68kInfo.a \
   /usr/lib/llvm-21/lib/libLLVMMC.a \
   /usr/lib/llvm-21/lib/libLLVMMCDisassembler.a \
   /usr/lib/llvm-21/lib/libLLVMMCParser.a \
+  /usr/lib/llvm-21/lib/libLLVMMIRParser.a \
+  /usr/lib/llvm-21/lib/libLLVMMSP430AsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMMSP430CodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMMSP430Desc.a \
+  /usr/lib/llvm-21/lib/libLLVMMSP430Info.a \
+  /usr/lib/llvm-21/lib/libLLVMMipsAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMMipsCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMMipsDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMMipsInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMNVPTXCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMNVPTXDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMNVPTXInfo.a \
   /usr/lib/llvm-21/lib/libLLVMObjCARCOpts.a \
   /usr/lib/llvm-21/lib/libLLVMObject.a \
+  /usr/lib/llvm-21/lib/libLLVMObjectYAML.a \
+  /usr/lib/llvm-21/lib/libLLVMPasses.a \
+  /usr/lib/llvm-21/lib/libLLVMPowerPCAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMPowerPCCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMPowerPCDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMPowerPCInfo.a \
   /usr/lib/llvm-21/lib/libLLVMProfileData.a \
+  /usr/lib/llvm-21/lib/libLLVMRISCVAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMRISCVCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMRISCVDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMRISCVInfo.a \
   /usr/lib/llvm-21/lib/libLLVMRemarks.a \
+  /usr/lib/llvm-21/lib/libLLVMSPIRVAnalysis.a \
+  /usr/lib/llvm-21/lib/libLLVMSPIRVCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMSPIRVDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMSPIRVInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMSandboxIR.a \
   /usr/lib/llvm-21/lib/libLLVMScalarOpts.a \
   /usr/lib/llvm-21/lib/libLLVMSelectionDAG.a \
+  /usr/lib/llvm-21/lib/libLLVMSparcAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMSparcCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMSparcDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMSparcInfo.a \
   /usr/lib/llvm-21/lib/libLLVMSupport.a \
   /usr/lib/llvm-21/lib/libLLVMSymbolize.a \
+  /usr/lib/llvm-21/lib/libLLVMSystemZAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMSystemZCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMSystemZDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMSystemZInfo.a \
   /usr/lib/llvm-21/lib/libLLVMTarget.a \
   /usr/lib/llvm-21/lib/libLLVMTargetParser.a \
   /usr/lib/llvm-21/lib/libLLVMTextAPI.a \
   /usr/lib/llvm-21/lib/libLLVMTransformUtils.a \
+  /usr/lib/llvm-21/lib/libLLVMVEAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMVECodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMVEDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMVEInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMVectorize.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyUtils.a \
   /usr/lib/llvm-21/lib/libLLVMX86AsmParser.a \
   /usr/lib/llvm-21/lib/libLLVMX86CodeGen.a \
   /usr/lib/llvm-21/lib/libLLVMX86Desc.a \
-  /usr/lib/llvm-21/lib/libLLVMX86Disassembler.a \
   /usr/lib/llvm-21/lib/libLLVMX86Info.a \
+  /usr/lib/llvm-21/lib/libLLVMXCoreCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMXCoreDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMXCoreInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMXtensaAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMXtensaCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMXtensaDesc.a \
+  /usr/lib/llvm-21/lib/libLLVMXtensaInfo.a \
+  /usr/lib/llvm-21/lib/libLLVMipo.a \
   /usr/lib/x86_64-linux-gnu/libc.so.6 \
   /usr/lib/x86_64-linux-gnu/libc_nonshared.a \
   /usr/lib/x86_64-linux-gnu/libffi.so \
@@ -1184,9 +1370,11 @@ CMakeFiles/qc.dir/compiler.cpp.o:
 
 /usr/lib/x86_64-linux-gnu/libz3.so:
 
-/usr/lib/llvm-21/lib/libLLVMX86Info.a:
+/usr/lib/llvm-21/lib/libLLVMipo.a:
 
-/usr/lib/llvm-21/lib/libLLVMX86Disassembler.a:
+/usr/lib/llvm-21/lib/libLLVMXtensaInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMXCoreDesc.a:
 
 /usr/lib/llvm-21/lib/libLLVMX86Desc.a:
 
@@ -1194,23 +1382,103 @@ CMakeFiles/qc.dir/compiler.cpp.o:
 
 /usr/lib/llvm-21/lib/libLLVMX86AsmParser.a:
 
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyUtils.a:
+
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMVEInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMVECodeGen.a:
+
 /usr/lib/llvm-21/lib/libLLVMTransformUtils.a:
 
 /usr/lib/llvm-21/lib/libLLVMTextAPI.a:
 
 /usr/lib/llvm-21/lib/libLLVMTargetParser.a:
 
+/usr/lib/llvm-21/lib/libLLVMSystemZInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMSystemZCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMSystemZAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMSparcDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMSparcCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMSparcAsmParser.a:
+
 /usr/lib/llvm-21/lib/libLLVMSelectionDAG.a:
+
+/usr/lib/llvm-21/lib/libLLVMSPIRVInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMSPIRVDesc.a:
 
 /usr/lib/llvm-21/lib/libLLVMRemarks.a:
 
+/usr/lib/llvm-21/lib/libLLVMRISCVInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMRISCVCodeGen.a:
+
 /usr/lib/llvm-21/lib/libLLVMProfileData.a:
+
+/usr/lib/llvm-21/lib/libLLVMPowerPCInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMPowerPCDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMPowerPCCodeGen.a:
 
 /usr/lib/llvm-21/lib/libLLVMObject.a:
 
 /usr/lib/llvm-21/lib/libLLVMObjCARCOpts.a:
 
+/usr/lib/llvm-21/lib/libLLVMNVPTXInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMNVPTXDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMNVPTXCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMXtensaDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMMipsDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMMipsCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMMSP430Info.a:
+
+/usr/lib/llvm-21/lib/libLLVMMSP430Desc.a:
+
+/usr/lib/llvm-21/lib/libLLVMMSP430AsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMMIRParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMM68kInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMM68kDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMObjectYAML.a:
+
+/usr/lib/llvm-21/lib/libLLVMM68kAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMLoongArchCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMLanaiAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMHexagonInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMRISCVAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMHexagonCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMFrontendOffloading.a:
+
 /usr/lib/llvm-21/lib/libLLVMGlobalISel.a:
+
+/usr/lib/llvm-21/lib/libLLVMFrontendDirective.a:
+
+/usr/lib/llvm-21/lib/libLLVMFrontendAtomic.a:
 
 /usr/lib/llvm-21/lib/libLLVMDemangle.a:
 
@@ -1218,9 +1486,9 @@ CMakeFiles/qc.dir/compiler.cpp.o:
 
 /usr/lib/llvm-21/lib/libLLVMDebugInfoDWARFLowLevel.a:
 
-/usr/lib/llvm-21/lib/libLLVMDebugInfoDWARF.a:
-
 /usr/lib/llvm-21/lib/libLLVMDebugInfoCodeView.a:
+
+/usr/lib/llvm-21/lib/libLLVMCoroutines.a:
 
 /usr/lib/llvm-21/lib/libLLVMCodeGenTypes.a:
 
@@ -1230,7 +1498,33 @@ CMakeFiles/qc.dir/compiler.cpp.o:
 
 /usr/lib/llvm-21/lib/libLLVMBitReader.a:
 
+/usr/lib/llvm-21/lib/libLLVMDebugInfoDWARF.a:
+
+/usr/lib/llvm-21/lib/libLLVMBPFAsmParser.a:
+
 /usr/lib/llvm-21/lib/libLLVMAnalysis.a:
+
+/usr/lib/llvm-21/lib/libLLVMAVRInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMAVRDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMAVRAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMARMInfo.a:
+
+/usr/lib/llvm-21/lib/libLLVMXCoreCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMVectorize.a:
+
+/usr/lib/llvm-21/lib/libLLVMARMDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMARMAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMAMDGPUCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMAArch64Desc.a:
+
+/usr/lib/llvm-21/lib/libLLVMAArch64CodeGen.a:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so:
 
@@ -1258,15 +1552,19 @@ runtime_embed.cpp:
 
 /usr/include/semaphore.h:
 
-/usr/include/c++/15/pstl/glue_numeric_defs.h:
-
-/usr/include/c++/15/numeric:
-
 /usr/include/c++/15/bits/this_thread_sleep.h:
 
 /usr/include/c++/15/bits/std_thread.h:
 
 /usr/include/c++/15/bits/atomic_timed_wait.h:
+
+/usr/lib/llvm-21/include/llvm/Transforms/Utils/LoopSimplify.h:
+
+/usr/lib/llvm-21/lib/libLLVMARMUtils.a:
+
+/usr/lib/llvm-21/include/llvm/Transforms/Scalar/LoopPassManager.h:
+
+/usr/lib/llvm-21/include/llvm/Transforms/IPO/Inliner.h:
 
 /usr/lib/llvm-21/include/llvm/TargetParser/Triple.h:
 
@@ -1276,15 +1574,11 @@ compiler_run.cpp:
 
 /usr/lib/llvm-21/include/llvm/Target/TargetMachine.h:
 
-/usr/include/c++/15/bits/stl_numeric.h:
-
-/usr/lib/llvm-21/include/llvm/Target/CGPassBuilderOption.h:
+/usr/lib/llvm-21/include/llvm/Support/xxhash.h:
 
 /usr/lib/llvm-21/include/llvm/Support/type_traits.h:
 
 /usr/lib/llvm-21/include/llvm/Support/raw_ostream.h:
-
-/usr/lib/llvm-21/include/llvm/Support/TypeSize.h:
 
 /usr/lib/llvm-21/include/llvm/Support/TypeName.h:
 
@@ -1294,23 +1588,143 @@ compiler_run.cpp:
 
 /usr/lib/llvm-21/include/llvm/Support/TrailingObjects.h:
 
+/usr/lib/llvm-21/include/llvm/Support/Threading.h:
+
 /usr/lib/llvm-21/include/llvm/Support/TargetSelect.h:
 
 /usr/lib/llvm-21/include/llvm/Support/SwapByteOrder.h:
+
+/usr/lib/llvm-21/lib/libLLVMAMDGPUAsmParser.a:
 
 /usr/lib/llvm-21/include/llvm/Support/StringSaver.h:
 
 /usr/lib/llvm-21/include/llvm/Support/SourceMgr.h:
 
-/usr/include/x86_64-linux-gnu/bits/byteswap.h:
+/usr/lib/llvm-21/include/llvm/Support/TypeSize.h:
 
-/usr/lib/linux/uapi/x86/asm/posix_types_64.h:
+/usr/lib/llvm-21/include/llvm/Support/Recycler.h:
 
-/usr/lib/llvm-21/include/llvm/IR/IntrinsicInst.h:
+/usr/lib/llvm-21/include/llvm/Support/Printable.h:
 
-/usr/include/unistd.h:
+/usr/lib/llvm-21/include/llvm/Support/PointerLikeTypeTraits.h:
 
-/usr/include/x86_64-linux-gnu/bits/getopt_posix.h:
+/usr/lib/llvm-21/include/llvm/Support/PGOOptions.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Mutex.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ModRef.h:
+
+/usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h:
+
+/usr/lib/llvm-21/lib/libLLVMIRPrinter.a:
+
+/usr/lib/llvm-21/lib/libLLVMCodeGen.a:
+
+/usr/lib/llvm-21/include/llvm/Support/MemoryBuffer.h:
+
+/usr/include/c++/15/bits/random.h:
+
+/usr/lib/llvm-21/include/llvm/Support/MemAlloc.h:
+
+/usr/lib/llvm-21/include/llvm/Support/GenericLoopInfo.h:
+
+/usr/lib/llvm-21/include/llvm/Support/GenericDomTree.h:
+
+/usr/lib/llvm-21/include/llvm/Support/FormattedStream.h:
+
+/usr/lib/llvm-21/include/llvm/Support/FormatVariadicDetails.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Format.h:
+
+/usr/lib/llvm-21/include/llvm/Support/FileSystem/UniqueID.h:
+
+/usr/lib/llvm-21/include/llvm/Support/FileSystem.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ErrorOr.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Endian.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Discriminator.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Debug.h:
+
+/usr/lib/x86_64-linux-gnu/libz.so:
+
+/usr/lib/llvm-21/lib/libLLVMCFGuard.a:
+
+/usr/lib/llvm-21/include/llvm/Support/CodeGen.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Chrono.h:
+
+/usr/lib/llvm-21/include/llvm/Support/CFGUpdate.h:
+
+/usr/lib/llvm-21/include/llvm/Support/CBindingWrapping.h:
+
+/usr/lib/llvm-21/include/llvm/Support/AtomicOrdering.h:
+
+/usr/lib/llvm-21/include/llvm/Support/AllocatorBase.h:
+
+/usr/lib/llvm-21/lib/libLLVMMSP430CodeGen.a:
+
+/usr/lib/llvm-21/include/llvm/Support/Allocator.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Alignment.h:
+
+/usr/lib/llvm-21/lib/libLLVMAMDGPUDesc.a:
+
+/usr/lib/llvm-21/include/llvm/Support/RWMutex.h:
+
+/usr/lib/llvm-21/include/llvm/Passes/PassPlugin.h:
+
+/usr/lib/llvm-21/include/llvm/Passes/PassBuilder.h:
+
+/usr/lib/llvm-21/include/llvm/PassSupport.h:
+
+/usr/lib/llvm-21/include/llvm/Support/InstructionCost.h:
+
+/usr/lib/llvm-21/include/llvm/PassRegistry.h:
+
+/usr/lib/llvm-21/include/llvm/PassAnalysisSupport.h:
+
+/usr/lib/x86_64-linux-gnu/crtn.o:
+
+/usr/lib/llvm-21/include/llvm/MC/MCTargetOptions.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCSection.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Casting.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCRegister.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCObjectFileInfo.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCInstrDesc.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCFixup.h:
+
+/usr/lib/llvm-21/include/llvm/MC/MCExpr.h:
+
+/usr/lib/llvm-21/include/llvm/Linker/Linker.h:
+
+/usr/lib/llvm-21/include/llvm/IRReader/IRReader.h:
+
+/usr/lib/llvm-21/include/llvm/IR/Verifier.h:
+
+/usr/lib/llvm-21/include/llvm/IR/ValueMap.h:
+
+/usr/lib/llvm-21/include/llvm/Support/TargetOpcodes.def:
+
+/usr/lib/llvm-21/include/llvm/IR/ValueHandle.h:
+
+/usr/lib/llvm-21/lib/libLLVMInstrumentation.a:
+
+/usr/lib/llvm-21/include/llvm/Support/MD5.h:
+
+/usr/lib/llvm-21/include/llvm/IR/User.h:
+
+/usr/lib/llvm-21/lib/libLLVMMipsAsmParser.a:
+
+/usr/lib/llvm-21/include/llvm/IR/Use.h:
 
 /usr/include/strings.h:
 
@@ -1325,6 +1739,10 @@ compiler_run.cpp:
 /usr/include/c++/15/bits/locale_classes.h:
 
 /usr/include/linux/posix_types.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Error.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/StringRef.h:
 
 /usr/lib/llvm-21/include/llvm/Support/FormatProviders.h:
 
@@ -1368,6 +1786,8 @@ compiler_run.cpp:
 
 /usr/include/c++/15/string:
 
+/usr/lib/llvm-21/include/llvm/IR/PassInstrumentation.h:
+
 /usr/lib/llvm-21/lib/libLLVMDebugInfoBTF.a:
 
 /usr/include/c++/15/tr1/poly_hermite.tcc:
@@ -1380,10 +1800,6 @@ compiler_run.cpp:
 
 /usr/include/c++/15/set:
 
-/usr/include/c++/15/bits/stl_map.h:
-
-/usr/include/c++/15/ratio:
-
 /usr/include/c++/15/atomic:
 
 /usr/include/c++/15/stdexcept:
@@ -1393,6 +1809,16 @@ compiler_run.cpp:
 /usr/include/c++/15/pstl/execution_defs.h:
 
 /usr/include/c++/15/optional:
+
+/usr/lib/llvm-21/lib/libLLVMPowerPCAsmParser.a:
+
+/usr/lib/llvm-21/include/llvm/Support/DataTypes.h:
+
+/usr/include/c++/15/bits/predefined_ops.h:
+
+/usr/include/c++/15/numeric:
+
+/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
 
 /usr/include/x86_64-linux-gnu/bits/typesizes.h:
 
@@ -1412,19 +1838,17 @@ compiler_run.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/long-double.h:
 
-/usr/lib/llvm-21/lib/libLLVMScalarOpts.a:
-
-/usr/lib/llvm-21/lib/libLLVMBitstreamReader.a:
-
-/usr/lib/llvm-21/include/llvm/ADT/bit.h:
-
 /usr/include/c++/15/locale:
 
 /usr/include/c++/15/istream:
 
+/usr/lib/llvm-21/lib/libLLVMAMDGPUUtils.a:
+
 /usr/include/c++/15/iostream:
 
 /usr/include/c++/15/limits:
+
+/usr/lib/llvm-21/lib/libLLVMFrontendOpenMP.a:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/gthr-default.h:
 
@@ -1434,13 +1858,19 @@ compiler_run.cpp:
 
 /usr/include/c++/15/bits/hashtable_policy.h:
 
+/usr/lib/llvm-21/lib/libLLVMSandboxIR.a:
+
+/usr/lib/llvm-21/lib/libLLVMARMCodeGen.a:
+
 /usr/include/c++/15/bits/exception_ptr.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachinePassManager.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/ilist_base.h:
 
-/usr/include/c++/15/debug/assertions.h:
+/usr/lib/llvm-21/lib/libLLVMSPIRVAnalysis.a:
 
-/usr/lib/llvm-21/include/llvm/Support/PGOOptions.h:
+/usr/include/c++/15/debug/assertions.h:
 
 /usr/include/c++/15/ctime:
 
@@ -1474,6 +1904,8 @@ compiler_run.cpp:
 
 /usr/include/c++/15/cerrno:
 
+/usr/include/c++/15/bitset:
+
 /usr/lib/llvm-21/lib/libLLVMMC.a:
 
 /usr/include/linux/close_range.h:
@@ -1482,13 +1914,17 @@ compiler_run.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/timesize.h:
 
-/usr/lib/llvm-21/include/llvm/Support/ReverseIteration.h:
-
-/usr/include/x86_64-linux-gnu/c++/15/bits/cpu_defines.h:
-
 /usr/include/x86_64-linux-gnu/bits/types/clock_t.h:
 
 /usr/include/c++/15/bits/unordered_set.h:
+
+/usr/lib/llvm-21/lib/libLLVMScalarOpts.a:
+
+/usr/lib/llvm-21/lib/libLLVMBitstreamReader.a:
+
+/usr/lib/llvm-21/include/llvm/ADT/bit.h:
+
+/usr/lib/llvm-21/include/llvm/IR/DiagnosticInfo.h:
 
 /usr/include/c++/15/bits/unique_lock.h:
 
@@ -1496,7 +1932,17 @@ compiler_run.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/environments.h:
 
+/usr/lib/llvm-21/include/llvm/Transforms/Utils/ValueMapper.h:
+
 /usr/lib/llvm-21/include/llvm/IR/Analysis.h:
+
+/usr/include/c++/15/tr1/exp_integral.tcc:
+
+/usr/lib/llvm-21/include/llvm/Support/UniqueBBID.h:
+
+/usr/include/c++/15/bits/string_view.tcc:
+
+compiler.cpp:
 
 /usr/include/c++/15/bits/ios_base.h:
 
@@ -1536,10 +1982,6 @@ compiler_run.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/Constant.h:
 
-/usr/include/c++/15/bits/predefined_ops.h:
-
-/usr/lib/llvm-21/include/llvm/Support/DataTypes.h:
-
 /usr/include/x86_64-linux-gnu/bits/uio_lim.h:
 
 /usr/include/c++/15/bits/iterator_concepts.h:
@@ -1548,13 +1990,27 @@ compiler_run.cpp:
 
 /usr/include/c++/15/bits/stl_vector.h:
 
+/usr/include/c++/15/bits/streambuf_iterator.h:
+
+/usr/include/x86_64-linux-gnu/bits/types/error_t.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/TargetLibraryInfo.h:
+
 /usr/include/pthread.h:
 
 /usr/include/c++/15/bit:
 
 /usr/include/asm-generic/posix_types.h:
 
+/usr/lib/llvm-21/lib/libLLVMBPFInfo.a:
+
+/usr/lib/llvm-21/include/llvm/Support/BranchProbability.h:
+
 /usr/include/c++/15/bits/allocator.h:
+
+/usr/lib/llvm-21/include/llvm/Linker/IRMover.h:
+
+/usr/include/c++/15/initializer_list:
 
 /usr/lib/llvm-21/include/llvm/ADT/FunctionExtras.h:
 
@@ -1565,6 +2021,10 @@ compiler_run.cpp:
 /usr/lib/llvm-21/include/llvm/Config/llvm-config.h:
 
 /usr/include/c++/15/backward/auto_ptr.h:
+
+/usr/lib/llvm-21/include/llvm/Support/NativeFormatting.h:
+
+/usr/include/c++/15/bits/exception_defines.h:
 
 /usr/include/c++/15/cstring:
 
@@ -1594,8 +2054,6 @@ compiler_run.cpp:
 
 /usr/include/c++/15/bits/allocated_ptr.h:
 
-/usr/lib/llvm-21/include/llvm/IRReader/IRReader.h:
-
 /usr/lib/llvm-21/lib/libLLVMCore.a:
 
 /usr/include/c++/15/bits/version.h:
@@ -1610,15 +2068,21 @@ compiler_run.cpp:
 
 /usr/include/c++/15/utility:
 
+/usr/lib/llvm-21/include/llvm/PassInfo.h:
+
 /usr/include/c++/15/bits/specfun.h:
 
 /usr/include/c++/15/bits/stl_tempbuf.h:
+
+/usr/lib/llvm-21/include/llvm/Support/GenericLoopInfoImpl.h:
 
 /usr/include/c++/15/tr1/ell_integral.tcc:
 
 /usr/include/stdc-predef.h:
 
 /usr/include/c++/15/bits/stl_iterator_base_types.h:
+
+/usr/lib/llvm-21/lib/libLLVMAArch64Utils.a:
 
 /usr/lib/llvm-21/include/llvm/ADT/DenseMapInfo.h:
 
@@ -1632,13 +2096,7 @@ compiler_run.cpp:
 
 /usr/include/c++/15/bits/basic_ios.tcc:
 
-/usr/lib/llvm-21/include/llvm/Support/CBindingWrapping.h:
-
-/usr/lib/llvm-21/lib/libLLVMInstrumentation.a:
-
-/usr/lib/llvm-21/include/llvm/IR/User.h:
-
-/usr/lib/llvm-21/include/llvm/Support/MD5.h:
+/usr/lib/llvm-21/lib/libLLVMLanaiInfo.a:
 
 /usr/include/c++/15/bits/memoryfwd.h:
 
@@ -1656,21 +2114,19 @@ compiler_run.cpp:
 
 /usr/include/asm-generic/int-ll64.h:
 
-/usr/lib/llvm-21/include/llvm/Support/Chrono.h:
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineInstr.h:
 
 /usr/include/asm-generic/types.h:
 
 /usr/include/asm-generic/bitsperlong.h:
 
+/usr/lib/llvm-21/include/llvm/ADT/PointerSumType.h:
+
 /usr/lib/llvm-21/include/llvm/IR/GlobalObject.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/sigset_t.h:
 
-/usr/lib/llvm-21/include/llvm/Support/MemoryBufferRef.h:
-
 /usr/include/asm-generic/errno-base.h:
-
-/usr/include/c++/15/bits/stringfwd.h:
 
 /usr/lib/llvm-21/include/llvm-c/DisassemblerTypes.h:
 
@@ -1678,19 +2134,17 @@ compiler_run.cpp:
 
 /usr/include/c++/15/fstream:
 
+/usr/lib/llvm-21/include/llvm/Transforms/Utils/LCSSA.h:
+
 /usr/include/c++/15/bits/stl_raw_storage_iter.h:
 
 /usr/include/c++/15/bits/ostream.h:
-
-/usr/lib/llvm-21/include/llvm/IR/Use.h:
 
 /usr/include/alloca.h:
 
 /usr/include/c++/15/iosfwd:
 
 /usr/include/c++/15/bits/chrono_io.h:
-
-/usr/include/c++/15/vector:
 
 /usr/include/c++/15/memory:
 
@@ -1703,6 +2157,8 @@ compiler_run.cpp:
 /usr/include/x86_64-linux-gnu/bits/fp-fast.h:
 
 /usr/include/c++/15/bits/codecvt.h:
+
+/usr/lib/llvm-21/lib/libLLVMSparcInfo.a:
 
 /usr/include/c++/15/bits/std_function.h:
 
@@ -1720,7 +2176,19 @@ compiler_run.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/DebugInfoFlags.def:
 
+/usr/lib/llvm-21/include/llvm/Transforms/Utils/LoopUtils.h:
+
 /usr/lib/llvm-21/include/llvm/IR/IRBuilder.h:
+
+/usr/lib/llvm-21/include/llvm/Target/CGPassBuilderOption.h:
+
+/usr/include/c++/15/bits/stl_numeric.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ErrorHandling.h:
+
+compiler.h:
+
+/usr/lib/llvm-21/lib/libLLVMXtensaAsmParser.a:
 
 /usr/include/c++/15/typeinfo:
 
@@ -1732,37 +2200,31 @@ compiler_run.cpp:
 
 /usr/lib/llvm-21/include/llvm/ADT/iterator_range.h:
 
+/usr/lib/llvm-21/include/llvm/Support/DynamicLibrary.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGenTypes/LowLevelType.h:
+
 /usr/lib/llvm-21/include/llvm/IR/Instruction.h:
 
 /usr/include/c++/15/cstdlib:
 
 /usr/include/c++/15/bits/locale_facets.h:
 
-compiler.h:
+/usr/include/c++/15/bits/stl_map.h:
 
-/usr/lib/llvm-21/include/llvm/Support/ErrorHandling.h:
+/usr/include/c++/15/ratio:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/TargetOpcodes.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/IntrusiveRefCntPtr.h:
 
 /usr/include/c++/15/iterator:
 
-/usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h:
-
-/usr/lib/llvm-21/include/llvm/IR/Value.def:
+/usr/lib/llvm-21/include/llvm/Pass.h:
 
 /usr/include/c++/15/bits/hashtable.h:
 
-/usr/include/c++/15/bits/cxxabi_init_exception.h:
-
 /usr/include/x86_64-linux-gnu/bits/syscall.h:
-
-/usr/include/c++/15/bits/string_view.tcc:
-
-compiler.cpp:
-
-/usr/include/x86_64-linux-gnu/bits/types/error_t.h:
-
-/usr/include/c++/15/bits/streambuf_iterator.h:
 
 /usr/include/syscall.h:
 
@@ -1802,13 +2264,15 @@ compiler.cpp:
 
 /usr/include/c++/15/algorithm:
 
+/usr/lib/llvm-21/lib/libLLVMAArch64Info.a:
+
+/usr/lib/llvm-21/include/llvm/MC/SectionKind.h:
+
+/usr/include/x86_64-linux-gnu/bits/math-vector.h:
+
 /usr/include/x86_64-linux-gnu/c++/15/bits/time_members.h:
 
 /usr/include/c++/15/bits/locale_classes.tcc:
-
-/usr/lib/llvm-21/include/llvm/MC/TargetRegistry.h:
-
-/usr/lib/llvm-21/include/llvm/Support/PointerLikeTypeTraits.h:
 
 /usr/include/stdlib.h:
 
@@ -1828,13 +2292,11 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/Metadata.h:
 
+/usr/lib/llvm-21/include/llvm/Support/CFGDiff.h:
+
 /usr/include/c++/15/bits/unicode-data.h:
 
 /usr/include/c++/15/bits/ranges_cmp.h:
-
-/usr/include/c++/15/bits/exception_defines.h:
-
-/usr/lib/llvm-21/include/llvm/Support/NativeFormatting.h:
 
 /usr/include/c++/15/bits/locale_facets_nonio.h:
 
@@ -1842,11 +2304,11 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/ADT/SmallVector.h:
 
-/usr/lib/llvm-21/include/llvm/Support/FileSystem/UniqueID.h:
-
 /usr/include/c++/15/bits/ostream_insert.h:
 
 /usr/include/c++/15/bits/stream_iterator.h:
+
+/usr/lib/llvm-21/lib/libLLVMXtensaCodeGen.a:
 
 /usr/include/x86_64-linux-gnu/sys/select.h:
 
@@ -1864,11 +2326,15 @@ compiler.cpp:
 
 /usr/include/c++/15/bits/max_size_type.h:
 
-/usr/lib/llvm-21/include/llvm/Support/AtomicOrdering.h:
-
 /usr/include/c++/15/bits/atomic_lockfree_defines.h:
 
+/usr/lib/llvm-21/include/llvm/ADT/ArrayRef.h:
+
+/usr/include/c++/15/bits/monostate.h:
+
 /usr/lib/llvm-21/lib/libLLVMMCParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMLanaiDesc.a:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/include/limits.h:
 
@@ -1876,9 +2342,13 @@ compiler.cpp:
 
 /usr/include/c++/15/bits/move.h:
 
+/usr/lib/llvm-21/include/llvm/ADT/SetVector.h:
+
 /usr/include/x86_64-linux-gnu/c++/15/bits/ctype_inline.h:
 
 /usr/include/c++/15/tr1/legendre_function.tcc:
+
+/usr/lib/llvm-21/include/llvm/Passes/OptimizationLevel.h:
 
 /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h:
 
@@ -1888,15 +2358,13 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/os_defines.h:
 
+/usr/include/c++/15/shared_mutex:
+
 /usr/include/c++/15/pstl/glue_memory_defs.h:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/c++locale.h:
 
 /usr/include/c++/15/bits/node_handle.h:
-
-/usr/include/c++/15/initializer_list:
-
-/usr/lib/llvm-21/include/llvm/Linker/IRMover.h:
 
 /usr/include/c++/15/bits/unordered_map.h:
 
@@ -1920,11 +2388,11 @@ compiler.cpp:
 
 /usr/include/c++/15/bits/ptr_traits.h:
 
+/usr/lib/llvm-21/include/llvm/Analysis/LoopNestAnalysis.h:
+
 /usr/include/c++/15/bits/ranges_algobase.h:
 
 /usr/include/c++/15/bits/stl_construct.h:
-
-/usr/include/c++/15/ext/numeric_traits.h:
 
 /usr/include/c++/15/bits/quoted_string.h:
 
@@ -1938,6 +2406,8 @@ compiler.cpp:
 
 /usr/include/c++/15/bits/shared_ptr_base.h:
 
+/usr/lib/llvm-21/lib/libLLVMHipStdPar.a:
+
 /usr/include/c++/15/semaphore:
 
 /usr/include/c++/15/bits/stl_multimap.h:
@@ -1948,21 +2418,43 @@ compiler.cpp:
 
 /usr/include/c++/15/bits/sstream.tcc:
 
+/usr/include/c++/15/pstl/glue_numeric_defs.h:
+
 /usr/include/c++/15/clocale:
+
+/usr/lib/llvm-21/lib/libLLVMLanaiCodeGen.a:
 
 /usr/lib/llvm-21/include/llvm/IR/Instructions.h:
 
+/usr/lib/llvm-21/include/llvm/Support/Compression.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/BitVector.h:
+
+/usr/include/c++/15/tr1/gamma.tcc:
+
+/usr/include/limits.h:
+
+/usr/lib/llvm-21/include/llvm/Support/AlignOf.h:
+
+/usr/include/c++/15/ext/concurrence.h:
+
+/usr/include/c++/15/bits/move_only_function.h:
+
+/usr/include/c++/15/ext/atomicity.h:
+
 /usr/lib/llvm-21/include/llvm/IR/DebugProgramInstruction.h:
+
+/usr/lib/llvm-21/include/llvm/Support/Compiler.h:
+
+/usr/include/c++/15/bits/stl_iterator_base_funcs.h:
+
+/usr/lib/llvm-21/lib/libLLVMLoongArchAsmParser.a:
 
 /usr/include/x86_64-linux-gnu/bits/semaphore.h:
 
 /usr/include/c++/15/bits/algorithmfwd.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h:
-
-/usr/include/c++/15/bits/random.h:
-
-/usr/lib/llvm-21/include/llvm/Support/MemAlloc.h:
 
 /usr/include/stdio.h:
 
@@ -1974,6 +2466,10 @@ compiler.cpp:
 
 /usr/include/c++/15/cctype:
 
+/usr/include/c++/15/vector:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/Register.h:
+
 /usr/lib/llvm-21/lib/libLLVMMCDisassembler.a:
 
 /usr/include/c++/15/bits/ranges_uninitialized.h:
@@ -1984,7 +2480,23 @@ compiler.cpp:
 
 /usr/include/c++/15/cassert:
 
-/usr/include/c++/15/tr1/exp_integral.tcc:
+/usr/lib/llvm-21/include/llvm/Analysis/Utils/ImportedFunctionsInliningStatistics.h:
+
+/usr/lib/llvm-21/lib/libLLVMHexagonAsmParser.a:
+
+/usr/include/unistd.h:
+
+/usr/lib/llvm-21/include/llvm/IR/Value.def:
+
+/usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h:
+
+/usr/include/x86_64-linux-gnu/bits/byteswap.h:
+
+/usr/lib/linux/uapi/x86/asm/posix_types_64.h:
+
+/usr/lib/llvm-21/include/llvm/MC/LaneBitmask.h:
+
+/usr/lib/llvm-21/include/llvm/IR/IntrinsicInst.h:
 
 /usr/include/x86_64-linux-gnu/bits/confname.h:
 
@@ -2000,9 +2512,13 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/floatn-common.h:
 
+/usr/lib/llvm-21/include/llvm/Analysis/TargetTransformInfo.h:
+
 /usr/include/x86_64-linux-gnu/bits/floatn.h:
 
 /usr/lib/llvm-21/include/llvm/Support/CommandLine.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/DepthFirstIterator.h:
 
 /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h:
 
@@ -2012,6 +2528,8 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/fp-logb.h:
 
+/usr/lib/llvm-21/lib/libLLVMHexagonDesc.a:
+
 /usr/include/x86_64-linux-gnu/bits/getopt_core.h:
 
 /usr/lib/linux/uapi/x86/asm/unistd.h:
@@ -2020,6 +2538,8 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/iscanonical.h:
 
+/usr/lib/llvm-21/include/llvm/CodeGenTypes/MachineValueType.h:
+
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_FILE.h:
@@ -2027,6 +2547,10 @@ compiler.cpp:
 /usr/include/x86_64-linux-gnu/bits/endian.h:
 
 /usr/include/x86_64-linux-gnu/bits/mathcalls.h:
+
+/usr/include/c++/15/bits/stringfwd.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/ScalarEvolution.h:
 
 /usr/include/x86_64-linux-gnu/bits/locale.h:
 
@@ -2045,6 +2569,10 @@ compiler.cpp:
 /usr/include/x86_64-linux-gnu/bits/setjmp.h:
 
 /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h:
+
+/usr/lib/llvm-21/lib/libLLVMRISCVDesc.a:
+
+/usr/lib/llvm-21/lib/libLLVMPasses.a:
 
 /usr/include/c++/15/bits/localefwd.h:
 
@@ -2080,6 +2608,8 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 
+/usr/lib/llvm-21/lib/libLLVMAVRCodeGen.a:
+
 /usr/include/c++/15/ext/aligned_buffer.h:
 
 /usr/include/x86_64-linux-gnu/bits/time64.h:
@@ -2098,6 +2628,8 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/types/cookie_io_functions_t.h:
 
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyCodeGen.a:
+
 /usr/include/features-time64.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
@@ -2114,8 +2646,6 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h:
 
-/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h:
-
 /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/FILE.h:
@@ -2125,6 +2655,8 @@ compiler.cpp:
 /usr/include/x86_64-linux-gnu/bits/types/timer_t.h:
 
 /usr/include/c++/15/bits/list.tcc:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineBasicBlock.h:
 
 /usr/lib/llvm-21/include/llvm/IR/GlobalValue.h:
 
@@ -2152,6 +2684,8 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/IntrinsicEnums.inc:
 
+/usr/lib/llvm-21/lib/libLLVMBPFCodeGen.a:
+
 /usr/include/x86_64-linux-gnu/bits/wctype-wchar.h:
 
 /usr/include/c++/15/cstdio:
@@ -2162,15 +2696,13 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/bits/xopen_lim.h:
 
-/usr/lib/llvm-21/include/llvm/MC/MCSection.h:
-
-/usr/include/c++/15/bits/alloc_traits.h:
-
-/usr/include/x86_64-linux-gnu/c++/15/bits/c++allocator.h:
+/usr/lib/llvm-21/lib/libLLVMSystemZDesc.a:
 
 /usr/lib/llvm-21/include/llvm/IR/Value.h:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/c++config.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ArrayRecycler.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/include/stddef.h:
 
@@ -2182,11 +2714,15 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/ConstantFolder.h:
 
+/usr/lib/llvm-21/lib/libLLVMXCoreInfo.a:
+
 /usr/include/x86_64-linux-gnu/c++/15/bits/ctype_base.h:
 
 /usr/lib/llvm-21/include/llvm/IR/GlobalAlias.h:
 
 /usr/include/x86_64-linux-gnu/c++/15/bits/error_constants.h:
+
+/usr/lib/llvm-21/lib/libLLVMLoongArchInfo.a:
 
 /usr/lib/llvm-21/include/llvm/Config/abi-breaking.h:
 
@@ -2202,6 +2738,8 @@ compiler.cpp:
 
 /usr/include/x86_64-linux-gnu/gnu/stubs.h:
 
+/usr/lib/llvm-21/lib/libLLVMVEDesc.a:
+
 /usr/lib/llvm-21/include/llvm/IR/DebugInfoMetadata.h:
 
 /usr/include/c++/15/bits/align.h:
@@ -2214,9 +2752,15 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/Config/AsmParsers.def:
 
+/usr/lib/llvm-21/lib/libLLVMVEAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMSPIRVCodeGen.a:
+
 /usr/include/c++/15/bits/stl_iterator.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/include/stdarg.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineMemOperand.h:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/include/syslimits.h:
 
@@ -2238,21 +2782,27 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm-c/Error.h:
 
-/usr/lib/llvm-21/include/llvm-c/Types.h:
+/usr/lib/gcc/x86_64-linux-gnu/15/crtendS.o:
 
-/usr/lib/llvm-21/include/llvm/Config/Disassemblers.def:
+/usr/lib/llvm-21/include/llvm/Support/MathExtras.h:
+
+/usr/lib/llvm-21/include/llvm-c/ExternC.h:
+
+/usr/lib/llvm-21/include/llvm-c/Types.h:
 
 /usr/lib/llvm-21/include/llvm-c/Visibility.h:
 
-/usr/lib/llvm-21/include/llvm/Linker/Linker.h:
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyInfo.a:
+
+/usr/lib/llvm-21/include/llvm/IR/EHPersonalities.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/ADL.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/APFloat.h:
 
-/usr/include/c++/15/bits/monostate.h:
+/usr/lib/llvm-21/lib/libLLVMAMDGPUInfo.a:
 
-/usr/lib/llvm-21/include/llvm/ADT/ArrayRef.h:
+/usr/lib/llvm-21/include/llvm/ADT/Any.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/Bitfields.h:
 
@@ -2262,15 +2812,25 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/ADT/EpochTracker.h:
 
-/usr/lib/llvm-21/include/llvm/Support/Alignment.h:
+/usr/lib/llvm-21/include/llvm/ADT/EquivalenceClasses.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/MemoryLocation.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/FoldingSet.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/GraphTraits.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/Hashing.h:
 
+/usr/lib/llvm-21/include/llvm/CodeGen/RegAllocCommon.h:
+
 /usr/lib/llvm-21/include/llvm/ADT/DenseSet.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/PointerUnion.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/PostOrderIterator.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/PriorityWorklist.h:
 
 /usr/lib/llvm-21/lib/libLLVMAsmParser.a:
 
@@ -2282,11 +2842,21 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/FixedMetadataKinds.def:
 
+/usr/lib/llvm-21/include/llvm/ADT/SetOperations.h:
+
+/usr/lib/llvm-21/lib/libLLVMAArch64AsmParser.a:
+
 /usr/lib/llvm-21/include/llvm/ADT/SmallPtrSet.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/SmallString.h:
 
+/usr/include/c++/15/ext/numeric_traits.h:
+
+/usr/lib/llvm-21/include/llvm/ADT/SparseBitVector.h:
+
 /usr/lib/llvm-21/include/llvm/ADT/StringMapEntry.h:
+
+/usr/lib/llvm-21/lib/libLLVMM68kCodeGen.a:
 
 /usr/include/c++/15/bits/basic_string.tcc:
 
@@ -2302,19 +2872,81 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/ADT/simple_ilist.h:
 
-/usr/lib/llvm-21/include/llvm/IR/GEPNoWrapFlags.h:
+/usr/lib/llvm-21/include/llvm/MC/TargetRegistry.h:
 
-/usr/lib/llvm-21/include/llvm/BinaryFormat/Swift.h:
+/usr/lib/llvm-21/include/llvm/MC/MCSymbol.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/CGSCCPassManager.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/IVDescriptors.h:
+
+/usr/include/c++/15/bits/cxxabi_init_exception.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/InlineModelFeatureMaps.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/LazyCallGraph.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/LoopAccessAnalysis.h:
+
+/usr/lib/llvm-21/lib/libLLVMX86Info.a:
+
+/usr/lib/llvm-21/include/llvm/Analysis/LoopAnalysisManager.h:
 
 /usr/lib/llvm-21/include/llvm/ADT/PointerIntPair.h:
 
 /usr/lib/llvm-21/include/llvm/Bitstream/BitCodeEnums.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/InlineAdvisor.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/LoopInfo.h:
+
+/usr/lib/gcc/x86_64-linux-gnu/15/include/stdint.h:
+
+/usr/lib/llvm-21/include/llvm/IR/DataLayout.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/TargetLibraryInfo.def:
+
+/usr/include/c++/15/bits/alloc_traits.h:
+
+/usr/include/x86_64-linux-gnu/c++/15/bits/c++allocator.h:
+
+/usr/lib/llvm-21/include/llvm/Analysis/TensorSpec.h:
+
+/usr/lib/llvm-21/include/llvm/IR/GEPNoWrapFlags.h:
+
+/usr/lib/llvm-21/include/llvm/BinaryFormat/Swift.h:
+
+/usr/include/x86_64-linux-gnu/bits/getopt_posix.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/GenVT.inc:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineFunction.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineFunctionAnalysisManager.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineInstrBundleIterator.h:
+
+/usr/lib/llvm-21/include/llvm/Config/Disassemblers.def:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/MachineOperand.h:
+
+/usr/include/c++/15/bits/range_access.h:
+
+/usr/lib/llvm-21/include/llvm/IR/Intrinsics.h:
+
+/usr/lib/llvm-21/include/llvm/Support/ReverseIteration.h:
+
+/usr/include/x86_64-linux-gnu/c++/15/bits/cpu_defines.h:
+
+/usr/lib/llvm-21/include/llvm/CodeGen/PseudoSourceValue.h:
 
 /usr/lib/llvm-21/include/llvm/Config/AsmPrinters.def:
 
 /usr/lib/llvm-21/include/llvm/Config/Targets.def:
 
 /usr/lib/llvm-21/include/llvm/IR/Attributes.inc:
+
+/usr/lib/llvm-21/include/llvm/MC/MCSymbolTableEntry.h:
 
 /usr/lib/llvm-21/include/llvm/IR/BasicBlock.h:
 
@@ -2336,15 +2968,11 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/Constants.h:
 
-/usr/lib/llvm-21/include/llvm/Support/AllocatorBase.h:
-
-/usr/lib/gcc/x86_64-linux-gnu/15/include/stdint.h:
-
-/usr/lib/llvm-21/include/llvm/IR/DataLayout.h:
-
 /usr/lib/llvm-21/include/llvm/IR/DebugLoc.h:
 
 /usr/lib/llvm-21/include/llvm/IR/FMF.h:
+
+/usr/lib/llvm-21/lib/libLLVMLoongArchDesc.a:
 
 /usr/lib/llvm-21/include/llvm/IR/GlobalIFunc.h:
 
@@ -2356,17 +2984,9 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/InstrTypes.h:
 
+/usr/lib/llvm-21/include/llvm/Analysis/InlineCost.h:
+
 /usr/lib/llvm-21/include/llvm/IR/Instruction.def:
-
-/usr/include/x86_64-linux-gnu/bits/math-vector.h:
-
-/usr/lib/llvm-21/include/llvm/MC/SectionKind.h:
-
-/usr/include/c++/15/bits/range_access.h:
-
-/usr/lib/llvm-21/include/llvm/IR/Intrinsics.h:
-
-/usr/lib/llvm-21/include/llvm/IR/Verifier.h:
 
 /usr/lib/llvm-21/include/llvm/Config/TargetMCAs.def:
 
@@ -2376,17 +2996,13 @@ compiler.cpp:
 
 /usr/lib/llvm-21/include/llvm/IR/LegacyPassManager.h:
 
+/usr/lib/llvm-21/lib/libLLVMMipsInfo.a:
+
 /usr/lib/llvm-21/include/llvm/IR/Mangler.h:
 
-/usr/include/c++/15/tr1/gamma.tcc:
-
-/usr/include/limits.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Compression.h:
+/usr/lib/llvm-21/include/llvm/Transforms/IPO/ModuleInliner.h:
 
 /usr/lib/llvm-21/include/llvm/IR/Metadata.def:
-
-/usr/lib/llvm-21/include/llvm/Support/FormattedStream.h:
 
 /usr/lib/llvm-21/include/llvm/IR/OperandTraits.h:
 
@@ -2395,6 +3011,8 @@ compiler.cpp:
 /usr/include/assert.h:
 
 /usr/lib/llvm-21/include/llvm/IR/PassManager.h:
+
+/usr/lib/llvm-21/lib/libLLVMBPFDesc.a:
 
 /usr/lib/llvm-21/include/llvm/IR/PassManagerInternal.h:
 
@@ -2409,69 +3027,3 @@ compiler.cpp:
 /usr/include/x86_64-linux-gnu/bits/types.h:
 
 /usr/lib/llvm-21/include/llvm/IR/Type.h:
-
-/usr/lib/llvm-21/include/llvm/IR/ValueHandle.h:
-
-/usr/lib/llvm-21/include/llvm/MC/MCFixup.h:
-
-/usr/lib/llvm-21/include/llvm/MC/MCObjectFileInfo.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Casting.h:
-
-/usr/lib/llvm-21/include/llvm/MC/MCRegister.h:
-
-/usr/lib/x86_64-linux-gnu/crtn.o:
-
-/usr/lib/llvm-21/include/llvm/MC/MCTargetOptions.h:
-
-/usr/include/c++/15/ext/concurrence.h:
-
-/usr/include/c++/15/bits/move_only_function.h:
-
-/usr/include/c++/15/ext/atomicity.h:
-
-/usr/lib/llvm-21/include/llvm/Support/AlignOf.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Allocator.h:
-
-/usr/lib/x86_64-linux-gnu/libz.so:
-
-/usr/lib/llvm-21/lib/libLLVMCFGuard.a:
-
-/usr/lib/llvm-21/include/llvm/Support/CodeGen.h:
-
-/usr/include/c++/15/bits/stl_iterator_base_funcs.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Compiler.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Debug.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Discriminator.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Endian.h:
-
-/usr/lib/llvm-21/include/llvm/ADT/StringRef.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Error.h:
-
-/usr/lib/llvm-21/include/llvm/Support/ErrorOr.h:
-
-/usr/lib/llvm-21/include/llvm/Support/FileSystem.h:
-
-/usr/lib/llvm-21/include/llvm/Support/Format.h:
-
-/usr/lib/llvm-21/include/llvm/Support/FormatVariadicDetails.h:
-
-/usr/lib/gcc/x86_64-linux-gnu/15/crtendS.o:
-
-/usr/lib/llvm-21/include/llvm-c/ExternC.h:
-
-/usr/lib/llvm-21/include/llvm/Support/MathExtras.h:
-
-/usr/lib/llvm-21/lib/libLLVMIRPrinter.a:
-
-/usr/lib/llvm-21/lib/libLLVMCodeGen.a:
-
-/usr/lib/llvm-21/include/llvm/Support/MemoryBuffer.h:
-
-/usr/lib/llvm-21/include/llvm/Support/ModRef.h:

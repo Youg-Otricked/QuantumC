@@ -22,7 +22,7 @@
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
-const std::string ver = "x0.17.5";
+const std::string ver = "x0.17.6";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -90,6 +90,21 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--silent-version" || arg == "-sv") {
             std::cout << ver << '\n';
             return 0;
+        } else if (arg == "-O0") {
+            config.optimize = false;
+            config.opt_level = "O0";
+        } else if (arg == "-O1") {
+            config.optimize = true;
+            config.opt_level = "O1";
+        } else if (arg == "-O2") {
+            config.optimize = true;
+            config.opt_level = "O2";
+        } else if (arg == "-O3") {
+            config.optimize = true;
+            config.opt_level = "O3";
+        } else if (arg == "-Oz") {
+            config.optimize = true;
+            config.opt_level = "Oz";
         } else if (arg == "--version" || arg == "-v") {
             std::cout << CYAN << R"( 
 [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m

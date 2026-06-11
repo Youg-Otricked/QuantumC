@@ -746,15 +746,18 @@ class FuncDefNode {
     std::unique_ptr<StatementsNode> body;
     std::string namespace_path;
     Position pos;
-
+    bool is_extern = false;
+    bool is_foreign = false;
     FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, std::unique_ptr<StatementsNode> func_body,
-        std::string ns = "")
+        std::string ns = "", bool is_ex = false, bool is_f = false)
         : return_types(std::move(ret_types)),
           name_tok(std::move(name)),
           params(std::move(parameters)),
           body(std::move(func_body)),
-          namespace_path(ns) {}
-
+          namespace_path(ns) {
+            this->is_extern = is_ex;
+            this->is_foreign = is_f;
+          }
     std::string print() {
         std::string result = "";
         for (size_t i = 0; i < return_types.size(); i++) {
@@ -1265,6 +1268,8 @@ class Parser {
     Prs func_def(Token return_type, std::optional<Token> func_name);
     Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name);
     Parameter parse_parameter(bool type_only);
+    bool in_extern = false;
+    bool in_foreign = false;
     inline AnyNode prs_to_anynode(Prs&& st) {
         return std::visit([](auto&& arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
@@ -2249,6 +2254,8 @@ struct RunConfig {
     bool compile_only = false;
     bool object_only = false;
     bool debug = false;
+    bool optimize = true;
+    std::string opt_level = "O2";
     std::string output_file = "a.out";
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -2276,7 +2283,7 @@ class LLVMCompiler {
     void createUserTypes();
     llvm::Value* convertToString(llvm::Value* val, AnyNode& expr);
     LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types);
-    std::vector<CTError> compile(StatementsNode* root, const std::string& outPath);
+    std::vector<CTError> compile(StatementsNode* root, const std::string& outPath, bool optimize = false, std::string opt_level = "-O2");
     void cg_error(const Position& pos, const std::string& msg);
     std::vector<CTError> errors;
     llvm::BasicBlock* currentBreakBB = nullptr;
@@ -4452,7 +4459,9 @@ class LLVMCompiler {
 
         return info;
     }
-
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> module;
+    std::unique_ptr<llvm::IRBuilder<>> builder; 
   private:
     llvm::Type* getTypeFromCode(int code) {
         switch (code) {
@@ -4517,9 +4526,6 @@ class LLVMCompiler {
     llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& retTypes, const std::list<Parameter>& params);
     llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& returnTypes, const std::vector<Parameter>& params);
     llvm::Type* llvmTypeFor(const std::string& qcType);
-    llvm::LLVMContext context;
-    std::unique_ptr<llvm::Module> module;
-    std::unique_ptr<llvm::IRBuilder<>> builder;
     std::string lambdaName();
     std::string mangleName(const FuncDefNode& fn);
     std::unordered_map<std::string, llvm::AllocaInst*> locals;
