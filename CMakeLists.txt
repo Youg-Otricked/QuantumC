@@ -2,14 +2,13 @@ cmake_minimum_required(VERSION 3.13)
 project(qc LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-if(APPLE)
+if(APPLE OR EMSCRIPTEN)
     set(CMAKE_CXX_STANDARD 20)
 endif()
+find_package(LLVM REQUIRED CONFIG)
 if(LLVM_VERSION_MAJOR LESS 21)
     message(FATAL_ERROR "LLVM 21+ required, found ${LLVM_VERSION_MAJOR}")
 endif()
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFI REQUIRED IMPORTED_TARGET libffi)
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
@@ -33,45 +32,50 @@ set(SOURCES
     ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
 )
 add_executable(qc ${SOURCES})
-
 target_compile_options(qc PRIVATE
-    -O0
-    -g
+    -O3
     $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=1000000000>
 )
-
 if(ENABLE_LLVM)
-    find_package(LLVM REQUIRED CONFIG)
     separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")
     add_definitions(${LLVM_DEFINITIONS_LIST})
     add_definitions(-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
-
     target_compile_definitions(qc PRIVATE ENABLE_LLVM)
     target_include_directories(qc PRIVATE ${LLVM_INCLUDE_DIRS})
     llvm_map_components_to_libnames(llvm_libs
-        Core
-        Support
-        IRReader
-        Passes
-        Analysis
-        TransformUtils
-        ScalarOpts
-        InstCombine
-        IPO
-        Target
-        MC
-        AsmPrinter
-        CodeGen
-        X86CodeGen
-        AllTargetsDescs
-        AllTargetsAsmParsers
-        AllTargetsCodeGens
+        Core Support IRReader Passes Analysis TransformUtils 
+        ScalarOpts InstCombine IPO Target MC AsmPrinter CodeGen
+        X86CodeGen AllTargetsDescs AllTargetsAsmParsers AllTargetsCodeGens
+        WebAssemblyCodeGen WebAssemblyAsmParser WebAssemblyDesc
     )
     target_link_libraries(qc PRIVATE ${llvm_libs} ${LLVM_SYSTEM_LIBS})
 endif()
+target_include_directories(qc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+if(EMSCRIPTEN)
+    message(STATUS "Detected Emscripten environment - Applying WASM configuration")
+    add_definitions(-D__EMSCRIPTEN__)
+    add_definitions(-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
+    if(NOT LLVM_WASM_PATH)
+        set(LLVM_WASM_PATH "/usr/lib/llvm-21") # Fallback
+    endif()
 
-target_include_directories(qc PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${FFI_INCLUDE_DIRS}
-)
-target_link_libraries(qc PRIVATE PkgConfig::FFI)
+    include_directories("${LLVM_WASM_PATH}/include")
+
+    set_target_properties(qc PROPERTIES 
+        OUTPUT_NAME "qc"
+        SUFFIX ".js"
+        LINK_FLAGS "\
+            -s WASM=1 \
+            -s FORCE_FILESYSTEM=1 \
+            -s EXPORTED_FUNCTIONS='[\"_run_quantum_code\"]' \
+            -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            --preload-file stdlib.qc@/stdlib.qc \
+            -s STACK_SIZE=134217728 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME=\"QuantumC\" \
+            -s TOTAL_MEMORY=805306368 \
+            -s ASSERTIONS=1 \
+            -s NO_DISABLE_EXCEPTION_CATCHING"
+    )
+endif()

@@ -213,6 +213,9 @@ qc: /usr/lib/llvm-21/lib/libLLVMX86CodeGen.a
 qc: /usr/lib/llvm-21/lib/libLLVMXCoreCodeGen.a
 qc: /usr/lib/llvm-21/lib/libLLVMM68kCodeGen.a
 qc: /usr/lib/llvm-21/lib/libLLVMXtensaCodeGen.a
+qc: /usr/lib/llvm-21/lib/libLLVMWebAssemblyCodeGen.a
+qc: /usr/lib/llvm-21/lib/libLLVMWebAssemblyAsmParser.a
+qc: /usr/lib/llvm-21/lib/libLLVMWebAssemblyDesc.a
 qc: /usr/lib/llvm-21/lib/libLLVMX86Desc.a
 qc: /usr/lib/llvm-21/lib/libLLVMX86Info.a
 qc: /usr/lib/llvm-21/lib/libLLVMM68kDesc.a
@@ -321,7 +324,6 @@ qc: /usr/lib/llvm-21/lib/libLLVMDemangle.a
 qc: /usr/lib/x86_64-linux-gnu/libz3.so
 qc: /usr/lib/x86_64-linux-gnu/libz.so
 qc: /usr/lib/x86_64-linux-gnu/libzstd.so
-qc: /usr/lib/x86_64-linux-gnu/libffi.so
 qc: CMakeFiles/qc.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/home/luca/C^4/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable qc"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/qc.dir/link.txt --verbose=$(VERBOSE)

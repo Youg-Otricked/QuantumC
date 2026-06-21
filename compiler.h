@@ -1,20 +1,11 @@
 #ifndef TOKEN_H
 #define TOKEN_H
-#include <algorithm>
-#include <cmath>
-#include <filesystem>
-#include <format>
-#include <fstream>
 #include <functional>
 #include <iostream>
 #include <list>
 #include <map>
-#include <memory>
-#include <mutex>
 #include <optional>
 #include <ranges>
-#include <set>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -39,6 +30,14 @@ namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+template <typename T, typename V>
+T* safe_get(V& variant) {
+    auto ptr_to_ptr = std::get_if<T*>(&variant);
+    if (ptr_to_ptr != nullptr) {
+        return *ptr_to_ptr;
+    }
+    return nullptr;
+}
 class Position {
   public:
     std::string Filename;
@@ -107,39 +106,39 @@ using AnyNode = std::variant<
     QBoolNode,
     RefVarDeclNode,
     NullptrNode,
-    std::unique_ptr<BinOpNode>, std::unique_ptr<UnaryOpNode>,
-    std::unique_ptr<VarAccessNode>,
-    std::unique_ptr<VarAssignNode>,
-    std::unique_ptr<AssignExprNode>,
-    std::unique_ptr<IfNode>,
-    std::unique_ptr<QIfNode>,
-    std::unique_ptr<StatementsNode>,
-    std::unique_ptr<SwitchNode>,
-    std::unique_ptr<QSwitchNode>,
-    std::unique_ptr<BreakNode>,
-    std::unique_ptr<WhileNode>,
-    std::unique_ptr<ForNode>,
-    std::unique_ptr<ContinueNode>,
-    std::unique_ptr<CallNode>,
-    std::shared_ptr<FuncDefNode>,
-    std::unique_ptr<ReturnNode>,
-    std::unique_ptr<MultiReturnNode>,
-    std::unique_ptr<MultiVarDeclNode>,
-    std::unique_ptr<ArrayDeclNode>,
-    std::unique_ptr<ListDeclNode>, std::unique_ptr<ArrayLiteralNode>,
-    std::unique_ptr<ArrayAccessNode>,
-    std::unique_ptr<MethodCallNode>,
-    std::shared_ptr<PropertyAccessNode>,
-    std::unique_ptr<SpreadNode>,
-    std::unique_ptr<ForeachNode>,
-    std::unique_ptr<MapDeclNode>,
-    std::unique_ptr<ArrayAssignNode>,
-    std::unique_ptr<SeedCallNode>,
-    std::unique_ptr<RandomCallNode>,
-    std::unique_ptr<FieldAssignNode>,
-    std::unique_ptr<MapLiteralNode>,
-    std::unique_ptr<NamespaceNode>,
-    std::unique_ptr<TryCatchNode>>;
+     BinOpNode*,  UnaryOpNode*,
+     VarAccessNode*,
+     VarAssignNode*,
+     AssignExprNode*,
+     IfNode*,
+     QIfNode*,
+     StatementsNode*,
+     SwitchNode*,
+     QSwitchNode*,
+     BreakNode*,
+     WhileNode*,
+     ForNode*,
+     ContinueNode*,
+     CallNode*,
+     FuncDefNode* ,
+     ReturnNode*,
+     MultiReturnNode*,
+     MultiVarDeclNode*,
+     ArrayDeclNode*,
+     ListDeclNode*,  ArrayLiteralNode*,
+     ArrayAccessNode*,
+     MethodCallNode*,
+     PropertyAccessNode* ,
+     SpreadNode*,
+     ForeachNode*,
+     MapDeclNode*,
+     ArrayAssignNode*,
+     SeedCallNode*,
+     RandomCallNode*,
+     FieldAssignNode*,
+     MapLiteralNode*,
+     NamespaceNode*,
+     TryCatchNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -304,7 +303,7 @@ class RTError : public Error {
 };
 class CTError : public Error {
   public:
-    CTError(std::string d, Position pos) : Error("Error: ", std::move(d), pos) {}
+    CTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
 
     std::string as_string() override {
         std::string result;
@@ -318,7 +317,7 @@ class CTError : public Error {
 };
 struct Ler {
     std::vector<Token> Tkns;
-    std::unique_ptr<Error> error;
+     Error* error;
 };
 struct StructField {
     std::string name;
@@ -338,17 +337,10 @@ struct ClassMethodInfo {
     Token name_tok;
     std::vector<Parameter> params;
     std::vector<Token> return_types;
-    std::unique_ptr<StatementsNode> body;
+     StatementsNode* body;
     bool is_constructor = false;
     std::string access;
     bool is_final = false;
-    ClassMethodInfo() = default;
-
-    ClassMethodInfo(ClassMethodInfo&&) = default;
-    ClassMethodInfo& operator=(ClassMethodInfo&&) = default;
-
-    ClassMethodInfo(const ClassMethodInfo&) = delete;
-    ClassMethodInfo& operator=(const ClassMethodInfo&) = delete;
 };
 
 enum class UserTypeKind { Struct,
@@ -373,22 +365,15 @@ struct UserTypeInfo {
     std::string namespace_path;
     bool is_abstract_class = false;
     bool is_final_class = false;
-    UserTypeInfo() = default;
-
-    UserTypeInfo(UserTypeInfo&&) = default;
-    UserTypeInfo& operator=(UserTypeInfo&&) = default;
-
-    UserTypeInfo(const UserTypeInfo&) = delete;
-    UserTypeInfo& operator=(const UserTypeInfo&) = delete;
 };
 
 struct Aer {
-    std::unique_ptr<StatementsNode> statements;
-    std::unique_ptr<Error> error;
-    std::unordered_map<std::string, UserTypeInfo> user_types;
+     StatementsNode* statements;
+     Error* error;
+    std::unordered_map<std::string, UserTypeInfo>user_types;
 };
 struct Diagnostic {
-    RTError error;
+    Error* error = nullptr;
     std::string level;
 };
 struct Mer {
@@ -474,7 +459,7 @@ class StatementsNode {
     bool is_block = false;
 
     StatementsNode(std::vector<AnyNode> stmts, bool is_block = false)
-        : statements(std::move(stmts)), is_block(is_block) {}
+        : statements(stmts), is_block(is_block) {}
 
     std::string print() const;
 };
@@ -491,11 +476,6 @@ struct Parameter {
         std::vector<Parameter> params;
     };
     std::optional<FunctionSignature> signature;
-    Parameter() = default;
-    Parameter(Parameter&&) = default;
-    Parameter& operator=(Parameter&&) = default;
-    Parameter(const Parameter&) = delete;
-    Parameter& operator=(const Parameter&) = delete;
 };
 struct ParamTypeInfo {
     Token type;
@@ -505,11 +485,6 @@ struct ParamTypeInfo {
     };
     Token name;
     std::optional<FunctionSignature> signature;
-    ParamTypeInfo() = default;
-    ParamTypeInfo(ParamTypeInfo&&) = default;
-    ParamTypeInfo& operator=(ParamTypeInfo&&) = default;
-    ParamTypeInfo(const ParamTypeInfo&) = delete;
-    ParamTypeInfo& operator=(const ParamTypeInfo&) = delete;
 };
 class BinOpNode {
   public:
@@ -519,7 +494,7 @@ class BinOpNode {
     AnyNode right_node;
 
     BinOpNode(AnyNode left, Token op, AnyNode right, bool is_f = false)
-        : left_node(std::move(left)), op_tok(std::move(op)), right_node(std::move(right)) { this->is_f = is_f; }
+        : left_node(left), op_tok(op), right_node(right) { this->is_f = is_f; }
 
     std::string print() const;
 };
@@ -531,7 +506,7 @@ class UnaryOpNode {
     bool is_postfix;
 
     UnaryOpNode(Token op, AnyNode n, bool postfix = false)
-        : op_tok(op), node(std::move(n)), is_postfix(postfix) {}
+        : op_tok(op), node(n), is_postfix(postfix) {}
     std::string print() const;
 };
 
@@ -541,7 +516,7 @@ class AssignExprNode {
     AnyNode value;
     Token op_tok;
     AssignExprNode(AnyNode t, Token op, AnyNode v)
-        : target(std::move(t)), op_tok(op), value(std::move(v)) {}
+        : target(t), op_tok(op), value(v) {}
 
     std::string print() {
         return "(" + printAny(target) + " = " + printAny(value) + ")";
@@ -557,9 +532,9 @@ class VarAssignNode {
 
     VarAssignNode(bool is_const, Token type, Token name, AnyNode value)
         : is_const(is_const),
-          type_tok(std::move(type)),
-          var_name_tok(std::move(name)),
-          value_node(std::move(value)) {}
+          type_tok(type),
+          var_name_tok(name),
+          value_node(value) {}
 
     std::string print() const;
 };
@@ -568,7 +543,7 @@ class VarAccessNode {
   public:
     Token var_name_tok;
 
-    VarAccessNode(Token name) : var_name_tok(std::move(name)) {}
+    VarAccessNode(Token name) : var_name_tok(name) {}
 
     std::string print() const;
 };
@@ -577,20 +552,20 @@ class IfNode {
   public:
     std::optional<AnyNode> init;
     AnyNode condition;
-    std::unique_ptr<StatementsNode> then_branch;
-    std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elif_branches;
-    std::unique_ptr<StatementsNode> else_branch;
+     StatementsNode* then_branch;
+    std::vector<std::pair<AnyNode,  StatementsNode*>> elif_branches;
+     StatementsNode* else_branch;
 
     IfNode(std::optional<AnyNode> init_node,
         AnyNode cond,
-        std::unique_ptr<StatementsNode> then_b,
-        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> elifs = {},
-        std::unique_ptr<StatementsNode> else_b = nullptr)
-        : init(std::move(init_node)),
-          condition(std::move(cond)),
-          then_branch(std::move(then_b)),
-          elif_branches(std::move(elifs)),
-          else_branch(std::move(else_b)) {}
+         StatementsNode* then_b,
+        std::vector<std::pair<AnyNode,  StatementsNode*>> elifs = {},
+         StatementsNode* else_b = nullptr)
+        : init(init_node),
+          condition(cond),
+          then_branch(then_b),
+          elif_branches(elifs),
+          else_branch(else_b) {}
 
     std::string print() const;
 };
@@ -598,20 +573,20 @@ class QIfNode {
   public:
     std::optional<AnyNode> init;
     AnyNode condition;
-    std::unique_ptr<StatementsNode> then_branch;
-    std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>> qelif_branches;
-    std::unique_ptr<StatementsNode> qelse_branch;
+     StatementsNode* then_branch;
+    std::vector<std::pair<AnyNode,  StatementsNode*>> qelif_branches;
+     StatementsNode* qelse_branch;
 
-    QIfNode(std::optional<AnyNode>&& init_stmt,
-        AnyNode&& cond,
-        std::unique_ptr<StatementsNode>&& then_b,
-        std::vector<std::pair<AnyNode, std::unique_ptr<StatementsNode>>>&& qelif_b,
-        std::unique_ptr<StatementsNode>&& qelse_b)
-        : init(std::move(init_stmt)),
-          condition(std::move(cond)),
-          then_branch(std::move(then_b)),
-          qelif_branches(std::move(qelif_b)),
-          qelse_branch(std::move(qelse_b)) {}
+    QIfNode(std::optional<AnyNode> init_stmt,
+        AnyNode  cond,
+         StatementsNode*  then_b,
+        std::vector<std::pair<AnyNode,  StatementsNode*>> qelif_b,
+         StatementsNode*  qelse_b)
+        : init(init_stmt),
+          condition(cond),
+          then_branch(then_b),
+          qelif_branches(qelif_b),
+          qelse_branch(qelse_b) {}
 
     std::string print() const {
         return "qif (...)";
@@ -627,7 +602,7 @@ class SwitchNode {
     struct Section {
         std::vector<CaseLabel> cases;
         bool is_default = false;
-        std::unique_ptr<StatementsNode> body;
+         StatementsNode* body;
     };
     std::vector<Section> sections;
 
@@ -636,21 +611,21 @@ class SwitchNode {
 class QSwitchNode {
   public:
     AnyNode value;
-    std::unique_ptr<StatementsNode> case_t;
-    std::unique_ptr<StatementsNode> case_f;
-    std::unique_ptr<StatementsNode> case_n;
-    std::unique_ptr<StatementsNode> case_b;
+     StatementsNode* case_t;
+     StatementsNode* case_f;
+     StatementsNode* case_n;
+     StatementsNode* case_b;
 
-    QSwitchNode(AnyNode&& val,
-        std::unique_ptr<StatementsNode>&& t,
-        std::unique_ptr<StatementsNode>&& f,
-        std::unique_ptr<StatementsNode>&& n,
-        std::unique_ptr<StatementsNode>&& b)
-        : value(std::move(val)),
-          case_t(std::move(t)),
-          case_f(std::move(f)),
-          case_n(std::move(n)),
-          case_b(std::move(b)) {}
+    QSwitchNode(AnyNode  val,
+         StatementsNode*  t,
+         StatementsNode*  f,
+         StatementsNode*  n,
+         StatementsNode*  b)
+        : value(val),
+          case_t(t),
+          case_f(f),
+          case_n(n),
+          case_b(b) {}
 
     std::string print() const {
         return "qswitch (...)";
@@ -660,17 +635,17 @@ class QSwitchNode {
 class BreakNode {
   public:
     Token tok;
-    BreakNode(Token t) : tok(std::move(t)) {}
+    BreakNode(Token t) : tok(t) {}
     std::string print() { return "(break)"; }
 };
 
 class WhileNode {
   public:
     AnyNode condition;
-    std::unique_ptr<StatementsNode> body;
+     StatementsNode* body;
 
-    WhileNode(AnyNode cond, std::unique_ptr<StatementsNode> b)
-        : condition(std::move(cond)), body(std::move(b)) {}
+    WhileNode(AnyNode cond,  StatementsNode* b)
+        : condition(cond), body(b) {}
 
     std::string print() {
         return "(while " + printAny(condition) + " " + body->print() + ")";
@@ -678,23 +653,23 @@ class WhileNode {
 };
 class TryCatchNode {
   public:
-    std::unique_ptr<StatementsNode> try_body;
+     StatementsNode* try_body;
     std::string catch_var_name;
     std::string catch_var_type;
-    std::unique_ptr<StatementsNode> catch_body;
+     StatementsNode* catch_body;
     Token tok;
     Position pos;
 
     TryCatchNode(
-        std::unique_ptr<StatementsNode> try_b,
+         StatementsNode* try_b,
         std::string var_name,
         std::string var_type,
-        std::unique_ptr<StatementsNode> catch_b,
+         StatementsNode* catch_b,
         Token t,
-        Position p) : try_body(std::move(try_b)),
+        Position p) : try_body(try_b),
                       catch_var_name(var_name),
                       catch_var_type(var_type),
-                      catch_body(std::move(catch_b)),
+                      catch_body(catch_b),
                       tok(t),
                       pos(p) {}
     std::string print() {
@@ -706,16 +681,16 @@ class ForNode {
     std::optional<AnyNode> init;
     AnyNode condition;
     std::optional<AnyNode> update;
-    std::unique_ptr<StatementsNode> body;
+     StatementsNode* body;
 
     ForNode(std::optional<AnyNode> i,
         AnyNode cond,
         std::optional<AnyNode> u,
-        std::unique_ptr<StatementsNode> b)
-        : init(std::move(i)),
-          condition(std::move(cond)),
-          update(std::move(u)),
-          body(std::move(b)) {}
+         StatementsNode* b)
+        : init(i),
+          condition(cond),
+          update(u),
+          body(b) {}
 
     std::string print() {
         std::string res = "(for ";
@@ -734,7 +709,7 @@ class ForNode {
 class ContinueNode {
   public:
     Token tok;
-    ContinueNode(Token t) : tok(std::move(t)) {}
+    ContinueNode(Token t) : tok(t) {}
     std::string print() { return "(continue)"; }
 };
 
@@ -743,17 +718,17 @@ class FuncDefNode {
     std::vector<Token> return_types;
     std::optional<Token> name_tok;
     std::list<Parameter> params;
-    std::unique_ptr<StatementsNode> body;
+     StatementsNode* body;
     std::string namespace_path;
     Position pos;
     bool is_extern = false;
     bool is_foreign = false;
-    FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, std::unique_ptr<StatementsNode> func_body,
+    FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters,  StatementsNode* func_body,
         std::string ns = "", bool is_ex = false, bool is_f = false)
-        : return_types(std::move(ret_types)),
-          name_tok(std::move(name)),
-          params(std::move(parameters)),
-          body(std::move(func_body)),
+        : return_types(ret_types),
+          name_tok(name),
+          params(parameters),
+          body(func_body),
           namespace_path(ns) {
             this->is_extern = is_ex;
             this->is_foreign = is_f;
@@ -782,7 +757,7 @@ class CallNode {
     std::list<AnyNode> arg_nodes;
 
     CallNode(AnyNode node, std::list<AnyNode> args)
-        : node_to_call(std::move(node)), arg_nodes(std::move(args)) {}
+        : node_to_call(node), arg_nodes(args) {}
 
     std::string print() {
         return printAny(node_to_call) + "(args)";
@@ -794,7 +769,7 @@ class MultiReturnNode {
     Position pos;
 
     MultiReturnNode(std::vector<AnyNode> vals, Position p)
-        : values(std::move(vals)), pos(p) {}
+        : values(vals), pos(p) {}
 
     std::string print() {
         std::string result = "return ";
@@ -819,9 +794,9 @@ class MultiVarDeclNode {
         std::vector<Token> type_toks,
         std::vector<Token> var_names,
         AnyNode value) : is_const(is_const),
-                         type_toks(std::move(type_toks)),
-                         var_names(std::move(var_names)),
-                         value(std::move(value)) {}
+                         type_toks(type_toks),
+                         var_names(var_names),
+                         value(value) {}
 };
 class ArrayDeclNode {
   public:
@@ -833,14 +808,14 @@ class ArrayDeclNode {
     int dimensions;
     std::vector<std::optional<int>> sizes;
 
-    ArrayDeclNode(bool is_const, Token type_tok, Token var_name_tok, AnyNode&& value,
+    ArrayDeclNode(bool is_const, Token type_tok, Token var_name_tok, AnyNode  value,
         int dims, std::vector<std::optional<int>> sizes)
         : is_const(is_const),
           type_tok(type_tok),
           var_name_tok(var_name_tok),
-          value(std::move(value)),
+          value(value),
           dimensions(dims),
-          sizes(std::move(sizes)) {}
+          sizes(sizes) {}
     std::string print() {
         std::string type_str = type_tok.value;
         std::string name_str = var_name_tok.value;
@@ -864,11 +839,11 @@ class ListDeclNode {
     Token var_name_tok;
     AnyNode value;
 
-    ListDeclNode(bool is_const, Token type_tok, Token var_name_tok, AnyNode&& value)
+    ListDeclNode(bool is_const, Token type_tok, Token var_name_tok, AnyNode  value)
         : is_const(is_const),
           type_tok(type_tok),
           var_name_tok(var_name_tok),
-          value(std::move(value)) {}
+          value(value) {}
 
     std::string print() {
         return type_tok.value + " " + var_name_tok.value + " = " + printAny(value);
@@ -880,7 +855,7 @@ class ArrayLiteralNode {
     Position pos;
 
     ArrayLiteralNode(std::vector<AnyNode> elems, Position p)
-        : elements(std::move(elems)), pos(p) {}
+        : elements(elems), pos(p) {}
 
     std::string print() {
         std::string result = "[";
@@ -898,7 +873,7 @@ class MapLiteralNode {
     Position pos;
 
     MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos)
-        : pairs(std::move(p)), pos(pos) {}
+        : pairs(p), pos(pos) {}
 
     std::string print() const { return "map<>"; }
 };
@@ -907,8 +882,8 @@ class ArrayAccessNode {
     AnyNode base;
     std::vector<AnyNode> indices;
 
-    ArrayAccessNode(AnyNode&& base_node, std::vector<AnyNode>&& idxs)
-        : base(std::move(base_node)), indices(std::move(idxs)) {}
+    ArrayAccessNode(AnyNode  base_node, std::vector<AnyNode> idxs)
+        : base(base_node), indices(idxs) {}
 
     std::string print() {
         std::string s = printAny(base) + "[";
@@ -927,8 +902,8 @@ class MethodCallNode {
     Token method_name;
     std::vector<AnyNode> args;
 
-    MethodCallNode(AnyNode&& base_node, Token method, std::vector<AnyNode>&& arguments)
-        : base(std::move(base_node)), method_name(method), args(std::move(arguments)) {}
+    MethodCallNode(AnyNode  base_node, Token method, std::vector<AnyNode> arguments)
+        : base(base_node), method_name(method), args(arguments) {}
 
     std::string print() {
         return printAny(base) + "." + method_name.value + "(...)";
@@ -940,7 +915,7 @@ class ReturnNode {
     Position pos;
 
     ReturnNode(AnyNode val, Position p)
-        : value(std::move(val)), pos(p) {}
+        : value(val), pos(p) {}
 
     std::string print() {
         return "return " + printAny(value);
@@ -948,11 +923,11 @@ class ReturnNode {
 };
 class PropertyAccessNode {
   public:
-    std::shared_ptr<AnyNode> base;
+     AnyNode*  base;
     Token property_name;
     Token base_name_tok;
     PropertyAccessNode(AnyNode base_node, Token base_name, Token prop)
-        : base(std::make_shared<AnyNode>(std::move(base_node))),
+        : base(new AnyNode(base_node)),
           base_name_tok(base_name),
           property_name(prop) {}
 
@@ -964,8 +939,8 @@ class SpreadNode {
   public:
     AnyNode expr;
 
-    SpreadNode(AnyNode&& expression)
-        : expr(std::move(expression)) {}
+    SpreadNode(AnyNode  expression)
+        : expr(expression) {}
 
     std::string print() {
         return "@" + printAny(expr);
@@ -978,8 +953,8 @@ class ForeachNode {
     AnyNode collection;
     AnyNode body;
 
-    ForeachNode(Token type, Token name, AnyNode&& coll, AnyNode&& body_stmt)
-        : elem_type(type), elem_name(name), collection(std::move(coll)), body(std::move(body_stmt)) {}
+    ForeachNode(Token type, Token name, AnyNode  coll, AnyNode  body_stmt)
+        : elem_type(type), elem_name(name), collection(coll), body(body_stmt) {}
 
     std::string print() {
         return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)";
@@ -994,8 +969,8 @@ class MapDeclNode {
     std::vector<std::pair<AnyNode, AnyNode>> init_pairs;
 
     MapDeclNode(bool is_const, Token k_type, Token v_type, Token name,
-        std::vector<std::pair<AnyNode, AnyNode>>&& pairs)
-        : is_const(is_const), key_type(k_type), value_type(v_type), var_name(name), init_pairs(std::move(pairs)) {}
+        std::vector<std::pair<AnyNode, AnyNode>> pairs)
+        : is_const(is_const), key_type(k_type), value_type(v_type), var_name(name), init_pairs(pairs) {}
 
     std::string print() const {
         return "map<" + key_type.value + ", " + value_type.value + "> " + var_name.value;
@@ -1007,8 +982,8 @@ class FieldAssignNode {
     Token field_name;
     AnyNode value;
 
-    FieldAssignNode(AnyNode&& b, Token f, AnyNode&& v)
-        : base(std::move(b)), field_name(f), value(std::move(v)) {}
+    FieldAssignNode(AnyNode  b, Token f, AnyNode  v)
+        : base(b), field_name(f), value(v) {}
     std::string print() const {
         return printAny(base) + "." + field_name.value + " = " + printAny(value);
     }
@@ -1018,8 +993,8 @@ class ArrayAssignNode {
     AnyNode array_access;
     AnyNode value;
 
-    ArrayAssignNode(AnyNode&& access, AnyNode&& val)
-        : array_access(std::move(access)), value(std::move(val)) {}
+    ArrayAssignNode(AnyNode  access, AnyNode  val)
+        : array_access(access), value(val) {}
 
     std::string print() const {
         return "array_assign";
@@ -1029,7 +1004,7 @@ class RandomCallNode {
   public:
     std::vector<AnyNode> args;
 
-    RandomCallNode(std::vector<AnyNode>&& a) : args(std::move(a)) {}
+    RandomCallNode(std::vector<AnyNode> a) : args(a) {}
 
     std::string print() const {
         return "random()";
@@ -1040,7 +1015,7 @@ class SeedCallNode {
   public:
     AnyNode value;
 
-    SeedCallNode(AnyNode&& val) : value(std::move(val)) {}
+    SeedCallNode(AnyNode  val) : value(val) {}
 
     std::string print() const {
         return "seed()";
@@ -1052,7 +1027,7 @@ class NamespaceNode {
     std::vector<AnyNode> body;
 
     NamespaceNode(std::string name, std::vector<AnyNode> body)
-        : name(std::move(name)), body(std::move(body)) {}
+        : name(name), body(body) {}
     std::string print() {
         return "namespace " + name;
     }
@@ -1062,52 +1037,52 @@ class NamespaceNode {
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
 class ParseResult;
-using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, std::unique_ptr<BinOpNode>, std::unique_ptr<Error>, std::unique_ptr<UnaryOpNode>, std::unique_ptr<VarAccessNode>, std::unique_ptr<VarAssignNode>, std::unique_ptr<AssignExprNode>, std::unique_ptr<StatementsNode>, std::unique_ptr<IfNode>, std::unique_ptr<BreakNode>, std::unique_ptr<SwitchNode>, std::unique_ptr<WhileNode>, std::unique_ptr<ForNode>, std::unique_ptr<ContinueNode>, std::unique_ptr<CallNode>,
-    std::shared_ptr<FuncDefNode>, std::unique_ptr<ReturnNode>,
-    std::unique_ptr<MultiReturnNode>,
-    std::unique_ptr<MultiVarDeclNode>,
-    std::unique_ptr<ArrayDeclNode>,
-    std::unique_ptr<ArrayLiteralNode>,
-    std::unique_ptr<ArrayAccessNode>,
-    std::unique_ptr<ListDeclNode>,
-    std::unique_ptr<MethodCallNode>,
-    std::shared_ptr<PropertyAccessNode>,
-    std::unique_ptr<SpreadNode>,
-    std::unique_ptr<ForeachNode>,
+using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode,  BinOpNode*,  Error*,  UnaryOpNode*,  VarAccessNode*,  VarAssignNode*,  AssignExprNode*,  StatementsNode*,  IfNode*,  BreakNode*,  SwitchNode*,  WhileNode*,  ForNode*,  ContinueNode*,  CallNode*,
+     FuncDefNode* ,  ReturnNode*,
+     MultiReturnNode*,
+     MultiVarDeclNode*,
+     ArrayDeclNode*,
+     ArrayLiteralNode*,
+     ArrayAccessNode*,
+     ListDeclNode*,
+     MethodCallNode*,
+     PropertyAccessNode* ,
+     SpreadNode*,
+     ForeachNode*,
     QBoolNode,
     QInNode,
-    std::unique_ptr<QIfNode>,
-    std::unique_ptr<QSwitchNode>,
-    std::unique_ptr<MapDeclNode>,
-    std::unique_ptr<ArrayAssignNode>,
-    std::unique_ptr<SeedCallNode>,
-    std::unique_ptr<RandomCallNode>,
-    std::unique_ptr<FieldAssignNode>,
-    std::unique_ptr<MapLiteralNode>,
-    std::unique_ptr<NamespaceNode>,
-    std::unique_ptr<TryCatchNode>,
+     QIfNode*,
+     QSwitchNode*,
+     MapDeclNode*,
+     ArrayAssignNode*,
+     SeedCallNode*,
+     RandomCallNode*,
+     FieldAssignNode*,
+     MapLiteralNode*,
+     NamespaceNode*,
+     TryCatchNode*,
     RefVarDeclNode,
     NullptrNode>;
 
 class ParseResult {
   public:
     AnyNode node;
-    std::unique_ptr<Error> error;
+     Error* error = nullptr;
     ParseResult() = default;
     AnyNode reg_node(AnyNode res);
     AnyNode reg(Prs res);
     Prs success(AnyNode node);
-    void failure(std::unique_ptr<Error>);
+    void failure( Error*);
     Prs to_prs();
 };
 
 class InterpEer {
   public:
-    std::unique_ptr<Error> err;
+     Error* err;
     Position pos;
     InterpEer() {}
-    void fail(std::unique_ptr<Error> err, Position pos) {
-        this->err = std::move(err);
+    void fail( Error* err, Position pos) {
+        this->err = err;
         this->pos = pos;
     }
 };
@@ -1125,7 +1100,7 @@ class Parser {
     Token current_tok;
     std::vector<Token> tokens;
     std::string currentNamespace;
-    Parser(std::vector<Token> tokens);
+    Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
     bool is_known_type(const std::string& name) const {
         if (user_types.count(name))
@@ -1270,976 +1245,54 @@ class Parser {
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
-    inline AnyNode prs_to_anynode(Prs&& st) {
-        return std::visit([](auto&& arg) -> AnyNode {
+    inline AnyNode prs_to_anynode(Prs st) {
+        return std::visit([](auto arg) -> AnyNode {
             using T = std::decay_t<decltype(arg)>;
             if constexpr (std::is_constructible_v<AnyNode, T>) {
-                return AnyNode(std::move(arg));
+                return AnyNode(arg);
             }
             return std::monostate{};
         },
-            std::move(st));
+            st);
     }
 
-    bool parse_block_into(std::unique_ptr<StatementsNode>& out_block, ParseResult& res) {
+    bool parse_block_into( StatementsNode*& out_block, ParseResult& res) {
         if (this->current_tok.type == TokenType::LBRACE) {
             this->advance();
             std::vector<AnyNode> stmts;
             while (this->current_tok.type != TokenType::RBRACE &&
                    this->current_tok.type != TokenType::EOFT) {
                 Prs st = this->statement();
-                if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
-                    res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+                if (std::holds_alternative< Error*>(st)) {
+                    res.failure(std::get< Error*>(st));
                     return false;
                 }
-                AnyNode any_stmt = prs_to_anynode(std::move(st));
-                stmts.push_back(std::move(any_stmt));
+                AnyNode any_stmt = prs_to_anynode(st);
+                stmts.push_back(any_stmt);
             }
             if (this->current_tok.type != TokenType::RBRACE) {
-                res.failure(std::make_unique<InvalidSyntaxError>("Expected '}' after block", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("Expected '}' after block", this->current_tok.pos));
                 return false;
             }
             this->advance();
-            out_block = std::make_unique<StatementsNode>(std::move(stmts), true);
+            out_block = new StatementsNode(stmts, true);
             return true;
         } else {
             Prs st = this->statement();
-            if (std::holds_alternative<std::unique_ptr<Error>>(st)) {
-                res.failure(std::get<std::unique_ptr<Error>>(std::move(st)));
+            if (std::holds_alternative< Error*>(st)) {
+                res.failure(std::get< Error*>(st));
                 return false;
             }
-            AnyNode any_stmt = prs_to_anynode(std::move(st));
+            AnyNode any_stmt = prs_to_anynode(st);
             std::vector<AnyNode> stmts;
-            stmts.push_back(std::move(any_stmt));
-            out_block = std::make_unique<StatementsNode>(std::move(stmts), false);
+            stmts.push_back(any_stmt);
+            out_block = new StatementsNode(stmts, false);
             return true;
         }
     }
     Prs assignment_expr();
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-// VALUES ///////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-class VoidValue {
-  public:
-    Position pos;
-    VoidValue() : pos("", "", 0, 0, 0) {}
-    VoidValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-    std::string print() const { return ""; }
-};
-
-class FunctionValue {
-  public:
-    std::shared_ptr<FuncDefNode> func;
-    Position pos;
-    FunctionValue(std::shared_ptr<FuncDefNode> f = nullptr) : func(f), pos("", "", 0, 0, 0) {}
-    FunctionValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-    std::string print() const { return "<function>"; }
-};
-
-class CharValue {
-  public:
-    char value;
-    Position pos;
-    CharValue(std::string val) : pos("", "", 0, 0, 0) {
-        if (!val.empty()) {
-            this->value = val[0];
-        } else {
-            this->value = '\0';
-        }
-    }
-
-    CharValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-    std::string print() const {
-        return std::string(1, value);
-    }
-};
-
-class BoolValue {
-  public:
-    bool value;
-    Position pos;
-    BoolValue(std::string val) : pos("", "", 0, 0, 0) {
-        if (!val.empty()) {
-            if (val == "true") {
-                value = true;
-            } else if (val == "false") {
-                value = false;
-            } else {
-                throw RTError("Expected Boolean value to be either true or false", pos);
-            }
-        } else {
-            this->value = '\0';
-        }
-    }
-    BoolValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-    std::string print() const {
-        return this->value ? "true" : "false";
-    }
-};
-class QBoolValue {
-  public:
-    bool tval;
-    bool fval;
-    std::string valname;
-    Position pos;
-    QBoolValue(std::string val) : pos("", "", 0, 0, 0) {
-        if (!val.empty()) {
-            this->valname = val;
-            if (val == "qtrue") {
-
-                this->tval = true;
-                this->fval = false;
-            } else if (val == "qfalse") {
-                this->fval = true;
-                this->tval = false;
-            } else if (val == "both") {
-                this->fval = true;
-                this->tval = true;
-            } else if (val == "none") {
-                this->fval = false;
-                this->tval = false;
-            } else {
-                throw RTError("Expected Quantum Boolean value to be qtrue qfalse both or none", pos);
-            }
-        } else {
-            this->tval = false;
-            this->fval = false;
-            this->valname = "none";
-        }
-    }
-    QBoolValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-    std::string print() const {
-        return this->valname;
-    }
-};
-class StringValue {
-  public:
-    std::string value;
-    Position pos;
-
-    StringValue(std::string val) : value(val), pos("", "", 0, 0, 0) {}
-
-    StringValue& set_pos(Position p) {
-        this->pos = p;
-        return *this;
-    }
-
-    std::string print() const { return value; }
-};
-class Context;
-class PointerValue {
-  public:
-    std::string pointee_type;
-    size_t frame_index = 0;
-    std::string symbol_key;
-    bool is_heap = false;
-    size_t heap_id = 0;
-
-    bool is_null = false;
-    Position pos;
-    PointerValue(std::string t, size_t fi, std::string key, bool n = false)
-        : pointee_type(t), frame_index(fi), symbol_key(key), is_heap(false), is_null(n), pos("", "", 0, 0, 0) {}
-    static PointerValue heap_ptr(std::string t, size_t hid) {
-        PointerValue p("", 0, "", false);
-        p.pointee_type = t;
-        p.is_heap = true;
-        p.heap_id = hid;
-        return p;
-    }
-
-    PointerValue& set_pos(Position p) {
-        pos = p;
-        return *this;
-    }
-
-    std::string print(Context* ctx) const;
-};
-class MultiValue;
-class ArrayValue;
-class ListValue;
-class MapValue;
-class StructValue;
-class InstanceValue;
-template <typename T>
-class Number;
-
-using NumberVariant = std::variant<
-    Number<int>, Number<float>, Number<double>,
-    Number<long long>, Number<long double>,
-    Number<short>, Number<uintptr_t>,
-    StringValue, CharValue, BoolValue, QBoolValue,
-    FunctionValue, VoidValue, PointerValue, std::shared_ptr<MultiValue>, std::shared_ptr<ArrayValue>, std::shared_ptr<ListValue>,
-    std::shared_ptr<MapValue>, std::shared_ptr<StructValue>,
-    std::shared_ptr<InstanceValue>>;
-
-template <typename T>
-class Number {
-  public:
-    T value;
-    Position pos;
-
-    using value_type = T;
-    Number() : value(0), pos("", "", 0, 0, 0) {}
-    Number(T val);
-    Number<T>& set_pos(Position p);
-    std::string print() const;
-
-    template <typename U>
-    auto added_to(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<
-            std::is_same_v<CommonT, unsigned long long>,
-            uintptr_t,
-            CommonT>;
-
-        return Number<TargetT>(static_cast<TargetT>(this->value) + other.value);
-    }
-
-    template <typename U>
-    auto subbed_by(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<
-            std::is_same_v<CommonT, unsigned long long>,
-            uintptr_t,
-            CommonT>;
-
-        return Number<TargetT>(static_cast<TargetT>(this->value) - other.value);
-    }
-
-    template <typename U>
-    auto multed_by(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<
-            std::is_same_v<CommonT, unsigned long long>,
-            uintptr_t,
-            CommonT>;
-
-        return Number<TargetT>(static_cast<TargetT>(this->value) * other.value);
-    }
-
-    template <typename U>
-    auto dived_by(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<
-            std::is_same_v<CommonT, unsigned long long>,
-            uintptr_t,
-            CommonT>;
-
-        return Number<TargetT>(static_cast<TargetT>(this->value) / other.value);
-    }
-
-    template <typename U>
-    auto power_by(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<
-            std::is_same_v<CommonT, unsigned long long>,
-            uintptr_t,
-            CommonT>;
-        auto result = std::pow(static_cast<double>(this->value), static_cast<double>(other.value));
-        if (std::isinf(result)) {
-            throw RTError("Result too large (overflow)", pos);
-        }
-        if (std::isnan(result)) {
-            throw RTError("Invalid operation (NaN)", pos);
-        }
-        return Number<TargetT>(static_cast<TargetT>(result));
-    }
-    template <typename U>
-    auto modded_by(const Number<U>& other) const {
-        using CommonT = std::common_type_t<T, U>;
-        using TargetT = std::conditional_t<std::is_same_v<CommonT, unsigned long long>, uintptr_t, CommonT>;
-        if (other.value == 0)
-            throw RTError("Division by zero", pos);
-        if constexpr (std::is_floating_point_v<TargetT>) {
-            return Number<TargetT>(std::fmod(static_cast<TargetT>(this->value), static_cast<TargetT>(other.value)));
-        } else {
-            return Number<TargetT>(static_cast<TargetT>(this->value) % static_cast<TargetT>(other.value));
-        }
-    }
-};
-
-class InstanceValue {
-  public:
-    std::string class_name;
-    std::unordered_map<std::string, NumberVariant> fields;
-    Position pos;
-    InstanceValue(std::string class_name, std::unordered_map<std::string, NumberVariant> fields) {
-        this->class_name = class_name;
-        this->fields = fields;
-        this->pos = Position("", "", 0, 0, 0);
-    }
-    InstanceValue(std::string class_name) {
-        this->class_name = class_name;
-    }
-    bool equals(const InstanceValue& other,
-        std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
-        if (class_name != other.class_name) {
-            return false;
-        }
-        if (fields.size() != other.fields.size()) {
-            return false;
-        }
-        for (const auto& [field_name, value] : fields) {
-            auto it = other.fields.find(field_name);
-            if (it == other.fields.end()) {
-                return false;
-            }
-            if (!value_eq(value, it->second, pos)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-    std::string print() const;
-};
-class MultiValue {
-  public:
-    std::vector<NumberVariant> values;
-    Position pos;
-    MultiValue(std::vector<NumberVariant>&& vals) : values(std::move(vals)), pos("", "", 0, 0, 0) {}
-
-    std::string print() const;
-};
-class ArrayValue {
-  public:
-    std::string element_type;
-    std::vector<NumberVariant> elements;
-    std::vector<std::vector<size_t>> nested_sizes;
-    Position pos;
-    ArrayValue(std::string type, std::vector<NumberVariant> elems)
-        : element_type(type), elements(std::move(elems)), pos("", "", 0, 0, 0) {
-        nested_sizes.resize(elements.size());
-        for (size_t i = 0; i < elements.size(); i++) {
-            if (auto arr_ptr = std::get_if<std::shared_ptr<ArrayValue>>(&elements[i])) {
-                nested_sizes[i] = (*arr_ptr)->sizes();
-            }
-        }
-    }
-    size_t size() const {
-        return elements.size();
-    }
-    std::vector<size_t> sizes() const {
-        std::vector<size_t> result = {elements.size()};
-        return result;
-    }
-
-    std::string print() const;
-};
-class ListValue {
-  public:
-    std::string element_type;
-    std::vector<NumberVariant> elements;
-    Position pos;
-    ListValue(std::string type, std::vector<NumberVariant> elems)
-        : element_type(type), elements(std::move(elems)), pos("", "", 0, 0, 0) {}
-
-    void push(NumberVariant val) {
-        elements.push_back(std::move(val));
-    }
-
-    NumberVariant pop() {
-        if (elements.empty())
-            throw RTError("Cannot pop from empty list", Position());
-        NumberVariant val = std::move(elements.back());
-        elements.pop_back();
-        return val;
-    }
-
-    size_t length() const {
-        return elements.size();
-    }
-
-    std::string print() const;
-};
-class MapValue {
-  public:
-    std::string key_type;
-    std::string value_type;
-    std::unordered_map<std::string, NumberVariant> data;
-    Position pos;
-
-    MapValue(std::string k_type, std::string v_type)
-        : key_type(k_type), value_type(v_type), pos("", "", 0, 0, 0) {}
-
-    MapValue& set_pos(Position p) {
-        pos = p;
-        return *this;
-    }
-
-    void set(std::string key, NumberVariant value) {
-        data[key] = std::move(value);
-    }
-
-    NumberVariant get(std::string key) {
-        if (data.find(key) == data.end()) {
-            throw RTError("Key not found: " + key, pos);
-        }
-        return data[key];
-    }
-
-    bool has(std::string key) {
-        return data.find(key) != data.end();
-    }
-
-    void remove(std::string key) {
-        data.erase(key);
-    }
-
-    int size() {
-        return data.size();
-    }
-
-    std::vector<std::string> keys() {
-        std::vector<std::string> result;
-        for (auto& [key, val] : data) {
-            result.push_back(key);
-        }
-        return result;
-    }
-    bool equals(const MapValue& other, std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
-        if (data.size() != other.data.size()) {
-            return false;
-        }
-        for (const auto& [key, value] : data) {
-            if (other.data.find(key) == other.data.end()) {
-                return false;
-            }
-            if (!value_eq(value, other.data.at(key), pos)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-    std::string print() const;
-};
-class StructValue {
-  public:
-    std::string type_name;
-    std::unordered_map<std::string, NumberVariant> fields;
-    Position pos;
-
-    StructValue(std::string t) : type_name(std::move(t)), pos("", "", 0, 0, 0) {}
-
-    StructValue& set_pos(Position p) {
-        pos = p;
-        return *this;
-    }
-    bool equals(const StructValue& other,
-        std::function<bool(const NumberVariant&, const NumberVariant&, const Position&)> value_eq) const {
-        if (type_name != other.type_name) {
-            return false;
-        }
-        if (fields.size() != other.fields.size()) {
-            return false;
-        }
-        for (const auto& [field_name, value] : fields) {
-            auto it = other.fields.find(field_name);
-            if (it == other.fields.end()) {
-                return false;
-            }
-            if (!value_eq(value, it->second, pos)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-    std::string print() const;
-};
-struct ExecResult {
-    NumberVariant value;
-    bool did_break;
-    bool did_continue;
-    bool did_return;
-    ExecResult() : value(Number<int>(0)), did_break(false), did_continue(false), did_return(false) {}
-    ExecResult(NumberVariant v, bool b, bool c, bool r = false)
-        : value(std::move(v)), did_break(b), did_continue(c), did_return(r) {}
-};
-
-class MultiReturnException {
-  public:
-    std::vector<NumberVariant> values;
-
-    MultiReturnException(std::vector<NumberVariant> vals)
-        : values(std::move(vals)) {}
-};
-
-template <typename T, typename U>
-
-NumberVariant handle_binop(const Number<T>& L, const Number<U>& R, TokenType op, InterpEer& error) {
-    if (op == TokenType::PLUS)
-        return L.added_to(R);
-    if (op == TokenType::MINUS)
-        return L.subbed_by(R);
-    if (op == TokenType::MUL)
-        return L.multed_by(R);
-    if (op == TokenType::DIV) {
-        if (R.value == 0) {
-            throw RTError("Division by zero", R.pos);
-        }
-        return L.dived_by(R);
-    }
-    if (op == TokenType::MOD) {
-        if (R.value == 0) {
-            throw RTError("Modulo by zero", R.pos);
-        }
-        return L.modded_by(R);
-    }
-    if (op == TokenType::POWER) {
-        if (L.value == 0 && R.value < 0) {
-            throw RTError("Cannot raise zero to negative power", L.pos);
-        }
-        return L.power_by(R);
-    }
-    if (op == TokenType::EQ_TO) {
-        return BoolValue(L.value == R.value ? "true" : "false").set_pos(L.pos);
-    }
-    if (op == TokenType::NOT_EQ) {
-        return BoolValue(L.value != R.value ? "true" : "false").set_pos(L.pos);
-    }
-    if (op == TokenType::LESS) {
-        return BoolValue(L.value < R.value ? "true" : "false").set_pos(L.pos);
-    }
-    if (op == TokenType::LESS_EQ) {
-        return BoolValue(L.value <= R.value ? "true" : "false").set_pos(L.pos);
-    }
-    if (op == TokenType::MORE) {
-        return BoolValue(L.value > R.value ? "true" : "false").set_pos(L.pos);
-    }
-    if (op == TokenType::MORE_EQ) {
-        return BoolValue(L.value >= R.value ? "true" : "false").set_pos(L.pos);
-    }
-
-    throw RTError("Unknown operator", L.pos);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// CONTEXT //////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-struct SymbolRef {
-    size_t frame_index;
-    std::string key;
-};
-
-struct Symbol {
-    std::string declared_type;
-    NumberVariant value;
-    bool is_const = false;
-    bool is_reference = false;
-    SymbolRef ref_target;
-};
-class Context {
-  public:
-    std::vector<std::string> namespaceStack;
-    std::vector<std::unordered_map<std::string, Symbol>> frames;
-    std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functions;
-    std::unordered_map<size_t, NumberVariant> heap;
-    size_t next_heap_id = 1;
-    size_t heap_alloc(NumberVariant value) {
-        size_t id = next_heap_id++;
-        heap[id] = std::move(value);
-        return id;
-    }
-    void heap_free(size_t id) {
-        if (heap.find(id) == heap.end()) {
-            throw RTError("Double free or invalid free", Position("", "", 0, 0, 0));
-        }
-        heap.erase(id);
-    }
-    NumberVariant& heap_get(size_t id) {
-        if (heap.find(id) == heap.end()) {
-            throw RTError("Access to freed memory", Position("", "", 0, 0, 0));
-        }
-        return heap[id];
-    }
-    bool heap_valid(size_t id) {
-        return heap.find(id) != heap.end();
-    }
-    void push_namespace(const std::string& name) {
-        namespaceStack.push_back(name);
-    }
-
-    void pop_namespace() {
-        namespaceStack.pop_back();
-    }
-    std::optional<std::pair<size_t, std::string>> find_any_symbol(const std::string& name) {
-        for (size_t fi = frames.size(); fi-- > 0;) {
-            auto& frame = frames[fi];
-            auto it = frame.find(name);
-            if (it != frame.end()) {
-                return std::make_optional(std::make_pair(fi, name));
-            }
-        }
-        if (name.find("::") == std::string::npos) {
-            std::string q = qualify(name);
-            for (size_t fi = frames.size(); fi-- > 0;) {
-                auto& frame = frames[fi];
-                auto it = frame.find(q);
-                if (it != frame.end()) {
-                    return std::make_optional(std::make_pair(fi, q));
-                }
-            }
-        }
-        if (name.find("::") == std::string::npos && !namespaceStack.empty()) {
-            for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
-                std::string partial_ns;
-                for (int j = 0; j <= i; ++j) {
-                    if (j > 0)
-                        partial_ns += "::";
-                    partial_ns += namespaceStack[j];
-                }
-                std::string qualified_name = partial_ns + "::" + name;
-
-                for (size_t fi = frames.size(); fi-- > 0;) {
-                    auto& frame = frames[fi];
-                    auto it = frame.find(qualified_name);
-                    if (it != frame.end()) {
-                        return std::make_optional(std::make_pair(fi, qualified_name));
-                    }
-                }
-            }
-        }
-
-        return std::nullopt;
-    }
-    std::pair<size_t, std::string> follow_ref_chain(size_t fi, const std::string& key, Position pos) {
-        std::unordered_set<std::string> seen;
-
-        size_t cur_fi = fi;
-        std::string cur_key = key;
-
-        while (true) {
-            std::string mark = std::to_string(cur_fi) + ":" + cur_key;
-            if (!seen.insert(mark).second) {
-                throw RTError("QC-R999: Reference cycle detected at '" + cur_key + "'", pos);
-            }
-
-            if (cur_fi >= frames.size())
-                throw RTError("Dangling reference: invalid frame index", pos);
-
-            auto& frame = frames[cur_fi];
-            auto it = frame.find(cur_key);
-            if (it == frame.end())
-                throw RTError("Dangling reference: symbol '" + cur_key + "' not found", pos);
-
-            Symbol& sym = it->second;
-            if (!sym.is_reference) {
-                return {cur_fi, cur_key};
-            }
-            cur_fi = sym.ref_target.frame_index;
-            cur_key = sym.ref_target.key;
-        }
-    }
-    void define_user_type(UserTypeInfo info, std::string name) {
-        std::string fq = name;
-        if (user_types.count(fq)) {
-            throw RTError(
-                "Redefinition of type '" + fq + "'",
-                Position("", "", 0, 0, 0));
-        }
-        if (info.kind == UserTypeKind::Enum) {
-            info.kind = UserTypeKind::Union;
-        }
-        user_types[fq] = std::move(info);
-    }
-
-    std::string qualify(const std::string& name) const {
-        if (namespaceStack.empty())
-            return name;
-
-        std::string q;
-        for (size_t i = 0; i < namespaceStack.size(); ++i) {
-            if (i)
-                q += "::";
-            q += namespaceStack[i];
-        }
-        return q + "::" + name;
-    }
-    std::unordered_map<std::string, UserTypeInfo> user_types;
-    Context() {
-        frames.emplace_back();
-    }
-    void push_scope() {
-        frames.emplace_back();
-    }
-    void pop_scope() {
-        if (frames.size() > 1)
-            frames.pop_back();
-    }
-    void define(const std::string& name, const std::string& type,
-        NumberVariant val, bool is_const = false) {
-        frames.back()[qualify(name)] = {type, std::move(val), is_const};
-    }
-    void define_reference(const std::string& name,
-        const std::string& target_name,
-        const std::string& type,
-        Position pos) {
-        auto loc_opt = find_any_symbol(target_name);
-        if (!loc_opt.has_value()) {
-            throw RTError("Undefined variable: '" + target_name + "'", pos);
-        }
-
-        auto [fi, key] = *loc_opt;
-        auto [t_fi, t_key] = follow_ref_chain(fi, key, pos);
-
-        Symbol sym;
-        sym.declared_type = type;
-        sym.value = VoidValue();
-        sym.is_const = false;
-        sym.is_reference = true;
-        sym.ref_target = SymbolRef{t_fi, t_key};
-
-        frames.back()[qualify(name)] = std::move(sym);
-    }
-    void set(const std::string& name, NumberVariant new_val, Position pos);
-    NumberVariant get(const std::string& name, Position pos) {
-        auto loc_opt = find_any_symbol(name);
-        if (!loc_opt.has_value()) {
-            throw RTError("Undefined variable: '" + name + "'", pos);
-        }
-
-        auto [fi, key] = *loc_opt;
-        auto [t_fi, t_key] = follow_ref_chain(fi, key, pos);
-
-        auto& frame = frames[t_fi];
-        auto it = frame.find(t_key);
-        if (it == frame.end()) {
-            throw RTError("Dangling reference at '" + t_key + "'", pos);
-        }
-
-        return it->second.value;
-    }
-    void define_function(const std::string& name, std::shared_ptr<FuncDefNode> func) {
-        functions[qualify(name)] = std::move(func);
-    }
-
-    std::shared_ptr<FuncDefNode> get_function(const std::string& name) {
-        if (name.find("::") != std::string::npos) {
-            auto it = functions.find(name);
-            if (it != functions.end())
-                return it->second;
-            return nullptr;
-        }
-
-        auto it = functions.find(qualify(name));
-        if (it != functions.end())
-            return it->second;
-        return nullptr;
-    }
-    std::string get_type_name(const NumberVariant& val) {
-        return std::visit([](auto&& arg) -> std::string {
-            using T = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<T, Number<short>>)
-                return "short int";
-            if constexpr (std::is_same_v<T, Number<int>>)
-                return "int";
-            if constexpr (std::is_same_v<T, Number<long long>>)
-                return "long int";
-            if constexpr (std::is_same_v<T, Number<float>>)
-                return "float";
-            if constexpr (std::is_same_v<T, Number<double>>)
-                return "double";
-            if constexpr (std::is_same_v<T, Number<long double>>)
-                return "long double";
-            if constexpr (std::is_same_v<T, Number<uintptr_t>>)
-                return "addr_t";
-            if constexpr (std::is_same_v<T, StringValue>)
-                return "string";
-            if constexpr (std::is_same_v<T, CharValue>)
-                return "char";
-            if constexpr (std::is_same_v<T, BoolValue>)
-                return "bool";
-            if constexpr (std::is_same_v<T, QBoolValue>)
-                return "qbool";
-            if constexpr (std::is_same_v<T, FunctionValue>)
-                return "function";
-            if constexpr (std::is_same_v<T, VoidValue>)
-                return "void";
-            if constexpr (std::is_same_v<T, std::shared_ptr<MultiValue>>)
-                return "multi";
-            if constexpr (std::is_same_v<T, std::shared_ptr<ArrayValue>>) {
-                return arg->element_type + "[]";
-            }
-            if constexpr (std::is_same_v<T, std::shared_ptr<ListValue>>) {
-                return "list<" + arg->element_type + ">";
-            }
-            if constexpr (std::is_same_v<T, std::shared_ptr<MapValue>>) {
-                return "map<" + arg->key_type + ", " + arg->value_type + ">";
-            }
-            if constexpr (std::is_same_v<T, std::shared_ptr<StructValue>>) {
-                return arg->type_name;
-            }
-            if constexpr (std::is_same_v<T, std::shared_ptr<InstanceValue>>) {
-                return arg->class_name;
-            }
-            if constexpr (std::is_same_v<T, PointerValue>) {
-                return arg.pointee_type + "*";
-            }
-            return "unknown";
-        },
-            val);
-    }
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// INTERPRETER CLASS ////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-class Interpreter {
-    Context* context;
-
-  public:
-    static std::string op_method_name(TokenType t) {
-        switch (t) {
-        case TokenType::PLUS:
-            return "operator+";
-        case TokenType::MINUS:
-            return "operator-";
-        case TokenType::MUL:
-            return "operator*";
-        case TokenType::DIV:
-            return "operator/";
-        case TokenType::EQ_TO:
-            return "operator==";
-        case TokenType::NOT_EQ:
-            return "operator!=";
-        case TokenType::OR:
-            return "operator||";
-        case TokenType::AND:
-            return "operator&&";
-        case TokenType::NOT:
-            return "operator!";
-        case TokenType::EQ:
-            return "operator=";
-        case TokenType::MORE:
-            return "operator>";
-        case TokenType::LESS:
-            return "operator<";
-        case TokenType::MORE_EQ:
-            return "operator>=";
-        case TokenType::LESS_EQ:
-            return "operator<=";
-        case TokenType::POWER:
-            return "operator#^";
-        case TokenType::MOD:
-            return "operator%";
-        case TokenType::QNOT:
-            return "operator!!";
-        case TokenType::QAND:
-            return "operator&&&";
-        case TokenType::QOR:
-            return "operator|||";
-        case TokenType::QXOR:
-            return "operator^^";
-        case TokenType::COLLAPSE_OR:
-            return "operator|&|";
-        case TokenType::COLLAPSE_AND:
-            return "operator&|&";
-        case TokenType::XOR:
-            return "operator^";
-        default:
-            return "";
-        }
-    }
-    std::string value_to_string(const NumberVariant& val);
-    Interpreter(Context* ctx = nullptr) : context(ctx) {}
-    InterpEer error = InterpEer();
-    std::vector<Diagnostic> errors;
-    NumberVariant process(AnyNode& node);
-    NumberVariant operator()(NumberNode& node);
-    NumberVariant call_instance_method(const std::shared_ptr<InstanceValue>& inst, ClassMethodInfo* method, std::vector<NumberVariant> args, const Position& pos);
-    NumberVariant operator()(std::unique_ptr<BinOpNode>& node);
-    NumberVariant operator()(std::unique_ptr<UnaryOpNode>& node);
-    NumberVariant operator()(std::monostate);
-    NumberVariant operator()(std::unique_ptr<MapDeclNode>& node);
-    NumberVariant operator()(std::unique_ptr<StatementsNode>& node);
-    NumberVariant operator()(std::unique_ptr<VarAssignNode>& node);
-    NumberVariant operator()(std::unique_ptr<VarAccessNode>& node);
-    NumberVariant operator()(StringNode& node);
-    NumberVariant operator()(std::shared_ptr<FuncDefNode>& node);
-    NumberVariant operator()(std::unique_ptr<CallNode>& node);
-    NumberVariant operator()(std::unique_ptr<ReturnNode>& node);
-    NumberVariant operator()(CharNode& node);
-    NumberVariant operator()(BoolNode& node);
-    NumberVariant operator()(QBoolNode& node);
-    NumberVariant operator()(std::unique_ptr<NamespaceNode>& node);
-    NumberVariant operator()(QInNode& node);
-    NumberVariant operator()(std::unique_ptr<ArrayAssignNode>& node);
-    NumberVariant operator()(std::unique_ptr<MultiVarDeclNode>& node);
-    bool is_truthy(const NumberVariant& val);
-    std::unordered_map<std::string, NumberVariant> make_instance_fields(const std::string& className);
-    ClassMethodInfo* find_method_on_class(const std::string& className, const std::string& mname);
-    bool field_exists_on_class(const std::string& className, const std::string& fieldName);
-    bool in_class_or_derived_context(const std::string& baseName);
-    NumberVariant operator()(std::unique_ptr<AssignExprNode>& node);
-    NumberVariant operator()(std::unique_ptr<IfNode>& node);
-    NumberVariant operator()(std::unique_ptr<QIfNode>& node);
-    NumberVariant operator()(std::unique_ptr<TryCatchNode>& node);
-    NumberVariant operator()(std::unique_ptr<SwitchNode>& node);
-    NumberVariant operator()(std::unique_ptr<QSwitchNode>& node);
-    NumberVariant operator()(std::unique_ptr<BreakNode>& node);
-    NumberVariant operator()(std::unique_ptr<ContinueNode>& node);
-    NumberVariant operator()(std::unique_ptr<WhileNode>& node);
-    NumberVariant operator()(std::unique_ptr<ForNode>& node);
-    NumberVariant operator()(std::unique_ptr<SeedCallNode>& node);
-    NumberVariant operator()(std::unique_ptr<RandomCallNode>& node);
-    NumberVariant operator()(std::unique_ptr<MultiReturnNode>& node);
-    NumberVariant operator()(std::unique_ptr<ArrayDeclNode>& node);
-    NumberVariant operator()(std::unique_ptr<ArrayLiteralNode>& node);
-    NumberVariant operator()(std::unique_ptr<ArrayAccessNode>& node);
-    NumberVariant operator()(std::unique_ptr<ListDeclNode>& node);
-    NumberVariant operator()(std::unique_ptr<MapLiteralNode>& node);
-    NumberVariant operator()(std::unique_ptr<MethodCallNode>& node);
-    NumberVariant operator()(std::shared_ptr<PropertyAccessNode>& node);
-    NumberVariant operator()(std::unique_ptr<SpreadNode>& node);
-    NumberVariant operator()(std::unique_ptr<ForeachNode>& node);
-    NumberVariant operator()(std::unique_ptr<FieldAssignNode>& node);
-    bool struct_has_field(const std::shared_ptr<StructValue>& sv, const std::string& field);
-    bool in_class_context(const std::string& class_name);
-    NumberVariant convert_array_to_struct(
-        const std::shared_ptr<ArrayValue>& arr, const std::string& struct_type, Context* context);
-    NumberVariant operator()(RefVarDeclNode& node);
-    NumberVariant operator()(NullptrNode& node);
-    ExecResult exec_stmt_in_loop_or_switch(QIfNode& ifn);
-    ExecResult exec_stmt_in_loop_or_switch(QSwitchNode& qsw);
-    ExecResult exec_stmt_in_loop_or_switch(AnyNode& node);
-    ExecResult exec_stmt_in_loop_or_switch(StatementsNode& block);
-    ExecResult exec_stmt_in_loop_or_switch(IfNode& ifn);
-    ExecResult exec_stmt_in_loop_or_switch(SwitchNode& sw);
-    ExecResult exec_stmt_in_loop_or_switch(TryCatchNode& tcn);
-    std::string run_statements(std::unique_ptr<StatementsNode>& node);
-    ClassMethodInfo* find_method_with_args(
-        const std::string& className,
-        const std::string& mname,
-        const std::vector<NumberVariant>& args);
-    std::string getElementType(const std::string& fullType) {
-        size_t start = fullType.find("<");
-        size_t end = fullType.rfind(">");
-        if (start != std::string::npos && end != std::string::npos) {
-            return fullType.substr(start + 1, end - start - 1);
-        }
-        return "auto";
-    }
-    size_t get_sizeof_type(const std::string& type);
-};
 struct RunConfig {
     bool use_context = true;
     bool looser_types = false;
@@ -2249,14 +1302,15 @@ struct RunConfig {
     bool quiet_mode = false;
     bool raw = false;
     bool bst = false;
-    bool compile_mode = false;
-    bool interpret_mode = true;
+    bool compile_mode = true;
+    bool interpret_mode = false;
     bool compile_only = false;
     bool object_only = false;
     bool debug = false;
     bool optimize = true;
     std::string opt_level = "O2";
     std::string output_file = "a.out";
+    bool output_wasm = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
@@ -2267,10 +1321,18 @@ struct AsmOp {
     int index;
     char kind;
 };
+struct FunctionSignature {
+    llvm::FunctionType* type;
+    std::vector<llvm::Value*> defaultValues;
+};
+
 class LLVMCompiler {
   public:
+    llvm::LLVMContext& context;
+    llvm::Module* module;
+    llvm::IRBuilder<>* builder; 
     bool startsWithQIn(const AnyNode& node) {
-        if (auto bin = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+        if (auto bin = std::get_if< BinOpNode*>(&node)) {
             return startsWithQIn((*bin)->left_node);
         }
         if (auto qin = std::get_if<QInNode>(&node)) {
@@ -2282,17 +1344,34 @@ class LLVMCompiler {
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
     void createUserTypes();
     llvm::Value* convertToString(llvm::Value* val, AnyNode& expr);
-    LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& types);
-    std::vector<CTError> compile(StatementsNode* root, const std::string& outPath, bool optimize = false, std::string opt_level = "-O2");
+    LLVMCompiler(
+        std::unordered_map<std::string, UserTypeInfo>& userTys,
+        llvm::Module* mod,
+        llvm::LLVMContext& ctx,
+        bool is_main = false
+    );
+    std::vector<CTError> compile(
+        StatementsNode* root, 
+        std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
+        std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs,
+        std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
+        std::unordered_map<std::string, std::string> visibleArrayTypeStrings,
+        std::unordered_map<std::string, int> visibleLists,
+        std::unordered_map<std::string, int> visibleArrayLengths,
+        std::unordered_map<std::string, std::pair<int, int>> visibleMaps,
+        std::unordered_map<std::string, std::string> visibleVarTypes,
+        std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
+        std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes,
+        std::map<std::string, std::map<std::string, llvm::Function*>> visibleSpecializedFunctions,
+        std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals
+    ); 
+    bool is_main;
+
     void cg_error(const Position& pos, const std::string& msg);
     std::vector<CTError> errors;
     llvm::BasicBlock* currentBreakBB = nullptr;
     llvm::BasicBlock* currentContinueBB = nullptr;
     std::unordered_map<std::string, std::vector<size_t>> autoMethodIndices;
-    struct FunctionSignature {
-        llvm::FunctionType* type;
-        std::vector<llvm::Value*> defaultValues;
-    };
 
     bool isUnionType(llvm::Type* ty, std::string* outName = nullptr) {
         auto* st = llvm::dyn_cast<llvm::StructType>(ty);
@@ -2404,9 +1483,10 @@ class LLVMCompiler {
     llvm::Value* createRuntimeSizedArray(std::vector<AnyNode>& elements, llvm::Value* totalSize);
     void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
     void expandSpreadIntoList(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* listPtr, llvm::Function* pushFn, int elemTypeCode);
-    llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
+    llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call); 
+    std::unordered_map<std::string, llvm::GlobalVariable*> globals;
     std::unordered_map<std::string, FunctionSignature> functionSignatures;
-    std::unordered_map<std::string, std::shared_ptr<FuncDefNode>> functionDefs;
+    std::unordered_map<std::string,  FuncDefNode* > functionDefs;
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> jaggedArraysStack;
     std::vector<std::unordered_map<std::string, std::string>> arrayTypeStringsStack;
     std::vector<std::unordered_map<std::string, int>> listsStack;
@@ -2511,13 +1591,13 @@ class LLVMCompiler {
         return false;
     }
     std::string getExpressionType(AnyNode& node, bool strip = true) {
-        if (auto arrLit = std::get_if<std::unique_ptr<ArrayLiteralNode>>(&node)) {
+        if (auto arrLit = std::get_if< ArrayLiteralNode*>(&node)) {
             if (!(*arrLit)->elements.empty()) {
                 std::string elemType = getExpressionType((*arrLit)->elements[0]);
                 return elemType + "[]";
             }
             return "int[]";
-        } else if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+        } else if (auto unaryOp = std::get_if< UnaryOpNode*>(&node)) {
             std::string type = getExpressionType((*unaryOp)->node, strip);
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
                 if (type.ends_with("*")) {
@@ -2525,7 +1605,7 @@ class LLVMCompiler {
                 }
             }
             return type;
-        } else if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&node)) {
+        } else if (auto binOp = std::get_if< BinOpNode*>(&node)) {
             std::string leftType = getExpressionType((*binOp)->left_node);
             std::string rightType = getExpressionType((*binOp)->right_node);
             if (leftType == rightType)
@@ -2535,9 +1615,9 @@ class LLVMCompiler {
             if (leftType == "float" || rightType == "float")
                 return "float";
             return leftType;
-        } else if (auto listDecl = std::get_if<std::unique_ptr<ListDeclNode>>(&node)) {
+        } else if (auto listDecl = std::get_if< ListDeclNode*>(&node)) {
             return "list<" + (*listDecl)->type_tok.value + ">";
-        } else if (auto mapDecl = std::get_if<std::unique_ptr<MapDeclNode>>(&node)) {
+        } else if (auto mapDecl = std::get_if< MapDeclNode*>(&node)) {
             return "map<" + (*mapDecl)->key_type.value + "," + (*mapDecl)->value_type.value + ">";
         } else if (auto strNode = std::get_if<StringNode>(&node)) {
             return "string";
@@ -2560,7 +1640,7 @@ class LLVMCompiler {
             return "char";
         } else if (auto qboolNode = std::get_if<QBoolNode>(&node)) {
             return "qbool";
-        } else if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+        } else if (auto varAcc = std::get_if< VarAccessNode*>(&node)) {
             std::string varName = (*varAcc)->var_name_tok.value;
             if (!resolveVarType(varName).empty()) {
                 std::string t = resolveVarType(varName);
@@ -2619,12 +1699,12 @@ class LLVMCompiler {
             if (auto* var = getVarAddress(varName)) {
                 return getTypeName(var->getType());
             }
-        } else if (auto arrAcc = std::get_if<std::unique_ptr<ArrayAccessNode>>(&node)) {
+        } else if (auto arrAcc = std::get_if< ArrayAccessNode*>(&node)) {
             std::string baseType = getExpressionType((*arrAcc)->base);
             if (baseType.ends_with("*")) {
                 return baseType.substr(0, baseType.size() - 1);
             } else {
-                if (auto varAcc = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAcc)->base)) {
+                if (auto varAcc = std::get_if< VarAccessNode*>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
                     if (hasList(name)) {
                         auto it = findList(name);
@@ -2675,7 +1755,7 @@ class LLVMCompiler {
             return "unknown";
         } else if (auto nullp = std::get_if<NullptrNode>(&node)) {
             return "@nullptr";
-        } else if (auto propAcc = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
+        } else if (auto propAcc = std::get_if< PropertyAccessNode* >(&node)) {
             std::string currentType = getExpressionType(*((*propAcc)->base));
             if (currentType.ends_with("*") || currentType.ends_with("&")) {
                 currentType.pop_back();
@@ -2768,22 +1848,22 @@ class LLVMCompiler {
         return nullptr;
     }
     llvm::Value* emitLValue(AnyNode& node) {
-        if (auto var = std::get_if<std::unique_ptr<VarAccessNode>>(&node)) {
+        if (auto var = std::get_if< VarAccessNode*>(&node)) {
             std::string name = (*var)->var_name_tok.value;
             llvm::Value* addr = getVarAddress(name);
             return addr;
-        } else if (auto unary = std::get_if<std::unique_ptr<UnaryOpNode>>(&node)) {
+        } else if (auto unary = std::get_if< UnaryOpNode*>(&node)) {
             if ((*unary)->op_tok.type == TokenType::MUL) {
                 return emitExpr((*unary)->node);
             } 
-        } else if (auto prop = std::get_if<std::shared_ptr<PropertyAccessNode>>(&node)) {
+        } else if (auto prop = std::get_if< PropertyAccessNode* >(&node)) {
             return emitPropertyAddress(**prop);
-        } else if (auto call = std::get_if<std::unique_ptr<CallNode>>(&node)) {
+        } else if (auto call = std::get_if< CallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
             if (retType.ends_with("&")) {
                 return emitExpr(node);
             }
-        } else if (auto method = std::get_if<std::unique_ptr<MethodCallNode>>(&node)) {
+        } else if (auto method = std::get_if< MethodCallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
             if (retType.ends_with("&")) {
                 return emitExpr(node);
@@ -2910,7 +1990,7 @@ class LLVMCompiler {
         llvm::Function* fn = module->getFunction(fnName);
         if (!fn) {
             llvm::FunctionType* fty = llvm::FunctionType::get(retTy, {ty}, false);
-            fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module.get());
+            fn = llvm::Function::Create(fty, llvm::Function::ExternalLinkage, fnName, module);
         }
 
         return builder->CreateCall(fn, {arg}, "to_" + target);
@@ -3154,7 +2234,7 @@ class LLVMCompiler {
             AnyNode& argNode = const_cast<AnyNode&>(*it);
             llvm::Value* v = nullptr;
             if (i < paramTypeStrings.size() && paramTypeStrings[i].ends_with("&")) {
-                if (auto* varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&argNode)) {
+                if (auto* varAccess = std::get_if< VarAccessNode*>(&argNode)) {
                     v = getVarAddress((*varAccess)->var_name_tok.value);
                 } else {
                     cg_error(Position(), "L-value required for reference parameter");
@@ -3404,7 +2484,10 @@ class LLVMCompiler {
         for (size_t i = 0; i < args.size(); i++) {
             llvm::Type* expected = funcTy->getParamType(i + 1);
             llvm::Value* actual = args[i];
-            if (actual->getType() == expected) {
+            if (actual->getType()->isPointerTy() && expected->isStructTy()) {
+                actual = builder->CreateLoad(expected, actual);
+                reconciled.push_back(actual);
+            } else if (actual->getType() == expected) {
                 reconciled.push_back(actual);
             } else if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
                 reconciled.push_back(builder->CreateLoad(expected, actual));
@@ -3438,6 +2521,7 @@ class LLVMCompiler {
             llvm::Value* actual = args[i];
             if (actual->getType()->isPointerTy() && expected->isStructTy()) {
                 actual = builder->CreateLoad(expected, actual);
+                reconciled.push_back(actual);
             } else if (actual->getType() == expected) {
                 reconciled.push_back(actual);
             } else if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
@@ -3589,9 +2673,9 @@ class LLVMCompiler {
 
         if (!method.return_types.empty() && method.return_types[0].value == "auto") {
             std::function<std::string(AnyNode&)> inferTypeFromAST = [&](AnyNode& node) -> std::string {
-                if (auto retNode = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
-                    if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*retNode)->value)) {
-                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                if (auto retNode = std::get_if< ReturnNode*>(&node)) {
+                    if (auto arrAccess = std::get_if< ArrayAccessNode*>(&(*retNode)->value)) {
+                        if (auto varAccess = std::get_if< VarAccessNode*>(&(*arrAccess)->base)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
                             for (size_t i = 0; i < method.params.size(); i++) {
                                 if (method.params[i].name.value == varName) {
@@ -3606,7 +2690,7 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*retNode)->value)) {
+                    if (auto varAccess = std::get_if< VarAccessNode*>(&(*retNode)->value)) {
                         std::string varName = (*varAccess)->var_name_tok.value;
                         for (size_t i = 0; i < method.params.size(); i++) {
                             if (method.params[i].name.value == varName) {
@@ -3616,8 +2700,8 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&(*retNode)->value)) {
-                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unaryOp)->node)) {
+                    if (auto unaryOp = std::get_if< UnaryOpNode*>(&(*retNode)->value)) {
+                        if (auto varAccess = std::get_if< VarAccessNode*>(&(*unaryOp)->node)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
                             for (size_t i = 0; i < method.params.size(); i++) {
                                 if (method.params[i].name.value == varName) {
@@ -3628,11 +2712,11 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&(*retNode)->value)) {
+                    if (auto binOp = std::get_if< BinOpNode*>(&(*retNode)->value)) {
                         std::string leftType = "unknown";
                         std::string rightType = "unknown";
 
-                        if (auto leftVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->left_node)) {
+                        if (auto leftVar = std::get_if< VarAccessNode*>(&(*binOp)->left_node)) {
                             std::string varName = (*leftVar)->var_name_tok.value;
                             for (size_t i = 0; i < method.params.size(); i++) {
                                 if (method.params[i].name.value == varName) {
@@ -3644,7 +2728,7 @@ class LLVMCompiler {
                             }
                         }
 
-                        if (auto rightVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->right_node)) {
+                        if (auto rightVar = std::get_if< VarAccessNode*>(&(*binOp)->right_node)) {
                             std::string varName = (*rightVar)->var_name_tok.value;
                             for (size_t i = 0; i < method.params.size(); i++) {
                                 if (method.params[i].name.value == varName) {
@@ -3669,7 +2753,7 @@ class LLVMCompiler {
 
                     return getExpressionType((*retNode)->value);
                 }
-                if (auto ifNode = std::get_if<std::unique_ptr<IfNode>>(&node)) {
+                if (auto ifNode = std::get_if< IfNode*>(&node)) {
                     for (auto& stmt : (*ifNode)->then_branch->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -3702,7 +2786,7 @@ class LLVMCompiler {
         }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(
-            fnTy, llvm::Function::ExternalLinkage, specializedName, module.get());
+            fnTy, llvm::Function::ExternalLinkage, specializedName, module);
         currentFunction = fn;
         currentClassName = className;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -3798,9 +2882,9 @@ class LLVMCompiler {
 
         if (!funcDef->return_types.empty() && funcDef->return_types[0].value == "auto") {
             std::function<std::string(AnyNode&)> inferTypeFromAST = [&](AnyNode& node) -> std::string {
-                if (auto retNode = std::get_if<std::unique_ptr<ReturnNode>>(&node)) {
-                    if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&(*retNode)->value)) {
-                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                if (auto retNode = std::get_if< ReturnNode*>(&node)) {
+                    if (auto arrAccess = std::get_if< ArrayAccessNode*>(&(*retNode)->value)) {
+                        if (auto varAccess = std::get_if< VarAccessNode*>(&(*arrAccess)->base)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
@@ -3818,7 +2902,7 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*retNode)->value)) {
+                    if (auto varAccess = std::get_if< VarAccessNode*>(&(*retNode)->value)) {
                         std::string varName = (*varAccess)->var_name_tok.value;
                         auto paramIt = funcDef->params.begin();
                         for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
@@ -3830,8 +2914,8 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto unaryOp = std::get_if<std::unique_ptr<UnaryOpNode>>(&(*retNode)->value)) {
-                        if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*unaryOp)->node)) {
+                    if (auto unaryOp = std::get_if< UnaryOpNode*>(&(*retNode)->value)) {
+                        if (auto varAccess = std::get_if< VarAccessNode*>(&(*unaryOp)->node)) {
                             std::string varName = (*varAccess)->var_name_tok.value;
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
@@ -3844,10 +2928,10 @@ class LLVMCompiler {
                             }
                         }
                     }
-                    if (auto binOp = std::get_if<std::unique_ptr<BinOpNode>>(&(*retNode)->value)) {
+                    if (auto binOp = std::get_if< BinOpNode*>(&(*retNode)->value)) {
                         std::string leftType = "unknown";
                         std::string rightType = "unknown";
-                        if (auto leftVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->left_node)) {
+                        if (auto leftVar = std::get_if< VarAccessNode*>(&(*binOp)->left_node)) {
                             std::string varName = (*leftVar)->var_name_tok.value;
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
@@ -3857,7 +2941,7 @@ class LLVMCompiler {
                                 }
                             }
                         }
-                        if (auto rightVar = std::get_if<std::unique_ptr<VarAccessNode>>(&(*binOp)->right_node)) {
+                        if (auto rightVar = std::get_if< VarAccessNode*>(&(*binOp)->right_node)) {
                             std::string varName = (*rightVar)->var_name_tok.value;
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
@@ -3882,11 +2966,11 @@ class LLVMCompiler {
                     return getExpressionType((*retNode)->value);
                 }
 
-                if (auto multiRet = std::get_if<std::unique_ptr<MultiReturnNode>>(&node)) {
+                if (auto multiRet = std::get_if< MultiReturnNode*>(&node)) {
                     std::vector<std::string> types;
                     for (auto& val : (*multiRet)->values) {
-                        if (auto arrAccess = std::get_if<std::unique_ptr<ArrayAccessNode>>(&val)) {
-                            if (auto varAccess = std::get_if<std::unique_ptr<VarAccessNode>>(&(*arrAccess)->base)) {
+                        if (auto arrAccess = std::get_if< ArrayAccessNode*>(&val)) {
+                            if (auto varAccess = std::get_if< VarAccessNode*>(&(*arrAccess)->base)) {
                                 std::string varName = (*varAccess)->var_name_tok.value;
 
                                 auto paramIt = funcDef->params.begin();
@@ -3917,7 +3001,7 @@ class LLVMCompiler {
                     return result;
                 }
 
-                if (auto ifNode = std::get_if<std::unique_ptr<IfNode>>(&node)) {
+                if (auto ifNode = std::get_if< IfNode*>(&node)) {
                     for (auto& stmt : (*ifNode)->then_branch->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -3939,7 +3023,7 @@ class LLVMCompiler {
                     }
                 }
 
-                if (auto qifNode = std::get_if<std::unique_ptr<QIfNode>>(&node)) {
+                if (auto qifNode = std::get_if< QIfNode*>(&node)) {
                     for (auto& stmt : (*qifNode)->then_branch->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -3947,7 +3031,7 @@ class LLVMCompiler {
                     }
                 }
 
-                if (auto whileNode = std::get_if<std::unique_ptr<WhileNode>>(&node)) {
+                if (auto whileNode = std::get_if< WhileNode*>(&node)) {
                     for (auto& stmt : (*whileNode)->body->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -3955,7 +3039,7 @@ class LLVMCompiler {
                     }
                 }
 
-                if (auto forNode = std::get_if<std::unique_ptr<ForNode>>(&node)) {
+                if (auto forNode = std::get_if< ForNode*>(&node)) {
                     for (auto& stmt : (*forNode)->body->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -3963,7 +3047,7 @@ class LLVMCompiler {
                     }
                 }
 
-                if (auto switchNode = std::get_if<std::unique_ptr<SwitchNode>>(&node)) {
+                if (auto switchNode = std::get_if< SwitchNode*>(&node)) {
                     for (auto& section : (*switchNode)->sections) {
                         if (section.body) {
                             for (auto& stmt : section.body->statements) {
@@ -3975,7 +3059,7 @@ class LLVMCompiler {
                     }
                 }
 
-                if (auto stmtsNode = std::get_if<std::unique_ptr<StatementsNode>>(&node)) {
+                if (auto stmtsNode = std::get_if< StatementsNode*>(&node)) {
                     for (auto& stmt : (*stmtsNode)->statements) {
                         std::string ty = inferTypeFromAST(stmt);
                         if (ty != "unknown")
@@ -4019,7 +3103,7 @@ class LLVMCompiler {
         }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(
-            fnTy, llvm::Function::ExternalLinkage, specializedName, module.get());
+            fnTy, llvm::Function::ExternalLinkage, specializedName, module);
 
         currentFunction = fn;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -4221,37 +3305,29 @@ class LLVMCompiler {
     }
     llvm::Value* resolveVariable(const std::string& name) {
         if (name.find("::") != std::string::npos) {
-            auto it = locals.find(name);
-            if (it != locals.end())
-                return it->second;
-            auto git = globals.find(name);
-            if (git != globals.end())
-                return git->second;
+            if (locals.count(name)) return locals[name];
+            if (globals.count(name)) return globals[name];
             return nullptr;
         }
         std::string current = getCurrentNamespace();
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
             auto it = locals.find(fullName);
-            if (it != locals.end())
+            if (it != locals.end()) {
                 return it->second;
+            }
             auto git = globals.find(fullName);
-            if (git != globals.end())
+            if (git != globals.end()) {
                 return git->second;
-
-            if (current.empty())
-                break;
+            }
+            if (current.empty()) break;
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
         }
-        auto it = locals.find(name);
-        if (it != locals.end())
-            return it->second;
-        auto git = globals.find(name);
-        if (git != globals.end())
-            return git->second;
+        if (locals.count(name)) return locals[name];
+        if (globals.count(name)) return globals[name];
         return nullptr;
-    }
+    }   
     std::string resolveVarType(const std::string& name) {
         if (name.find("::") != std::string::npos) {
             if (hasVarType(name))
@@ -4455,9 +3531,6 @@ class LLVMCompiler {
 
         return info;
     }
-    llvm::LLVMContext context;
-    std::unique_ptr<llvm::Module> module;
-    std::unique_ptr<llvm::IRBuilder<>> builder; 
   private:
     llvm::Type* getTypeFromCode(int code) {
         switch (code) {
@@ -4525,7 +3598,6 @@ class LLVMCompiler {
     std::string lambdaName();
     std::string mangleName(const FuncDefNode& fn);
     std::unordered_map<std::string, llvm::AllocaInst*> locals;
-    std::unordered_map<std::string, llvm::GlobalVariable*> globals;
     std::unordered_map<std::string, llvm::Function*> functions;
     llvm::Function* currentFunction = nullptr;
     llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);
@@ -4737,8 +3809,13 @@ class Lexer {
 };
 } // namespace tkz
 std::string trim(const std::string& str);
-std::string read_file(const std::string& path);
 std::string resolve_path(const std::string& current_file, const std::string& include_path);
-std::string extract_namespace(const std::string& source, const std::string& ns_name);
-std::string preprocess_includes(const std::string& source, const std::string& current_file);
+struct PreprocessResult {
+    std::string clean_source;
+    std::vector<std::string> dependency_paths;
+    std::unordered_map<std::string, std::vector<std::string>> included_namespaces;
+    std::unordered_set<std::string> accessible_namespaces;
+};
+
+PreprocessResult preprocess_includes(const std::string& source, const std::string& current_file);
 #endif

@@ -117,19 +117,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named qc
-
-# Build rule for target.
-qc: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 qc
-.PHONY : qc
-
-# fast build rule for target.
-qc/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/build
-.PHONY : qc/fast
-
-#=============================================================================
 # Target rules for targets named intrinsics_gen
 
 # Build rule for target.
@@ -193,6 +180,19 @@ target_parser_gen: cmake_check_build_system
 target_parser_gen/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/target_parser_gen.dir/build.make CMakeFiles/target_parser_gen.dir/build
 .PHONY : target_parser_gen/fast
+
+#=============================================================================
+# Target rules for targets named qc
+
+# Build rule for target.
+qc: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 qc
+.PHONY : qc
+
+# fast build rule for target.
+qc/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/qc.dir/build.make CMakeFiles/qc.dir/build
+.PHONY : qc/fast
 
 compiler.o: compiler.cpp.o
 .PHONY : compiler.o

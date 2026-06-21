@@ -98,31 +98,60 @@ jobs:
         with:
           name: test.qc
           path: test.qc
-  # windows not supported
-
   build-wasm:
-    needs: [tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v13
         with:
           version: 'latest'
-      
-      - name: Build (WASM)
-        run: emcc compiler.cpp compiler_run.cpp -o qc.js -std=c++20 -s WASM=1 -s FORCE_FILESYSTEM=1 -s EXPORTED_FUNCTIONS='["_run_quantum_code"]' -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]' -s ALLOW_MEMORY_GROWTH=1 --preload-file stdlib.qc@/stdlib.qc -s STACK_SIZE=134217728 -s MODULARIZE=1 -s EXPORT_NAME="QuantumC" -s TOTAL_MEMORY=805306368 -s ASSERTIONS=2 -s SAFE_HEAP=1 -s NO_DISABLE_EXCEPTION_CATCHING -D__EMSCRIPTEN__
-            
-      - name: Upload WASM Files
+      - name: Install Host LLVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y llvm-21-dev clang-21 llvm-21-tools
+      - name: Cache LLVM WASM Libraries
+        id: cache-llvm
+        uses: actions/cache@v4
+        with:
+          path: ./llvm-wasm-dist
+          key: ${{ runner.os }}-llvm-wasm-21
+      # This step is like 4 hours 
+      - name: Build LLVM for WASM (If not cached)
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
+          cd llvm-project
+          mkdir build-wasm && cd build-wasm
+          emcmake cmake ../llvm \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DLLVM_TARGETS_TO_BUILD="WebAssembly" \
+            -DLLVM_ENABLE_PROJECTS="clang" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_ENABLE_THREADS=OFF \
+            -DLLVM_TABLEGEN=$(which llvm-tblgen-21)
+          emmake make -j$(nproc) LLVMCore LLVMSupport LLVMWebAssemblyCodeGen
+          mkdir -p ../../llvm-wasm-dist
+          cp -r include ../../llvm-wasm-dist/
+          cp -r lib ../../llvm-wasm-dist/
+
+      - name: Build QuantumC (WASM)
+        run: |
+          mkdir build
+          cd build
+          emcmake cmake .. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_WASM_PATH=${{ github.workspace }}/llvm-wasm-dist
+          emmake make -j$(nproc)
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: qc-wasm
+          name: quantum-c-wasm
           path: |
-            qc.js
-            qc.wasm
-            stdlib.qc
-            qc.data  
+            build/qc.js
+            build/qc.wasm
+            build/qc.data
   deploy-to-website:  
     needs: [build-wasm, tag]
     runs-on: ubuntu-latest

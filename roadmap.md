@@ -1,4 +1,14 @@
 - Array-initing pointers
+- Concepts
+```
+concept X {
+...
+} 
+class Y {
+ ... 
+} 
+Y proves X;
+```
 - Link multiple qc files by compile then compile then link. basically just compile all files with oo then `clang <file .o s>`
 - Try/Catch 
 - Polymorphic pointers. Class* = &Child
@@ -23,14 +33,14 @@ modifier async type function {
 }
 modifier await type multivalue {
     use { // called when used
-        		… x = mod.values[...]
-       		 …………..
+                … x = mod.values[...]
+                …………..
     }
 }
 modifier await type value {
     use { // called when used
-        		… x = mod.value
-       		 …………..
+                … x = mod.value
+                …………..
     }
 }
 ```
@@ -39,10 +49,6 @@ Then you could do
 async <func def> foo <rest of def>
 …
 await foo();
-```
-- Special "call" function that calls a function based off of a string
-```cpp
-call("foo");
 ```
 - Fields to get all obj fields
 - typeof(fn) giving a object with properties of argos ret types…  shape as a struct:
@@ -61,7 +67,7 @@ typedef struct {
 - Void in () which means dont call with params or () and only for code block functions
 ```cpp
 void loop(void) code {
-	while (true) {
+    while (true) {
       code.eval();
     }
 }
@@ -72,15 +78,40 @@ void loop(void) code {
 - qcheck (QC Lint(qc linter. duh)
 - qconform (QC Formatter)
 - operator++/–/+=/-=//=/*=(combinational operators)
-
 TOP PRIORITY:
-1. Refactor include system to allow referencing internal code instead of full directo copy pase. Also nested namespace and multi include one line. Also full dir scans, synatx like `#include<llvm::Types, llvm::Values, "~/llvm/src/">`.
-2. Array-initing pointers.
-3. CLI Args, Link multiple files, simple stuff.
-4. Polymorphic pointers.
-5. Generics.
+1. Array-initing pointers.
+2. CLI Args, Link multiple files, simple stuff.
+3. Polymorphic pointers.
+4. Generics.
+5. Self host the runtime.
 6. Try/Catch.
 7. Fancy operator overloads
 8. Token/ident/type/keyword/usertype direct type (parser refactor)
 9. Codeblocks.
-10. CQB.
+10. Concepts
+11. Modifier
+12. CQB.
+13. Other stuff
+14. Metadata
+?likely? - likely marked
+?unlikely? - marked unlikely
+?inline? - pls inline >-<
+?inline(always)? - always inline
+?inline(never)? -  NEVER inline
+?nodiscard? - warn if discard result
+?noreturn? - optimize away post-call cleanup
+?deprecated(msg)? - warning with this message when used
+?fully_deprecated(msg)? - ERROR with this message when used
+?errordiscard? - nodiscard but errors not warns
+?consteval? - evaluate at compile time
+?qc_ver_eq(version)? - errors if qc ver is != version
+?qc_ver_lt(version)? - errors if qc ver is >= version
+?qc_ver_gt(version)? - errors if qc ver is <= version
+?qc_ver_lte(version)? - errors if qc ver is > version
+?qc_ver_gte(version)? - errors if qc ver is < version
+?since(ver)? - states the version of the package this is for
+?until(ver)? - states when this will be deprecated
+?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
+?unstable? - states this tool is janky, flaky, or unstable, but api won't change
+?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
+

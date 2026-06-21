@@ -5,8 +5,6 @@
 #include <iterator>
 #include <fstream>
 #include <sstream>
-#include <format>
-#include <ranges>
 #include <thread>
 #include <chrono>
 #include <atomic>
@@ -177,15 +175,6 @@ int main(int argc, char* argv[]) {
         github.com/Youg-Otricked/QuantumC
         )" << RESET << std::endl;
             return 0;
-        } else if (arg == "--loose-types" || arg == "-lt") {
-            config.looser_types = true;
-        } else if (arg == "--interp-demo" || arg == "-id") {
-            const char* demo = std::getenv("QC_INTERP_TEST");
-            if (!demo) {
-                std::cerr << RED << "QC_INTERP_TEST not set, run install script\n" << RESET;
-                return 1;
-            }
-            filename = demo;
         } else if (arg == "--ast" || arg == "-a") {
             config.print_ast = true;
         } else if (arg == "--quiet" || arg == "-q") {
@@ -202,9 +191,6 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--compile" || arg == "-c") {
             config.compile_mode = true;
             config.interpret_mode = false;
-        } else if (arg == "--interpret" || arg == "-i") {
-            config.compile_mode = false;
-            config.interpret_mode = true;
         } else if (arg == "--test-compile" || arg == "-tc") {
             config.compile_mode = true;
             config.interpret_mode = true;
@@ -238,7 +224,6 @@ Usage: ./qc [options] <file>
 Options:
   -v, --version       Show version information
   -h, --help          Show this help message
-  -id, --interpreter-demo Run the demo file (syntax.qc) (note that for this to work you must run the install script)
   -a, --ast           Print the AST (Abstract Syntax Tree)
   -tkn, --tokens      Print the token stream
   -t, --time          Show compilation time
@@ -246,8 +231,6 @@ Options:
   -s, --suspense      Slowly print the Error codes.
   -b, --bst           Bst style ast (warning, very top heavy) must be used in congunction with -a/ast
   -c, --compile       Compile code
-  -i, --interpret     Interpret code
-  -tc, --test-compile Interpret, if no errors compile (comming soon)
   -oo, --object-only  Only compile up to object (.o) file
   -o, --output        Specift output file for compilation (defaults to a.out)
   -co, --compile-only Only compile to llvm, don't do anything else
@@ -263,7 +246,6 @@ In Code:
   quiet silences non debug output
 Examples:
   qc main.qc          Run main.qc
-  qc -id              Run the demo
   qc -v               Show version
   qc --ast test.qc    Show AST for test.qc
             )" << RESET << std::endl;
@@ -323,7 +305,7 @@ Examples:
                             has_fatal = true;
                         }
 
-                        slow_print(const_cast<tkz::RTError&>(diag.error).as_string() + "\n", color);
+                        slow_print(diag.error->as_string() + "\n", color);
                     }
                 }
                 if (result.ast.error) {
@@ -458,7 +440,7 @@ Examples:
                 has_fatal = true;
             }
 
-            slow_print(const_cast<tkz::RTError&>(diag.error).as_string() + "\n", color);
+            slow_print(diag.error->as_string() + "\n", color);
         }
         if (result.ast.error) {
             slow_print(result.ast.error->as_string() + "\n", RED);
@@ -485,28 +467,62 @@ Examples:
     return 0;
 }
 #ifdef __EMSCRIPTEN__
-#include <emscripten/emscripten.h>
-#include <sstream>
-
+#include <fstream>
+#include <vector>
+static std::vector<char> binary_buffer;
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
-    const char* run_quantum_code(const char* code) {
+    int get_wasm_size() {
+        return binary_buffer.size();
+    }
+    EMSCRIPTEN_KEEPALIVE
+    char* get_wasm_ptr() {
+        return binary_buffer.data();
+    }
+    EMSCRIPTEN_KEEPALIVE
+    const char* run_quantumc_compiler(const char* code) {
         static std::string output;
         output.clear();
         
         std::stringstream buffer;
         std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
         
-        auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, false});
+        auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true});
         
         if (result.ast.error) {
-            output = result.ast.error->as_string();
-        } else {
-            output = buffer.str() + result.res;
+            return result.ast.error->as_string();
+        } else if (result.diagnostics) {
+            std::string res = "";
+            for (const auto& diag : result.errors) {
+                std::string color;
+                if (diag.level == "Warning") {
+                    color = YELLOW;
+                    has_warnings = true;
+                } else if (diag.level == "Error") {
+                    color = MAGENTA;
+                    has_fatal = true;
+                } else if (diag.level == "Severe") {
+                    color = RED;
+                    has_fatal = true;
+                } else if (diag.level == "Fatal") {
+                    color = RED;
+                    has_fatal = true;
+                }
+
+                res += diag.error->as_string() + "\n";
+            }
+            return res;
         }
-        
-        std::cout.rdbuf(old);
-        return output.c_str();
-    }
+        std::ifstream file("a.o", std::ios::binary | std::ios::ate);
+        if (!file.is_open()) {
+            return "Error: Could not open output file a.o";
+        }
+        std::streamsize size = file.tellg();
+        file.seekg(0, std::ios::beg);
+        binary_buffer.resize(size);
+        if (file.read(binary_buffer.data(), size)) {
+            return "Success";
+        }
+        return "Error: Failed to read binary data";    }
 }
 #endif

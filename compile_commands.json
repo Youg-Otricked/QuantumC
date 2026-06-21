@@ -1,24 +1,20 @@
 [
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-std=c++23",
-      "-Iinclude",
-      "-c",
-      "Ct4.cpp"
-    ],
-    "directory": "/home/lucar/C^4",
-    "file": "/home/lucar/C^4/Ct4.cpp"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-std=c++23",
-      "-Iinclude",
-      "-c",
-      "quantum.cpp"
-    ],
-    "directory": "/home/lucar/C^4",
-    "file": "/home/lucar/C^4/quantum.cpp"
-  }
+{
+  "directory": "/home/luca/C^4",
+  "command": "/usr/bin/c++ -DENABLE_LLVM -DEXPERIMENTAL_KEY_INSTRUCTIONS -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/usr/lib/llvm-21/include -I\"/home/luca/C^4\" -O3 -DNDEBUG -std=gnu++23 -O3 -fconstexpr-ops-limit=1000000000 -o CMakeFiles/qc.dir/compiler.cpp.o -c \"/home/luca/C^4/compiler.cpp\"",
+  "file": "/home/luca/C^4/compiler.cpp",
+  "output": "CMakeFiles/qc.dir/compiler.cpp.o"
+},
+{
+  "directory": "/home/luca/C^4",
+  "command": "/usr/bin/c++ -DENABLE_LLVM -DEXPERIMENTAL_KEY_INSTRUCTIONS -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/usr/lib/llvm-21/include -I\"/home/luca/C^4\" -O3 -DNDEBUG -std=gnu++23 -O3 -fconstexpr-ops-limit=1000000000 -o CMakeFiles/qc.dir/compiler_run.cpp.o -c \"/home/luca/C^4/compiler_run.cpp\"",
+  "file": "/home/luca/C^4/compiler_run.cpp",
+  "output": "CMakeFiles/qc.dir/compiler_run.cpp.o"
+},
+{
+  "directory": "/home/luca/C^4",
+  "command": "/usr/bin/c++ -DENABLE_LLVM -DEXPERIMENTAL_KEY_INSTRUCTIONS -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -I/usr/lib/llvm-21/include -I\"/home/luca/C^4\" -O3 -DNDEBUG -std=gnu++23 -O3 -fconstexpr-ops-limit=1000000000 -o CMakeFiles/qc.dir/runtime_embed.cpp.o -c \"/home/luca/C^4/runtime_embed.cpp\"",
+  "file": "/home/luca/C^4/runtime_embed.cpp",
+  "output": "CMakeFiles/qc.dir/runtime_embed.cpp.o"
+}
 ]
