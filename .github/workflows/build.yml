@@ -110,6 +110,8 @@ jobs:
         id: cache-llvm
         uses: actions/cache@v4
         with:
+          submodules: recursive
+          fetch-depth: 0
           path: llvm-wasm-dist
           key: ${{ runner.os }}-llvm-wasm-21
       - name: Build LLVM for WASM (If not cached)
