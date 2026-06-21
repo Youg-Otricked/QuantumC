@@ -10,9 +10,14 @@ if(LLVM_VERSION_MAJOR LESS 21)
     message(FATAL_ERROR "LLVM 21+ required, found ${LLVM_VERSION_MAJOR}")
 endif()
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
+set(RUNTIME_TARGET_FLAGS "")
+if(EMSCRIPTEN)
+    set(RUNTIME_TARGET_FLAGS "-target" "wasm32-unknown-unknown")
+endif()
+
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-    COMMAND clang++ -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+COMMAND ${CMAKE_CXX_COMPILER} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
     VERBATIM
 )
