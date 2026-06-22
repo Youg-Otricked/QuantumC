@@ -20,12 +20,12 @@ jobs:
           fetch-depth: 0
       - name: Get version
         id: get_version
-        run: echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+        run: echo "version=$(cat version.txt | tr -d '[:space:]')" >> $GITHUB_OUTPUT
       - name: Check if tag exists
         id: check_tag
         run: |
-          git fetch --tags
-          VERSION=$(cat version.txt)
+          git fetch --tags 
+          VERSION=$(cat version.txt | tr -d '[:space:]')
           if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists. Skipping release steps."
             echo "exists=true" >> $GITHUB_OUTPUT
