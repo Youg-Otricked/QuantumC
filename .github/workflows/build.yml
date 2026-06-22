@@ -24,6 +24,7 @@ jobs:
       - name: Check if tag exists
         id: check_tag
         run: |
+          git fetch --tags
           VERSION=$(cat version.txt)
           if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
             echo "Tag $VERSION already exists. Skipping release steps."
