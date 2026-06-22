@@ -166,9 +166,20 @@ jobs:
         with:
           path: llvm-wasm-dist
           key: ${{ runner.os }}-llvm-wasm-21
-      - name: Inspect LLVM cmake package
+      - name: Check LLVM headers
         run: |
-          find llvm-wasm-dist/lib/cmake/llvm -maxdepth 1 -type f | sort
+          find llvm-wasm-dist/include -name IRBuilder.h
+          ls llvm-wasm-dist/include/llvm/IR | head
+      - name: Fix LLVM paths
+        run: |
+          LLVM_CMAKE="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
+          sed -i \
+            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/build-wasm/\\./lib/cmake/llvm|$LLVM_CMAKE|g" \
+            "$LLVM_CMAKE/LLVMConfig.cmake"
+          sed -i \
+            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/llvm/cmake/modules|$LLVM_CMAKE|g" \
+            "$LLVM_CMAKE/LLVMConfig.cmake"
+          grep -n "LLVMExports" "$LLVM_CMAKE/LLVMConfig.cmake"
       - name: Build QuantumC
         run: |
           mkdir -p build
@@ -179,8 +190,6 @@ jobs:
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
             -DLLVM_WASM_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
             -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
-
-          emmake make -j$(nproc)lvm-wasm-dist/lib/cmake/llvm
           emmake make -j$(nproc)      
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
