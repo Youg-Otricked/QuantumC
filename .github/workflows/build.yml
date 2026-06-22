@@ -115,8 +115,15 @@ jobs:
       - name: Build LLVM for WASM (If not cached)
         if: steps.cache-llvm.outputs.cache-hit != 'true'
         run: |
-          git clone https://github.com/llvm/llvm-project.git
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
           cd llvm-project
+          mkdir build-host
+          cd build-host
+          cmake ../llvm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLVM_TARGETS_TO_BUILD=WebAssembly
+          cmake --build . --target llvm-min-tblgen llvm-tblgen -j$(nproc)
+          cd ..
           mkdir build-wasm
           cd build-wasm
           emcmake cmake ../llvm \
@@ -127,12 +134,11 @@ jobs:
             -DLLVM_ENABLE_THREADS=OFF \
             -DLLVM_ENABLE_ZLIB=OFF \
             -DLLVM_ENABLE_BACKTRACES=OFF \
-            -DLLVM_ENABLE_TERMINFO=OFF
+            -DLLVM_ENABLE_TERMINFO=OFF \
+            -DLLVM_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-tblgen \
+            -DCLANG_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/clang-tblgen \
+            -DLLVM_MIN_TBLGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-min-tblgen
           emmake make -j$(nproc)
-          mkdir -p ../../llvm-wasm-dist
-          cp -r include ../../llvm-wasm-dist/
-          cp -r lib ../../llvm-wasm-dist/
-          cp -r bin ../../llvm-wasm-dist/
       - name: Build QuantumC (WASM)
         run: |
           mkdir build
