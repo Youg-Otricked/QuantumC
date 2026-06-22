@@ -6,5 +6,5 @@ CXX_DEFINES = -DENABLE_LLVM -DEXPERIMENTAL_KEY_INSTRUCTIONS -D_GNU_SOURCE -D__ST
 
 CXX_INCLUDES = -I/usr/lib/llvm-21/include -I"/home/luca/C^4"
 
-CXX_FLAGS = -g -O0 -O3 -DNDEBUG -std=gnu++23 -O3 -fconstexpr-ops-limit=1000000000
+CXX_FLAGS = -O0 -g -O3 -DNDEBUG -std=gnu++23 -O3 -fconstexpr-ops-limit=1000000000
 

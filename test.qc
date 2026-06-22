@@ -43,5 +43,6 @@ int main() {
         ComplexTest::check("add(123, 321);", add(123, 321)).toBe(444);
         ComplexTest::check("add(-12, -3);", add(-12, -3)).toBe(-15);
     });
+    char* c = "Hello, World!";
     return ComplexTest::finished();
 }
