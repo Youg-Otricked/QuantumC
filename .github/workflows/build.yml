@@ -175,6 +175,11 @@ jobs:
         run: |
           mkdir -p build
           cd build
+          echo "=== LLVM DIST ==="
+          find llvm-wasm-dist -name IRBuilder.h | head
+          find llvm-wasm-dist -name libLLVMCore.a | head
+          echo "=== LLVM CMAKE REFS ==="
+          grep -R "build-wasm" llvm-wasm-dist/lib/cmake/llvm | head -50
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/llvm-wasm-dist \
