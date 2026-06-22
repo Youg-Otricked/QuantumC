@@ -1,4 +1,4 @@
-# Quantum C (C⁴)
+# QuantumC (C⁴)
 
 ### The 4th Evolution of C
 
@@ -14,10 +14,10 @@ C⁴ combines the performance of C++, the ergonomics of Rust, and the cleanlines
 ---
 
 ## What is QuantumC?
-QuantumC (C⁴/C^4) is a compiled, statically typed C-Style Systems programming language, focusing on clean code and low global scope polution.
+QuantumC (C⁴/C^4) is a compiled, statically typed C-Style Systems programming language, focusing on clean code and low global scope pollution.
 ## Features
 
-- **Modern Syntax** - Clean, intuitive, no boilerplate (other than main(obviously))
+- **Modern Syntax** - Clean, intuitive, no boilerplate (other than main)
 - **Functions & Lambdas** - First-class functions with `fn` syntax for lambdas and `type name(args-type args-name)` syntax for normal functions
 - **Multi-Return Values** - Return multiple values without structs
 - **Type Safety** - Strong typing with `auto` inference
@@ -53,12 +53,6 @@ qc [flags]
 
 ---
 
-# Language Guide
-
-See [syntax.qc](syntax.qc) for a comprehensive interactive demo of all features!
-
----
-
 # Development Status
 
 Current Version: v0.17.71 = "The Include System Refactor"
@@ -78,8 +72,6 @@ Current Version: v0.17.71 = "The Include System Refactor"
 | **Data Structures** | Arrays & Lists (with `.length` member)                                 | Done        |
 |                     | Spread Syntax for Arrays (`@`)                                         | Done        |
 |                     | Maps & Enums                                                           | Done        |
-| **Quantum**         | **Quantum Booleans (Superposition!)**                                  | Done        |
-|                     | **Quantum Logical Operators** (`&&&`, `\|\|\| `, `!!`, etc.)           | Done        |
 | **Advanced**        | Structs, Classes, & Namespaces                                         | Done        |
 |                     | Union Types (TypeScript-style)                                         | Done        |
 |                     | Advanced OOP & Operator Overloading                                    | Done        |
@@ -115,7 +107,7 @@ MIT License - See [LICENSE](./LICENSE.txt) for details
 
 # (Semi) FAQ
 
-### Q: Why “Quantum C”?
+### Q: Why “QuantumC”?
 
 ---
 
@@ -175,9 +167,9 @@ int main() {
 }
 ```
 Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuantumC/include.html)
-## Why Quantum C?
+## Why QuantumC?
 
-| **Feature**                 | **C++** | **Zig** | **Rust**       | **Quantum C**   |
+| **Feature**                 | **C++** | **Zig** | **Rust**       | **QuantumC**   |
 | --------------------------- | ------- | ------- | -------------- | --------------- |
 | **Total Runtime**           | Medium  | Medium  | Medium         | Medium          |
 | **Compile Time (relative)** | Slow    | Medium  | Medium         | Medium          |
@@ -278,7 +270,7 @@ void printf(char* fmt, ...);
 ## Bitwise logic
 
 QuantumC has all the standard bitwise logic operators, however it has a non-standard XOR token.
-The Bitwise XOR operator in C^4 is $. It is $ becuase ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
+The Bitwise XOR operator in C^4 is `$`. It is `$` becuase ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
 QuantumC also has a special operator for _logical_ right shift: :>. This is because it allows avoiding constantly casting between signed and unsigned integer types unlike C++'s "arithmetic if signed, logical if unsigned"
 
 ## Preformance Comparison:
@@ -294,7 +286,7 @@ Comparison output & `.csv` files are located in the `logs` directory.
 QuantumC follows 4 core rules:
 
 - Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
-- Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. Quantum C is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, Quantum C does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
+- Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
 - No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
   Made by [Me](https://github.com/Youg-Otricked)

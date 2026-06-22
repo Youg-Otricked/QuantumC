@@ -135,9 +135,8 @@ jobs:
             -DLLVM_ENABLE_ZLIB=OFF \
             -DLLVM_ENABLE_BACKTRACES=OFF \
             -DLLVM_ENABLE_TERMINFO=OFF \
-            -DLLVM_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-tblgen \
-            -DCLANG_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/clang-tblgen \
-            -DLLVM_MIN_TBLGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-min-tblgen
+            -DLLVM_TABLEGEN_FORCE_BUILD=OFF \
+            -DLLVM_NATIVE_TOOL_DIR=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin          
           emmake make -j$(nproc)
       - name: Build QuantumC (WASM)
         run: |
