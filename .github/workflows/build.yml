@@ -124,9 +124,9 @@ jobs:
         uses: mymindstorm/setup-emsdk@v13
         with:
           version: 'latest'
-      - name: Cache LLVM WASM Libraries
+      - name: Restore LLVM WASM Libraries Cache
         id: cache-llvm
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: llvm-wasm-dist
           key: ${{ runner.os }}-llvm-wasm-21
@@ -135,14 +135,14 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/llvm/llvm-project.git
           cd llvm-project
-          mkdir build-host
+          mkdir -p build-host
           cd build-host
           cmake ../llvm \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_TARGETS_TO_BUILD=WebAssembly
           cmake --build . --target llvm-min-tblgen llvm-tblgen -j$(nproc)
           cd ..
-          mkdir build-wasm
+          mkdir -p build-wasm
           cd build-wasm
           emcmake cmake ../llvm \
             -DCMAKE_BUILD_TYPE=Release \
@@ -156,14 +156,26 @@ jobs:
             -DLLVM_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-tblgen \
             -DLLVM_CONFIG_PATH=/usr/bin/llvm-config          
           emmake make -j$(nproc)
+          mkdir -p ../../llvm-wasm-dist
+          cp -r include ../../llvm-wasm-dist/
+          cp -r lib ../../llvm-wasm-dist/
+          cp -r bin ../../llvm-wasm-dist/
+      - name: Save LLVM WASM Cache
+        if: steps.cache-llvm.outputs.cache-hit != 'true' && always()
+        uses: actions/cache/save@v4
+        with:
+          path: llvm-wasm-dist
+          key: ${{ runner.os }}-llvm-wasm-21
+
       - name: Build QuantumC (WASM)
         run: |
-          mkdir build
+          mkdir -p build
           cd build
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_WASM_PATH=${{ github.workspace }}/llvm-wasm-dist
-          emmake make -j$(nproc)
+            -DLLVM_WASM_PATH=${{ github.workspace }}/llvm-wasm-dist \
+            -DLLVM_DIR=${{ github.workspace }}/llvm-wasm-dist/lib/cmake/llvm
+          emmake make -j$(nproc)      
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
@@ -171,7 +183,7 @@ jobs:
           path: |
             build/qc.js
             build/qc.wasm
-            build/qc.data
+            build/qc.data  
   deploy-to-website:  
     needs: [build-wasm, tag]
     runs-on: ubuntu-latest
