@@ -166,20 +166,11 @@ jobs:
         with:
           path: llvm-wasm-dist
           key: ${{ runner.os }}-llvm-wasm-21
+      - name: Inspect LLVM cmake package
+        run: |
+          find llvm-wasm-dist/lib/cmake/llvm -maxdepth 1 -type f | sort
       - name: Build QuantumC
         run: |
-          echo "PWD=$(pwd)"
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          echo "=== Workspace ==="
-          ls -lah "$GITHUB_WORKSPACE"
-          echo "=== llvm-wasm-dist ==="
-          ls -lah "$GITHUB_WORKSPACE/llvm-wasm-dist" || true
-          echo "=== Find IRBuilder.h ==="
-          find "$GITHUB_WORKSPACE/llvm-wasm-dist" -name IRBuilder.h 2>/dev/null || true
-          echo "=== Find libLLVMCore.a ==="
-          find "$GITHUB_WORKSPACE/llvm-wasm-dist" -name libLLVMCore.a 2>/dev/null || true
-          echo "=== References to build-wasm ==="
-          grep -R "build-wasm" "$GITHUB_WORKSPACE/llvm-wasm-dist" 2>/dev/null | head -50 || true
           mkdir -p build
           cd build
 
