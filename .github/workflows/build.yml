@@ -169,8 +169,8 @@ jobs:
       - name: Patch LLVM Config Paths
         run: |
           CONFIG_FILE="${{ github.workspace }}/llvm-wasm-dist/lib/cmake/llvm/LLVMConfig.cmake"
-          sed -i 's|/home/runner/work/QuantumC/QuantumC/llvm-project/build-wasm/\./lib/cmake/llvm|${LLVM_INSTALL_PREFIX}/lib/cmake/llvm|g' "$CONFIG_FILE"
-          sed -i 's|/home/runner/work/QuantumC/QuantumC/llvm-project/llvm/cmake/modules|${LLVM_INSTALL_PREFIX}/lib/cmake/llvm|g' "$CONFIG_FILE"
+          sed -i 's|/home/runner/work/QuantumC/QuantumC/llvm-project/build-wasm/\./lib/cmake/llvm|${{ github.workspace }}/llvm-wasm-dist/lib/cmake/llvm|g' "$CONFIG_FILE"
+          sed -i 's|/home/runner/work/QuantumC/QuantumC/llvm-project/llvm/cmake/modules|${{ github.workspace }}/llvm-wasm-dist/lib/cmake/llvm|g' "$CONFIG_FILE"
       - name: Build QuantumC
         run: |
           mkdir -p build
