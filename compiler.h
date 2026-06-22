@@ -1847,6 +1847,20 @@ class LLVMCompiler {
         cg_error(prop.property_name.pos, "Cannot resolve address for property '" + propName + "' on type '" + typeName + "'");
         return nullptr;
     }
+    llvm::StructType* getOrCreateStructType(std::vector<llvm::Type*> fields, const std::string& name) {
+        if (auto *existing = llvm::StructType::getTypeByName(context, name)) {
+            return existing;
+        }
+        auto *newTy = llvm::StructType::create(context, fields, name);
+        return newTy;
+    }
+    llvm::StructType* getOrCreateStructType(const std::string& name) {
+        if (auto* existing = llvm::StructType::getTypeByName(context, name)) {
+            return existing;
+        }
+        auto* newTy = llvm::StructType::create(context, name);
+        return newTy;
+    }
     llvm::Value* emitLValue(AnyNode& node) {
         if (auto var = std::get_if< VarAccessNode*>(&node)) {
             std::string name = (*var)->var_name_tok.value;

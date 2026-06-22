@@ -14,12 +14,11 @@ set(RUNTIME_TARGET_FLAGS "")
 if(EMSCRIPTEN)
     set(RUNTIME_TARGET_FLAGS "-target" "wasm32-unknown-unknown")
 endif()
-
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-COMMAND ${CMAKE_CXX_COMPILER} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
-    VERBATIM
+OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+COMMAND clang++ -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
+VERBATIM
 )
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp

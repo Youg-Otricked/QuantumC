@@ -395,9 +395,9 @@ namespace Collections {
 namespace OSInterop {
     void system(string command) {
         flush();
-        inline(R("
+        inline(R"(
         mov rdi, $0r
         call system
-        "), command, "~{rdi}");
+        )", command, "~{rdi}");
     }
 }

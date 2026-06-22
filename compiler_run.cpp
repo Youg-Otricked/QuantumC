@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
     #include <print>
 #endif
-const std::string ver = "x0.17.7";
+const std::string ver = "x0.17.71";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -420,9 +420,9 @@ Examples:
         spin_thread.join();
         bool has_fatal = false;
         bool has_warnings = false;
-
-        slow_print("=== Diagnostics ===\n", BOLD);
-
+        if (!config.quiet_mode) {
+            slow_print("=== Diagnostics ===\n", BOLD);
+        }
         for (const auto& diag : result.errors) {
             std::string color;
 
@@ -439,9 +439,11 @@ Examples:
                 color = RED;
                 has_fatal = true;
             }
-
-            slow_print(diag.error->as_string() + "\n", color);
+            if (!config.quiet_mode) {
+                slow_print(diag.error->as_string() + "\n", color);
+            }
         }
+        if (config.quiet_mode) return has_fatal ? 1 : 0;
         if (result.ast.error) {
             slow_print(result.ast.error->as_string() + "\n", RED);
             has_fatal = true;

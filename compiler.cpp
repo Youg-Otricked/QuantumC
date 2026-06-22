@@ -2397,7 +2397,7 @@ Prs Parser::return_stmt() {
 Prs Parser::assignment_expr() {
     ParseResult res;
 
-    AnyNode left = res.reg(this->qout_expr());
+    AnyNode left = res.reg(this->logical_or());
 
     if (res.error) return res.to_prs();
 
@@ -2424,10 +2424,10 @@ Prs Parser::assignment_expr() {
             if (this->current_tok.type == TokenType::IDENTIFIER && next_i < tokens.size() && tokens[next_i].type == TokenType::EQ) {
                 right = res.reg(this->assignment_expr());
             } else {
-                right = res.reg(this->expr());
+                right = res.reg(this->logical_or());
             }
         } else {
-            right = res.reg(this->expr());
+            right = res.reg(this->logical_or());
         }
 
         if (res.error) return res.to_prs();
@@ -3867,7 +3867,7 @@ Prs Parser::statement() {
         if (type_tok.value == "list" && this->current_tok.type == TokenType::LESS) {
             this->advance();
 
-            if (this->current_tok.type != TokenType::KEYWORD) {
+            if (this->current_tok.type != TokenType::KEYWORD && !(this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end())) {
                 res.failure(new InvalidSyntaxError("QC-S060: Expected element type in list<T>", this->current_tok.pos));
                 return res.to_prs();
             }
@@ -4186,13 +4186,14 @@ Prs Parser::statement() {
             auto* type_ptr = find_type(qualified_name);
             if (type_ptr) { is_type = true; }
             if (is_type) {
+                
                 Token next_tok;
                 if (this->index + 1 < tokens.size()) {
                     next_tok = tokens[this->index + 1];
                 } else {
                     next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
                 }
-
+                
                 if (next_tok.type == TokenType::LPAREN) {
                     AnyNode expr = res.reg(this->qout_expr());
                     if (res.error) return res.to_prs();
@@ -4206,6 +4207,24 @@ Prs Parser::statement() {
                 }
 
                 Token first_type = this->consume_qualified_name();
+                std::vector<std::optional<int>> array_sizes;
+                int dimensions = 0;
+                while (this->current_tok.type == TokenType::LBRACKET) {
+                    this->advance();
+                    dimensions++;
+                    if (this->current_tok.type == TokenType::INT) {
+                        array_sizes.push_back(std::stoi(this->current_tok.value));
+                        this->advance();
+                    } else {
+                        array_sizes.push_back(std::nullopt);
+                    }
+                    if (this->current_tok.type != TokenType::RBRACKET) {
+                        res.failure(new InvalidSyntaxError("QC-S049: Expected ']'", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                bool is_array = (dimensions > 0);
                 if (this->current_tok.type == TokenType::AMPERSAND) {
                     this->advance();
                     first_type.value += "&";
@@ -4356,7 +4375,7 @@ Prs Parser::statement() {
                         var_names.push_back(this->current_tok);
                         this->advance();
                     }
-
+                    
                     // Now expect = and the value
                     if (this->current_tok.type != TokenType::EQ) {
                         res.failure(new InvalidSyntaxError("Expected '=' in multi-var declaration", this->current_tok.pos));
@@ -4387,7 +4406,23 @@ Prs Parser::statement() {
                                                        name_tok.pos));
                     return res.to_prs();
                 }
+                if (is_array) {
+                    AnyNode value;
+                    if (this->current_tok.type == TokenType::EQ) {
+                        this->advance();
+                        value = res.reg(this->qout_expr());
+                        if (res.error) return res.to_prs();
+                    } else {
+                        value = default_value_for_type(first_type, name_tok.pos);
+                    }
+                    if (this->current_tok.type != TokenType::SEMICOLON) {
+                        res.failure(new MissingSemicolonError(this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
 
+                    return res.success(new ArrayDeclNode(false, first_type, name_tok, value, dimensions, array_sizes));
+                }
                 AnyNode value;
                 if (this->current_tok.type == TokenType::EQ) {
                     this->advance();
@@ -4551,8 +4586,7 @@ void LLVMCompiler::createUserTypes() {
             std::string actualName = (lastColon == std::string::npos) ? mapKey : mapKey.substr(lastColon + 2);
 
             std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
-
-            llvm::StructType* enumTy = llvm::StructType::create(context, fields, mapKey);
+            llvm::StructType* enumTy = getOrCreateStructType(fields, mapKey);
             enumTypes[mapKey] = enumTy;
             for (size_t i = 0; i < info.enumEntries.size(); i++) {
                 auto& entry = info.enumEntries[i];
@@ -4568,13 +4602,13 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
-            llvm::StructType* structTy = llvm::StructType::create(context, mapKey);
+            llvm::StructType* structTy = getOrCreateStructType(mapKey);
             structTypes[mapKey] = structTy;
         }
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Class) {
-            llvm::StructType* classTy = llvm::StructType::create(context, mapKey);
+            llvm::StructType* classTy = getOrCreateStructType(mapKey);
             classTypes[mapKey] = classTy;
         }
     }
@@ -4667,8 +4701,7 @@ void LLVMCompiler::createUserTypes() {
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Union) {
             std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
-
-            llvm::StructType* unionTy = llvm::StructType::create(context, fields, mapKey);
+            llvm::StructType* unionTy = getOrCreateStructType(fields, mapKey);
             unionTypes[mapKey] = unionTy;
         }
     }
@@ -9584,12 +9617,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     typeCode = 4;
                 else if (argTy->isIntegerTy(2))
                     typeCode = 5;
-                else if (argTy->isPointerTy())
+                else
                     typeCode = 6;
-                else {
-                    cg_error((*methodCall)->method_name.pos, "Unsupported type for push");
-                    return nullptr;
-                }
 
                 llvm::Function* pushFn = module->getFunction("qc_list_push");
                 if (!pushFn) {
@@ -9600,7 +9629,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::AllocaInst* argAlloc = createEntryAlloca("push_arg", argVal->getType());
                 builder->CreateStore(argVal, argAlloc);
                 llvm::Value* argPtr = builder->CreateBitCast(argAlloc, builder->getPtrTy());
-                builder->CreateCall(pushFn, {baseVal, argPtr, builder->getInt32(6)});
+                llvm::Value* actualListPtr = baseVal;
+                if (llvm::isa<llvm::AllocaInst>(baseVal)) {
+                    actualListPtr = builder->CreateLoad(builder->getPtrTy(), baseVal, "loaded_list_ptr");
+                }
+                builder->CreateCall(pushFn, {actualListPtr, argPtr, builder->getInt32(typeCode)});
                 return nullptr;
             }
 
@@ -11677,7 +11710,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
         std::string elemType = typeStr.substr(start + 1, end - start - 1);
 
         int elemTypeCode = -1;
-        if (elemType == "int")
+        if (elemType == "int" || elemType == "short int" || elemType == "addr_t" || elemType == "long int")
             elemTypeCode = 0;
         else if (elemType == "float")
             elemTypeCode = 1;
@@ -11689,7 +11722,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             elemTypeCode = 4;
         else if (elemType == "qbool")
             elemTypeCode = 5;
-        else if (elemType == "string")
+        else
             elemTypeCode = 6;
         llvm::Function* createFn = module->getFunction("qc_create_list");
         if (!createFn) {
@@ -12047,8 +12080,10 @@ std::vector<CTError> LLVMCompiler::compile(
         } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
-
             std::string funcName = fnPtr->name_tok.value().value;
+            if (funcName == entrypointName && !this->is_main) {
+                continue;
+            }
             functionDefs[funcName] = fnPtr;
         }
     }
@@ -12076,6 +12111,10 @@ std::vector<CTError> LLVMCompiler::compile(
         for (auto& decl : ns.body) {
             if (auto fn = safe_get<FuncDefNode>(decl)) {
                 if (fn->name_tok.has_value()) {
+                    if (fn->name_tok.value().value == entrypointName && !this->is_main) {
+                        continue;
+                    }
+     
                     if (!funcHasAutoParams(fn)) { emitFuncDef(*fn); }
                 }
             } else if (auto va = std::get_if<VarAssignNode*>(&decl)) {
@@ -12096,6 +12135,9 @@ std::vector<CTError> LLVMCompiler::compile(
         } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
+            if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) {
+                continue;
+            }
             if (!funcHasAutoParams(fnPtr)) { emitFuncDef(*fnPtr); }
         }
     }
@@ -12609,7 +12651,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         Ler file_resp = lexer.make_tokens();
         Parser parser(file_resp.Tkns, visible_types);
         bool saved_no_main = no_main;
-        no_main = path == file ? no_main : true;
+        no_main = ((path == file) ? no_main : true);
         Aer ast = parser.parse();
         no_main = saved_no_main;
         type_registry[path] = ast.user_types;
@@ -12629,19 +12671,27 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         std::cout << "==============" << std::endl << std::endl;
     }
     if (ast.error) { return Mer{ast, resp, ""}; }
-    if (config.print_ast && config.raw) {
-        std::cout << "=== AST ===" << std::endl;
-        for (const auto& stmt : ast.statements->statements) { std::cout << indent_ast(printAny(stmt)); }
-        std::cout << "===========" << std::endl << std::endl;
-    } else if (config.print_ast && config.bst) {
-        std::cout << "=== AST ===" << std::endl;
-        for (const auto& stmt : ast.statements->statements) { std::cout << bst_diagram(printAny(stmt)); }
-        std::cout << "===========" << std::endl << std::endl;
-    } else if (config.print_ast) {
-        std::cout << "=== AST ===" << std::endl;
-        for (const auto& stmt : ast.statements->statements) { std::cout << asciiTreeAST(printAny(stmt)); }
-        std::cout << "===========" << std::endl << std::endl;
+    if (config.print_ast) {
+    std::cout << "=== AST ===" << std::endl;
+    for (const auto& [filepath, astd] : file_asts) {
+        std::cout << "--- File: " << filepath << " ---" << std::endl;
+        if (!astd.statements) {
+            std::cout << "  (Empty AST)" << std::endl;
+            continue;
+        }
+        for (const auto& stmt : astd.statements->statements) {
+            if (config.raw) {
+                std::cout << indent_ast(printAny(stmt));
+            } else if (config.bst) {
+                std::cout << bst_diagram(printAny(stmt));
+            } else {
+                std::cout << asciiTreeAST(printAny(stmt));
+            }
+        }
     }
+    std::cout << "===========" << std::endl << std::endl;
+}
+    try {
     // compiler
 #ifdef ENABLE_LLVM
     if (config.compile_mode) {
@@ -12730,12 +12780,9 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     if (d_spec.count(ns)) { visSpec[ns] = d_spec.at(ns); }
                 }
             }
-            bool saved_no_main = no_main;
-            no_main = (filepath != file ? true : saved_no_main);
             LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
             std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLists, visLen,
                                                      visMaps, visVars, visAlloc, visLamb, visSpec, visGlobals);
-            no_main = saved_no_main;
             if (!errs.empty()) {
                 for (auto& err : errs) diagnostics.push_back({new RTError(err.details, err.pos), "Error"});
                 break;
@@ -12828,9 +12875,15 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         std::remove(obj_file.c_str());
 
         message += ". Built executable: " + final_exe;
+        if (config.quiet_mode) message = "";
         return Mer{ast, resp, message, diagnostics};
     }
 #endif
+    } catch (const char* err) {
+        std::cout << err << '\n';
+    } catch (...) {
+        std::cout << "unknown error" << '\n';
+    }
     return Mer{ast, resp, "", std::vector<Diagnostic>{}};
 }
 
@@ -13099,12 +13152,13 @@ Token Lexer::make_fstring() {
 }
 Token Lexer::make_raw_string() {
     Position start_pos = this->pos.copy();
-    std::string start_delim = "";
-    while (this->current_char != '\0' && this->current_char != '"') {
+    std::string start_delim = "\"";
+    this->advance();
+    while (this->current_char != '\0' && this->current_char != '(' && this->current_char != '\\' && this->current_char != ' ') {
         start_delim += this->current_char;
         this->advance();
     }
-    start_delim += '"';
+    start_delim += '(';
     this->advance();
     std::string end_marker = start_delim;
     std::reverse(end_marker.begin(), end_marker.end());
@@ -13152,7 +13206,7 @@ Ler Lexer::make_tokens() {
             this->advance();
             tokens.push_back(this->make_fstring());
             continue;
-        } else if (this->current_char == 'R' && this->text[this->pos.index + 1] == '(') {
+        } else if (this->current_char == 'R' && this->text[this->pos.index + 1] == '"') {
             this->advance();
             tokens.push_back(this->make_raw_string());
             continue;
@@ -13461,9 +13515,8 @@ std::string resolve_path(const std::string& current_file, const std::string& inc
     std::filesystem::path current(current_file);
     std::filesystem::path include(include_path);
     if (include.is_absolute()) { return include.string(); }
-
     std::filesystem::path resolved = current.parent_path() / include;
-    return resolved.string();
+    return std::filesystem::weakly_canonical(resolved).string();
 }
 PreprocessResult preprocess_includes(const std::string& source, const std::string& current_file) {
     PreprocessResult res;
@@ -13505,20 +13558,24 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         }
         size_t start = source.find('<', pos);
         size_t end = source.find('>', start);
-
         std::string directive = source.substr(start + 1, end - start - 1);
-        size_t curr_pos = 0;
         std::vector<std::string> ns_names = {};
-        size_t segment_start = 0;
-        for (size_t comma = directive.find(',', segment_start); comma != std::string::npos;) {
-            curr_pos = comma + 1;
-            std::string ns_name = trim(directive.substr(segment_start, comma - segment_start));
-            res.accessible_namespaces.insert(ns_name);
-            ns_names.push_back(ns_name);
-            segment_start = comma + 1;
-            comma = directive.find(',', segment_start);
+        size_t last_comma = directive.find_last_of(',');
+        std::string path;
+        if (last_comma == std::string::npos) {
+            throw std::runtime_error("You cannot include just a path");
+        } else {
+            path = trim(directive.substr(last_comma + 1));
+            std::string namespaces_part = directive.substr(0, last_comma);
+            size_t segment_start = 0;
+            size_t comma = namespaces_part.find(',', segment_start);
+            while (comma != std::string::npos) {
+                ns_names.push_back(trim(namespaces_part.substr(segment_start, comma - segment_start)));
+                segment_start = comma + 1;
+                comma = namespaces_part.find(',', segment_start);
+            }
+            ns_names.push_back(trim(namespaces_part.substr(segment_start)));
         }
-        std::string path = trim(directive.substr(curr_pos));
         if (!path.empty() && path.front() == '"') { path = path.substr(1); }
         if (!path.empty() && path.back() == '"') { path = path.substr(0, path.size() - 1); }
         std::string full_path;

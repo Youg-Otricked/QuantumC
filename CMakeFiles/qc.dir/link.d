@@ -82,6 +82,9 @@ qc: \
   /usr/lib/llvm-21/lib/libLLVMXCoreCodeGen.a \
   /usr/lib/llvm-21/lib/libLLVMM68kCodeGen.a \
   /usr/lib/llvm-21/lib/libLLVMXtensaCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyCodeGen.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyAsmParser.a \
+  /usr/lib/llvm-21/lib/libLLVMWebAssemblyDesc.a \
   /usr/lib/llvm-21/lib/libLLVMX86Desc.a \
   /usr/lib/llvm-21/lib/libLLVMX86Info.a \
   /usr/lib/llvm-21/lib/libLLVMM68kDesc.a \
@@ -192,7 +195,6 @@ qc: \
   /usr/lib/x86_64-linux-gnu/libz3.so \
   /usr/lib/x86_64-linux-gnu/libz.so \
   /usr/lib/x86_64-linux-gnu/libzstd.so \
-  /usr/lib/x86_64-linux-gnu/libffi.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/../../../x86_64-linux-gnu/libm.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/../../../x86_64-linux-gnu/libm.so \
@@ -385,6 +387,12 @@ CMakeFiles/qc.dir/runtime_embed.cpp.o:
 /usr/lib/llvm-21/lib/libLLVMM68kCodeGen.a:
 
 /usr/lib/llvm-21/lib/libLLVMXtensaCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyCodeGen.a:
+
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyAsmParser.a:
+
+/usr/lib/llvm-21/lib/libLLVMWebAssemblyDesc.a:
 
 /usr/lib/llvm-21/lib/libLLVMX86Desc.a:
 
@@ -605,8 +613,6 @@ CMakeFiles/qc.dir/runtime_embed.cpp.o:
 /usr/lib/x86_64-linux-gnu/libz.so:
 
 /usr/lib/x86_64-linux-gnu/libzstd.so:
-
-/usr/lib/x86_64-linux-gnu/libffi.so:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so:
 

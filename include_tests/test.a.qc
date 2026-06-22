@@ -1,4 +1,5 @@
-#nomain
+int main() {
+}
 namespace ImImportant {
     int x = 0;
     int add(int z, int y) {

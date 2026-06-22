@@ -9,7 +9,6 @@ class Y {
 } 
 Y proves X;
 ```
-- Link multiple qc files by compile then compile then link. basically just compile all files with oo then `clang <file .o s>`
 - Try/Catch 
 - Polymorphic pointers. Class* = &Child
 - Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`)
@@ -63,7 +62,6 @@ typedef struct {
 - Constexpr
 - Debug
 - ~destructor
-- … varadics
 - Void in () which means dont call with params or () and only for code block functions
 ```cpp
 void loop(void) code {
@@ -89,7 +87,7 @@ TOP PRIORITY:
 8. Token/ident/type/keyword/usertype direct type (parser refactor)
 9. Codeblocks.
 10. Concepts
-11. Modifier
+11. Modifier (x1.0.0)
 12. CQB.
 13. Other stuff
 14. Metadata

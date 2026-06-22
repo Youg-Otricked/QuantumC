@@ -1,10 +1,5 @@
 namespace Exported {
-    #include <AdvQBool, ./stdlib.qc>
-    #include <Utils, ./stdlib.qc>
-    #include <Collections, ./stdlib.qc>
-    #include <Math, ./stdlib.qc>
-    #include <UnitTest, ./stdlib.qc>
-    #include <OSInterop, ./stdlib.qc>
+    #include <AdvQBool, Utils, Collections, Math, UnitTest, OSInterop, ./stdlib.qc>
 }
 
 int main() {
@@ -12,7 +7,7 @@ int main() {
     
     // ✅ TEST UTILS
     qout("--- Testing Utils ---\n");
-    list<int> r1[] = Utils::range(0, 10, 2);
+    list<int> r1 = Utils::range(0, 10, 2);
     qout("%i\n", r1.length);
     qout("%s", f"range(0, 10, 2): {r1[0]}, {r1[1]}, {r1[2]}, {r1[3]}, {r1[4]}\n");  // 0, 2, 4, 6, 8
     list<int> r2 = Utils::range(10, 0, -1);
