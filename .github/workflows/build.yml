@@ -148,10 +148,11 @@ jobs:
         run: |
           mkdir -p build
           cd build
+
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS="-I/usr/lib/llvm-21/include" \
-            -DLLVM_INCLUDE_DIRS=/usr/lib/llvm-21/include
+            -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm \
+            -DCMAKE_PREFIX_PATH=/usr/lib/llvm-21    
       - name: Build
         run: |
           cd build
