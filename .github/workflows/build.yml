@@ -147,6 +147,8 @@ jobs:
             -DLLVM_TARGETS_TO_BUILD="X86;WebAssembly" \
             -DLLVM_ENABLE_PROJECTS="clang" \
             -DLLVM_INCLUDE_TESTS=OFF \
+            -DCLANG_ENABLE_INTERPRETER=OFF \
+            -DCLANG_ENABLE_REPL=OFF \
           -DLLVM_INCLUDE_EXAMPLES=OFF \
           -DLLVM_INCLUDE_BENCHMARKS=OFF \
           -DLLVM_ENABLE_ZLIB=OFF \
@@ -162,7 +164,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: llvm-install
-          key: llvm-wasm-${{ runner.os }}-21
+          key: llvm-build-${{ runner.os }}-21
       - name: Build QuantumC (WASM)
         run: |
           mkdir -p build
