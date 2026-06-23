@@ -145,11 +145,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
             -DLLVM_TARGETS_TO_BUILD="WebAssembly" \
-            -DLLVM_ENABLE_PROJECTS="clang" \
+            -DLLVM_ENABLE_PROJECTS="" \
             -DLLVM_INCLUDE_TESTS=OFF \
-            -DLLVM_TOOL_CLANG_REPL_BUILD=OFF \
-            -DCLANG_ENABLE_ARCMT=OFF \
-            -DCLANG_ENABLE_STATIC_ANALYZER=OFF \
           -DLLVM_INCLUDE_EXAMPLES=OFF \
           -DLLVM_INCLUDE_BENCHMARKS=OFF \
           -DLLVM_ENABLE_ZLIB=OFF \
