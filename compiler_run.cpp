@@ -493,9 +493,12 @@ extern "C" {
         auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true});
         
         if (result.ast.error) {
-            return result.ast.error->as_string();
-        } else if (result.diagnostics) {
-            std::string res = "";
+            output = result.ast.error->as_string();
+            return output.c_str();
+        } else if (result.errors) {
+            output.clear();
+            bool has_warnings;
+            bool has_fatal;
             for (const auto& diag : result.errors) {
                 std::string color;
                 if (diag.level == "Warning") {
@@ -512,9 +515,9 @@ extern "C" {
                     has_fatal = true;
                 }
 
-                res += diag.error->as_string() + "\n";
+                output += diag.error->as_string() + "\n";
             }
-            return res.c_str();
+            return output.c_str();
         }
         std::ifstream file("a.o", std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
