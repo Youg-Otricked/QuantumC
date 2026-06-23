@@ -124,65 +124,54 @@ jobs:
         uses: mymindstorm/setup-emsdk@v13
         with:
           version: 'latest'
-      - name: Restore LLVM WASM Libraries Cache
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            cmake ninja-build git \
+            zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
+      - name: Restore LLVM cache
         id: cache-llvm
         uses: actions/cache/restore@v4
         with:
-          path: llvm-wasm-dist
-          key: ${{ runner.os }}-llvm-wasm-21
-      - name: Build LLVM (clean install)
+          path: llvm-install
+          key: llvm-install-${{ runner.os }}-21
+      - name: Build LLVM (host)
         if: steps.cache-llvm.outputs.cache-hit != 'true'
         run: |
-            git clone --depth 1 https://github.com/llvm/llvm-project.git
-            cd llvm-project
-            mkdir build
-            cd build
-            cmake ../llvm \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
-              -DLLVM_TARGETS_TO_BUILD=WebAssembly \
-              -DLLVM_ENABLE_PROJECTS="clang;lld" \
-              -DLLVM_INCLUDE_TESTS=OFF \
-              -DLLVM_INCLUDE_EXAMPLES=OFF \
-              -DLLVM_ENABLE_ZLIB=OFF \
-              -DLLVM_ENABLE_TERMINFO=OFF \
-              -DLLVM_ENABLE_LIBXML2=OFF \
-              -DLLVM_ENABLE_LIBEDIT=OFF \
-              -DLLVM_ENABLE_FFI=OFF \
-              -DLLVM_ENABLE_ZSTD=OFF
-            cmake --build . -j$(nproc)
-            cmake --install .      
-      - name: Save LLVM WASM Cache
-        if: steps.cache-llvm.outputs.cache-hit != 'true' && always()
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
+          cd llvm-project
+          cmake -S llvm -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
+            -DLLVM_TARGETS_TO_BUILD=host \
+            -DLLVM_ENABLE_PROJECTS="clang" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLLVM_INCLUDE_EXAMPLES=OFF \
+            -DLLVM_ENABLE_ZLIB=OFF \
+            -DLLVM_ENABLE_TERMINFO=OFF \
+            -DLLVM_ENABLE_LIBXML2=OFF \
+            -DLLVM_ENABLE_LIBEDIT=OFF \
+            -DLLVM_ENABLE_FFI=OFF \
+            -DLLVM_ENABLE_ZSTD=OFF
+          cmake --build build -j$(nproc)
+          cmake --install build
+      - name: Save LLVM cache
+        if: steps.cache-llvm.outputs.cache-hit != 'true' && success()
         uses: actions/cache/save@v4
         with:
-          path: llvm-wasm-dist
-          key: ${{ runner.os }}-llvm-wasm-21
-      - name: Check LLVM headers
-        run: |
-          find llvm-wasm-dist/include -name IRBuilder.h
-          ls llvm-wasm-dist/include/llvm/IR | head
-      - name: Fix LLVM paths
-        run: |
-          LLVM_CMAKE="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
-          sed -i \
-            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/build-wasm/\\./lib/cmake/llvm|$LLVM_CMAKE|g" \
-            "$LLVM_CMAKE/LLVMConfig.cmake"
-          sed -i \
-            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/llvm/cmake/modules|$LLVM_CMAKE|g" \
-            "$LLVM_CMAKE/LLVMConfig.cmake"
-          grep -n "LLVMExports" "$LLVM_CMAKE/LLVMConfig.cmake"
-      - name: Build QuantumC
+          path: llvm-install
+          key: llvm-install-${{ runner.os }}-21
+      - name: Build QuantumC (WASM)
         run: |
           mkdir -p build
           cd build
-
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
-            -DLLVM_WASM_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
-            -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
-          emmake make -j$(nproc)      
+            -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+
+          emmake make -j$(nproc)
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
