@@ -1,3 +1,0 @@
-gmake[2]: *** [CMakeFiles/qc.dir/build.make:83: CMakeFiles/qc.dir/compiler.cpp.o] Interrupt
-gmake[1]: *** [CMakeFiles/Makefile2:92: CMakeFiles/qc.dir/all] Interrupt
-gmake: *** [Makefile:91: all] Interrupt
