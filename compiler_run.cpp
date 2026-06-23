@@ -469,6 +469,7 @@ Examples:
     return 0;
 }
 #ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
 #include <fstream>
 #include <vector>
 static std::vector<char> binary_buffer;
@@ -513,7 +514,7 @@ extern "C" {
 
                 res += diag.error->as_string() + "\n";
             }
-            return res;
+            return res.c_str();
         }
         std::ifstream file("a.o", std::ios::binary | std::ios::ate);
         if (!file.is_open()) {
