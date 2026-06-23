@@ -484,9 +484,26 @@ const char* run_quantumc_code(const char* code) {
 
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
-
-    auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true, false, false, "O0", "a.out", true});
-
+    // wow. comments in my codebase? crazy.
+    auto result = tkz::run("<wasm>", code, tkz::RunConfig{
+        true,              // use_context
+        false,             // looser_types
+        false,             // print_ast
+        false,             // print_tokens
+        false,             // show_time
+        false,             // quiet_mode
+        false,             // raw
+        false,             // bst
+        true,              // compile_mode 
+        false,             // interpret_mode
+        false,             // compile_only
+        true,              // object_only
+        false,             // debug
+        false,             // optimize
+        "O0",              // opt_level
+        "/working/a.out",  // output_file
+        false              // output_wasm
+    });    
     if (result.ast.error) {
         output = result.ast.error->as_string();
         return output.c_str();
@@ -503,7 +520,7 @@ const char* run_quantumc_code(const char* code) {
                 color = MAGENTA;
                 has_fatal = true;
             } else if (diag.level == "Severe") {
-                color = RED;
+                color = RE
                 has_fatal = true;
             } else if (diag.level == "Fatal") {
                 color = RED;
