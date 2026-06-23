@@ -118,45 +118,60 @@ jobs:
   build-wasm:
     runs-on: ubuntu-latest
     needs: ['tag']
-    container:
-      image: debian:sid
     steps:
       - uses: actions/checkout@v4
-      - name: Install base dependencies
-        run: |
-          apt update
-          apt install -y \
-            bash \
-            curl \
-            git \
-            unzip \
-            python3 \
-            ca-certificates \
-            xz-utils
-      - name: Install deps
-        run: |
-          apt update
-          apt install -y \
-            llvm-21 llvm-21-dev clang-21 \
-            cmake ninja-build git \
-            libffi-dev libxml2-dev libedit-dev libzstd-dev \
-            zlib1g-dev zlib1g-dev cmake-data pkg-config
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v13
         with:
-          version: latest
-      - name: Configure WASM build
+          version: 'latest'
+      - name: Install dependencies
+        run: |
+            sudo apt update
+            sudo apt install -y \
+              cmake ninja-build git \
+              zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
+      - name: Restore LLVM cache
+        id: cache-llvm
+        uses: actions/cache/restore@v4
+        with:
+          path: llvm-install
+          key: llvm-install-${{ runner.os }}-21
+      - name: Build LLVM (host)
+        if: steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/llvm/llvm-project.git
+          cd llvm-project
+          cmake -S llvm -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
+            -DLLVM_TARGETS_TO_BUILD="X86;WebAssembly" \
+            -DLLVM_ENABLE_PROJECTS="" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+          -DLLVM_INCLUDE_EXAMPLES=OFF \
+          -DLLVM_INCLUDE_BENCHMARKS=OFF \
+          -DLLVM_ENABLE_ZLIB=OFF \
+          -DLLVM_ENABLE_TERMINFO=OFF \
+          -DLLVM_ENABLE_LIBXML2=OFF \
+          -DLLVM_ENABLE_LIBEDIT=OFF \
+          -DLLVM_ENABLE_FFI=OFF \
+          -DLLVM_ENABLE_ZSTD=OFF
+          ninja -C build -j$(nproc)
+          ninja -C build install
+      - name: Save LLVM cache
+        if: steps.cache-llvm.outputs.cache-hit != 'true' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: llvm-install
+          key: llvm-install-${{ runner.os }}-21
+      - name: Build QuantumC (WASM)
         run: |
           mkdir -p build
           cd build
-
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm \
-            -DCMAKE_PREFIX_PATH=/usr/lib/llvm-21    
-      - name: Build
-        run: |
-          cd build
+            -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+
           emmake make -j$(nproc)
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
@@ -165,7 +180,7 @@ jobs:
           path: |
             build/qc.js
             build/qc.wasm
-            build/qc.data  
+            build/qc.data
   deploy-to-website:  
     needs: [build-wasm, tag]
     runs-on: ubuntu-latest
