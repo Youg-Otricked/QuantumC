@@ -519,16 +519,6 @@ extern "C" {
             }
             return output.c_str();
         }
-        std::ifstream file("a.o", std::ios::binary | std::ios::ate);
-        if (!file.is_open()) {
-            return "Error: Could not open output file a.o";
-        }
-        std::streamsize size = file.tellg();
-        file.seekg(0, std::ios::beg);
-        binary_buffer.resize(size);
-        if (file.read(binary_buffer.data(), size)) {
             return "Success";
-        }
-        return "Error: Failed to read binary data";    }
 }
 #endif
