@@ -483,7 +483,7 @@ extern "C" {
         return binary_buffer.data();
     }
     EMSCRIPTEN_KEEPALIVE
-    const char* run_quantumc_compiler(const char* code) {
+    const char* run_quantumc_code(const char* code) {
         static std::string output;
         output.clear();
         
