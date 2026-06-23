@@ -122,10 +122,6 @@ jobs:
       image: debian:sid
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Emscripten
-        uses: mymindstorm/setup-emsdk@v13
-        with:
-          version: latest
       - name: Install base dependencies
         run: |
           apt update
@@ -144,6 +140,10 @@ jobs:
             llvm-21 llvm-21-dev clang-21 \
             cmake ninja-build git \
             libffi-dev libxml2-dev libedit-dev libzstd-dev zlib1g-dev
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v13
+        with:
+          version: latest
       - name: Configure WASM build
         run: |
           mkdir -p build
