@@ -128,8 +128,8 @@ jobs:
           version: latest
       - name: Install deps
         run: |
-          sudo apt update
-          sudo apt install -y \
+          apt update
+          apt install -y \
             llvm-21 llvm-21-dev clang-21 \
             cmake ninja-build git \
             libffi-dev libxml2-dev libedit-dev libzstd-dev zlib1g-dev
