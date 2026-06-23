@@ -7387,7 +7387,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::Type* elemType = builder->getInt32Ty();
                 llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {builder->getInt64Ty()}, false);
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {builder->getIntNTy(getPtrSize())}, false);
                     mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
                 }
                 llvm::Value* size = builder->getInt64(0);
@@ -9901,7 +9901,7 @@ llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
 
     llvm::Function* mallocFn = module->getFunction("malloc");
     if (!mallocFn) {
-        llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
+        llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())}, false);
         mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
     }
 
@@ -10436,7 +10436,7 @@ llvm::Value* LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& element
     }
     llvm::Function* mallocFn = module->getFunction("malloc");
     if (!mallocFn) {
-        llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
+        llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())}, false);
         mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
     }
 
@@ -10653,12 +10653,12 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
                 llvm::Type* destTy = retStructTy->getElementType(i);
                 if (destTy->isPointerTy() && srcTy->isArrayTy()) {
                     llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
-                    llvm::Type* i64Ty = builder->getInt64Ty();
-                    llvm::Value* size = llvm::ConstantInt::get(i64Ty, module->getDataLayout().getTypeAllocSize(arrayType));
+                    llvm::Type* iTy = builder->getIntNTy(getPtrSize());
+                    llvm::Value* size = llvm::ConstantInt::get(iTy, module->getDataLayout().getTypeAllocSize(arrayType));
 
                     llvm::Function* mallocFn = module->getFunction("malloc");
                     if (!mallocFn) {
-                        llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {i64Ty}, false);
+                        llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {iTy}, false);
                         mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
                     }
 
@@ -10802,11 +10802,11 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
         if (auto arrayLit = std::get_if<ArrayLiteralNode*>(&(*ret)->value)) {
             if (destTy->isPointerTy() && srcTy->isArrayTy()) {
                 llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
-                llvm::Type* i64Ty = builder->getInt64Ty();
-                llvm::Value* size = llvm::ConstantInt::get(i64Ty, module->getDataLayout().getTypeAllocSize(arrayType));
+                llvm::Type* iTy = builder->getIntNTy(getPtrSize());
+                llvm::Value* size = llvm::ConstantInt::get(iTy, module->getDataLayout().getTypeAllocSize(arrayType));
                 llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {i64Ty}, false);
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {iTy}, false);
                     mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
                 }
 
@@ -11450,7 +11450,7 @@ void LLVMCompiler::emitStmt(AnyNode& node) {
             if (useHeap) {
                 llvm::Function* mallocFn = module->getFunction("malloc");
                 if (!mallocFn) {
-                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getInt64Ty()}, false);
+                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())}, false);
                     mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
                 }
 
