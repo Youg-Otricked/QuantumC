@@ -126,7 +126,9 @@ jobs:
           version: 'latest'
       - name: Install system LLVM
         run: |
-          sudo apt update
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 21
           sudo apt install -y llvm-21 llvm-21-dev clang-21
       - name: Verify LLVM install
         run: |
