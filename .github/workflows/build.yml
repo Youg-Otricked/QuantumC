@@ -126,6 +126,17 @@ jobs:
         uses: mymindstorm/setup-emsdk@v13
         with:
           version: latest
+      - name: Install base dependencies
+        run: |
+          apt update
+          apt install -y \
+            bash \
+            curl \
+            git \
+            unzip \
+            python3 \
+            ca-certificates \
+            xz-utils
       - name: Install deps
         run: |
           apt update
