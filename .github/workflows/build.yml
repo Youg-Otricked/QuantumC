@@ -124,73 +124,25 @@ jobs:
         uses: mymindstorm/setup-emsdk@v13
         with:
           version: 'latest'
-      - name: Restore LLVM WASM Libraries Cache
-        id: cache-llvm
-        uses: actions/cache/restore@v4
-        with:
-          path: llvm-wasm-dist
-          key: ${{ runner.os }}-llvm-wasm-21
-      - name: Build LLVM for WASM (If not cached)
-        if: steps.cache-llvm.outputs.cache-hit != 'true'
+      - name: Install system LLVM
         run: |
-          git clone --depth 1 https://github.com/llvm/llvm-project.git
-          cd llvm-project
-          mkdir -p build-host
-          cd build-host
-          cmake ../llvm \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_TARGETS_TO_BUILD=WebAssembly
-          cmake --build . --target llvm-min-tblgen llvm-tblgen -j$(nproc)
-          cd ..
-          mkdir -p build-wasm
-          cd build-wasm
-          emcmake cmake ../llvm \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_TARGETS_TO_BUILD=WebAssembly \
-            -DLLVM_INCLUDE_TESTS=OFF \
-            -DLLVM_INCLUDE_EXAMPLES=OFF \
-            -DLLVM_ENABLE_THREADS=OFF \
-            -DLLVM_ENABLE_ZLIB=OFF \
-            -DLLVM_ENABLE_BACKTRACES=OFF \
-            -DLLVM_ENABLE_TERMINFO=OFF \
-            -DLLVM_TABLEGEN=/home/runner/work/QuantumC/QuantumC/llvm-project/build-host/bin/llvm-tblgen \
-            -DLLVM_CONFIG_PATH=/usr/bin/llvm-config          
-          emmake make -j$(nproc)
-          mkdir -p ../../llvm-wasm-dist
-          cp -r include ../../llvm-wasm-dist/
-          cp -r lib ../../llvm-wasm-dist/
-          cp -r bin ../../llvm-wasm-dist/
-      - name: Save LLVM WASM Cache
-        if: steps.cache-llvm.outputs.cache-hit != 'true' && always()
-        uses: actions/cache/save@v4
-        with:
-          path: llvm-wasm-dist
-          key: ${{ runner.os }}-llvm-wasm-21
-      - name: Check LLVM headers
+          sudo apt update
+          sudo apt install -y llvm-21 llvm-21-dev clang-21
+      - name: Verify LLVM install
         run: |
-          find llvm-wasm-dist/include -name IRBuilder.h
-          ls llvm-wasm-dist/include/llvm/IR | head
-      - name: Fix LLVM paths
-        run: |
-          LLVM_CMAKE="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
-          sed -i \
-            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/build-wasm/\\./lib/cmake/llvm|$LLVM_CMAKE|g" \
-            "$LLVM_CMAKE/LLVMConfig.cmake"
-          sed -i \
-            "s|/home/runner/work/QuantumC/QuantumC/llvm-project/llvm/cmake/modules|$LLVM_CMAKE|g" \
-            "$LLVM_CMAKE/LLVMConfig.cmake"
-          grep -n "LLVMExports" "$LLVM_CMAKE/LLVMConfig.cmake"
-      - name: Build QuantumC
+          llvm-config-21 --version
+          llvm-config-21 --includedir
+          llvm-config-21 --libdir
+      - name: Build QuantumC (WASM)
         run: |
           mkdir -p build
           cd build
-
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
-            -DLLVM_WASM_PATH="$GITHUB_WORKSPACE/llvm-wasm-dist" \
-            -DLLVM_DIR="$GITHUB_WORKSPACE/llvm-wasm-dist/lib/cmake/llvm"
-          emmake make -j$(nproc)      
+            -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm \
+            -DCMAKE_C_COMPILER=emcc \
+            -DCMAKE_CXX_COMPILER=em++
+          emmake make -j$(nproc)
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
@@ -198,7 +150,7 @@ jobs:
           path: |
             build/qc.js
             build/qc.wasm
-            build/qc.data  
+            build/qc.data 
   deploy-to-website:  
     needs: [build-wasm, tag]
     runs-on: ubuntu-latest
