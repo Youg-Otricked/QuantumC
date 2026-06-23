@@ -139,7 +139,8 @@ jobs:
           apt install -y \
             llvm-21 llvm-21-dev clang-21 \
             cmake ninja-build git \
-            libffi-dev libxml2-dev libedit-dev libzstd-dev zlib1g-dev
+            libffi-dev libxml2-dev libedit-dev libzstd-dev \
+            zlib1g-dev zlib1g-dev cmake-data pkg-config
       - name: Setup Emscripten
         uses: mymindstorm/setup-emsdk@v13
         with:
