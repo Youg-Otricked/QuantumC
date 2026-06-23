@@ -485,7 +485,7 @@ const char* run_quantumc_code(const char* code) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
 
-    auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true});
+    auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true, false, false, "O0", "a.out", true});
 
     if (result.ast.error) {
         output = result.ast.error->as_string();
