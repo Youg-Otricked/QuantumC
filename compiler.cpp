@@ -12540,7 +12540,7 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug) {
         return 1;
     }
     llvm::legacy::PassManager PM;
-    if (TM->addPassesToEmitFile(PM, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
+    if (TM->addPassesToEmitFile(PM, dest, nullptr, llvm::CodeGenFileType::WasmObjectFile)) {
         llvm::errs() << "TargetMachine cannot emit file\n";
         return 1;
     }

@@ -87,6 +87,7 @@ if(EMSCRIPTEN)
             -s EXPORT_NAME=\"QuantumC\" \
             -s TOTAL_MEMORY=805306368 \
             -s ASSERTIONS=1 \
+            -Oz \
             -s NO_DISABLE_EXCEPTION_CATCHING"
     )
 endif()
