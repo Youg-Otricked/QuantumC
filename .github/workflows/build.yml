@@ -172,7 +172,7 @@ jobs:
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
 
-          emmake make -j$(nproc)
+          emmake make -j$(nproc) VERBOSE=1
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
