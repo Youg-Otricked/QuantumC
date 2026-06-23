@@ -12529,8 +12529,7 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug) {
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
-
-    std::string triple = llvm::sys::getDefaultTargetTriple();
+    llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
     M.setTargetTriple(llvm::Triple(triple));
 
     std::string err;
