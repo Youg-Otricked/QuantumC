@@ -144,11 +144,13 @@ jobs:
           emcmake cmake -S llvm -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
-            -DLLVM_TARGETS_TO_BUILD="X86;WebAssembly" \
+            -DLLVM_TARGETS_TO_BUILD="WebAssembly" \
             -DLLVM_ENABLE_PROJECTS="clang" \
             -DLLVM_INCLUDE_TESTS=OFF \
-            -DCLANG_ENABLE_INTERPRETER=OFF \
-            -DCLANG_ENABLE_REPL=OFF \
+            -DLLVM_TOOL_CLANG_REPL_BUILD=OFF \
+            -DCLANG_ENABLE_ARCMT=OFF \
+            -DCLANG_ENABLE_STATIC_ANALYZER=OFF
+
           -DLLVM_INCLUDE_EXAMPLES=OFF \
           -DLLVM_INCLUDE_BENCHMARKS=OFF \
           -DLLVM_ENABLE_ZLIB=OFF \
@@ -164,7 +166,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: llvm-install
-          key: llvm-build-${{ runner.os }}-21
+          key: llvm-wasm-${{ runner.os }}-21
       - name: Build QuantumC (WASM)
         run: |
           mkdir -p build
