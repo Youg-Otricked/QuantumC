@@ -4,18 +4,18 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <limits>
+#include <cstddef>
 extern "C" {
-void* qc_malloc(uintptr_t size) {
+void* qc_malloc(size_t size) {
     return malloc(size);
 }
 void qc_free(void* ptr) {
     free(ptr);
 }
-void* qc_realloc(void* ptr, uintptr_t size) {
+void* qc_realloc(void* ptr, size_t size) {
     return realloc(ptr, size);
 }
-void* qc_calloc(uintptr_t num, uintptr_t size) {
+void* qc_calloc(size_t num, size_t size) {
     return calloc(num, size);
 }
 char* qc_fmt_int(long long v, int width, int precision, bool zero_pad) {
@@ -40,7 +40,7 @@ char* qc_fmt_int(long long v, int width, int precision, bool zero_pad) {
 void qc_flush() {
     fflush(NULL);
 }
-char* qc_fmt_unsigned_int(uintptr_t v, bool zero_pad) {
+char* qc_fmt_unsigned_int(size_t v, bool zero_pad) {
     char fmt[32];
     if (zero_pad) {
         snprintf(fmt, sizeof(fmt), "%%llu");
@@ -178,7 +178,7 @@ char* qc_fmt_qbool(uint8_t q, int width, bool zero_pad) {
 char* qc_fmt_ptr(void* p, int width, bool zero_pad) {
     char buf[64];
     if (zero_pad && width > 0)
-        snprintf(buf, sizeof(buf), "0x%0*jx", width, (uintmax_t)(uintptr_t)p);
+        snprintf(buf, sizeof(buf), "0x%0*jx", width, (uintmax_t)(size_t)p);
     else if (width > 0)
         snprintf(buf, sizeof(buf), "%*p", width, p);
     else
@@ -570,8 +570,8 @@ short qc_to_short_int_from_string(const char* str) {
 long long qc_to_long_int_from_string(const char* str) {
     return str ? strtoll(str, nullptr, 10) : 0;
 }
-uintptr_t qc_to_addr_t_from_string(const char* str) {
-    return str ? static_cast<uintptr_t>(strtoull(str, nullptr, 10)) : 0;
+size_t qc_to_addr_t_from_string(const char* str) {
+    return str ? static_cast<size_t>(strtoull(str, nullptr, 10)) : 0;
 }
 float qc_to_float_from_string(const char* str) {
     return str ? (float)atof(str) : 0.0f;
