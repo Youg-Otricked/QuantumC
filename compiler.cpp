@@ -3869,7 +3869,8 @@ Prs Parser::statement() {
         if (type_tok.value == "list" && this->current_tok.type == TokenType::LESS) {
             this->advance();
 
-            if (this->current_tok.type != TokenType::KEYWORD && !(this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end())) {
+            if (this->current_tok.type != TokenType::KEYWORD &&
+                !(this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end())) {
                 res.failure(new InvalidSyntaxError("QC-S060: Expected element type in list<T>", this->current_tok.pos));
                 return res.to_prs();
             }
@@ -4188,14 +4189,14 @@ Prs Parser::statement() {
             auto* type_ptr = find_type(qualified_name);
             if (type_ptr) { is_type = true; }
             if (is_type) {
-                
+
                 Token next_tok;
                 if (this->index + 1 < tokens.size()) {
                     next_tok = tokens[this->index + 1];
                 } else {
                     next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
                 }
-                
+
                 if (next_tok.type == TokenType::LPAREN) {
                     AnyNode expr = res.reg(this->qout_expr());
                     if (res.error) return res.to_prs();
@@ -4377,7 +4378,7 @@ Prs Parser::statement() {
                         var_names.push_back(this->current_tok);
                         this->advance();
                     }
-                    
+
                     // Now expect = and the value
                     if (this->current_tok.type != TokenType::EQ) {
                         res.failure(new InvalidSyntaxError("Expected '=' in multi-var declaration", this->current_tok.pos));
@@ -4922,14 +4923,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         return llvm::ConstantInt::get(builder->getIntNTy(2), value);
     } else if (auto str = std::get_if<StringNode>(&node)) {
         llvm::Constant* strConstant = llvm::ConstantDataArray::getString(context, str->tok.value, true);
-        llvm::GlobalVariable* globalStr = new llvm::GlobalVariable(
-            *module, strConstant->getType(), true, 
-            llvm::GlobalValue::PrivateLinkage, strConstant, ".str"
-        );
-        std::vector<llvm::Constant*> indices = {
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0)
-        };
+        llvm::GlobalVariable* globalStr = new llvm::GlobalVariable(*module, strConstant->getType(), true, llvm::GlobalValue::PrivateLinkage,
+                                                                   strConstant, ".str");
+        std::vector<llvm::Constant*> indices = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+                                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0)};
         return llvm::ConstantExpr::getInBoundsGetElementPtr(strConstant->getType(), globalStr, indices);
     } else if (auto bin = std::get_if<BinOpNode*>(&node)) {
         TokenType op = (*bin)->op_tok.type;
@@ -6776,7 +6773,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
 
                 srcTy = destTy;
                 break;
-           }
+            }
         }
         for (auto& [enumName, enumTy] : enumTypes) {
             if (srcTy == enumTy) {
@@ -9632,9 +9629,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 builder->CreateStore(argVal, argAlloc);
                 llvm::Value* argPtr = builder->CreateBitCast(argAlloc, builder->getPtrTy());
                 llvm::Value* actualListPtr = baseVal;
-                if (llvm::isa<llvm::AllocaInst>(baseVal)) {
-                    actualListPtr = builder->CreateLoad(builder->getPtrTy(), baseVal, "loaded_list_ptr");
-                }
+                if (llvm::isa<llvm::AllocaInst>(baseVal)) { actualListPtr = builder->CreateLoad(builder->getPtrTy(), baseVal, "loaded_list_ptr"); }
                 builder->CreateCall(pushFn, {actualListPtr, argPtr, builder->getInt32(typeCode)});
                 return nullptr;
             }
@@ -12030,7 +12025,8 @@ std::vector<CTError> LLVMCompiler::compile(
         namespaceStack.push_back(ns.name);
         for (auto& decl : ns.body) {
             if (auto va = std::get_if<VarAssignNode*>(&decl)) {
-                std::string fullName = getCurrentNamespace().empty() ? (*va)->var_name_tok.value : getCurrentNamespace() + "::" + (*va)->var_name_tok.value;
+                std::string fullName = getCurrentNamespace().empty() ? (*va)->var_name_tok.value
+                                                                     : getCurrentNamespace() + "::" + (*va)->var_name_tok.value;
                 llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
                 auto* gv = module->getGlobalVariable(fullName);
                 if (!gv) {
@@ -12083,9 +12079,7 @@ std::vector<CTError> LLVMCompiler::compile(
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
             std::string funcName = fnPtr->name_tok.value().value;
-            if (funcName == entrypointName && !this->is_main) {
-                continue;
-            }
+            if (funcName == entrypointName && !this->is_main) { continue; }
             functionDefs[funcName] = fnPtr;
         }
     }
@@ -12113,14 +12107,12 @@ std::vector<CTError> LLVMCompiler::compile(
         for (auto& decl : ns.body) {
             if (auto fn = safe_get<FuncDefNode>(decl)) {
                 if (fn->name_tok.has_value()) {
-                    if (fn->name_tok.value().value == entrypointName && !this->is_main) {
-                        continue;
-                    }
-     
+                    if (fn->name_tok.value().value == entrypointName && !this->is_main) { continue; }
+
                     if (!funcHasAutoParams(fn)) { emitFuncDef(*fn); }
                 }
             } else if (auto va = std::get_if<VarAssignNode*>(&decl)) {
-                emitExpr(decl); 
+                emitExpr(decl);
             } else if (auto nested = std::get_if<NamespaceNode*>(&decl)) {
                 compileNamespaceFunctions(**nested);
             }
@@ -12137,9 +12129,7 @@ std::vector<CTError> LLVMCompiler::compile(
         } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
-            if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) {
-                continue;
-            }
+            if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) { continue; }
             if (!funcHasAutoParams(fnPtr)) { emitFuncDef(*fnPtr); }
         }
     }
@@ -12525,48 +12515,71 @@ std::string removeExtension(const std::string& filename) {
     return filename.substr(0, lastDot);
 }
 int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug) {
+#ifdef __EMSCRIPTEN__
+    llvm::InitializeAllTargets();
+    llvm::InitializeAllTargetMCs();
+    llvm::InitializeAllAsmPrinters();
+    llvm::InitializeAllAsmParsers();
+    llvm::Triple triple("wasm32-unknown-unknown");
+    M.setTargetTriple(triple);
+    std::string err;
+    const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, err);
+    if (!target) {
+        llvm::errs() << "Target error: " << err << "\n";
+        return 1;
+    }
+    llvm::TargetOptions opt;
+    if (debug) opt.DebuggerTuning = llvm::DebuggerKind::GDB;
+    auto RM = llvm::Reloc::PIC_;
+    llvm::TargetMachine* TM = target->createTargetMachine(triple, "generic", "", opt, RM);
+    M.setDataLayout(TM->createDataLayout());
+    std::error_code EC;
+    llvm::raw_fd_ostream dest(outputPath, EC, llvm::sys::fs::OF_None);
+    if (EC) {
+        llvm::errs() << "Could not open file: " << EC.message() << "\n";
+        return 1;
+    }
+    llvm::legacy::PassManager PM;
+    if (TM->addPassesToEmitFile(PM, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
+        llvm::errs() << "TargetMachine cannot emit file\n";
+        return 1;
+    }
+    PM.run(M);
+    delete TM;
+    return 0;
+#else
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
     llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
-    M.setTargetTriple(llvm::Triple(triple));
-
+    M.setTargetTriple(triple);
     std::string err;
     const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, err);
-
     if (!target) {
         llvm::errs() << "Target error: " << err << "\n";
         return 1;
     }
-
     llvm::TargetOptions opt;
-
-    if (debug) { opt.DebuggerTuning = llvm::DebuggerKind::GDB; }
-
+    if (debug) opt.DebuggerTuning = llvm::DebuggerKind::GDB;
     auto RM = llvm::Reloc::PIC_;
-
-    llvm::TargetMachine* TM = target->createTargetMachine(llvm::Triple(triple), "generic", "", opt, RM);
+    llvm::TargetMachine* TM = target->createTargetMachine(triple, "generic", "", opt, RM);
     M.setDataLayout(TM->createDataLayout());
-
     std::error_code EC;
     llvm::raw_fd_ostream dest(outputPath, EC, llvm::sys::fs::OF_None);
-
     if (EC) {
         llvm::errs() << "Could not open file: " << EC.message() << "\n";
         return 1;
     }
-
     llvm::legacy::PassManager PM;
-
     if (TM->addPassesToEmitFile(PM, dest, nullptr, llvm::CodeGenFileType::ObjectFile)) {
         llvm::errs() << "TargetMachine cannot emit file\n";
         return 1;
     }
-
     PM.run(M);
     delete TM;
     return 0;
+#endif
 }
 Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Check for inline directives
@@ -12673,218 +12686,216 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     }
     if (ast.error) { return Mer{ast, resp, ""}; }
     if (config.print_ast) {
-    std::cout << "=== AST ===" << std::endl;
-    for (const auto& [filepath, astd] : file_asts) {
-        std::cout << "--- File: " << filepath << " ---" << std::endl;
-        if (!astd.statements) {
-            std::cout << "  (Empty AST)" << std::endl;
-            continue;
-        }
-        for (const auto& stmt : astd.statements->statements) {
-            if (config.raw) {
-                std::cout << indent_ast(printAny(stmt));
-            } else if (config.bst) {
-                std::cout << bst_diagram(printAny(stmt));
-            } else {
-                std::cout << asciiTreeAST(printAny(stmt));
+        std::cout << "=== AST ===" << std::endl;
+        for (const auto& [filepath, astd] : file_asts) {
+            std::cout << "--- File: " << filepath << " ---" << std::endl;
+            if (!astd.statements) {
+                std::cout << "  (Empty AST)" << std::endl;
+                continue;
             }
-        }
-    }
-    std::cout << "===========" << std::endl << std::endl;
-}
-    try {
-    // compiler
-#ifdef ENABLE_LLVM
-    if (config.compile_mode) {
-        llvm::LLVMContext context;
-        auto master_module = new llvm::Module("master_module", context);
-        llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
-        llvm::SMDiagnostic err;
-        llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
-        auto modulePtr = llvm::parseIR(bufRef, err, context);
-        if (!modulePtr) { throw "Failed to load runtime.ll"; }
-        if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
-        std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
-        std::unordered_map<std::string, std::unordered_map<std::string, FuncDefNode*>> db_fDefs;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_jagged;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> db_typeStrings;
-        std::unordered_map<std::string, std::unordered_map<std::string, int>> db_lists;
-        std::unordered_map<std::string, std::unordered_map<std::string, int>> db_lengths;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_maps;
-        std::unordered_map<std::string, std::unordered_map<std::string, std::string>> db_vars;
-        std::unordered_map<std::string, std::unordered_map<std::string, llvm::AllocaInst*>> db_allocas;
-        std::unordered_map<std::string, std::unordered_map<std::string, llvm::FunctionType*>> db_lambdas;
-        std::unordered_map<std::string, std::unordered_map<std::string, llvm::GlobalVariable*>> db_globals;
-        std::unordered_map<std::string, std::map<std::string, std::map<std::string, llvm::Function*>>> db_specialized;
-        std::vector<std::string> sorted_files;
-        std::unordered_set<std::string> sort_visited;
-        std::function<void(const std::string&)> sort_visit = [&](const std::string& p) {
-            if (sort_visited.count(p)) return;
-            for (auto const& [dep_p, ns_list] : file_included_namespaces[p]) { sort_visit(dep_p); }
-            sort_visited.insert(p);
-            sorted_files.push_back(p);
-        };
-        sort_visit(file);
-        std::vector<Diagnostic> diagnostics;
-        for (auto& filepath : sorted_files) {
-            std::unordered_map<std::string, FunctionSignature> visSigs;
-            std::unordered_map<std::string, FuncDefNode*> visFDefs;
-            std::unordered_map<std::string, std::pair<int, int>> visJagged;
-            std::unordered_map<std::string, std::string> visTypeStr;
-            std::unordered_map<std::string, int> visLists;
-            std::unordered_map<std::string, int> visLen;
-            std::unordered_map<std::string, std::pair<int, int>> visMaps;
-            std::unordered_map<std::string, std::string> visVars;
-            std::unordered_map<std::string, llvm::AllocaInst*> visAlloc;
-            std::unordered_map<std::string, llvm::GlobalVariable*> visGlobals;
-            std::unordered_map<std::string, llvm::FunctionType*> visLamb;
-            std::map<std::string, std::map<std::string, llvm::Function*>> visSpec;
-            for (auto const& [dep_p, ns_list] : file_included_namespaces[filepath]) {
-                if (db_sigs.find(dep_p) == db_sigs.end()) continue;
-                for (const std::string& ns : ns_list) {
-                    if (ns.empty()) continue;
-                    auto pre = ns + "::";
-                    auto& d_sigs = db_sigs.at(dep_p);
-                    auto& d_fDefs = db_fDefs.at(dep_p);
-                    auto& d_jagged = db_jagged.at(dep_p);
-                    auto& d_typeStr = db_typeStrings.at(dep_p);
-                    auto& d_lists = db_lists.at(dep_p);
-                    auto& d_len = db_lengths.at(dep_p);
-                    auto& d_maps = db_maps.at(dep_p);
-                    auto& d_vars = db_vars.at(dep_p);
-                    auto& d_allocs = db_allocas.at(dep_p);
-                    auto& d_lambs = db_lambdas.at(dep_p);
-                    auto& d_spec = db_specialized.at(dep_p);
-                    auto& d_globals = db_globals.at(dep_p);
-                    for (auto const& [k, v] : d_sigs)
-                        if (k.rfind(pre, 0) == 0) visSigs[k] = v;
-                    for (auto const& [k, v] : d_fDefs)
-                        if (k.rfind(pre, 0) == 0) visFDefs[k] = v;
-                    for (auto const& [k, v] : d_jagged)
-                        if (k.rfind(pre, 0) == 0) visJagged[k] = v;
-                    for (auto const& [k, v] : d_typeStr)
-                        if (k.rfind(pre, 0) == 0) visTypeStr[k] = v;
-                    for (auto const& [k, v] : d_lists)
-                        if (k.rfind(pre, 0) == 0) visLists[k] = v;
-                    for (auto const& [k, v] : d_len)
-                        if (k.rfind(pre, 0) == 0) visLen[k] = v;
-                    for (auto const& [k, v] : d_maps)
-                        if (k.rfind(pre, 0) == 0) visMaps[k] = v;
-                    for (auto const& [k, v] : d_vars)
-                        if (k.rfind(pre, 0) == 0) visVars[k] = v;
-                    for (auto const& [k, v] : d_allocs)
-                        if (k.rfind(pre, 0) == 0) visAlloc[k] = v;
-                    for (auto const& [k, v] : d_lambs)
-                        if (k.rfind(pre, 0) == 0) visLamb[k] = v;
-                    for (auto const& [k, v] : d_globals)
-                        if (k.rfind(pre, 0) == 0) visGlobals[k] = v;
-                    if (d_spec.count(ns)) { visSpec[ns] = d_spec.at(ns); }
+            for (const auto& stmt : astd.statements->statements) {
+                if (config.raw) {
+                    std::cout << indent_ast(printAny(stmt));
+                } else if (config.bst) {
+                    std::cout << bst_diagram(printAny(stmt));
+                } else {
+                    std::cout << asciiTreeAST(printAny(stmt));
                 }
             }
-            LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
-            std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLists, visLen,
-                                                     visMaps, visVars, visAlloc, visLamb, visSpec, visGlobals);
-            if (!errs.empty()) {
-                for (auto& err : errs) diagnostics.push_back({new RTError(err.details, err.pos), "Error"});
-                break;
-            }
-            db_sigs[filepath] = comp.functionSignatures;
-            db_fDefs[filepath] = comp.functionDefs;
-            db_jagged[filepath] = comp.jaggedArraysStack[0];
-            db_typeStrings[filepath] = comp.arrayTypeStringsStack[0];
-            db_lists[filepath] = comp.listsStack[0];
-            db_lengths[filepath] = comp.arrayLengthsStack[0];
-            db_maps[filepath] = comp.mapsStack[0];
-            db_vars[filepath] = comp.varTypesStack[0];
-            db_allocas[filepath] = comp.runtimeArraySizes;
-            db_lambdas[filepath] = comp.lambdaTypes;
-            db_specialized[filepath] = comp.specializedFunctions;
-            db_globals[filepath] = comp.globals;
         }
-        std::string base_name = config.output_file.empty() ? "out" : removeExtension(config.output_file);
-        size_t last_slash = base_name.find_last_of("/\\");
-        std::string dir = (last_slash == std::string::npos) ? "" : base_name.substr(0, last_slash + 1);
-        std::string stem = (last_slash == std::string::npos) ? base_name : base_name.substr(last_slash + 1);
-
-        std::string ll_file = config.compile_only ? base_name + ".ll" : dir + "temp_" + stem + ".ll";
-        std::string obj_file = config.object_only ? base_name + ".o" : dir + "temp_" + stem + ".o";
-        auto end = std::chrono::high_resolution_clock::now();
-        bool error_found = false;
-        if (!diagnostics.empty()) { error_found = true; }
-        std::string message = "Program exited with code: 0";
-        if (error_found) { message = "Program exited with code: 1"; }
-
-        if (!diagnostics.empty()) { return Mer{ast, resp, message, diagnostics}; }
-        std::error_code EC;
-        llvm::raw_fd_ostream out(ll_file, EC, llvm::sys::fs::OF_Text);
-        if (EC) {
-            llvm::errs() << "Failed to open output: " << EC.message() << "\n";
-            message = "Program exited with code: 1";
-            return Mer{ast, resp, message, diagnostics};
-        }
-        for (llvm::Function& F : master_module->functions()) {
-            if (F.getName().starts_with("qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
-        }
-        #ifndef __EMSCRIPTEN__
-        if (config.optimize) {
-            llvm::PassBuilder PB;
-            llvm::LoopAnalysisManager LAM;
-            llvm::FunctionAnalysisManager FAM;
-            llvm::CGSCCAnalysisManager CGAM;
-            llvm::ModuleAnalysisManager MAM;
-            PB.registerModuleAnalyses(MAM);
-            PB.registerCGSCCAnalyses(CGAM);
-            PB.registerFunctionAnalyses(FAM);
-            PB.registerLoopAnalyses(LAM);
-            PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-            llvm::ModulePassManager MPM;
-            auto optimization_level = llvm::OptimizationLevel::O2;
-            switch (config.opt_level[1]) {
-            case '0': optimization_level = llvm::OptimizationLevel::O0; break;
-            case '1': optimization_level = llvm::OptimizationLevel::O1; break;
-            case '2': optimization_level = llvm::OptimizationLevel::O2; break;
-            case '3': optimization_level = llvm::OptimizationLevel::O3; break;
-            case 'z': optimization_level = llvm::OptimizationLevel::Oz; break;
-            default: optimization_level = llvm::OptimizationLevel::O2; break;
-            }
-            MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
-            MPM.run(*master_module, MAM);
-        }
-        #endif
-        master_module->print(out, nullptr);
-        if (config.compile_only) {
-            message += ". Compiled to " + ll_file;
-            return Mer{ast, resp, message, diagnostics};
-        }
-        int llc_result = emitObjectFile(*master_module, obj_file, config.debug);
-        if (llc_result != 0) {
-            diagnostics.push_back({new RTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
-            return Mer{ast, resp, message, diagnostics};
-        }
-        if (config.object_only) {
-            std::remove(ll_file.c_str());
-            message += ". Compiled to " + obj_file;
-            return Mer{ast, resp, message, diagnostics};
-        }
-        std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
-        std::string link_cmd = "gcc " + obj_file + " -o " + final_exe + " -lm";
-        if (config.debug) link_cmd += " -g";
-        int link_result = system(link_cmd.c_str());
-        if (link_result != 0) {
-            diagnostics.push_back({new RTError("Failed to link object file", Position("", "", 0, 0, 0)), "Error"});
-            return Mer{ast, resp, message, diagnostics};
-        }
-        std::remove(ll_file.c_str());
-        std::remove(obj_file.c_str());
-
-        message += ". Built executable: " + final_exe;
-        if (config.quiet_mode) message = "";
-        return Mer{ast, resp, message, diagnostics};
+        std::cout << "===========" << std::endl << std::endl;
     }
+    try {
+        // compiler
+#ifdef ENABLE_LLVM
+        if (config.compile_mode) {
+            llvm::LLVMContext context;
+            auto master_module = new llvm::Module("master_module", context);
+            llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
+            llvm::SMDiagnostic err;
+            llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
+            auto modulePtr = llvm::parseIR(bufRef, err, context);
+            if (!modulePtr) { throw "Failed to load runtime.ll"; }
+            if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
+            std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
+            std::unordered_map<std::string, std::unordered_map<std::string, FuncDefNode*>> db_fDefs;
+            std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_jagged;
+            std::unordered_map<std::string, std::unordered_map<std::string, std::string>> db_typeStrings;
+            std::unordered_map<std::string, std::unordered_map<std::string, int>> db_lists;
+            std::unordered_map<std::string, std::unordered_map<std::string, int>> db_lengths;
+            std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_maps;
+            std::unordered_map<std::string, std::unordered_map<std::string, std::string>> db_vars;
+            std::unordered_map<std::string, std::unordered_map<std::string, llvm::AllocaInst*>> db_allocas;
+            std::unordered_map<std::string, std::unordered_map<std::string, llvm::FunctionType*>> db_lambdas;
+            std::unordered_map<std::string, std::unordered_map<std::string, llvm::GlobalVariable*>> db_globals;
+            std::unordered_map<std::string, std::map<std::string, std::map<std::string, llvm::Function*>>> db_specialized;
+            std::vector<std::string> sorted_files;
+            std::unordered_set<std::string> sort_visited;
+            std::function<void(const std::string&)> sort_visit = [&](const std::string& p) {
+                if (sort_visited.count(p)) return;
+                for (auto const& [dep_p, ns_list] : file_included_namespaces[p]) { sort_visit(dep_p); }
+                sort_visited.insert(p);
+                sorted_files.push_back(p);
+            };
+            sort_visit(file);
+            std::vector<Diagnostic> diagnostics;
+            for (auto& filepath : sorted_files) {
+                std::unordered_map<std::string, FunctionSignature> visSigs;
+                std::unordered_map<std::string, FuncDefNode*> visFDefs;
+                std::unordered_map<std::string, std::pair<int, int>> visJagged;
+                std::unordered_map<std::string, std::string> visTypeStr;
+                std::unordered_map<std::string, int> visLists;
+                std::unordered_map<std::string, int> visLen;
+                std::unordered_map<std::string, std::pair<int, int>> visMaps;
+                std::unordered_map<std::string, std::string> visVars;
+                std::unordered_map<std::string, llvm::AllocaInst*> visAlloc;
+                std::unordered_map<std::string, llvm::GlobalVariable*> visGlobals;
+                std::unordered_map<std::string, llvm::FunctionType*> visLamb;
+                std::map<std::string, std::map<std::string, llvm::Function*>> visSpec;
+                for (auto const& [dep_p, ns_list] : file_included_namespaces[filepath]) {
+                    if (db_sigs.find(dep_p) == db_sigs.end()) continue;
+                    for (const std::string& ns : ns_list) {
+                        if (ns.empty()) continue;
+                        auto pre = ns + "::";
+                        auto& d_sigs = db_sigs.at(dep_p);
+                        auto& d_fDefs = db_fDefs.at(dep_p);
+                        auto& d_jagged = db_jagged.at(dep_p);
+                        auto& d_typeStr = db_typeStrings.at(dep_p);
+                        auto& d_lists = db_lists.at(dep_p);
+                        auto& d_len = db_lengths.at(dep_p);
+                        auto& d_maps = db_maps.at(dep_p);
+                        auto& d_vars = db_vars.at(dep_p);
+                        auto& d_allocs = db_allocas.at(dep_p);
+                        auto& d_lambs = db_lambdas.at(dep_p);
+                        auto& d_spec = db_specialized.at(dep_p);
+                        auto& d_globals = db_globals.at(dep_p);
+                        for (auto const& [k, v] : d_sigs)
+                            if (k.rfind(pre, 0) == 0) visSigs[k] = v;
+                        for (auto const& [k, v] : d_fDefs)
+                            if (k.rfind(pre, 0) == 0) visFDefs[k] = v;
+                        for (auto const& [k, v] : d_jagged)
+                            if (k.rfind(pre, 0) == 0) visJagged[k] = v;
+                        for (auto const& [k, v] : d_typeStr)
+                            if (k.rfind(pre, 0) == 0) visTypeStr[k] = v;
+                        for (auto const& [k, v] : d_lists)
+                            if (k.rfind(pre, 0) == 0) visLists[k] = v;
+                        for (auto const& [k, v] : d_len)
+                            if (k.rfind(pre, 0) == 0) visLen[k] = v;
+                        for (auto const& [k, v] : d_maps)
+                            if (k.rfind(pre, 0) == 0) visMaps[k] = v;
+                        for (auto const& [k, v] : d_vars)
+                            if (k.rfind(pre, 0) == 0) visVars[k] = v;
+                        for (auto const& [k, v] : d_allocs)
+                            if (k.rfind(pre, 0) == 0) visAlloc[k] = v;
+                        for (auto const& [k, v] : d_lambs)
+                            if (k.rfind(pre, 0) == 0) visLamb[k] = v;
+                        for (auto const& [k, v] : d_globals)
+                            if (k.rfind(pre, 0) == 0) visGlobals[k] = v;
+                        if (d_spec.count(ns)) { visSpec[ns] = d_spec.at(ns); }
+                    }
+                }
+                LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
+                std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLists, visLen,
+                                                         visMaps, visVars, visAlloc, visLamb, visSpec, visGlobals);
+                if (!errs.empty()) {
+                    for (auto& err : errs) diagnostics.push_back({new RTError(err.details, err.pos), "Error"});
+                    break;
+                }
+                db_sigs[filepath] = comp.functionSignatures;
+                db_fDefs[filepath] = comp.functionDefs;
+                db_jagged[filepath] = comp.jaggedArraysStack[0];
+                db_typeStrings[filepath] = comp.arrayTypeStringsStack[0];
+                db_lists[filepath] = comp.listsStack[0];
+                db_lengths[filepath] = comp.arrayLengthsStack[0];
+                db_maps[filepath] = comp.mapsStack[0];
+                db_vars[filepath] = comp.varTypesStack[0];
+                db_allocas[filepath] = comp.runtimeArraySizes;
+                db_lambdas[filepath] = comp.lambdaTypes;
+                db_specialized[filepath] = comp.specializedFunctions;
+                db_globals[filepath] = comp.globals;
+            }
+            std::string base_name = config.output_file.empty() ? "out" : removeExtension(config.output_file);
+            size_t last_slash = base_name.find_last_of("/\\");
+            std::string dir = (last_slash == std::string::npos) ? "" : base_name.substr(0, last_slash + 1);
+            std::string stem = (last_slash == std::string::npos) ? base_name : base_name.substr(last_slash + 1);
+
+            std::string ll_file = config.compile_only ? base_name + ".ll" : dir + "temp_" + stem + ".ll";
+            std::string obj_file = config.object_only ? base_name + ".o" : dir + "temp_" + stem + ".o";
+            auto end = std::chrono::high_resolution_clock::now();
+            bool error_found = false;
+            if (!diagnostics.empty()) { error_found = true; }
+            std::string message = "Program exited with code: 0";
+            if (error_found) { message = "Program exited with code: 1"; }
+
+            if (!diagnostics.empty()) { return Mer{ast, resp, message, diagnostics}; }
+            std::error_code EC;
+            llvm::raw_fd_ostream out(ll_file, EC, llvm::sys::fs::OF_Text);
+            if (EC) {
+                llvm::errs() << "Failed to open output: " << EC.message() << "\n";
+                message = "Program exited with code: 1";
+                return Mer{ast, resp, message, diagnostics};
+            }
+            for (llvm::Function& F : master_module->functions()) {
+                if (F.getName().starts_with("qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
+            }
+#ifndef __EMSCRIPTEN__
+            if (config.optimize) {
+                llvm::PassBuilder PB;
+                llvm::LoopAnalysisManager LAM;
+                llvm::FunctionAnalysisManager FAM;
+                llvm::CGSCCAnalysisManager CGAM;
+                llvm::ModuleAnalysisManager MAM;
+                PB.registerModuleAnalyses(MAM);
+                PB.registerCGSCCAnalyses(CGAM);
+                PB.registerFunctionAnalyses(FAM);
+                PB.registerLoopAnalyses(LAM);
+                PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+                llvm::ModulePassManager MPM;
+                auto optimization_level = llvm::OptimizationLevel::O2;
+                switch (config.opt_level[1]) {
+                case '0': optimization_level = llvm::OptimizationLevel::O0; break;
+                case '1': optimization_level = llvm::OptimizationLevel::O1; break;
+                case '2': optimization_level = llvm::OptimizationLevel::O2; break;
+                case '3': optimization_level = llvm::OptimizationLevel::O3; break;
+                case 'z': optimization_level = llvm::OptimizationLevel::Oz; break;
+                default: optimization_level = llvm::OptimizationLevel::O2; break;
+                }
+                MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
+                MPM.run(*master_module, MAM);
+            }
 #endif
-    } catch (const char* err) {
-        std::cout << err << '\n';
-    } catch (...) {
+            master_module->print(out, nullptr);
+            if (config.compile_only) {
+                message += ". Compiled to " + ll_file;
+                return Mer{ast, resp, message, diagnostics};
+            }
+            int llc_result = emitObjectFile(*master_module, obj_file, config.debug);
+            if (llc_result != 0) {
+                diagnostics.push_back({new RTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
+                return Mer{ast, resp, message, diagnostics};
+            }
+            if (config.object_only) {
+                std::remove(ll_file.c_str());
+                message += ". Compiled to " + obj_file;
+                return Mer{ast, resp, message, diagnostics};
+            }
+            std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
+            std::string link_cmd = "gcc " + obj_file + " -o " + final_exe + " -lm";
+            if (config.debug) link_cmd += " -g";
+            int link_result = system(link_cmd.c_str());
+            if (link_result != 0) {
+                diagnostics.push_back({new RTError("Failed to link object file", Position("", "", 0, 0, 0)), "Error"});
+                return Mer{ast, resp, message, diagnostics};
+            }
+            std::remove(ll_file.c_str());
+            std::remove(obj_file.c_str());
+
+            message += ". Built executable: " + final_exe;
+            if (config.quiet_mode) message = "";
+            return Mer{ast, resp, message, diagnostics};
+        }
+#endif
+    } catch (const char* err) { std::cout << err << '\n'; } catch (...) {
         std::cout << "unknown error" << '\n';
     }
     return Mer{ast, resp, "", std::vector<Diagnostic>{}};

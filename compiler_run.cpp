@@ -1,24 +1,24 @@
-#include <iostream>
-#include <string>
 #include "./compiler.h"
 #include <algorithm>
-#include <iterator>
-#include <fstream>
-#include <sstream>
-#include <thread>
-#include <chrono>
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
-#define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
-#define YELLOW  "\033[33m"
-#define BLUE    "\033[34m"
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <string>
+#include <thread>
+#define RESET "\033[0m"
+#define RED "\033[31m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
 #define MAGENTA "\033[35m"
-#define CYAN    "\033[36m"
-#define BOLD    "\033[1m"
+#define CYAN "\033[36m"
+#define BOLD "\033[1m"
 #if defined(_WIN32) || defined(_WIN64)
-    #include <print>
+#include <print>
 #endif
 const std::string ver = "x0.17.71";
 #include <random>
@@ -48,38 +48,36 @@ void slow_print(const std::string& text, const std::string& color = "\033[0m", i
 std::string read_source_file(std::string filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        std::cerr << YELLOW << "Error: Could not open file '" << filename << "'" << RESET <<  std::endl;
+        std::cerr << YELLOW << "Error: Could not open file '" << filename << "'" << RESET << std::endl;
         exit(1);
     }
-    
+
     std::stringstream buffer;
     buffer << file.rdbuf();
     return buffer.str();
 }
 std::atomic<bool> running{true};
-    void spinner() {
-        std::vector<char> frames{'-', '\\', '|', '/'};
-        size_t i = 0;
-        while (running) {
-            std::cout << "\r" << frames[i % frames.size()] << " Running..." << std::flush;
-            std::this_thread::sleep_for(std::chrono::milliseconds(150));
-            i++;
-        }
-        std::cout << "\r" << std::endl; // clear line
+void spinner() {
+    std::vector<char> frames{'-', '\\', '|', '/'};
+    size_t i = 0;
+    while (running) {
+        std::cout << "\r" << frames[i % frames.size()] << " Running..." << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        i++;
     }
+    std::cout << "\r" << std::endl; // clear line
+}
 std::string trim_ws(const std::string& s) {
-    auto first = std::find_if_not(s.begin(), s.end(),
-                                  [](unsigned char c){ return std::isspace(c); });
-    auto last  = std::find_if_not(s.rbegin(), s.rend(),
-                                  [](unsigned char c){ return std::isspace(c); }).base();
+    auto first = std::find_if_not(s.begin(), s.end(), [](unsigned char c) { return std::isspace(c); });
+    auto last = std::find_if_not(s.rbegin(), s.rend(), [](unsigned char c) { return std::isspace(c); }).base();
     if (first >= last) return "";
     return std::string(first, last);
 }
 int main(int argc, char* argv[]) {
-    
+
     tkz::RunConfig config;
     std::string filename = "";
-    
+
     // Parse arguments
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -156,7 +154,8 @@ int main(int argc, char* argv[]) {
 [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m
 [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m
 
-        Quantum C (C⁴) )" << ver << R"(
+        Quantum C (C⁴) )"
+                      << ver << R"(
 
         The 4th Evolution of C
         More Powerful Than Explosives
@@ -183,8 +182,7 @@ int main(int argc, char* argv[]) {
             config.print_tokens = true;
         } else if (arg == "--time" || arg == "-t") {
             config.show_time = true;
-        } 
-        else if (arg == "--raw" || arg == "-r") {
+        } else if (arg == "--raw" || arg == "-r") {
             config.raw = true;
         } else if (arg == "--bst" || arg == "-b") {
             config.bst = true;
@@ -200,13 +198,11 @@ int main(int argc, char* argv[]) {
             config.compile_mode = true;
             config.interpret_mode = false;
             config.compile_only = true;
-        }
-        else if (arg == "-oo" || arg == "--object-only") {
+        } else if (arg == "-oo" || arg == "--object-only") {
             config.compile_mode = true;
             config.interpret_mode = false;
             config.object_only = true;
-        }
-        else if (arg == "-o") {
+        } else if (arg == "-o") {
             if (i + 1 < argc) {
                 config.output_file = argv[++i];
             } else {
@@ -217,7 +213,8 @@ int main(int argc, char* argv[]) {
             config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Compiler)" << ver << R"(
+Quantum C Compiler)" << ver
+                      << R"(
 
 Usage: ./qc [options] <file>
 
@@ -248,24 +245,22 @@ Examples:
   qc main.qc          Run main.qc
   qc -v               Show version
   qc --ast test.qc    Show AST for test.qc
-            )" << RESET << std::endl;
+            )" << RESET
+                      << std::endl;
             return 0;
         } else {
             filename = arg;
         }
     }
-    
-    
+
     if (filename.empty()) {
-        
+
         // REPL mode
         std::vector<std::string> history;
         std::cout << GREEN << "Quantum C REPL " << ver << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
-        if (!config.use_context) {
-            std::cout << CYAN << "(Context disabled)" << RESET << std::endl;
-        }
-        
+        if (!config.use_context) { std::cout << CYAN << "(Context disabled)" << RESET << std::endl; }
+
         std::string code_buffer;
 
         while (true) {
@@ -332,13 +327,10 @@ Examples:
                 std::istringstream iss(code_buffer);
                 std::string buf_line;
                 size_t lnum = 1;
-                while (std::getline(iss, buf_line)) {
-                    std::cout << lnum++ << ": " << buf_line << "\n";
-                }
+                while (std::getline(iss, buf_line)) { std::cout << lnum++ << ": " << buf_line << "\n"; }
                 continue;
             } else if (line == "!@history") {
-                for (size_t i = 0; i < history.size(); ++i)
-                    std::cout << i+1 << ": " << history[i] << "\n";
+                for (size_t i = 0; i < history.size(); ++i) std::cout << i + 1 << ": " << history[i] << "\n";
                 continue;
             } else if (line == "!@last") {
                 if (!history.empty())
@@ -353,17 +345,16 @@ Examples:
                     std::cout << "[No previous input]\n";
                 continue;
             } else if (line == "!@help") {
-                std::cout << GREEN 
-                        << "REPL Commands:\n"
-                        << "  !@history   → Show all previous buffers\n"
-                        << "  !@last      → Prints last ran code\n"
-                        << "  !@load      → Sets buffer to last ran code\n"
-                        << "  !@run       → Execute current buffer\n"
-                        << "  !@clear     → Clear buffer\n"
-                        << "  !@showbuffer→ Show buffer with line numbers\n"
-                        << "  !@set [flag]=[0/1]→ Change that runtime flag to true/false"
-                        << "  exit        → Quit REPL\n"
-                        << RESET;
+                std::cout << GREEN << "REPL Commands:\n"
+                          << "  !@history   → Show all previous buffers\n"
+                          << "  !@last      → Prints last ran code\n"
+                          << "  !@load      → Sets buffer to last ran code\n"
+                          << "  !@run       → Execute current buffer\n"
+                          << "  !@clear     → Clear buffer\n"
+                          << "  !@showbuffer→ Show buffer with line numbers\n"
+                          << "  !@set [flag]=[0/1]→ Change that runtime flag to true/false"
+                          << "  exit        → Quit REPL\n"
+                          << RESET;
                 continue;
             } else if (line == "!@clear") {
                 code_buffer.clear();
@@ -379,15 +370,24 @@ Examples:
                 std::string val = trim_ws(rest.substr(eq + 1));
                 bool on = (val == "1" || val == "true");
 
-                if (key == "context")      config.use_context   = on;
-                else if (key == "loose")   config.looser_types  = on;
-                else if (key == "time")    config.show_time     = on;
-                else if (key == "tokens")  config.print_tokens  = on;
-                else if (key == "ast")     config.print_ast     = on;
-                else if (key == "raw")     config.raw           = on;
-                else if (key == "bst")     config.bst           = on;
-                else if (key == "quiet")   config.quiet_mode    = on;
-                else if (key == "slow")    slow                 = on;
+                if (key == "context")
+                    config.use_context = on;
+                else if (key == "loose")
+                    config.looser_types = on;
+                else if (key == "time")
+                    config.show_time = on;
+                else if (key == "tokens")
+                    config.print_tokens = on;
+                else if (key == "ast")
+                    config.print_ast = on;
+                else if (key == "raw")
+                    config.raw = on;
+                else if (key == "bst")
+                    config.bst = on;
+                else if (key == "quiet")
+                    config.quiet_mode = on;
+                else if (key == "slow")
+                    slow = on;
                 else {
                     std::cout << YELLOW << "Unknown flag: " << key << RESET << "\n";
                     continue;
@@ -397,13 +397,13 @@ Examples:
                 continue;
             } else if (line == "!@config") {
                 std::cout << GREEN << "Current config:\n"
-                        << "  context: "    << (config.use_context   ? "on" : "off") << "\n"
-                        << "  loose: "      << (config.looser_types  ? "on" : "off") << "\n"
-                        << "  time: "       << (config.show_time     ? "on" : "off") << "\n"
-                        << "  tokens: "     << (config.print_tokens  ? "on" : "off") << "\n"
-                        << "  ast: "        << (config.print_ast     ? "on" : "off") << "\n"
-                        << "  quiet: "      << (config.quiet_mode    ? "on" : "off") << "\n"
-                        << RESET;
+                          << "  context: " << (config.use_context ? "on" : "off") << "\n"
+                          << "  loose: " << (config.looser_types ? "on" : "off") << "\n"
+                          << "  time: " << (config.show_time ? "on" : "off") << "\n"
+                          << "  tokens: " << (config.print_tokens ? "on" : "off") << "\n"
+                          << "  ast: " << (config.print_ast ? "on" : "off") << "\n"
+                          << "  quiet: " << (config.quiet_mode ? "on" : "off") << "\n"
+                          << RESET;
                 continue;
             } else {
                 code_buffer += line + "\n";
@@ -420,9 +420,7 @@ Examples:
         spin_thread.join();
         bool has_fatal = false;
         bool has_warnings = false;
-        if (!config.quiet_mode) {
-            slow_print("=== Diagnostics ===\n", BOLD);
-        }
+        if (!config.quiet_mode) { slow_print("=== Diagnostics ===\n", BOLD); }
         for (const auto& diag : result.errors) {
             std::string color;
 
@@ -439,9 +437,7 @@ Examples:
                 color = RED;
                 has_fatal = true;
             }
-            if (!config.quiet_mode) {
-                slow_print(diag.error->as_string() + "\n", color);
-            }
+            if (!config.quiet_mode) { slow_print(diag.error->as_string() + "\n", color); }
         }
         if (config.quiet_mode) return has_fatal ? 1 : 0;
         if (result.ast.error) {
@@ -463,9 +459,8 @@ Examples:
         }
 
         slow_print("==============\n", BOLD);
-
     }
-    
+
     return 0;
 }
 #ifdef __EMSCRIPTEN__
@@ -474,52 +469,52 @@ Examples:
 #include <vector>
 static std::vector<char> binary_buffer;
 extern "C" {
-    EMSCRIPTEN_KEEPALIVE
-    int get_wasm_size() {
-        return binary_buffer.size();
-    }
-    EMSCRIPTEN_KEEPALIVE
-    char* get_wasm_ptr() {
-        return binary_buffer.data();
-    }
-    EMSCRIPTEN_KEEPALIVE
-    const char* run_quantumc_code(const char* code) {
-        static std::string output;
-        output.clear();
-        
-        std::stringstream buffer;
-        std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
-        
-        auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true});
-        
-        if (result.ast.error) {
-            output = result.ast.error->as_string();
-            return output.c_str();
-        } else if (!result.errors.empty()) {
-            output.clear();
-            bool has_warnings;
-            bool has_fatal;
-            for (const auto& diag : result.errors) {
-                std::string color;
-                if (diag.level == "Warning") {
-                    color = YELLOW;
-                    has_warnings = true;
-                } else if (diag.level == "Error") {
-                    color = MAGENTA;
-                    has_fatal = true;
-                } else if (diag.level == "Severe") {
-                    color = RED;
-                    has_fatal = true;
-                } else if (diag.level == "Fatal") {
-                    color = RED;
-                    has_fatal = true;
-                }
+EMSCRIPTEN_KEEPALIVE
+int get_wasm_size() {
+    return binary_buffer.size();
+}
+EMSCRIPTEN_KEEPALIVE
+char* get_wasm_ptr() {
+    return binary_buffer.data();
+}
+EMSCRIPTEN_KEEPALIVE
+const char* run_quantumc_code(const char* code) {
+    static std::string output;
+    output.clear();
 
-                output += diag.error->as_string() + "\n";
+    std::stringstream buffer;
+    std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
+
+    auto result = tkz::run("<wasm>", code, tkz::RunConfig{true, false, false, false, true, false, false, true, false, false, false, true});
+
+    if (result.ast.error) {
+        output = result.ast.error->as_string();
+        return output.c_str();
+    } else if (!result.errors.empty()) {
+        output.clear();
+        bool has_warnings;
+        bool has_fatal;
+        for (const auto& diag : result.errors) {
+            std::string color;
+            if (diag.level == "Warning") {
+                color = YELLOW;
+                has_warnings = true;
+            } else if (diag.level == "Error") {
+                color = MAGENTA;
+                has_fatal = true;
+            } else if (diag.level == "Severe") {
+                color = RED;
+                has_fatal = true;
+            } else if (diag.level == "Fatal") {
+                color = RED;
+                has_fatal = true;
             }
-            return output.c_str();
+
+            output += diag.error->as_string() + "\n";
         }
-        return "Success";
+        return output.c_str();
     }
+    return "Success";
+}
 }
 #endif
