@@ -495,7 +495,7 @@ extern "C" {
         if (result.ast.error) {
             output = result.ast.error->as_string();
             return output.c_str();
-        } else if (result.errors) {
+        } else if (!result.errors.empty()) {
             output.clear();
             bool has_warnings;
             bool has_fatal;

@@ -43,8 +43,10 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
 #include <llvm/MC/TargetRegistry.h>
+#ifndef __EMSCRIPTEN__
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/PassPlugin.h>
+#endif
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
@@ -12824,6 +12826,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         for (llvm::Function& F : master_module->functions()) {
             if (F.getName().starts_with("qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
         }
+        #ifndef __EMSCRIPTEN__
         if (config.optimize) {
             llvm::PassBuilder PB;
             llvm::LoopAnalysisManager LAM;
@@ -12848,6 +12851,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
             MPM.run(*master_module, MAM);
         }
+        #endif
         master_module->print(out, nullptr);
         if (config.compile_only) {
             message += ". Compiled to " + ll_file;
