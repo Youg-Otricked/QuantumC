@@ -520,7 +520,7 @@ const char* run_quantumc_code(const char* code) {
                 color = MAGENTA;
                 has_fatal = true;
             } else if (diag.level == "Severe") {
-                color = RE
+                color = RED;
                 has_fatal = true;
             } else if (diag.level == "Fatal") {
                 color = RED;
