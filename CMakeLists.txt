@@ -81,7 +81,7 @@ if(EMSCRIPTEN)
             -s EXPORTED_FUNCTIONS='[\"_run_quantum_code\"]' \
             -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' \
             -s ALLOW_MEMORY_GROWTH=1 \
-            --preload-file stdlib.qc@/stdlib.qc \
+            --preload-file ${CMAKE_SOURCE_DIR}/stdlib.qc@/stdlib.qc \
             -s STACK_SIZE=134217728 \
             -s MODULARIZE=1 \
             -s EXPORT_NAME=\"QuantumC\" \
