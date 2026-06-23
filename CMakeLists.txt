@@ -79,7 +79,7 @@ if(EMSCRIPTEN)
             -s WASM=1 \
             -s FORCE_FILESYSTEM=1 \
             -s EXPORTED_FUNCTIONS='[\"_run_quantumc_code\"]' \
-            -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\"]' \
+            -s EXPORTED_RUNTIME_METHODS='[\"ccall\",\"cwrap\",\"FS\"]' \
             -s ALLOW_MEMORY_GROWTH=1 \
             --preload-file ${CMAKE_SOURCE_DIR}/stdlib.qc@/stdlib.qc \
             -s STACK_SIZE=134217728 \
