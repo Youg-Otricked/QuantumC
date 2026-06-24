@@ -12717,6 +12717,39 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             auto modulePtr = llvm::parseIR(bufRef, err, context);
             if (!modulePtr) { throw "Failed to load runtime.ll"; }
             if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
+#ifdef __EMSCRIPTEN__
+            llvm::InitializeAllTargets();
+            llvm::InitializeAllTargetMCs();
+            
+            llvm::Triple triple("wasm32-unknown-unknown");
+            master_module->setTargetTriple(triple);
+            
+            std::string target_err;
+            const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, target_err);
+            if (target) {
+                llvm::TargetOptions opt;
+                auto RM = llvm::Reloc::PIC_;
+                llvm::TargetMachine* TM = target->createTargetMachine(triple, "generic", "", opt, RM);
+                master_module->setDataLayout(TM->createDataLayout());
+                delete TM;
+            }
+#else
+            llvm::InitializeAllTargets();
+            llvm::InitializeAllTargetMCs();
+            
+            llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
+            master_module->setTargetTriple(triple);
+            
+            std::string target_err;
+            const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, target_err);
+            if (target) {
+                llvm::TargetOptions opt;
+                auto RM = llvm::Reloc::PIC_;
+                llvm::TargetMachine* TM = target->createTargetMachine(triple, "generic", "", opt, RM);
+                master_module->setDataLayout(TM->createDataLayout());
+                delete TM;
+            }
+#endif
             std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
             std::unordered_map<std::string, std::unordered_map<std::string, FuncDefNode*>> db_fDefs;
             std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_jagged;
