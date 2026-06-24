@@ -4556,7 +4556,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(const std::string& qcType) {
     if (type.starts_with("map<") && type.ends_with(">")) { return llvm::PointerType::get(context, 0); }
     if (type == "int") return builder->getInt32Ty();
     if (type == "short int") return builder->getInt16Ty();
-    if (type == "long int") return builder->getInt64Ty();
+    if (type == "long int") return builder->getIntNTy(getPtrSize());
     if (type == "float") return builder->getFloatTy();
     if (type == "double") return builder->getDoubleTy();
     if (type == "long double") return builder->getDoubleTy();
@@ -4878,14 +4878,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
 
         switch (num->tok.type) {
         case TokenType::INT: {
-            long long v = std::stoll(text);
+            intptr_t v = std::stoll(text);
             if (v >= std::numeric_limits<int32_t>::min() && v <= std::numeric_limits<int32_t>::max()) {
                 return builder->getInt32(static_cast<int32_t>(v));
             }
             return builder->getInt64(static_cast<int64_t>(v));
         }
         case TokenType::ADDR_T: {
-            unsigned long long v = std::stoull(text);
+            size_t v = std::stoull(text);
             return llvm::ConstantInt::get(builder->getContext(), llvm::APInt(getPtrSize(), v));
         }
         case TokenType::FLOAT: {
@@ -4975,7 +4975,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     } else if (varTy->isIntegerTy(64)) {
                         llvm::Function* fn = module->getFunction("qc_to_long_int_from_string");
                         if (!fn) {
-                            auto* fnTy = llvm::FunctionType::get(builder->getInt64Ty(), {llvm::PointerType::get(context, 0)}, false);
+                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(getPtrSize()), {llvm::PointerType::get(context, 0)}, false);
                             fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_long_int_from_string", module);
                         }
                         converted = builder->CreateCall(fn, {input});
@@ -5510,7 +5510,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     auto* fn = module->getFunction("qc_to_string_long_int");
                     if (!fn) {
                         auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fnTy = llvm::FunctionType::get(i8Ptr, {builder->getInt64Ty()}, false);
+                        auto* fnTy = llvm::FunctionType::get(i8Ptr, {builder->getIntNTy(getPtrSize())}, false);
                         fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_string_long_int", module);
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i64");
@@ -7813,14 +7813,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     if (!fmtInt) {
                         llvm::FunctionType* fmtIntFnTy = llvm::FunctionType::get(
                             llvm::PointerType::get(context, 0),
-                            {builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
+                            {builder->getIntNTy(getPtrSize()), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
                         fmtInt = llvm::Function::Create(fmtIntFnTy, llvm::Function::ExternalLinkage, "qc_fmt_int", module);
                     }
                     llvm::Function* fmtUInt = module->getFunction("qc_fmt_unsigned_int");
                     if (!fmtUInt) {
                         llvm::FunctionType* fmtUIntFnTy = llvm::FunctionType::get(
                             llvm::PointerType::get(context, 0),
-                            {builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
+                            {builder->getIntNTy(getPtrSize()), builder->getInt32Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
                         fmtUInt = llvm::Function::Create(fmtUIntFnTy, llvm::Function::ExternalLinkage, "qc_fmt_unsigned_int", module);
                     }
                     llvm::Function* fmtFloat = module->getFunction("qc_fmt_float");
@@ -7865,13 +7865,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     llvm::Function* fmtOctal = module->getFunction("qc_fmt_octal");
                     if (!fmtOctal) {
                         llvm::FunctionType* fmtOctalFnTy = llvm::FunctionType::get(
-                            llvm::PointerType::get(context, 0), {builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
+                            llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize()), builder->getInt32Ty(), builder->getInt1Ty()}, false);
                         fmtOctal = llvm::Function::Create(fmtOctalFnTy, llvm::Function::ExternalLinkage, "qc_fmt_octal", module);
                     }
                     llvm::Function* fmtHex = module->getFunction("qc_fmt_hex");
                     if (!fmtHex) {
                         llvm::FunctionType* fmtHexFnTy = llvm::FunctionType::get(
-                            llvm::PointerType::get(context, 0), {builder->getInt64Ty(), builder->getInt32Ty(), builder->getInt1Ty()}, false);
+                            llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize()), builder->getInt32Ty(), builder->getInt1Ty()}, false);
                         fmtHex = llvm::Function::Create(fmtHexFnTy, llvm::Function::ExternalLinkage, "qc_fmt_hex", module);
                     }
                     llvm::Function* fmtScientific = module->getFunction("qc_fmt_scientific");
@@ -7951,7 +7951,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 cg_error((*varAccess)->var_name_tok.pos, "%i formater takes an integer");
                                 return nullptr;
                             }
-                            llvm::Type* i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
                             unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
 
                             if (bitWidth < 64) {
@@ -7984,7 +7984,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                                                          "int, addr_t)");
                                 return nullptr;
                             }
-                            llvm::Type* i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
                             unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
 
                             if (bitWidth < 64) {
@@ -8204,7 +8204,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Type* i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
                             unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
 
                             if (bitWidth < 64) {
@@ -8233,7 +8233,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName);
                                 return nullptr;
                             }
-                            llvm::Type* i64Ty = builder->getInt64Ty();
+                            llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
                             llvm::Value* bigIntUnsigned;
                             unsigned bitWidth = itgVal->getType()->getIntegerBitWidth();
 
@@ -8318,8 +8318,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             to_print = "";
                             if (aTy->isIntegerTy(32) || aTy->isIntegerTy(64) || aTy->isIntegerTy(16)) {
                                 builder->CreateCall(printString,
-                                                    {builder->CreateCall(fmtInt, {builder->CreateZExt(val, builder->getInt64Ty()),
-                                                                                  llvm::ConstantInt::get(builder->getInt64Ty(), width),
+                                                    {builder->CreateCall(fmtInt, {builder->CreateZExt(val, builder->getIntNTy(getPtrSize())),
+                                                                                  llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), width),
                                                                                   llvm::ConstantInt::get(builder->getInt32Ty(), precision),
                                                                                   llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
                                 break;
@@ -8745,7 +8745,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         } else if (TargetType->isPointerTy()) {
                             ConvertedValue = builder->CreateBitCast(RawSlot, TargetType, "vararg_ptr");
                         } else if (TargetType->isFloatingPointTy()) {
-                            llvm::Type* Int64Ty = builder->getInt64Ty();
+                            llvm::Type* Int64Ty = builder->getIntNTy(getPtrSize());
                             llvm::Value* RawInt = builder->CreatePtrToInt(RawSlot, Int64Ty, "vararg_fp_bits");
 
                             if (TargetType->isFloatTy()) {
@@ -8871,9 +8871,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         llvm::Value* Int64Bits = nullptr;
                         if (valTy->isFloatTy()) {
                             llvm::Value* Int32Bits = builder->CreateBitCast(ValueToStore, builder->getInt32Ty(), "float_to_i32");
-                            Int64Bits = builder->CreateZExt(Int32Bits, builder->getInt64Ty(), "i32_to_i64");
+                            Int64Bits = builder->CreateZExt(Int32Bits, builder->getIntNTy(getPtrSize()), "i32_to_i64");
                         } else {
-                            Int64Bits = builder->CreateBitCast(ValueToStore, builder->getInt64Ty(), "double_to_i64");
+                            Int64Bits = builder->CreateBitCast(ValueToStore, builder->getIntNTy(getPtrSize()), "double_to_i64");
                         }
                         ValueToStore = builder->CreateIntToPtr(Int64Bits, builder->getPtrTy(), "fp_bits_to_ptr");
                     }
@@ -9786,7 +9786,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 } else if (val->getType()->isIntegerTy()) {
                     val = builder->CreateIntToPtr(val, builder->getPtrTy());
                 } else if (val->getType()->isFloatingPointTy()) {
-                    llvm::Value* asInt = builder->CreateBitCast(val, builder->getInt64Ty());
+                    llvm::Value* asInt = builder->CreateBitCast(val, builder->getIntNTy(getPtrSize()));
                     val = builder->CreateIntToPtr(asInt, builder->getPtrTy());
                 }
                 builder->CreateStore(val, element_ptr);
@@ -10442,7 +10442,7 @@ llvm::Value* LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& element
 
     const llvm::DataLayout& DL = module->getDataLayout();
     uint64_t elemSize = DL.getTypeAllocSize(elemTy);
-    llvm::Value* totalSizeExt = builder->CreateZExt(totalSize, builder->getInt64Ty());
+    llvm::Value* totalSizeExt = builder->CreateZExt(totalSize, builder->getIntNTy(getPtrSize()));
     llvm::Value* sizeBytes = builder->CreateMul(totalSizeExt, builder->getInt64(elemSize));
 
     llvm::Value* mallocCall = builder->CreateCall(mallocFn, {sizeBytes}, "runtime_arr");
@@ -12956,21 +12956,21 @@ Token Lexer::make_number() {
             num += this->current_char;
             this->advance();
         }
-        unsigned long long val = std::stoull(num, nullptr, 16);
+        size_t val = std::stoull(num, nullptr, 16);
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
         while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 8) {
             num += this->current_char;
             this->advance();
         }
-        unsigned long long val = std::stoull(num, nullptr, 8);
+        size_t val = std::stoull(num, nullptr, 8);
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
         while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 2) {
             num += this->current_char;
             this->advance();
         }
-        unsigned long long val = std::stoull(num, nullptr, 2);
+        size_t val = std::stoull(num, nullptr, 2);
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
         while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".f")) {

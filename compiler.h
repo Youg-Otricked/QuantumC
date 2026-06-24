@@ -2685,9 +2685,9 @@ class LLVMCompiler {
                 llvm::Value* int64Bits = nullptr;
                 if (valTy->isFloatTy()) {
                     llvm::Value* int32Bits = builder->CreateBitCast(valueToStore, builder->getInt32Ty(), "float_to_i32");
-                    int64Bits = builder->CreateZExt(int32Bits, builder->getInt64Ty(), "i32_to_i64");
+                    int64Bits = builder->CreateZExt(int32Bits, builder->getIntNTy(getPtrSize()), "i32_to_i64");
                 } else {
-                    int64Bits = builder->CreateBitCast(valueToStore, builder->getInt64Ty(), "double_to_i64");
+                    int64Bits = builder->CreateBitCast(valueToStore, builder->getIntNTy(getPtrSize()), "double_to_i64");
                 }
                 valueToStore = builder->CreateIntToPtr(int64Bits, builder->getPtrTy(), "fp_bits_to_ptr");
             }

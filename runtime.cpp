@@ -5,6 +5,7 @@
 #include <cstring>
 #include <ctime>
 #include <cstddef>
+#include <cinttypes>
 extern "C" {
 void* qc_malloc(size_t size) {
     return malloc(size);
@@ -18,7 +19,7 @@ void* qc_realloc(void* ptr, size_t size) {
 void* qc_calloc(size_t num, size_t size) {
     return calloc(num, size);
 }
-char* qc_fmt_int(long long v, int width, int precision, bool zero_pad) {
+char* qc_fmt_int(intptr_t v, int width, int precision, bool zero_pad) {
     char fmt[32];
     if (precision >= 0) {
         if (width > 0)
@@ -43,16 +44,15 @@ void qc_flush() {
 char* qc_fmt_unsigned_int(size_t v, bool zero_pad) {
     char fmt[32];
     if (zero_pad) {
-        snprintf(fmt, sizeof(fmt), "%%llu");
+        snprintf(fmt, sizeof(fmt), "%%010" PRIuPTR);
     } else {
-        snprintf(fmt, sizeof(fmt), "%%llu");
+        snprintf(fmt, sizeof(fmt), "%%" PRIuPTR);
     }
-    int len = snprintf(nullptr, 0, fmt, (unsigned long long)v);
+    int len = snprintf(nullptr, 0, fmt, (uintptr_t)v);
     if (len < 0) return nullptr;
     char* out = (char*)malloc(len + 1);
     if (!out) return nullptr;
-    snprintf(out, len + 1, fmt, (unsigned long long)v);
-
+    snprintf(out, len + 1, fmt, (uintptr_t)v);
     return out;
 }
 
@@ -135,7 +135,7 @@ char* qc_fmt_string(const char* s, int width, bool zero_pad) {
     return out;
 }
 
-char* qc_fmt_hex(long long v, int width, bool zero_pad) {
+char* qc_fmt_hex(intptr_t v, int width, bool zero_pad) {
     char fmt[32];
     if (width > 0)
         snprintf(fmt, sizeof(fmt), "%%%s%dx", zero_pad ? "0" : "", width);
@@ -147,7 +147,7 @@ char* qc_fmt_hex(long long v, int width, bool zero_pad) {
     snprintf(out, len + 1, fmt, v);
     return out;
 }
-char* qc_fmt_octal(long long v, int width, bool zero_pad) {
+char* qc_fmt_octal(intptr_t v, int width, bool zero_pad) {
     char fmt[32];
     if (width > 0)
         snprintf(fmt, sizeof(fmt), "%%%s%do", zero_pad ? "0" : "", width);
@@ -275,10 +275,9 @@ char* qc_to_string_float(float x) {
     memcpy(out, buf, n + 1);
     return out;
 }
-char* qc_to_string_long_int(long long x) {
+char* qc_to_string_long_int(intptr_t x) {
     char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%lld", x);
-    if (n < 0) return nullptr;
+    int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);    if (n < 0) return nullptr;
     char* out = (char*)malloc(n + 1);
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
@@ -567,7 +566,7 @@ short qc_to_short_int_from_string(const char* str) {
     long val = str ? strtol(str, nullptr, 10) : 0;
     return static_cast<short>(val);
 }
-long long qc_to_long_int_from_string(const char* str) {
+intptr_t qc_to_long_int_from_string(const char* str) {
     return str ? strtoll(str, nullptr, 10) : 0;
 }
 size_t qc_to_addr_t_from_string(const char* str) {
