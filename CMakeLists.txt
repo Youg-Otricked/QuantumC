@@ -16,7 +16,7 @@ if(EMSCRIPTEN)
 endif()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-    COMMAND clang++ -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+    COMMAND clang++ ${RUNTIME_TARGET_FLAGS} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
     VERBATIM
 )
