@@ -1,4 +1,3 @@
-- Array-initing pointers
 - Concepts
 ```
 concept X {
@@ -10,7 +9,6 @@ class Y {
 Y proves X;
 ```
 - Try/Catch 
-- Polymorphic pointers. Class* = &Child
 - Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`)
 - Operator[i] (subscript, eg `class[123]`), operator[](brace initialization, eg `Classname c = [1, 2, 3, 4]`), operator{:}(map initialization, e.g. `Classname c = {"true": 1, "false": 0};`)
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
@@ -77,19 +75,17 @@ void loop(void) code {
 - qconform (QC Formatter)
 - operator++/–/+=/-=//=/*=(combinational operators)
 TOP PRIORITY:
-1. Array-initing pointers.
-2. Polymorphic pointers.
-3. Generics.
-4. Self host the runtime.
-5. Try/Catch.
-6. Fancy operator overloads
-7. Token/ident/type/keyword/usertype direct type (parser refactor)
-8. Codeblocks.
-9. Concepts
-10. Modifier (x1.0.0)
-11. CQB.
-12. Other stuff
-13. Metadata
+1. Generics.
+2. Self host the runtime.
+3. Try/Catch.
+4. Fancy operator overloads
+5. Token/ident/type/keyword/usertype direct type (parser refactor)
+6. Codeblocks.
+7. Concepts
+8. Modifier (x1.0.0)
+9. CQB.
+10. Other stuff
+11. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<

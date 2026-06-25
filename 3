@@ -1323,7 +1323,7 @@ class LLVMCompiler {
         } else if (auto unaryOp = std::get_if<UnaryOpNode*>(&node)) {
             std::string type = getExpressionType((*unaryOp)->node, strip);
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
-                if (type.ends_with("*") && strip) { type.pop_back(); }
+                if (type.ends_with("*")) { type.pop_back(); }
             }
             return type;
         } else if (auto binOp = std::get_if<BinOpNode*>(&node)) {

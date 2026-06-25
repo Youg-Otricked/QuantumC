@@ -4645,7 +4645,7 @@ void LLVMCompiler::createUserTypes() {
                     std::string baseFullName = classInfo.baseClassName;
                     if (baseFullName.find("::") == std::string::npos) {
                         for (auto& [key, info] : userTypes) {
-                            if (key.find(baseFullName) != std::string::npos && info.kind == UserTypeKind::Class) {
+                            if (key == baseFullName && info.kind == UserTypeKind::Class) {
                                 baseFullName = key;
                                 break;
                             }
@@ -4682,7 +4682,8 @@ void LLVMCompiler::createUserTypes() {
             }
         }
         llvm::StructType* classTy = classTypes[mapKey];
-
+        std::vector<llvm::Constant*> vtableFuncs;
+        std::vector<std::string> slotOrder;
         for (auto& method : info.classMethods) {
             if (method.is_constructor && info.is_abstract_class) {
                 cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
@@ -4697,7 +4698,20 @@ void LLVMCompiler::createUserTypes() {
             llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
 
             classMethods[mapKey][method.name_tok.value].push_back(fn);
+            vtableFuncs.push_back(fn);
+            slotOrder.push_back(methodName);
         }
+        for (size_t i = 0; i < slotOrder.size(); i++) {
+            vtableSlotIndex[mapKey][slotOrder[i]] = i;
+        }
+        auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
+        auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
+        auto* vtable = new llvm::GlobalVariable(
+            *module, arrTy, true,
+            llvm::GlobalValue::InternalLinkage,
+            vtableInit, mapKey + "_vtable"
+        );
+        vtables[mapKey] = vtable;   
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
@@ -6598,7 +6612,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Class) {
             llvm::StructType* classTy = classTypes[qcType];
             llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
-
             if (auto call = std::get_if<CallNode*>(&(*va)->value_node)) {
                 if (auto varAccess = std::get_if<VarAccessNode*>(&(*call)->node_to_call)) {
                     std::string calledName = (*varAccess)->var_name_tok.value;
@@ -6625,27 +6638,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 std::vector<llvm::Value*> allArgs = {instance};
                                 allArgs.insert(allArgs.end(), args.begin(), args.end());
                                 builder->CreateCall(ctor, allArgs);
-                            }
-                        } else {
-                            auto [initMethod, ownerClass] = findMethodInHierarchy(qcType, "init");
-
-                            if (initMethod) {
-                                std::vector<llvm::Value*> args = {instance};
-                                builder->CreateCall(initMethod, args);
+                                auto vtableIt = vtables.find(qcType);
+                                if (vtableIt != vtables.end()) {
+                                    llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
+                                    builder->CreateStore(vtableIt->second, vptrField);
+                                }
                             }
                         }
                     }
-                }
-            } else {
-                auto [initMethod, ownerClass] = findMethodInHierarchy(qcType, "init");
-
-                if (initMethod) {
-                    std::vector<llvm::Value*> args;
-                    args.push_back(instance);
-                    builder->CreateCall(initMethod, args);
-                } else {
-                    llvm::Value* rhs = emitExpr((*va)->value_node);
-                    if (rhs) { builder->CreateStore(rhs, instance); }
                 }
             }
 
@@ -7020,7 +7020,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             }
         }
         llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, "assign_lhs_val");
-        llvm::Value* rhsVal = emitExpr((*asn)->value);
+        llvm::Value* rhsVal = nullptr;
+        if (destTy->isPointerTy() && classTypes.count(getExpressionType((*asn)->value))) {
+            rhsVal = emitLValue((*asn)->value);
+        } else {
+            rhsVal = emitExpr((*asn)->value);
+        }
         std::string rhsType = getExpressionType((*asn)->value);
         if (!rhsVal) {
             cg_error((*asn)->op_tok.pos, "Failed to compile right-hand side of assignment");
@@ -7047,6 +7052,25 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
                     rhsVal = builder->CreateFPExt(rhsVal, destTy, "f2d");
                     srcTy = destTy;
+                } else if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
+                    if (structTy->hasName()) {
+                        std::string destClassName = structTy->getName().str();
+                        std::string srcClassName = getExpressionType((*asn)->value);
+                        if (classTypes.count(destClassName) && classTypes.count(srcClassName)) {
+                            auto& srcInfo = userTypes[srcClassName];
+                            if (srcInfo.baseClassName == destClassName) {
+                            } else {
+                                cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                                return nullptr;
+                            }
+                        } else {
+                            cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                            return nullptr;
+                        }
+                    } else {
+                        cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                        return nullptr;
+                    }
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
                     rhsVal = builder->CreateFPTrunc(rhsVal, destTy, "d2f");
                     srcTy = destTy;
@@ -7147,16 +7171,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         case TokenType::DIV_EQ: newVal = isFloatTy ? builder->CreateFDiv(oldVal, rhsVal, "fdiv") : builder->CreateSDiv(oldVal, rhsVal, "sdiv"); break;
         case TokenType::MOD_EQ: newVal = isFloatTy ? builder->CreateFRem(oldVal, rhsVal, "frem") : builder->CreateSRem(oldVal, rhsVal, "srem"); break;
         default: cg_error((*asn)->op_tok.pos, "Unsupported assignment operator."); return nullptr;
-        }
+        }                           
         if ((*asn)->op_tok.type == TokenType::EQ) {
             if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
                 if (structTy->hasName()) {
                     std::string className = structTy->getName().str();
-
                     if (classTypes.find(className) != classTypes.end()) {
                         std::vector<llvm::Value*> args = {rhsVal};
                         llvm::Function* opMethod = findMethodOverload(className, "operator=", args);
-
                         if (opMethod) {
                             llvm::Type* expectedRhsTy = opMethod->getFunctionType()->getParamType(1);
                             if (expectedRhsTy->isStructTy() && rhsVal->getType()->isPointerTy()) {
@@ -7165,6 +7187,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
                             llvm::Value* callResult = builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
                             return callResult;
+                        }
+                    }
+                    std::string destClassName = structTy->getName().str();
+                    std::string srcClassName = getExpressionType((*asn)->value);
+                    if (classTypes.count(destClassName) && classTypes.count(srcClassName)) {
+                        auto& srcInfo = userTypes[srcClassName];
+                        if (srcInfo.baseClassName == destClassName) {
+                            builder->CreateStore(newVal, alloc);
+                            auto vtableIt = vtables.find(srcClassName);
+                            if (vtableIt != vtables.end()) {
+                                llvm::Value* vptrField = builder->CreateStructGEP(structTy, alloc, 0, "vptr_fix");
+                                builder->CreateStore(vtableIt->second, vptrField);
+                            }
+                            return newVal;
                         }
                     }
                 }
@@ -7331,6 +7367,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 return nullptr;
             }
             std::string baseType = type.substr(0, type.size() - 1);
+            if (classTypes.count(baseType)) {
+                return val;            
+            }
             return builder->CreateLoad(llvmTypeFor(baseType), val, "deref");
         }
         if ((*unary)->op_tok.type == TokenType::SIZEOF) {
@@ -7583,8 +7622,18 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     std::vector<llvm::Value*> allArgs = {temp};
                     allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
                     builder->CreateCall(ctor, allArgs);
+                    auto vtableIt = vtables.find(resolvedName);
+                    if (vtableIt != vtables.end()) {
+                        llvm::Value* vptrField = builder->CreateStructGEP(classTy, temp, 0, "vptr_field");
+                        builder->CreateStore(vtableIt->second, vptrField);
+                    }
                 } else {
                     builder->CreateStore(llvm::Constant::getNullValue(classTy), temp);
+                    auto vtableIt = vtables.find(resolvedName);
+                    if (vtableIt != vtables.end()) {
+                        llvm::Value* vptrField = builder->CreateStructGEP(classTy, temp, 0, "vptr_field");
+                        builder->CreateStore(vtableIt->second, vptrField);
+                    }
                 }
                 return builder->CreateLoad(classTy, temp, resolvedName + "_inst");
             }
@@ -9451,12 +9500,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                                 return nullptr;
                             }
                             auto args = prepareArgs(info, (*call)->args);
-                            llvm::Function* resolvedMethod = findMethodOverload(ty, methodName, args);
-                            if (!resolvedMethod) {
-                                cg_error((*call)->method_name.pos, "No overload found");
-                                return nullptr;
-                            }
-                            llvm::Value* callResult = emitMethodCall(resolvedMethod, payload, args, methodName);
+                            llvm::Value* callResult = emitVirtualOrDirectCall(ty, methodName, payload, args);
                             result = callResult;
                             builder->CreateBr(joinBB);
                             idx++;
@@ -9464,6 +9508,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                         builder->SetInsertPoint(joinBB);
                         return result;
                     } else if (st) {
+                        thisPtr = builder->CreateLoad(builder->getPtrTy(), getVarAddress(varName), "loaded_ptr");
                         targetClass = typeName;
                     }
                 }
@@ -9511,12 +9556,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             return nullptr;
                         }
                         auto args = prepareArgs(info, (*call)->args);
-                        llvm::Function* resolvedMethod = findMethodOverload(ty, methodName, args);
-                        if (!resolvedMethod) {
-                            cg_error((*call)->method_name.pos, "No overload found");
-                            return nullptr;
-                        }
-                        llvm::Value* callResult = emitMethodCall(resolvedMethod, payload, args, methodName);
+                        llvm::Value* callResult = emitVirtualOrDirectCall(ty, methodName, payload, args);
                         result = callResult;
                         builder->CreateBr(joinBB);
                         idx++;
@@ -9584,12 +9624,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                             return nullptr;
                         }
                         auto args = prepareArgs(info, (*call)->args);
-                        llvm::Function* resolvedMethod = findMethodOverload(ty, methodName, args);
-                        if (!resolvedMethod) {
-                            cg_error((*call)->method_name.pos, "No overload found");
-                            return nullptr;
-                        }
-                        llvm::Value* callResult = emitMethodCall(resolvedMethod, payload, args, methodName);
+                        llvm::Value* callResult = emitVirtualOrDirectCall(ty, methodName, payload, args);
                         result = callResult;
                         builder->CreateBr(joinBB);
                         idx++;
@@ -9598,12 +9633,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                     return result;
                 }
             }
-            if (auto* sTy = llvm::dyn_cast<llvm::StructType>(baseVal->getType())) {
+            std::string exprTy = getExpressionType((*call)->base, false);
+            if (exprTy.ends_with("*")) {
+                targetClass = exprTy.substr(0, exprTy.size() - 1);
+                thisPtr = baseVal;
+            } else if (auto* sTy = llvm::dyn_cast<llvm::StructType>(baseVal->getType())) {
                 targetClass = sTy->getName().str();
                 thisPtr = createEntryAlloca("temp_this", sTy);
                 builder->CreateStore(baseVal, thisPtr);
             }
-        }
+        }        
         if (targetClass == "" || targetClass.starts_with("list") || targetClass.starts_with("map")) {
             llvm::Value* baseVal = thisPtr;
             if (methodName == "push") {
@@ -9814,8 +9853,28 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
             builder->CreateStore(builder->getInt32(0), capField);
             args.push_back(varStructAlloc);
         }
+        std::string dispatchClass = targetClass;
+        targetClass = resolveVirtualTargetClass(targetClass, methodName, (*call)->args.size());
         llvm::Function* method = findMethodOverload(targetClass, methodName, args);
         if (!method) return (cg_error((*call)->method_name.pos, "No overload found"), nullptr);
+        auto vtableIt = vtables.find(targetClass);
+        auto slotIt = vtableSlotIndex.find(targetClass);
+        if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
+            std::string mangledName = targetClass + "_" + methodName;
+            auto indexIt = slotIt->second.find(mangledName);
+            if (indexIt != slotIt->second.end()) {
+                int slotIndex = indexIt->second;
+                llvm::StructType* classTy = classTypes[dispatchClass];
+                llvm::Value* vptrField = builder->CreateStructGEP(classTy, thisPtr, 0, "vptr_field");
+                llvm::Value* vptr = builder->CreateLoad(builder->getPtrTy(), vptrField, "vptr");
+                llvm::Value* fnPtrAddr = builder->CreateGEP(builder->getPtrTy(), vptr, builder->getInt32(slotIndex), "vtable_slot");
+                llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
+                std::vector<llvm::Value*> allArgs = {thisPtr};
+                allArgs.insert(allArgs.end(), args.begin(), args.end());
+                return builder->CreateCall(method->getFunctionType(), fnPtr, allArgs);
+            }
+        }
+
         return emitMethodCall(method, thisPtr, args, methodName);
     } else if (auto spread = std::get_if<SpreadNode*>(&node)) {
         cg_error(Position(), "Spread operator can only be used in array/list "
