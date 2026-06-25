@@ -6803,6 +6803,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
         if (srcTy != destTy) {
             if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
                 rhs = builder->CreateFPExt(rhs, destTy, "f2d");
+            } else if (srcTy->isArrayTy() && destTy->isPointerTy()) {
+                auto* arr_alloca = builder->CreateAlloca(srcTy);
+                builder->CreateStore(rhs, arr_alloca);
+                rhs = builder->CreateGEP(
+                    srcTy,
+                    arr_alloca,
+                    {builder->getInt32(0), builder->getInt32(0)}
+                );
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
                 cg_error((*va)->var_name_tok.pos, "Cannot assign double to float in compiled mode");
                 return nullptr;

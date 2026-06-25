@@ -78,19 +78,18 @@ void loop(void) code {
 - operator++/–/+=/-=//=/*=(combinational operators)
 TOP PRIORITY:
 1. Array-initing pointers.
-2. CLI Args, Link multiple files, simple stuff.
-3. Polymorphic pointers.
-4. Generics.
-5. Self host the runtime.
-6. Try/Catch.
-7. Fancy operator overloads
-8. Token/ident/type/keyword/usertype direct type (parser refactor)
-9. Codeblocks.
-10. Concepts
-11. Modifier (x1.0.0)
-12. CQB.
-13. Other stuff
-14. Metadata
+2. Polymorphic pointers.
+3. Generics.
+4. Self host the runtime.
+5. Try/Catch.
+6. Fancy operator overloads
+7. Token/ident/type/keyword/usertype direct type (parser refactor)
+8. Codeblocks.
+9. Concepts
+10. Modifier (x1.0.0)
+11. CQB.
+12. Other stuff
+13. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
