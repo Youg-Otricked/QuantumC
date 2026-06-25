@@ -4474,7 +4474,12 @@ Prs Parser::statement() {
     res.failure(new MissingSemicolonError(this->current_tok.pos));
     return res.to_prs();
 }
-
+enum class MainType {
+    NA,
+    RT_ARRAY,
+    C_STYLE
+};
+MainType main_type = MainType::NA;
 Aer Parser::parse() {
     std::vector<AnyNode> stmts;
     bool has_main = false;
@@ -4495,11 +4500,16 @@ Aer Parser::parse() {
                             throw InvalidSyntaxError("the entrypoint must return int, not " + actual,
                                                      arg->return_types.empty() ? Position() : arg->return_types[0].pos);
                         }
-                        if (!arg->params.empty() && arg->params.front().type.value != "string[]") {
-                            throw InvalidSyntaxError("the entrypoint must have no parameters or "
-                                                     "take a array of "
-                                                     "strings.",
+                        if (!arg->params.empty() && (arg->params.front().type.value != "string[]" && ((((arg->params.size())) == 2 && (arg->params.front().type.value != "int" || arg->params.back().type.value != "char**"))))) {
+                            throw InvalidSyntaxError("the entrypoint must have no parameters, take a integer argc and a char** argv, or take a array of strings.",
                                                      arg->return_types.empty() ? Position() : arg->return_types[0].pos);
+                        }
+                        if (!arg->params.empty()) {
+                            if (arg->params.front().type.value == "string[]") {
+                               main_type = MainType::RT_ARRAY;
+                            } else {
+                                main_type = MainType::C_STYLE;
+                            }
                         }
                         has_main = true;
                         main_func_ptr = arg;
@@ -9111,15 +9121,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
                 llvm::Value* indexVal = emitExpr(arrAcc->indices[0]);
                 if (!indexVal) return nullptr;
-                std::string baseType = arrayTypeStrings[name];
+                std::string baseType = findArrayType(name)->second;
                 llvm::Type* elemTy = llvmTypeFor(baseType);
-
                 llvm::Value* elemPtr = builder->CreateGEP(elemTy, ptr, indexVal, "arr_elem_ptr");
-
                 return builder->CreateLoad(elemTy, elemPtr, "arr_elem");
             } else if (arrTy->isArrayTy()) {
                 std::vector<llvm::Value*> indices = {builder->getInt32(0)};
-
                 for (size_t i = 0; i < arrAcc->indices.size(); i++) {
                     llvm::Value* indexVal = emitExpr(arrAcc->indices[i]);
                     if (!indexVal) return nullptr;
@@ -9131,7 +9138,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode& node) {
                 for (size_t i = 0; i < arrAcc->indices.size(); i++) {
                     if (elemTy->isArrayTy()) { elemTy = elemTy->getArrayElementType(); }
                 }
-
                 return builder->CreateLoad(elemTy, elemPtr, "arr_elem");
             }
         }
@@ -12261,13 +12267,27 @@ std::vector<CTError> LLVMCompiler::compile(
             llvm::Function* userEntry = module->getFunction(entrypointName);
             if (userEntry) {
                 userEntry->setName("__user_entry");
-
                 llvm::FunctionType* mainTy = llvm::FunctionType::get(builder->getInt32Ty(), {}, false);
+                if (main_type != MainType::NA) {
+                    mainTy = llvm::FunctionType::get(builder->getInt32Ty(), { builder->getInt32Ty(), builder->getPtrTy() }, false);
+                }
                 llvm::Function* realMain = llvm::Function::Create(mainTy, llvm::Function::ExternalLinkage, "main", module);
                 llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", realMain);
                 builder->SetInsertPoint(entry);
                 currentFunction = realMain;
-                llvm::Value* result = builder->CreateCall(userEntry, {}, "entry_result");
+                std::vector<llvm::Value*> user_entry_args;
+                for (llvm::Argument& arg : realMain->args()) {
+                    user_entry_args.push_back(&arg);
+                }
+                if (main_type == MainType::RT_ARRAY) {
+                    llvm::Value* argc = realMain->getArg(0);
+                    llvm::AllocaInst* argcSlot = builder->CreateAlloca(builder->getInt32Ty(), nullptr, "argc.addr");
+                    builder->CreateStore(argc, argcSlot);
+                    user_entry_args = {realMain->getArg(1)};
+                    arrayTypeStrings[functionDefs[entrypointName]->params.back().name.value] = "string";
+                    runtimeArraySizes[functionDefs[entrypointName]->params.back().name.value] = argcSlot;
+                }
+                llvm::Value* result = builder->CreateCall(userEntry, user_entry_args, "entry_result");
                 builder->CreateRet(result);
             } else {
                 cg_error(Position(), "Entrypoint function '" + entrypointName + "' not defined");

@@ -289,4 +289,14 @@ QuantumC follows 4 core rules:
 - Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
 - No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
-  Made by [Me](https://github.com/Youg-Otricked)
+
+## Compiler Architecture
+
+QuantumC uses a classic multi-pass compilation pipeline:
+1. **Lexical Analysis / Preprocessing:** Custom scanner with support for multi-file include resolution.
+2. **AST Parsing:** Recursive descent parser generating a strongly typed Abstract Syntax Tree.
+3. **Type Checking & Semantic Analysis:** Resolves user-defined types, namespaces, and TypeScript-style union types. The unique thing is that this pass is _merged with the compilation/codegen phase_
+4. **Intermediate Representation (IR):** Generates LLVM IR. Target-aware pointer arithmetic is achieved dynamically via target-specific DataLayout queries.
+5. **Codegen:** Emits native platform object files (`.o`) or WebAssembly binaries via LLVM's target machines.
+  Made by [Luca Fazio](https://github.com/Youg-Otricked)
+
