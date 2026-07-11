@@ -37,7 +37,8 @@ set(SOURCES
 )
 add_executable(qc ${SOURCES})
 target_compile_options(qc PRIVATE
-    -O3
+    $<$<CONFIG:Release>:-O3>
+    $<$<CONFIG:RelWithDebInfo>:-O2>
     $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=1000000000>
 )
 if(ENABLE_LLVM)
@@ -87,6 +88,7 @@ if(EMSCRIPTEN)
             -s EXPORT_NAME=\"QuantumC\" \
             -s TOTAL_MEMORY=805306368 \
             -s ASSERTIONS=1 \
+            -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE='[\"$stackSave\",\"$stackRestore\",\"$stackAlloc\"]'\
             -Oz \
             -s NO_DISABLE_EXCEPTION_CATCHING"
     )

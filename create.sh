@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PACKAGE="qc"
+PACKAGE="QC"
 VERSION="0.1.0"
 MAINTAINER_NAME="Your Name"
 MAINTAINER_EMAIL="you@example.com"
@@ -19,7 +19,7 @@ Section: utils
 Priority: optional
 Maintainer: ${MAINTAINER_NAME} <${MAINTAINER_EMAIL}>
 Standards-Version: 4.6.0
-Build-Depends: debhelper (>= 12), g++, make
+Build-Depends: debhelper (>= 12), g++, cmake, llvm (>= 21), make
 
 Package: ${PACKAGE}
 Architecture: any
@@ -38,14 +38,13 @@ cat > debian/rules <<'EOF'
 	dh $@
 
 override_dh_auto_build:
-	g++ *.cpp -o qc -std=c++23 -fconstexpr-ops-limit=100000000 -Iinclude
-
+    cmake .
+    cmake --build . -j$(nproc)
 override_dh_auto_install:
-	install -d $(DESTDIR)/usr/local/bin
-	install -m 755 qc $(DESTDIR)/usr/local/bin/qc
-	install -d $(DESTDIR)/usr/local/QC
-	install -m 644 stdlib.qc $(DESTDIR)/usr/local/QC/stdlib.qc
-	install -m 644 syntax.qc $(DESTDIR)/usr/local/QC/syntax.qc
+	install -d $(DESTDIR)/.qc/bin/qc
+	install -m 755 qc $(DESTDIR)/.qc/bin/qc
+	install -d $(DESTDIR)/.qc/lib/stdlib.qc
+	install -m 644 stdlib.qc $(DESTDIR)/.qc/lib/stdlib.qc
 EOF
 
 chmod +x debian/rules
@@ -66,9 +65,8 @@ EOF
 
 # Create debian/install
 cat > debian/install <<EOF
-qc usr/local/bin
-stdlib.qc usr/local/QC
-syntax.qc usr/local/QC
+qc .qc/bin
+stdlib.qc .qc/lib
 EOF
 
 echo "Debian packaging structure generated!"

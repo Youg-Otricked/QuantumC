@@ -25,26 +25,21 @@ else
     echo "Please use Windows Subsystem for Linux (WSL) or compile manually"
     exit 1
 fi
-if [[ $OS == "macos" ]]; then
-    if [[ ! "$PKG_CONFIG_PATH" ]]; then
-        echo 'export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig"' >> ~/.zshrc
-    fi
-fi
 install_deps() {
     echo "Installing dependancys (may need SUDO)"
     if [[ "$OS" == "linux" ]]; then
         if command -v apt &> /dev/null; then
-            sudo apt install -y llvm-21 libffi-dev pkg-config cmake
+            sudo apt install -y llvm-21 cmake
         elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm llvm libffi pkgconf cmake
+            sudo pacman -S --noconfirm llvm cmake
         elif command -v dnf &> /dev/null; then
-            sudo dnf install -y llvm-devel libffi-devel pkgconfig cmake
+            sudo dnf install -y llvm-devel cmake
         else
             echo -e "${RED}Unknown package manager, install deps manually${NC}"
             exit 1
         fi
     elif [[ "$OS" == "macos" ]]; then
-        brew install llvm@21 libffi pkg-config cmake
+        brew install llvm@21 cmake
         echo -e "${YELLOW}Set LLVM_DIR manually, see README${NC}"
     fi
 }

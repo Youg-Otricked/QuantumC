@@ -3,8 +3,8 @@ source_filename = "master_module"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
-%B = type { i8 }
-%A = type { i8 }
+%"ArrayIterator<int>" = type { ptr, ptr, i32, i32 }
+%"Array<int,2>" = type { ptr, ptr, i32 }
 
 @.str = private unnamed_addr constant [11 x i8] c"%%%s%d.%dd\00", align 1
 @.str.1 = private unnamed_addr constant [2 x i8] c"0\00", align 1
@@ -57,18 +57,16 @@ target triple = "x86_64-pc-linux-gnu"
 @switch.table.qc_set_leaf_element.52 = private unnamed_addr constant [5 x i64] [i64 8, i64 1, i64 1, i64 1, i64 8], align 8
 @switch.table.qc_stringify_jagged_helper = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
 @switch.table.qc_map_set.54 = private unnamed_addr constant [4 x i64] [i64 8, i64 1, i64 1, i64 1], align 8
-@B_vtable = internal constant [2 x ptr] [ptr @B_add, ptr @B_B]
-@A_vtable = internal constant [2 x ptr] [ptr @A_add, ptr @A_A]
-@.str.38 = private constant [3 x i8] c"%i\00"
+@"ArrayIterator<int>_vtable" = internal constant [6 x ptr] [ptr @"ArrayIterator<int>_ArrayIterator", ptr @"ArrayIterator<int>__atEnd", ptr @"ArrayIterator<int>__next", ptr @"ArrayIterator<int>__atStart", ptr @"ArrayIterator<int>__prev", ptr @"ArrayIterator<int>__moveTo"]
+@"Array<int,2>_vtable" = internal constant [5 x ptr] [ptr @"Array<int,2>_Array", ptr @"Array<int,2>_operator[]=", ptr @"Array<int,2>_operator[]", ptr @"Array<int,2>__begin", ptr @"Array<int,2>__end"]
+@.str.38 = private constant [2 x i8] c"T\00"
+@.str.40 = private constant [3 x i8] c"%i\00"
 @0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
 @1 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
-@.str.40 = private constant [3 x i8] c"%i\00"
-@2 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@3 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_malloc(i64 noundef %0) local_unnamed_addr #0 {
-  %2 = tail call noalias ptr @malloc(i64 noundef %0) #36
+  %2 = tail call noalias ptr @malloc(i64 noundef %0) #34
   ret ptr %2
 }
 
@@ -77,7 +75,7 @@ declare noalias noundef ptr @malloc(i64 noundef) local_unnamed_addr #1
 
 ; Function Attrs: mustprogress nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite) uwtable
 define internal void @qc_free(ptr noundef captures(none) %0) local_unnamed_addr #2 {
-  tail call void @free(ptr noundef %0) #37
+  tail call void @free(ptr noundef %0) #35
   ret void
 }
 
@@ -86,7 +84,7 @@ declare void @free(ptr allocptr noundef captures(none)) local_unnamed_addr #3
 
 ; Function Attrs: mustprogress nounwind willreturn memory(argmem: readwrite, inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_realloc(ptr noundef captures(none) %0, i64 noundef %1) local_unnamed_addr #2 {
-  %3 = tail call ptr @realloc(ptr noundef %0, i64 noundef %1) #38
+  %3 = tail call ptr @realloc(ptr noundef %0, i64 noundef %1) #36
   ret ptr %3
 }
 
@@ -95,7 +93,7 @@ declare noalias noundef ptr @realloc(ptr allocptr noundef captures(none), i64 no
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_calloc(i64 noundef %0, i64 noundef %1) local_unnamed_addr #0 {
-  %3 = tail call noalias ptr @calloc(i64 noundef %0, i64 noundef %1) #39
+  %3 = tail call noalias ptr @calloc(i64 noundef %0, i64 noundef %1) #37
   ret ptr %3
 }
 
@@ -105,7 +103,7 @@ declare noalias noundef ptr @calloc(i64 noundef, i64 noundef) local_unnamed_addr
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #35
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
   br i1 %6, label %8, label %14
@@ -115,11 +113,11 @@ define internal noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, 
 
 9:                                                ; preds = %8
   %10 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #35
   br label %20
 
 12:                                               ; preds = %8
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.3, i32 noundef %2) #37
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.3, i32 noundef %2) #35
   br label %20
 
 14:                                               ; preds = %4
@@ -127,27 +125,27 @@ define internal noalias noundef ptr @qc_fmt_int(i64 noundef %0, i32 noundef %1, 
 
 15:                                               ; preds = %14
   %16 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.4, ptr noundef nonnull %16, i32 noundef %1) #37
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.4, ptr noundef nonnull %16, i32 noundef %1) #35
   br label %20
 
 18:                                               ; preds = %14
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.5) #37
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.5) #35
   br label %20
 
 20:                                               ; preds = %18, %15, %12, %9
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, i64 noundef %0) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, i64 noundef %0) #35
   %22 = add nsw i32 %21, 1
   %23 = sext i32 %22 to i64
-  %24 = tail call noalias ptr @malloc(i64 noundef %23) #36
+  %24 = tail call noalias ptr @malloc(i64 noundef %23) #34
   %25 = icmp eq ptr %24, null
   br i1 %25, label %28, label %26
 
 26:                                               ; preds = %20
-  %27 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %24, i64 noundef %23, ptr noundef nonnull %5, i64 noundef %0) #37
+  %27 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %24, i64 noundef %23, ptr noundef nonnull %5, i64 noundef %0) #35
   br label %28
 
 28:                                               ; preds = %26, %20
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #35
   ret ptr %24
 }
 
@@ -172,34 +170,34 @@ declare noundef i32 @fflush(ptr noundef captures(none)) local_unnamed_addr #8
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_unsigned_int(i64 noundef %0, i1 noundef zeroext %1) local_unnamed_addr #6 {
   %3 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %3) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %3) #35
   %4 = select i1 %1, ptr @.str.6, ptr @.str.7
-  %5 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %3, i64 noundef 32, ptr noundef nonnull %4) #37
-  %6 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %3, i64 noundef %0) #37
+  %5 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %3, i64 noundef 32, ptr noundef nonnull %4) #35
+  %6 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %3, i64 noundef %0) #35
   %7 = icmp slt i32 %6, 0
   br i1 %7, label %15, label %8
 
 8:                                                ; preds = %2
   %9 = add nuw nsw i32 %6, 1
   %10 = zext nneg i32 %9 to i64
-  %11 = tail call noalias ptr @malloc(i64 noundef %10) #36
+  %11 = tail call noalias ptr @malloc(i64 noundef %10) #34
   %12 = icmp eq ptr %11, null
   br i1 %12, label %15, label %13
 
 13:                                               ; preds = %8
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %11, i64 noundef %10, ptr noundef nonnull %3, i64 noundef %0) #37
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %11, i64 noundef %10, ptr noundef nonnull %3, i64 noundef %0) #35
   br label %15
 
 15:                                               ; preds = %13, %8, %2
   %16 = phi ptr [ null, %2 ], [ %11, %13 ], [ null, %8 ]
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %3) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %3) #35
   ret ptr %16
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #35
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
   br i1 %6, label %8, label %14
@@ -209,11 +207,11 @@ define internal noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef
 
 9:                                                ; preds = %8
   %10 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.8, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.8, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #35
   br label %20
 
 12:                                               ; preds = %8
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.9, i32 noundef %2) #37
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.9, i32 noundef %2) #35
   br label %20
 
 14:                                               ; preds = %4
@@ -221,32 +219,32 @@ define internal noalias noundef ptr @qc_fmt_float(double noundef %0, i32 noundef
 
 15:                                               ; preds = %14
   %16 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.10, ptr noundef nonnull %16, i32 noundef %1) #37
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.10, ptr noundef nonnull %16, i32 noundef %1) #35
   br label %20
 
 18:                                               ; preds = %14
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.11) #37
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.11) #35
   br label %20
 
 20:                                               ; preds = %18, %15, %12, %9
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #35
   %22 = icmp slt i32 %21, 0
   br i1 %22, label %30, label %23
 
 23:                                               ; preds = %20
   %24 = add nuw i32 %21, 1
   %25 = zext i32 %24 to i64
-  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
+  %26 = tail call noalias ptr @malloc(i64 noundef %25) #34
   %27 = icmp eq ptr %26, null
   br i1 %27, label %30, label %28
 
 28:                                               ; preds = %23
-  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #37
+  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #35
   br label %30
 
 30:                                               ; preds = %28, %23, %20
   %31 = phi ptr [ null, %20 ], [ %26, %28 ], [ null, %23 ]
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #35
   ret ptr %31
 }
 
@@ -259,7 +257,7 @@ define internal noalias noundef ptr @qc_fmt_double(double noundef %0, i32 nounde
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 noundef %1, i32 noundef %2, i1 noundef zeroext %3) local_unnamed_addr #6 {
   %5 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %5) #35
   %6 = icmp sgt i32 %2, -1
   %7 = icmp sgt i32 %1, 0
   br i1 %6, label %8, label %14
@@ -269,11 +267,11 @@ define internal noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 no
 
 9:                                                ; preds = %8
   %10 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.12, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #37
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.12, ptr noundef nonnull %10, i32 noundef %1, i32 noundef %2) #35
   br label %20
 
 12:                                               ; preds = %8
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.13, i32 noundef %2) #37
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.13, i32 noundef %2) #35
   br label %20
 
 14:                                               ; preds = %4
@@ -281,71 +279,71 @@ define internal noalias noundef ptr @qc_fmt_scientific(double noundef %0, i32 no
 
 15:                                               ; preds = %14
   %16 = select i1 %3, ptr @.str.1, ptr @.str.2
-  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.14, ptr noundef nonnull %16, i32 noundef %1) #37
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.14, ptr noundef nonnull %16, i32 noundef %1) #35
   br label %20
 
 18:                                               ; preds = %14
-  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.15) #37
+  %19 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 32, ptr noundef nonnull @.str.15) #35
   br label %20
 
 20:                                               ; preds = %18, %15, %12, %9
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %5, double noundef %0) #35
   %22 = icmp slt i32 %21, 0
   br i1 %22, label %30, label %23
 
 23:                                               ; preds = %20
   %24 = add nuw nsw i32 %21, 1
   %25 = zext nneg i32 %24 to i64
-  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
+  %26 = tail call noalias ptr @malloc(i64 noundef %25) #34
   %27 = icmp eq ptr %26, null
   br i1 %27, label %30, label %28
 
 28:                                               ; preds = %23
-  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #37
+  %29 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %26, i64 noundef %25, ptr noundef nonnull %5, double noundef %0) #35
   br label %30
 
 30:                                               ; preds = %28, %23, %20
   %31 = phi ptr [ null, %20 ], [ %26, %28 ], [ null, %23 ]
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %5) #35
   ret ptr %31
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_char(i8 noundef signext %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #35
   %5 = icmp sgt i32 %1, 0
   br i1 %5, label %6, label %9
 
 6:                                                ; preds = %3
   %7 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.16, ptr noundef nonnull %7, i32 noundef %1) #37
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.16, ptr noundef nonnull %7, i32 noundef %1) #35
   br label %11
 
 9:                                                ; preds = %3
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17) #37
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.17) #35
   br label %11
 
 11:                                               ; preds = %9, %6
   %12 = sext i8 %0 to i32
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i32 noundef %12) #37
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i32 noundef %12) #35
   %14 = icmp slt i32 %13, 0
   br i1 %14, label %22, label %15
 
 15:                                               ; preds = %11
   %16 = add nuw nsw i32 %13, 1
   %17 = zext nneg i32 %16 to i64
-  %18 = tail call noalias ptr @malloc(i64 noundef %17) #36
+  %18 = tail call noalias ptr @malloc(i64 noundef %17) #34
   %19 = icmp eq ptr %18, null
   br i1 %19, label %22, label %20
 
 20:                                               ; preds = %15
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, i32 noundef %12) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, i32 noundef %12) #35
   br label %22
 
 22:                                               ; preds = %20, %15, %11
   %23 = phi ptr [ null, %11 ], [ %18, %20 ], [ null, %15 ]
-  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #35
   ret ptr %23
 }
 
@@ -354,104 +352,104 @@ define internal noalias noundef ptr @qc_fmt_string(ptr noundef %0, i32 noundef %
   %4 = alloca [16 x i8], align 16
   %5 = icmp eq ptr %0, null
   %6 = select i1 %5, ptr @.str.2, ptr %0
-  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #35
   %7 = icmp sgt i32 %1, 0
   br i1 %7, label %8, label %11
 
 8:                                                ; preds = %3
   %9 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %9, i32 noundef %1) #37
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %9, i32 noundef %1) #35
   br label %13
 
 11:                                               ; preds = %3
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #37
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #35
   br label %13
 
 13:                                               ; preds = %11, %8
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %6) #35
   %15 = icmp slt i32 %14, 0
   br i1 %15, label %23, label %16
 
 16:                                               ; preds = %13
   %17 = add nuw nsw i32 %14, 1
   %18 = zext nneg i32 %17 to i64
-  %19 = tail call noalias ptr @malloc(i64 noundef %18) #36
+  %19 = tail call noalias ptr @malloc(i64 noundef %18) #34
   %20 = icmp eq ptr %19, null
   br i1 %20, label %23, label %21
 
 21:                                               ; preds = %16
-  %22 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %19, i64 noundef %18, ptr noundef nonnull %4, ptr noundef nonnull %6) #37
+  %22 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %19, i64 noundef %18, ptr noundef nonnull %4, ptr noundef nonnull %6) #35
   br label %23
 
 23:                                               ; preds = %21, %16, %13
   %24 = phi ptr [ null, %13 ], [ %19, %21 ], [ null, %16 ]
-  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #35
   ret ptr %24
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_hex(i64 noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #35
   %5 = icmp sgt i32 %1, 0
   br i1 %5, label %6, label %9
 
 6:                                                ; preds = %3
   %7 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.20, ptr noundef nonnull %7, i32 noundef %1) #37
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.20, ptr noundef nonnull %7, i32 noundef %1) #35
   br label %11
 
 9:                                                ; preds = %3
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.21) #37
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.21) #35
   br label %11
 
 11:                                               ; preds = %9, %6
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #35
   %13 = add nsw i32 %12, 1
   %14 = sext i32 %13 to i64
-  %15 = tail call noalias ptr @malloc(i64 noundef %14) #36
+  %15 = tail call noalias ptr @malloc(i64 noundef %14) #34
   %16 = icmp eq ptr %15, null
   br i1 %16, label %19, label %17
 
 17:                                               ; preds = %11
-  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #37
+  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #35
   br label %19
 
 19:                                               ; preds = %17, %11
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #35
   ret ptr %15
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %4) #35
   %5 = icmp sgt i32 %1, 0
   br i1 %5, label %6, label %9
 
 6:                                                ; preds = %3
   %7 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.22, ptr noundef nonnull %7, i32 noundef %1) #37
+  %8 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.22, ptr noundef nonnull %7, i32 noundef %1) #35
   br label %11
 
 9:                                                ; preds = %3
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.23) #37
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 32, ptr noundef nonnull @.str.23) #35
   br label %11
 
 11:                                               ; preds = %9, %6
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #37
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, i64 noundef %0) #35
   %13 = add nsw i32 %12, 1
   %14 = sext i32 %13 to i64
-  %15 = tail call noalias ptr @malloc(i64 noundef %14) #36
+  %15 = tail call noalias ptr @malloc(i64 noundef %14) #34
   %16 = icmp eq ptr %15, null
   br i1 %16, label %19, label %17
 
 17:                                               ; preds = %11
-  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #37
+  %18 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull %15, i64 noundef %14, ptr noundef nonnull %4, i64 noundef %0) #35
   br label %19
 
 19:                                               ; preds = %17, %11
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %4) #35
   ret ptr %15
 }
 
@@ -459,38 +457,38 @@ define internal noalias noundef ptr @qc_fmt_octal(i64 noundef %0, i32 noundef %1
 define internal noalias noundef ptr @qc_fmt_bool(i1 noundef zeroext %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [16 x i8], align 16
   %5 = select i1 %0, ptr @.str.24, ptr @.str.25
-  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #35
   %6 = icmp sgt i32 %1, 0
   br i1 %6, label %7, label %10
 
 7:                                                ; preds = %3
   %8 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %8, i32 noundef %1) #37
+  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %8, i32 noundef %1) #35
   br label %12
 
 10:                                               ; preds = %3
-  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #37
+  %11 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #35
   br label %12
 
 12:                                               ; preds = %10, %7
-  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+  %13 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %5) #35
   %14 = icmp slt i32 %13, 0
   br i1 %14, label %22, label %15
 
 15:                                               ; preds = %12
   %16 = add nuw nsw i32 %13, 1
   %17 = zext nneg i32 %16 to i64
-  %18 = tail call noalias ptr @malloc(i64 noundef %17) #36
+  %18 = tail call noalias ptr @malloc(i64 noundef %17) #34
   %19 = icmp eq ptr %18, null
   br i1 %19, label %22, label %20
 
 20:                                               ; preds = %15
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, ptr noundef nonnull %5) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %18, i64 noundef %17, ptr noundef nonnull %4, ptr noundef nonnull %5) #35
   br label %22
 
 22:                                               ; preds = %20, %15, %12
   %23 = phi ptr [ null, %12 ], [ %18, %20 ], [ null, %15 ]
-  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #35
   ret ptr %23
 }
 
@@ -501,68 +499,68 @@ define internal noalias noundef ptr @qc_fmt_qbool(i8 noundef zeroext %0, i32 nou
   %6 = zext nneg i8 %5 to i64
   %7 = getelementptr inbounds nuw [4 x ptr], ptr @switch.table.qc_print_array_qbool, i64 0, i64 %6
   %8 = load ptr, ptr %7, align 8
-  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 16, ptr nonnull %4) #35
   %9 = icmp sgt i32 %1, 0
   br i1 %9, label %10, label %13
 
 10:                                               ; preds = %3
   %11 = select i1 %2, ptr @.str.1, ptr @.str.2
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %11, i32 noundef %1) #37
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.18, ptr noundef nonnull %11, i32 noundef %1) #35
   br label %15
 
 13:                                               ; preds = %3
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #37
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 16, ptr noundef nonnull @.str.19) #35
   br label %15
 
 15:                                               ; preds = %13, %10
-  %16 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
+  %16 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef null, i64 noundef 0, ptr noundef nonnull %4, ptr noundef nonnull %8) #35
   %17 = icmp slt i32 %16, 0
   br i1 %17, label %25, label %18
 
 18:                                               ; preds = %15
   %19 = add nuw nsw i32 %16, 1
   %20 = zext nneg i32 %19 to i64
-  %21 = tail call noalias ptr @malloc(i64 noundef %20) #36
+  %21 = tail call noalias ptr @malloc(i64 noundef %20) #34
   %22 = icmp eq ptr %21, null
   br i1 %22, label %25, label %23
 
 23:                                               ; preds = %18
-  %24 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %21, i64 noundef %20, ptr noundef nonnull %4, ptr noundef nonnull %8) #37
+  %24 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %21, i64 noundef %20, ptr noundef nonnull %4, ptr noundef nonnull %8) #35
   br label %25
 
 25:                                               ; preds = %23, %18, %15
   %26 = phi ptr [ null, %15 ], [ %21, %23 ], [ null, %18 ]
-  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #37
+  call void @llvm.lifetime.end.p0(i64 16, ptr nonnull %4) #35
   ret ptr %26
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias ptr @qc_fmt_ptr(ptr noundef %0, i32 noundef %1, i1 noundef zeroext %2) local_unnamed_addr #6 {
   %4 = alloca [64 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %4) #35
   %5 = icmp sgt i32 %1, 0
   %6 = and i1 %2, %5
   br i1 %6, label %7, label %10
 
 7:                                                ; preds = %3
   %8 = ptrtoint ptr %0 to i64
-  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.30, i32 noundef %1, i64 noundef %8) #37
+  %9 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.30, i32 noundef %1, i64 noundef %8) #35
   br label %15
 
 10:                                               ; preds = %3
   br i1 %5, label %11, label %13
 
 11:                                               ; preds = %10
-  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.31, i32 noundef %1, ptr noundef %0) #37
+  %12 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.31, i32 noundef %1, ptr noundef %0) #35
   br label %15
 
 13:                                               ; preds = %10
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.32, ptr noundef %0) #37
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %4, i64 noundef 64, ptr noundef nonnull @.str.32, ptr noundef %0) #35
   br label %15
 
 15:                                               ; preds = %13, %11, %7
-  %16 = call noalias ptr @strdup(ptr noundef nonnull %4) #37
-  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %4) #37
+  %16 = call noalias ptr @strdup(ptr noundef nonnull %4) #35
+  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %4) #35
   ret ptr %16
 }
 
@@ -611,11 +609,11 @@ define internal noalias noundef ptr @qc_string_concat(ptr noundef readonly captu
   %4 = select i1 %3, ptr @.str.2, ptr %0
   %5 = icmp eq ptr %1, null
   %6 = select i1 %5, ptr @.str.2, ptr %1
-  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %4) #40
-  %8 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %6) #40
+  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %4) #38
+  %8 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %6) #38
   %9 = add i64 %8, %7
   %10 = add i64 %9, 1
-  %11 = tail call noalias ptr @malloc(i64 noundef %10) #36
+  %11 = tail call noalias ptr @malloc(i64 noundef %10) #34
   %12 = icmp eq ptr %11, null
   br i1 %12, label %16, label %13
 
@@ -645,7 +643,7 @@ define internal zeroext i1 @qc_string_eq(ptr noundef readonly captures(address_i
   br i1 %5, label %6, label %9
 
 6:                                                ; preds = %2
-  %7 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #40
+  %7 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #38
   %8 = icmp eq i32 %7, 0
   br label %9
 
@@ -758,15 +756,15 @@ define internal noundef zeroext i1 @qc_qor_collapse(i8 noundef zeroext %0, i8 no
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_to_string_int(i32 noundef %0) local_unnamed_addr #6 {
   %2 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #37
-  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.34, i32 noundef %0) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #35
+  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.34, i32 noundef %0) #35
   %4 = icmp slt i32 %3, 0
   br i1 %4, label %11, label %5
 
 5:                                                ; preds = %1
   %6 = add nuw nsw i32 %3, 1
   %7 = zext nneg i32 %6 to i64
-  %8 = tail call noalias ptr @malloc(i64 noundef %7) #36
+  %8 = tail call noalias ptr @malloc(i64 noundef %7) #34
   %9 = icmp eq ptr %8, null
   br i1 %9, label %11, label %10
 
@@ -776,23 +774,23 @@ define internal noalias noundef ptr @qc_to_string_int(i32 noundef %0) local_unna
 
 11:                                               ; preds = %10, %5, %1
   %12 = phi ptr [ null, %1 ], [ %8, %10 ], [ null, %5 ]
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %2) #35
   ret ptr %12
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_to_string_float(float noundef %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
+  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #35
   %3 = fpext float %0 to double
-  %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %3) #37
+  %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %3) #35
   %5 = icmp slt i32 %4, 0
   br i1 %5, label %12, label %6
 
 6:                                                ; preds = %1
   %7 = add nuw nsw i32 %4, 1
   %8 = zext nneg i32 %7 to i64
-  %9 = tail call noalias ptr @malloc(i64 noundef %8) #36
+  %9 = tail call noalias ptr @malloc(i64 noundef %8) #34
   %10 = icmp eq ptr %9, null
   br i1 %10, label %12, label %11
 
@@ -802,22 +800,22 @@ define internal noalias noundef ptr @qc_to_string_float(float noundef %0) local_
 
 12:                                               ; preds = %11, %6, %1
   %13 = phi ptr [ null, %1 ], [ %9, %11 ], [ null, %6 ]
-  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #35
   ret ptr %13
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_to_string_long_int(i64 noundef %0) local_unnamed_addr #6 {
   %2 = alloca [32 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #37
-  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.36, i64 noundef %0) #37
+  call void @llvm.lifetime.start.p0(i64 32, ptr nonnull %2) #35
+  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 32, ptr noundef nonnull @.str.36, i64 noundef %0) #35
   %4 = icmp slt i32 %3, 0
   br i1 %4, label %11, label %5
 
 5:                                                ; preds = %1
   %6 = add nuw nsw i32 %3, 1
   %7 = zext nneg i32 %6 to i64
-  %8 = tail call noalias ptr @malloc(i64 noundef %7) #36
+  %8 = tail call noalias ptr @malloc(i64 noundef %7) #34
   %9 = icmp eq ptr %8, null
   br i1 %9, label %11, label %10
 
@@ -827,23 +825,23 @@ define internal noalias noundef ptr @qc_to_string_long_int(i64 noundef %0) local
 
 11:                                               ; preds = %10, %5, %1
   %12 = phi ptr [ null, %1 ], [ %8, %10 ], [ null, %5 ]
-  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 32, ptr nonnull %2) #35
   ret ptr %12
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_to_string_short_int(i16 noundef signext %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
+  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #35
   %3 = sext i16 %0 to i32
-  %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.37, i32 noundef %3) #37
+  %4 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.37, i32 noundef %3) #35
   %5 = icmp slt i32 %4, 0
   br i1 %5, label %12, label %6
 
 6:                                                ; preds = %1
   %7 = add nuw nsw i32 %4, 1
   %8 = zext nneg i32 %7 to i64
-  %9 = tail call noalias ptr @malloc(i64 noundef %8) #36
+  %9 = tail call noalias ptr @malloc(i64 noundef %8) #34
   %10 = icmp eq ptr %9, null
   br i1 %10, label %12, label %11
 
@@ -853,7 +851,7 @@ define internal noalias noundef ptr @qc_to_string_short_int(i16 noundef signext 
 
 12:                                               ; preds = %11, %6, %1
   %13 = phi ptr [ null, %1 ], [ %9, %11 ], [ null, %6 ]
-  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #35
   ret ptr %13
 }
 
@@ -926,15 +924,15 @@ define internal noundef signext i8 @qc_to_char_from_int(i32 noundef %0) local_un
 ; Function Attrs: mustprogress nofree nounwind uwtable
 define internal noalias noundef ptr @qc_to_string_double(double noundef %0) local_unnamed_addr #6 {
   %2 = alloca [64 x i8], align 16
-  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #37
-  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %0) #37
+  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %2) #35
+  %3 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %0) #35
   %4 = icmp slt i32 %3, 0
   br i1 %4, label %11, label %5
 
 5:                                                ; preds = %1
   %6 = add nuw nsw i32 %3, 1
   %7 = zext nneg i32 %6 to i64
-  %8 = tail call noalias ptr @malloc(i64 noundef %7) #36
+  %8 = tail call noalias ptr @malloc(i64 noundef %7) #34
   %9 = icmp eq ptr %8, null
   br i1 %9, label %11, label %10
 
@@ -944,14 +942,14 @@ define internal noalias noundef ptr @qc_to_string_double(double noundef %0) loca
 
 11:                                               ; preds = %10, %5, %1
   %12 = phi ptr [ null, %1 ], [ %8, %10 ], [ null, %5 ]
-  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %2) #35
   ret ptr %12
 }
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(readwrite, argmem: none) uwtable
 define internal noalias noundef ptr @qc_to_string_bool(i1 noundef zeroext %0) local_unnamed_addr #15 {
   %2 = select i1 %0, i64 5, i64 6
-  %3 = tail call noalias ptr @malloc(i64 noundef %2) #36
+  %3 = tail call noalias ptr @malloc(i64 noundef %2) #34
   %4 = icmp eq ptr %3, null
   br i1 %4, label %7, label %5
 
@@ -970,9 +968,9 @@ define internal noalias noundef ptr @qc_to_string_qbool(i8 noundef zeroext %0) l
   %3 = zext nneg i8 %2 to i64
   %4 = getelementptr inbounds nuw [4 x ptr], ptr @switch.table.qc_print_array_qbool, i64 0, i64 %3
   %5 = load ptr, ptr %4, align 8
-  %6 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %5) #40
+  %6 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %5) #38
   %7 = add i64 %6, 1
-  %8 = tail call noalias ptr @malloc(i64 noundef %7) #36
+  %8 = tail call noalias ptr @malloc(i64 noundef %7) #34
   %9 = icmp eq ptr %8, null
   br i1 %9, label %11, label %10
 
@@ -986,7 +984,7 @@ define internal noalias noundef ptr @qc_to_string_qbool(i8 noundef zeroext %0) l
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(write, argmem: none, inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_to_string_char(i8 noundef signext %0) local_unnamed_addr #16 {
-  %2 = tail call noalias dereferenceable_or_null(2) ptr @malloc(i64 noundef 2) #36
+  %2 = tail call noalias dereferenceable_or_null(2) ptr @malloc(i64 noundef 2) #34
   %3 = icmp eq ptr %2, null
   br i1 %3, label %6, label %4
 
@@ -1037,7 +1035,7 @@ declare noundef i32 @putc(i32 noundef, ptr noundef captures(none)) local_unnamed
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal i32 @qc_time() local_unnamed_addr #17 {
-  %1 = tail call i64 @time(ptr noundef null) #37
+  %1 = tail call i64 @time(ptr noundef null) #35
   %2 = trunc i64 %1 to i32
   ret i32 %2
 }
@@ -1047,7 +1045,7 @@ declare i64 @time(ptr noundef) local_unnamed_addr #18
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal void @qc_seed(i32 noundef %0) local_unnamed_addr #17 {
-  tail call void @srand(i32 noundef %0) #37
+  tail call void @srand(i32 noundef %0) #35
   ret void
 }
 
@@ -1056,7 +1054,7 @@ declare void @srand(i32 noundef) local_unnamed_addr #18
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal float @qc_random_float() local_unnamed_addr #17 {
-  %1 = tail call i32 @rand() #37
+  %1 = tail call i32 @rand() #35
   %2 = sitofp i32 %1 to float
   %3 = fmul float %2, 0x3E00000000000000
   ret float %3
@@ -1067,14 +1065,14 @@ declare i32 @rand() local_unnamed_addr #18
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal range(i32 -2147483647, -2147483648) i32 @qc_random_int(i32 noundef %0) local_unnamed_addr #17 {
-  %2 = tail call i32 @rand() #37
+  %2 = tail call i32 @rand() #35
   %3 = srem i32 %2, %0
   ret i32 %3
 }
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal i32 @qc_random_range(i32 noundef %0, i32 noundef %1) local_unnamed_addr #17 {
-  %3 = tail call i32 @rand() #37
+  %3 = tail call i32 @rand() #35
   %4 = sub nsw i32 %1, %0
   %5 = srem i32 %3, %4
   %6 = add nsw i32 %5, %0
@@ -1083,7 +1081,7 @@ define internal i32 @qc_random_range(i32 noundef %0, i32 noundef %1) local_unnam
 
 ; Function Attrs: mustprogress nofree norecurse nounwind willreturn memory(argmem: read) uwtable
 define internal i32 @qc_len(ptr noundef readonly captures(none) %0) local_unnamed_addr #14 {
-  %2 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %2 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %3 = trunc i64 %2 to i32
   ret i32 %3
 }
@@ -1094,9 +1092,9 @@ define internal noalias noundef ptr @qc_to_lower(ptr noundef readonly captures(a
   br i1 %2, label %22, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %4 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %5 = add i64 %4, 1
-  %6 = tail call noalias ptr @malloc(i64 noundef %5) #36
+  %6 = tail call noalias ptr @malloc(i64 noundef %5) #34
   %7 = icmp eq ptr %6, null
   br i1 %7, label %22, label %8
 
@@ -1114,7 +1112,7 @@ define internal noalias noundef ptr @qc_to_lower(ptr noundef readonly captures(a
   %14 = getelementptr inbounds nuw i8, ptr %0, i64 %13
   %15 = load i8, ptr %14, align 1, !tbaa !7
   %16 = zext i8 %15 to i32
-  %17 = tail call i32 @tolower(i32 noundef %16) #40
+  %17 = tail call i32 @tolower(i32 noundef %16) #38
   %18 = trunc i32 %17 to i8
   %19 = getelementptr inbounds nuw i8, ptr %6, i64 %13
   store i8 %18, ptr %19, align 1, !tbaa !7
@@ -1136,9 +1134,9 @@ define internal noalias noundef ptr @qc_to_upper(ptr noundef readonly captures(a
   br i1 %2, label %22, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %4 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %5 = add i64 %4, 1
-  %6 = tail call noalias ptr @malloc(i64 noundef %5) #36
+  %6 = tail call noalias ptr @malloc(i64 noundef %5) #34
   %7 = icmp eq ptr %6, null
   br i1 %7, label %22, label %8
 
@@ -1156,7 +1154,7 @@ define internal noalias noundef ptr @qc_to_upper(ptr noundef readonly captures(a
   %14 = getelementptr inbounds nuw i8, ptr %0, i64 %13
   %15 = load i8, ptr %14, align 1, !tbaa !7
   %16 = zext i8 %15 to i32
-  %17 = tail call i32 @toupper(i32 noundef %16) #40
+  %17 = tail call i32 @toupper(i32 noundef %16) #38
   %18 = trunc i32 %17 to i8
   %19 = getelementptr inbounds nuw i8, ptr %6, i64 %13
   store i8 %18, ptr %19, align 1, !tbaa !7
@@ -1178,7 +1176,7 @@ define internal noalias noundef ptr @qc_substring(ptr noundef readonly captures(
   br i1 %4, label %29, label %5
 
 5:                                                ; preds = %3
-  %6 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %6 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %7 = trunc i64 %6 to i32
   %8 = icmp slt i32 %1, 0
   br i1 %8, label %13, label %9
@@ -1190,7 +1188,7 @@ define internal noalias noundef ptr @qc_substring(ptr noundef readonly captures(
   br i1 %12, label %13, label %15
 
 13:                                               ; preds = %9, %5
-  %14 = tail call noalias dereferenceable_or_null(1) ptr @malloc(i64 noundef 1) #36
+  %14 = tail call noalias dereferenceable_or_null(1) ptr @malloc(i64 noundef 1) #34
   store i8 0, ptr %14, align 1, !tbaa !7
   br label %29
 
@@ -1201,7 +1199,7 @@ define internal noalias noundef ptr @qc_substring(ptr noundef readonly captures(
   %19 = select i1 %17, i32 %18, i32 %2
   %20 = add nuw nsw i32 %19, 1
   %21 = zext nneg i32 %20 to i64
-  %22 = tail call noalias ptr @malloc(i64 noundef %21) #36
+  %22 = tail call noalias ptr @malloc(i64 noundef %21) #34
   %23 = icmp eq ptr %22, null
   br i1 %23, label %29, label %24
 
@@ -1227,7 +1225,7 @@ define internal range(i32 0, 2) i32 @qc_contains(ptr noundef readonly %0, ptr no
   br i1 %5, label %6, label %10
 
 6:                                                ; preds = %2
-  %7 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #40
+  %7 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #38
   %8 = icmp ne ptr %7, null
   %9 = zext i1 %8 to i32
   br label %10
@@ -1248,8 +1246,8 @@ define internal range(i32 0, 2) i32 @qc_startswith(ptr noundef readonly captures
   br i1 %5, label %6, label %11
 
 6:                                                ; preds = %2
-  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #40
-  %8 = tail call i32 @strncmp(ptr noundef nonnull %0, ptr noundef nonnull %1, i64 noundef %7) #40
+  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #38
+  %8 = tail call i32 @strncmp(ptr noundef nonnull %0, ptr noundef nonnull %1, i64 noundef %7) #38
   %9 = icmp eq i32 %8, 0
   %10 = zext i1 %9 to i32
   br label %11
@@ -1270,8 +1268,8 @@ define internal range(i32 0, 2) i32 @qc_endswith(ptr noundef readonly captures(a
   br i1 %5, label %6, label %17
 
 6:                                                ; preds = %2
-  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
-  %8 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #40
+  %7 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
+  %8 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #38
   %9 = icmp ugt i64 %8, %7
   br i1 %9, label %17, label %10
 
@@ -1279,7 +1277,7 @@ define internal range(i32 0, 2) i32 @qc_endswith(ptr noundef readonly captures(a
   %11 = getelementptr inbounds nuw i8, ptr %0, i64 %7
   %12 = sub i64 0, %8
   %13 = getelementptr inbounds i8, ptr %11, i64 %12
-  %14 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %13, ptr noundef nonnull dereferenceable(1) %1) #40
+  %14 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %13, ptr noundef nonnull dereferenceable(1) %1) #38
   %15 = icmp eq i32 %14, 0
   %16 = zext i1 %15 to i32
   br label %17
@@ -1302,7 +1300,7 @@ define internal zeroext i1 @qc_to_bool_from_string(ptr noundef readonly captures
   br i1 %2, label %13, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(5) @.str.24) #40
+  %4 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(5) @.str.24) #38
   %5 = icmp eq i32 %4, 0
   br i1 %5, label %13, label %6
 
@@ -1328,17 +1326,17 @@ define internal zeroext range(i8 0, 4) i8 @qc_to_qbool_from_string(ptr noundef r
   br i1 %2, label %13, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(6) @.str.28) #40
+  %4 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(6) @.str.28) #38
   %5 = icmp eq i32 %4, 0
   br i1 %5, label %13, label %6
 
 6:                                                ; preds = %3
-  %7 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(7) @.str.27) #40
+  %7 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(7) @.str.27) #38
   %8 = icmp eq i32 %7, 0
   br i1 %8, label %13, label %9
 
 9:                                                ; preds = %6
-  %10 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(5) @.str.29) #40
+  %10 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(5) @.str.29) #38
   %11 = icmp eq i32 %10, 0
   %12 = select i1 %11, i8 3, i8 0
   br label %13
@@ -1357,7 +1355,7 @@ define internal noalias ptr @qc_qin() local_unnamed_addr #21 {
   %5 = tail call i32 @fflush(ptr noundef %4)
   %6 = load ptr, ptr @stdin, align 8, !tbaa !10
   %7 = tail call i32 @fflush(ptr noundef %6)
-  call void @llvm.lifetime.start.p0(i64 1024, ptr nonnull %1) #37
+  call void @llvm.lifetime.start.p0(i64 1024, ptr nonnull %1) #35
   %8 = call i32 (ptr, ...) @__isoc23_scanf(ptr noundef nonnull @.str.39, ptr noundef nonnull %1)
   %9 = load ptr, ptr @stderr, align 8, !tbaa !10
   %10 = call i32 @fflush(ptr noundef %9)
@@ -1365,8 +1363,8 @@ define internal noalias ptr @qc_qin() local_unnamed_addr #21 {
   %12 = call i32 @fflush(ptr noundef %11)
   %13 = icmp eq i32 %8, 1
   %14 = select i1 %13, ptr %1, ptr @.str.2
-  %15 = call noalias ptr @strdup(ptr noundef nonnull %14) #37
-  call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %1) #37
+  %15 = call noalias ptr @strdup(ptr noundef nonnull %14) #35
+  call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %1) #35
   ret ptr %15
 }
 
@@ -1393,7 +1391,7 @@ define internal noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr 
   %7 = phi i8 [ %14, %12 ], [ %4, %3 ]
   %8 = phi ptr [ %13, %12 ], [ %0, %3 ]
   %9 = zext i8 %7 to i32
-  %10 = tail call i32 @isspace(i32 noundef %9) #40
+  %10 = tail call i32 @isspace(i32 noundef %9) #38
   %11 = icmp eq i32 %10, 0
   br i1 %11, label %18, label %12
 
@@ -1404,12 +1402,12 @@ define internal noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr 
   br i1 %15, label %16, label %6, !llvm.loop !15
 
 16:                                               ; preds = %12, %3
-  %17 = tail call noalias dereferenceable_or_null(1) ptr @malloc(i64 noundef 1) #36
+  %17 = tail call noalias dereferenceable_or_null(1) ptr @malloc(i64 noundef 1) #34
   store i8 0, ptr %17, align 1, !tbaa !7
   br label %40
 
 18:                                               ; preds = %6
-  %19 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %8) #40
+  %19 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %8) #38
   %20 = getelementptr inbounds nuw i8, ptr %8, i64 %19
   br label %21
 
@@ -1422,7 +1420,7 @@ define internal noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr 
 25:                                               ; preds = %21
   %26 = load i8, ptr %23, align 1, !tbaa !7
   %27 = zext i8 %26 to i32
-  %28 = tail call i32 @isspace(i32 noundef %27) #40
+  %28 = tail call i32 @isspace(i32 noundef %27) #38
   %29 = icmp eq i32 %28, 0
   br i1 %29, label %30, label %21, !llvm.loop !16
 
@@ -1431,7 +1429,7 @@ define internal noalias noundef ptr @qc_trim(ptr noundef %0) local_unnamed_addr 
   %32 = ptrtoint ptr %8 to i64
   %33 = sub i64 %31, %32
   %34 = add i64 %33, 2
-  %35 = tail call noalias ptr @malloc(i64 noundef %34) #36
+  %35 = tail call noalias ptr @malloc(i64 noundef %34) #34
   %36 = icmp eq ptr %35, null
   br i1 %36, label %40, label %37
 
@@ -1460,21 +1458,21 @@ define internal noundef ptr @qc_replace(ptr noundef readonly %0, ptr noundef rea
   br i1 %8, label %9, label %65
 
 9:                                                ; preds = %3
-  %10 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #40
-  %11 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #40
+  %10 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %1) #38
+  %11 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #38
   %12 = icmp eq i64 %10, 0
   br i1 %12, label %16, label %13
 
 13:                                               ; preds = %9
-  %14 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #40
+  %14 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #38
   %15 = icmp eq ptr %14, null
   br i1 %15, label %28, label %21
 
 16:                                               ; preds = %9
-  %17 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %17 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %18 = add i64 %17, 1
-  %19 = tail call noalias ptr @malloc(i64 noundef %18) #36
-  %20 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %19, ptr noundef nonnull dereferenceable(1) %0) #37
+  %19 = tail call noalias ptr @malloc(i64 noundef %18) #34
+  %20 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %19, ptr noundef nonnull dereferenceable(1) %0) #35
   br label %65
 
 21:                                               ; preds = %21, %13
@@ -1482,25 +1480,25 @@ define internal noundef ptr @qc_replace(ptr noundef readonly %0, ptr noundef rea
   %23 = phi i32 [ %24, %21 ], [ 0, %13 ]
   %24 = add nuw nsw i32 %23, 1
   %25 = getelementptr inbounds nuw i8, ptr %22, i64 %10
-  %26 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %25, ptr noundef nonnull dereferenceable(1) %1) #40
+  %26 = tail call noundef ptr @strstr(ptr noundef nonnull dereferenceable(1) %25, ptr noundef nonnull dereferenceable(1) %1) #38
   %27 = icmp eq ptr %26, null
   br i1 %27, label %33, label %21, !llvm.loop !17
 
 28:                                               ; preds = %13
-  %29 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %29 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %30 = add i64 %29, 1
-  %31 = tail call noalias ptr @malloc(i64 noundef %30) #36
-  %32 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %31, ptr noundef nonnull dereferenceable(1) %0) #37
+  %31 = tail call noalias ptr @malloc(i64 noundef %30) #34
+  %32 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %31, ptr noundef nonnull dereferenceable(1) %0) #35
   br label %65
 
 33:                                               ; preds = %21
-  %34 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #40
+  %34 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %0) #38
   %35 = zext nneg i32 %24 to i64
   %36 = sub i64 %11, %10
   %37 = mul i64 %36, %35
   %38 = add i64 %37, 1
   %39 = add i64 %38, %34
-  %40 = tail call noalias ptr @malloc(i64 noundef %39) #36
+  %40 = tail call noalias ptr @malloc(i64 noundef %39) #34
   %41 = icmp eq ptr %40, null
   br i1 %41, label %65, label %42
 
@@ -1556,7 +1554,7 @@ define internal i32 @qc_to_int_from_string(ptr noundef %0) local_unnamed_addr #1
   br i1 %2, label %6, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @__isoc23_strtol(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #37
+  %4 = tail call i64 @__isoc23_strtol(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #35
   %5 = trunc i64 %4 to i32
   br label %6
 
@@ -1574,7 +1572,7 @@ define internal signext i16 @qc_to_short_int_from_string(ptr noundef %0) local_u
   br i1 %2, label %6, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @__isoc23_strtol(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #37
+  %4 = tail call i64 @__isoc23_strtol(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #35
   %5 = trunc i64 %4 to i16
   br label %6
 
@@ -1589,7 +1587,7 @@ define internal i64 @qc_to_long_int_from_string(ptr noundef %0) local_unnamed_ad
   br i1 %2, label %5, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @__isoc23_strtoll(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #37
+  %4 = tail call i64 @__isoc23_strtoll(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #35
   br label %5
 
 5:                                                ; preds = %3, %1
@@ -1606,7 +1604,7 @@ define internal i64 @qc_to_addr_t_from_string(ptr noundef %0) local_unnamed_addr
   br i1 %2, label %5, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call i64 @__isoc23_strtoull(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #37
+  %4 = tail call i64 @__isoc23_strtoull(ptr noundef nonnull %0, ptr noundef null, i32 noundef 10) #35
   br label %5
 
 5:                                                ; preds = %3, %1
@@ -1623,7 +1621,7 @@ define internal float @qc_to_float_from_string(ptr noundef readonly captures(add
   br i1 %2, label %6, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call double @strtod(ptr noundef nonnull captures(none) %0, ptr noundef null) #37
+  %4 = tail call double @strtod(ptr noundef nonnull captures(none) %0, ptr noundef null) #35
   %5 = fptrunc double %4 to float
   br label %6
 
@@ -1641,7 +1639,7 @@ define internal double @qc_to_double_from_string(ptr noundef readonly captures(a
   br i1 %2, label %5, label %3
 
 3:                                                ; preds = %1
-  %4 = tail call double @strtod(ptr noundef nonnull captures(none) %0, ptr noundef null) #37
+  %4 = tail call double @strtod(ptr noundef nonnull captures(none) %0, ptr noundef null) #35
   br label %5
 
 5:                                                ; preds = %3, %1
@@ -1999,7 +1997,7 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   br i1 %6, label %7, label %45
 
 7:                                                ; preds = %4
-  call void @llvm.lifetime.start.p0(i64 256, ptr nonnull %5) #37
+  call void @llvm.lifetime.start.p0(i64 256, ptr nonnull %5) #35
   switch i32 %1, label %40 [
     i32 0, label %8
     i32 1, label %11
@@ -2012,31 +2010,31 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
 
 8:                                                ; preds = %7
   %9 = load i32, ptr %0, align 4, !tbaa !19
-  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.34, i32 noundef %9) #37
+  %10 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.34, i32 noundef %9) #35
   br label %40
 
 11:                                               ; preds = %7
   %12 = load float, ptr %0, align 4, !tbaa !22
   %13 = fpext float %12 to double
-  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.35, double noundef %13) #37
+  %14 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.35, double noundef %13) #35
   br label %40
 
 15:                                               ; preds = %7
   %16 = load double, ptr %0, align 8, !tbaa !25
-  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.35, double noundef %16) #37
+  %17 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.35, double noundef %16) #35
   br label %40
 
 18:                                               ; preds = %7
   %19 = load i8, ptr %0, align 1, !tbaa !7
   %20 = sext i8 %19 to i32
-  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.46, i32 noundef %20) #37
+  %21 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.46, i32 noundef %20) #35
   br label %40
 
 22:                                               ; preds = %7
   %23 = load i8, ptr %0, align 1, !tbaa !32, !range !34, !noundef !35
   %24 = trunc nuw i8 %23 to i1
   %25 = select i1 %24, ptr @.str.24, ptr @.str.25
-  %26 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.39, ptr noundef nonnull %25) #37
+  %26 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.39, ptr noundef nonnull %25) #35
   br label %40
 
 27:                                               ; preds = %7
@@ -2057,20 +2055,20 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
 
 34:                                               ; preds = %33, %30, %27
   %35 = phi ptr [ @.str.26, %27 ], [ %32, %30 ], [ @.str.27, %33 ]
-  %36 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.39, ptr noundef nonnull %35) #37
+  %36 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.39, ptr noundef nonnull %35) #35
   br label %40
 
 37:                                               ; preds = %7
   %38 = load ptr, ptr %0, align 8, !tbaa !28
-  %39 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.45, ptr noundef %38) #37
+  %39 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %5, i64 noundef 256, ptr noundef nonnull @.str.45, ptr noundef %38) #35
   br label %40
 
 40:                                               ; preds = %37, %34, %22, %18, %15, %11, %8, %7
-  %41 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %5) #40
+  %41 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %5) #38
   %42 = add i64 %41, 1
-  %43 = tail call noalias ptr @malloc(i64 noundef %42) #36
-  %44 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %43, ptr noundef nonnull dereferenceable(1) %5) #37
-  call void @llvm.lifetime.end.p0(i64 256, ptr nonnull %5) #37
+  %43 = tail call noalias ptr @malloc(i64 noundef %42) #34
+  %44 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %43, ptr noundef nonnull dereferenceable(1) %5) #35
+  call void @llvm.lifetime.end.p0(i64 256, ptr nonnull %5) #35
   br label %157
 
 45:                                               ; preds = %4
@@ -2132,12 +2130,12 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   %85 = load i32, ptr %3, align 4, !tbaa !19
   %86 = sext i32 %85 to i64
   %87 = shl nsw i64 %86, 3
-  %88 = tail call noalias ptr @malloc(i64 noundef %87) #36
+  %88 = tail call noalias ptr @malloc(i64 noundef %87) #34
   %89 = icmp sgt i32 %85, 0
   br i1 %89, label %93, label %90
 
 90:                                               ; preds = %83
-  %91 = tail call noalias dereferenceable_or_null(3) ptr @malloc(i64 noundef 3) #36
+  %91 = tail call noalias dereferenceable_or_null(3) ptr @malloc(i64 noundef 3) #34
   %92 = getelementptr inbounds nuw i8, ptr %91, i64 1
   store i8 91, ptr %91, align 1, !tbaa !7
   br label %130
@@ -2162,7 +2160,7 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   %106 = add nsw i32 %126, 1
   %107 = sext i32 %106 to i64
   %108 = icmp sgt i32 %121, 0
-  %109 = tail call noalias ptr @malloc(i64 noundef %107) #36
+  %109 = tail call noalias ptr @malloc(i64 noundef %107) #34
   %110 = getelementptr inbounds nuw i8, ptr %109, i64 1
   store i8 91, ptr %109, align 1, !tbaa !7
   br i1 %108, label %134, label %130
@@ -2175,7 +2173,7 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   %116 = tail call ptr @qc_array_to_string_recursive(ptr noundef %115, i32 noundef %1, i32 noundef %94, ptr noundef nonnull %95)
   %117 = getelementptr inbounds nuw ptr, ptr %88, i64 %112
   store ptr %116, ptr %117, align 8, !tbaa !28
-  %118 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %116) #40
+  %118 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %116) #38
   %119 = trunc i64 %118 to i32
   %120 = add i32 %113, %119
   %121 = load i32, ptr %3, align 4, !tbaa !19
@@ -2195,7 +2193,7 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   %133 = getelementptr inbounds nuw i8, ptr %132, i64 1
   store i8 93, ptr %132, align 1, !tbaa !7
   store i8 0, ptr %133, align 1, !tbaa !7
-  tail call void @free(ptr noundef %88) #37
+  tail call void @free(ptr noundef %88) #35
   br label %157
 
 134:                                              ; preds = %151, %105
@@ -2203,11 +2201,11 @@ define internal noundef ptr @qc_array_to_string_recursive(ptr noundef readonly c
   %136 = phi ptr [ %153, %151 ], [ %110, %105 ]
   %137 = getelementptr inbounds nuw ptr, ptr %88, i64 %135
   %138 = load ptr, ptr %137, align 8, !tbaa !28
-  %139 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %136, ptr noundef nonnull dereferenceable(1) %138) #37
+  %139 = tail call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %136, ptr noundef nonnull dereferenceable(1) %138) #35
   %140 = load ptr, ptr %137, align 8, !tbaa !28
-  %141 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %140) #40
+  %141 = tail call i64 @strlen(ptr noundef nonnull dereferenceable(1) %140) #38
   %142 = getelementptr inbounds nuw i8, ptr %136, i64 %141
-  tail call void @free(ptr noundef %140) #37
+  tail call void @free(ptr noundef %140) #35
   %143 = load i32, ptr %3, align 4, !tbaa !19
   %144 = add nsw i32 %143, -1
   %145 = sext i32 %144 to i64
@@ -2429,13 +2427,13 @@ define internal void @qc_print_array_recursive(ptr noundef readonly captures(non
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(write, argmem: none, inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_create_jagged_array(i32 noundef %0, i32 noundef %1, i32 noundef %2) local_unnamed_addr #16 {
-  %4 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
+  %4 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #34
   %5 = sext i32 %0 to i64
   %6 = shl nsw i64 %5, 3
-  %7 = tail call noalias ptr @malloc(i64 noundef %6) #36
+  %7 = tail call noalias ptr @malloc(i64 noundef %6) #34
   store ptr %7, ptr %4, align 8, !tbaa !47
   %8 = shl nsw i64 %5, 2
-  %9 = tail call noalias ptr @malloc(i64 noundef %8) #36
+  %9 = tail call noalias ptr @malloc(i64 noundef %8) #34
   %10 = getelementptr inbounds nuw i8, ptr %4, i64 8
   store ptr %9, ptr %10, align 8, !tbaa !51
   %11 = getelementptr inbounds nuw i8, ptr %4, i64 16
@@ -2493,7 +2491,7 @@ define internal void @qc_free_jagged_array(ptr noundef captures(none) %0) local_
   %21 = load ptr, ptr %0, align 8, !tbaa !47
   %22 = getelementptr inbounds nuw ptr, ptr %21, i64 %20
   %23 = load ptr, ptr %22, align 8, !tbaa !55
-  tail call void @free(ptr noundef %23) #37
+  tail call void @free(ptr noundef %23) #35
   %24 = add nuw nsw i64 %20, 1
   %25 = load i32, ptr %5, align 8, !tbaa !52
   %26 = sext i32 %25 to i64
@@ -2502,11 +2500,11 @@ define internal void @qc_free_jagged_array(ptr noundef captures(none) %0) local_
 
 28:                                               ; preds = %19, %10, %9, %8
   %29 = load ptr, ptr %0, align 8, !tbaa !47
-  tail call void @free(ptr noundef %29) #37
+  tail call void @free(ptr noundef %29) #35
   %30 = getelementptr inbounds nuw i8, ptr %0, i64 8
   %31 = load ptr, ptr %30, align 8, !tbaa !51
-  tail call void @free(ptr noundef %31) #37
-  tail call void @free(ptr noundef nonnull %0) #37
+  tail call void @free(ptr noundef %31) #35
+  tail call void @free(ptr noundef nonnull %0) #35
   ret void
 }
 
@@ -2845,7 +2843,7 @@ define internal noalias noundef ptr @qc_create_leaf_row(i32 noundef %0, i32 noun
   %10 = phi i32 [ %8, %5 ], [ 4, %2 ]
   %11 = mul nsw i32 %10, %0
   %12 = sext i32 %11 to i64
-  %13 = tail call noalias ptr @malloc(i64 noundef %12) #36
+  %13 = tail call noalias ptr @malloc(i64 noundef %12) #34
   ret ptr %13
 }
 
@@ -2979,7 +2977,7 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
   %65 = mul nuw nsw i32 %64, %55
   %66 = zext nneg i32 %65 to i64
   %67 = getelementptr inbounds nuw i8, ptr %43, i64 %66
-  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %6) #37
+  call void @llvm.lifetime.start.p0(i64 64, ptr nonnull %6) #35
   switch i32 %56, label %100 [
     i32 0, label %68
     i32 1, label %71
@@ -2992,31 +2990,31 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
 
 68:                                               ; preds = %63
   %69 = load i32, ptr %67, align 4, !tbaa !19
-  %70 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.34, i32 noundef %69) #37
+  %70 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.34, i32 noundef %69) #35
   br label %100
 
 71:                                               ; preds = %63
   %72 = load float, ptr %67, align 4, !tbaa !22
   %73 = fpext float %72 to double
-  %74 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %73) #37
+  %74 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %73) #35
   br label %100
 
 75:                                               ; preds = %63
   %76 = load double, ptr %67, align 8, !tbaa !25
-  %77 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %76) #37
+  %77 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.35, double noundef %76) #35
   br label %100
 
 78:                                               ; preds = %63
   %79 = load i8, ptr %67, align 1, !tbaa !7
   %80 = sext i8 %79 to i32
-  %81 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.46, i32 noundef %80) #37
+  %81 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.46, i32 noundef %80) #35
   br label %100
 
 82:                                               ; preds = %63
   %83 = load i8, ptr %67, align 1, !tbaa !32, !range !34, !noundef !35
   %84 = trunc nuw i8 %83 to i1
   %85 = select i1 %84, ptr @.str.24, ptr @.str.25
-  %86 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.39, ptr noundef nonnull %85) #37
+  %86 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.39, ptr noundef nonnull %85) #35
   br label %100
 
 87:                                               ; preds = %63
@@ -3037,16 +3035,16 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
 
 94:                                               ; preds = %93, %90, %87
   %95 = phi ptr [ @.str.26, %87 ], [ %92, %90 ], [ @.str.27, %93 ]
-  %96 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.39, ptr noundef nonnull %95) #37
+  %96 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.39, ptr noundef nonnull %95) #35
   br label %100
 
 97:                                               ; preds = %63
   %98 = load ptr, ptr %67, align 8, !tbaa !28
-  %99 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.45, ptr noundef %98) #37
+  %99 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %6, i64 noundef 64, ptr noundef nonnull @.str.45, ptr noundef %98) #35
   br label %100
 
 100:                                              ; preds = %97, %94, %82, %78, %75, %71, %68, %63
-  %101 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %6) #40
+  %101 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %6) #38
   %102 = trunc i64 %101 to i32
   %103 = load i32, ptr %2, align 4, !tbaa !19
   %104 = add nsw i32 %102, 10
@@ -3064,7 +3062,7 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
   %114 = shl nsw i32 %113, 1
   store i32 %114, ptr %3, align 4, !tbaa !19
   %115 = sext i32 %114 to i64
-  %116 = tail call ptr @realloc(ptr noundef %108, i64 noundef %115) #38
+  %116 = tail call ptr @realloc(ptr noundef %108, i64 noundef %115) #36
   store ptr %116, ptr %4, align 8, !tbaa !28
   %117 = shl i64 %111, 32
   %118 = ashr exact i64 %117, 32
@@ -3077,7 +3075,7 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
 
 122:                                              ; preds = %107, %100
   %123 = phi ptr [ %119, %107 ], [ %106, %100 ]
-  %124 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %123, ptr noundef nonnull dereferenceable(1) %6) #37
+  %124 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %123, ptr noundef nonnull dereferenceable(1) %6) #35
   %125 = load ptr, ptr %1, align 8, !tbaa !28
   %126 = shl i64 %101, 32
   %127 = ashr exact i64 %126, 32
@@ -3113,7 +3111,7 @@ define internal void @qc_stringify_jagged_helper(ptr noundef readonly captures(n
 146:                                              ; preds = %136, %122
   %147 = phi ptr [ %140, %136 ], [ %128, %122 ]
   %148 = phi i32 [ %145, %136 ], [ %133, %122 ]
-  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %6) #37
+  call void @llvm.lifetime.end.p0(i64 64, ptr nonnull %6) #35
   %149 = add nuw nsw i32 %55, 1
   %150 = icmp slt i32 %149, %148
   br i1 %150, label %54, label %48, !llvm.loop !60
@@ -3155,217 +3153,42 @@ define internal ptr @qc_jagged_to_string(ptr noundef readonly captures(none) %0)
   %3 = alloca ptr, align 8
   %4 = alloca ptr, align 8
   %5 = alloca i32, align 4
-  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %2) #37
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %2) #35
   store i32 1024, ptr %2, align 4, !tbaa !19
-  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %3) #37
-  %6 = tail call noalias dereferenceable_or_null(1024) ptr @malloc(i64 noundef 1024) #36
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %3) #35
+  %6 = tail call noalias dereferenceable_or_null(1024) ptr @malloc(i64 noundef 1024) #34
   store ptr %6, ptr %3, align 8, !tbaa !28
-  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #37
+  call void @llvm.lifetime.start.p0(i64 8, ptr nonnull %4) #35
   store ptr %6, ptr %4, align 8, !tbaa !28
-  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %5) #37
+  call void @llvm.lifetime.start.p0(i64 4, ptr nonnull %5) #35
   store i32 1024, ptr %5, align 4, !tbaa !19
   call void @qc_stringify_jagged_helper(ptr noundef %0, ptr noundef nonnull %4, ptr noundef nonnull %5, ptr noundef nonnull %2, ptr noundef nonnull %3)
   %7 = load ptr, ptr %4, align 8, !tbaa !28
   store i8 0, ptr %7, align 1, !tbaa !7
   %8 = load ptr, ptr %3, align 8, !tbaa !28
-  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %5) #37
-  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #37
-  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %3) #37
-  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %5) #35
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %4) #35
+  call void @llvm.lifetime.end.p0(i64 8, ptr nonnull %3) #35
+  call void @llvm.lifetime.end.p0(i64 4, ptr nonnull %2) #35
   ret ptr %8
 }
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(write, argmem: none, inaccessiblemem: readwrite) uwtable
-define internal noalias noundef ptr @qc_create_list(i32 noundef %0) local_unnamed_addr #16 {
-  %2 = tail call noalias dereferenceable_or_null(24) ptr @malloc(i64 noundef 24) #36
-  %3 = getelementptr inbounds nuw i8, ptr %2, i64 12
-  store i32 4, ptr %3, align 4, !tbaa !62
-  %4 = getelementptr inbounds nuw i8, ptr %2, i64 8
-  store i32 0, ptr %4, align 8, !tbaa !64
-  %5 = getelementptr inbounds nuw i8, ptr %2, i64 16
-  store i32 %0, ptr %5, align 8, !tbaa !65
-  %6 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
-  store ptr %6, ptr %2, align 8, !tbaa !66
-  ret ptr %2
-}
-
-; Function Attrs: mustprogress nounwind willreturn uwtable
-define internal void @qc_list_push(ptr noundef captures(none) %0, ptr noundef readonly captures(none) %1, i32 noundef %2) local_unnamed_addr #32 {
-  %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %5 = load i32, ptr %4, align 8, !tbaa !64
-  %6 = getelementptr inbounds nuw i8, ptr %0, i64 12
-  %7 = load i32, ptr %6, align 4, !tbaa !62
-  %8 = icmp slt i32 %5, %7
-  br i1 %8, label %15, label %9
-
-9:                                                ; preds = %3
-  %10 = shl nsw i32 %7, 1
-  store i32 %10, ptr %6, align 4, !tbaa !62
-  %11 = load ptr, ptr %0, align 8, !tbaa !66
-  %12 = sext i32 %10 to i64
-  %13 = shl nsw i64 %12, 3
-  %14 = tail call ptr @realloc(ptr noundef %11, i64 noundef %13) #38
-  store ptr %14, ptr %0, align 8, !tbaa !66
-  br label %15
-
-15:                                               ; preds = %9, %3
-  %16 = icmp slt i32 %2, 6
-  br i1 %16, label %17, label %27
-
-17:                                               ; preds = %15
-  %18 = add i32 %2, -2
-  %19 = icmp ult i32 %18, 4
-  br i1 %19, label %20, label %24
-
-20:                                               ; preds = %17
-  %21 = zext nneg i32 %18 to i64
-  %22 = getelementptr inbounds nuw [4 x i64], ptr @switch.table.qc_map_set.54, i64 0, i64 %21
-  %23 = load i64, ptr %22, align 8
-  br label %24
-
-24:                                               ; preds = %20, %17
-  %25 = phi i64 [ %23, %20 ], [ 4, %17 ]
-  %26 = tail call noalias ptr @malloc(i64 noundef %25) #36
-  tail call void @llvm.memcpy.p0.p0.i64(ptr noundef nonnull align 1 dereferenceable(1) %26, ptr noundef nonnull align 1 dereferenceable(1) %1, i64 %25, i1 false)
-  br label %29
-
-27:                                               ; preds = %15
-  %28 = load ptr, ptr %1, align 8, !tbaa !55
-  br label %29
-
-29:                                               ; preds = %27, %24
-  %30 = phi ptr [ %28, %27 ], [ %26, %24 ]
-  %31 = load ptr, ptr %0, align 8, !tbaa !66
-  %32 = load i32, ptr %4, align 8, !tbaa !64
-  %33 = add nsw i32 %32, 1
-  store i32 %33, ptr %4, align 8, !tbaa !64
-  %34 = sext i32 %32 to i64
-  %35 = getelementptr inbounds ptr, ptr %31, i64 %34
-  store ptr %30, ptr %35, align 8, !tbaa !55
-  ret void
-}
-
-; Function Attrs: mustprogress nounwind willreturn uwtable
-define internal void @qc_list_set(ptr noundef readonly captures(none) %0, i32 noundef %1, ptr noundef readonly captures(none) %2) local_unnamed_addr #32 {
-  %4 = icmp slt i32 %1, 0
-  br i1 %4, label %34, label %5
-
-5:                                                ; preds = %3
-  %6 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %7 = load i32, ptr %6, align 8, !tbaa !64
-  %8 = icmp slt i32 %1, %7
-  br i1 %8, label %9, label %34
-
-9:                                                ; preds = %5
-  %10 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %11 = load i32, ptr %10, align 8, !tbaa !65
-  %12 = icmp slt i32 %11, 6
-  br i1 %12, label %13, label %29
-
-13:                                               ; preds = %9
-  %14 = add i32 %11, -2
-  %15 = icmp ult i32 %14, 4
-  br i1 %15, label %16, label %20
-
-16:                                               ; preds = %13
-  %17 = zext nneg i32 %14 to i64
-  %18 = getelementptr inbounds nuw [4 x i64], ptr @switch.table.qc_map_set.54, i64 0, i64 %17
-  %19 = load i64, ptr %18, align 8
-  br label %20
-
-20:                                               ; preds = %16, %13
-  %21 = phi i64 [ %19, %16 ], [ 4, %13 ]
-  %22 = tail call noalias ptr @malloc(i64 noundef %21) #36
-  tail call void @llvm.memcpy.p0.p0.i64(ptr noundef nonnull align 1 dereferenceable(1) %22, ptr noundef nonnull align 1 dereferenceable(1) %2, i64 %21, i1 false)
-  %23 = load ptr, ptr %0, align 8, !tbaa !66
-  %24 = zext nneg i32 %1 to i64
-  %25 = getelementptr inbounds nuw ptr, ptr %23, i64 %24
-  %26 = load ptr, ptr %25, align 8, !tbaa !55
-  tail call void @free(ptr noundef %26) #37
-  %27 = load ptr, ptr %0, align 8, !tbaa !66
-  %28 = getelementptr inbounds nuw ptr, ptr %27, i64 %24
-  store ptr %22, ptr %28, align 8, !tbaa !55
-  br label %34
-
-29:                                               ; preds = %9
-  %30 = load ptr, ptr %2, align 8, !tbaa !55
-  %31 = load ptr, ptr %0, align 8, !tbaa !66
-  %32 = zext nneg i32 %1 to i64
-  %33 = getelementptr inbounds nuw ptr, ptr %31, i64 %32
-  store ptr %30, ptr %33, align 8, !tbaa !55
-  br label %34
-
-34:                                               ; preds = %29, %20, %5, %3
-  ret void
-}
-
-; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, inaccessiblemem: none) uwtable
-define internal ptr @qc_list_get(ptr noundef readonly captures(none) %0, i32 noundef %1) local_unnamed_addr #30 {
-  %3 = icmp slt i32 %1, 0
-  br i1 %3, label %13, label %4
-
-4:                                                ; preds = %2
-  %5 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %6 = load i32, ptr %5, align 8, !tbaa !64
-  %7 = icmp slt i32 %1, %6
-  br i1 %7, label %8, label %13
-
-8:                                                ; preds = %4
-  %9 = load ptr, ptr %0, align 8, !tbaa !66
-  %10 = zext nneg i32 %1 to i64
-  %11 = getelementptr inbounds nuw ptr, ptr %9, i64 %10
-  %12 = load ptr, ptr %11, align 8, !tbaa !55
-  br label %13
-
-13:                                               ; preds = %8, %4, %2
-  %14 = phi ptr [ %12, %8 ], [ null, %4 ], [ null, %2 ]
-  ret ptr %14
-}
-
-; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable
-define internal ptr @qc_list_pop(ptr noundef captures(none) %0) local_unnamed_addr #33 {
-  %2 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %3 = load i32, ptr %2, align 8, !tbaa !64
-  %4 = icmp eq i32 %3, 0
-  br i1 %4, label %11, label %5
-
-5:                                                ; preds = %1
-  %6 = load ptr, ptr %0, align 8, !tbaa !66
-  %7 = add nsw i32 %3, -1
-  store i32 %7, ptr %2, align 8, !tbaa !64
-  %8 = sext i32 %7 to i64
-  %9 = getelementptr inbounds ptr, ptr %6, i64 %8
-  %10 = load ptr, ptr %9, align 8, !tbaa !55
-  br label %11
-
-11:                                               ; preds = %5, %1
-  %12 = phi ptr [ %10, %5 ], [ null, %1 ]
-  ret ptr %12
-}
-
-; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
-define internal i32 @qc_list_length(ptr noundef readonly captures(none) %0) local_unnamed_addr #26 {
-  %2 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %3 = load i32, ptr %2, align 8, !tbaa !64
-  ret i32 %3
-}
-
-; Function Attrs: mustprogress nofree nounwind willreturn memory(write, argmem: none, inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_create_map(i32 noundef %0, i32 noundef %1) local_unnamed_addr #16 {
-  %3 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
+  %3 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #34
   %4 = getelementptr inbounds nuw i8, ptr %3, i64 20
-  store i32 4, ptr %4, align 4, !tbaa !67
+  store i32 4, ptr %4, align 4, !tbaa !62
   %5 = getelementptr inbounds nuw i8, ptr %3, i64 16
-  store i32 0, ptr %5, align 8, !tbaa !69
+  store i32 0, ptr %5, align 8, !tbaa !64
   %6 = getelementptr inbounds nuw i8, ptr %3, i64 24
-  store i32 %0, ptr %6, align 8, !tbaa !70
+  store i32 %0, ptr %6, align 8, !tbaa !65
   %7 = getelementptr inbounds nuw i8, ptr %3, i64 28
-  store i32 %1, ptr %7, align 4, !tbaa !71
-  %8 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
-  store ptr %8, ptr %3, align 8, !tbaa !72
-  %9 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
+  store i32 %1, ptr %7, align 4, !tbaa !66
+  %8 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #34
+  store ptr %8, ptr %3, align 8, !tbaa !67
+  %9 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #34
   %10 = getelementptr inbounds nuw i8, ptr %3, i64 8
-  store ptr %9, ptr %10, align 8, !tbaa !73
+  store ptr %9, ptr %10, align 8, !tbaa !68
   ret ptr %3
 }
 
@@ -3424,7 +3247,7 @@ define internal zeroext i1 @qc_compare_keys(ptr noundef readonly captures(addres
   br label %35
 
 32:                                               ; preds = %7
-  %33 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #40
+  %33 = tail call i32 @strcmp(ptr noundef nonnull dereferenceable(1) %0, ptr noundef nonnull dereferenceable(1) %1) #38
   %34 = icmp eq i32 %33, 0
   br label %35
 
@@ -3436,14 +3259,14 @@ define internal zeroext i1 @qc_compare_keys(ptr noundef readonly captures(addres
 ; Function Attrs: mustprogress nounwind uwtable
 define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, ptr noundef %2) local_unnamed_addr #17 {
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %5 = load i32, ptr %4, align 8, !tbaa !69
+  %5 = load i32, ptr %4, align 8, !tbaa !64
   %6 = icmp sgt i32 %5, 0
   br i1 %6, label %7, label %155
 
 7:                                                ; preds = %3
-  %8 = load ptr, ptr %0, align 8, !tbaa !72
+  %8 = load ptr, ptr %0, align 8, !tbaa !67
   %9 = getelementptr inbounds nuw i8, ptr %0, i64 24
-  %10 = load i32, ptr %9, align 8, !tbaa !70
+  %10 = load i32, ptr %9, align 8, !tbaa !65
   %11 = freeze i32 %10
   %12 = icmp eq ptr %1, null
   br i1 %12, label %155, label %13
@@ -3503,7 +3326,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 37:                                               ; preds = %33, %28
   %38 = add nuw nsw i64 %29, 1
   %39 = icmp eq i64 %38, %27
-  br i1 %39, label %155, label %28, !llvm.loop !74
+  br i1 %39, label %155, label %28, !llvm.loop !69
 
 40:                                               ; preds = %49, %24
   %41 = phi i64 [ 0, %24 ], [ %50, %49 ]
@@ -3521,7 +3344,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 49:                                               ; preds = %45, %40
   %50 = add nuw nsw i64 %41, 1
   %51 = icmp eq i64 %50, %25
-  br i1 %51, label %155, label %40, !llvm.loop !74
+  br i1 %51, label %155, label %40, !llvm.loop !69
 
 52:                                               ; preds = %61, %22
   %53 = phi i64 [ 0, %22 ], [ %62, %61 ]
@@ -3539,7 +3362,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 61:                                               ; preds = %57, %52
   %62 = add nuw nsw i64 %53, 1
   %63 = icmp eq i64 %62, %23
-  br i1 %63, label %155, label %52, !llvm.loop !74
+  br i1 %63, label %155, label %52, !llvm.loop !69
 
 64:                                               ; preds = %73, %20
   %65 = phi i64 [ 0, %20 ], [ %74, %73 ]
@@ -3557,7 +3380,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 73:                                               ; preds = %69, %64
   %74 = add nuw nsw i64 %65, 1
   %75 = icmp eq i64 %74, %21
-  br i1 %75, label %155, label %64, !llvm.loop !74
+  br i1 %75, label %155, label %64, !llvm.loop !69
 
 76:                                               ; preds = %85, %18
   %77 = phi i64 [ 0, %18 ], [ %86, %85 ]
@@ -3575,7 +3398,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 85:                                               ; preds = %81, %76
   %86 = add nuw nsw i64 %77, 1
   %87 = icmp eq i64 %86, %19
-  br i1 %87, label %155, label %76, !llvm.loop !74
+  br i1 %87, label %155, label %76, !llvm.loop !69
 
 88:                                               ; preds = %97, %16
   %89 = phi i64 [ 0, %16 ], [ %98, %97 ]
@@ -3593,7 +3416,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 97:                                               ; preds = %93, %88
   %98 = add nuw nsw i64 %89, 1
   %99 = icmp eq i64 %98, %17
-  br i1 %99, label %155, label %88, !llvm.loop !74
+  br i1 %99, label %155, label %88, !llvm.loop !69
 
 100:                                              ; preds = %108, %14
   %101 = phi i64 [ 0, %14 ], [ %109, %108 ]
@@ -3603,25 +3426,25 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
   br i1 %104, label %108, label %105
 
 105:                                              ; preds = %100
-  %106 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %103, ptr noundef nonnull readonly dereferenceable(1) %1) #40
+  %106 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %103, ptr noundef nonnull readonly dereferenceable(1) %1) #38
   %107 = icmp eq i32 %106, 0
   br i1 %107, label %116, label %108
 
 108:                                              ; preds = %105, %100
   %109 = add nuw nsw i64 %101, 1
   %110 = icmp eq i64 %109, %15
-  br i1 %110, label %155, label %100, !llvm.loop !74
+  br i1 %110, label %155, label %100, !llvm.loop !69
 
 111:                                              ; preds = %93, %81, %69, %57, %45, %33
   %112 = phi i64 [ %29, %33 ], [ %41, %45 ], [ %53, %57 ], [ %65, %69 ], [ %77, %81 ], [ %89, %93 ]
   %113 = getelementptr inbounds nuw i8, ptr %0, i64 28
-  %114 = load i32, ptr %113, align 4, !tbaa !71
+  %114 = load i32, ptr %113, align 4, !tbaa !66
   %115 = icmp slt i32 %114, 6
   br i1 %115, label %120, label %143
 
 116:                                              ; preds = %105
   %117 = getelementptr inbounds nuw i8, ptr %0, i64 28
-  %118 = load i32, ptr %117, align 4, !tbaa !71
+  %118 = load i32, ptr %117, align 4, !tbaa !66
   %119 = icmp slt i32 %118, 6
   br i1 %119, label %120, label %147
 
@@ -3641,16 +3464,16 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 129:                                              ; preds = %125, %120
   %130 = phi i64 [ %128, %125 ], [ 4, %120 ]
   %131 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %132 = load ptr, ptr %131, align 8, !tbaa !73
+  %132 = load ptr, ptr %131, align 8, !tbaa !68
   %133 = getelementptr inbounds nuw ptr, ptr %132, i64 %121
   %134 = load ptr, ptr %133, align 8, !tbaa !55
   %135 = icmp eq ptr %134, null
   br i1 %135, label %136, label %141
 
 136:                                              ; preds = %129
-  %137 = tail call noalias ptr @malloc(i64 noundef %130) #36
+  %137 = tail call noalias ptr @malloc(i64 noundef %130) #34
   store ptr %137, ptr %133, align 8, !tbaa !55
-  %138 = load ptr, ptr %131, align 8, !tbaa !73
+  %138 = load ptr, ptr %131, align 8, !tbaa !68
   %139 = getelementptr inbounds nuw ptr, ptr %138, i64 %121
   %140 = load ptr, ptr %139, align 8, !tbaa !55
   br label %141
@@ -3670,44 +3493,44 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 
 147:                                              ; preds = %145, %116
   %148 = phi i64 [ %146, %145 ], [ %15, %116 ]
-  %149 = tail call noalias ptr @strdup(ptr noundef nonnull %1) #37
+  %149 = tail call noalias ptr @strdup(ptr noundef nonnull %1) #35
   %150 = getelementptr inbounds nuw ptr, ptr %8, i64 %148
   store ptr %149, ptr %150, align 8, !tbaa !55
   br label %219
 
 151:                                              ; preds = %143
   %152 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %153 = load ptr, ptr %152, align 8, !tbaa !73
+  %153 = load ptr, ptr %152, align 8, !tbaa !68
   %154 = getelementptr inbounds nuw ptr, ptr %153, i64 %112
   store ptr %2, ptr %154, align 8, !tbaa !55
   br label %219
 
 155:                                              ; preds = %108, %97, %85, %73, %61, %49, %37, %13, %7, %3
   %156 = getelementptr inbounds nuw i8, ptr %0, i64 20
-  %157 = load i32, ptr %156, align 4, !tbaa !67
+  %157 = load i32, ptr %156, align 4, !tbaa !62
   %158 = icmp slt i32 %5, %157
   br i1 %158, label %171, label %159
 
 159:                                              ; preds = %155
   %160 = shl nsw i32 %157, 1
-  store i32 %160, ptr %156, align 4, !tbaa !67
-  %161 = load ptr, ptr %0, align 8, !tbaa !72
+  store i32 %160, ptr %156, align 4, !tbaa !62
+  %161 = load ptr, ptr %0, align 8, !tbaa !67
   %162 = sext i32 %160 to i64
   %163 = shl nsw i64 %162, 3
-  %164 = tail call ptr @realloc(ptr noundef %161, i64 noundef %163) #38
-  store ptr %164, ptr %0, align 8, !tbaa !72
+  %164 = tail call ptr @realloc(ptr noundef %161, i64 noundef %163) #36
+  store ptr %164, ptr %0, align 8, !tbaa !67
   %165 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %166 = load ptr, ptr %165, align 8, !tbaa !73
-  %167 = load i32, ptr %156, align 4, !tbaa !67
+  %166 = load ptr, ptr %165, align 8, !tbaa !68
+  %167 = load i32, ptr %156, align 4, !tbaa !62
   %168 = sext i32 %167 to i64
   %169 = shl nsw i64 %168, 3
-  %170 = tail call ptr @realloc(ptr noundef %166, i64 noundef %169) #38
-  store ptr %170, ptr %165, align 8, !tbaa !73
+  %170 = tail call ptr @realloc(ptr noundef %166, i64 noundef %169) #36
+  store ptr %170, ptr %165, align 8, !tbaa !68
   br label %171
 
 171:                                              ; preds = %159, %155
   %172 = getelementptr inbounds nuw i8, ptr %0, i64 24
-  %173 = load i32, ptr %172, align 8, !tbaa !70
+  %173 = load i32, ptr %172, align 8, !tbaa !65
   %174 = icmp slt i32 %173, 6
   br i1 %174, label %175, label %185
 
@@ -3724,7 +3547,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 
 182:                                              ; preds = %178, %175
   %183 = phi i64 [ %181, %178 ], [ 4, %175 ]
-  %184 = tail call noalias ptr @malloc(i64 noundef %183) #36
+  %184 = tail call noalias ptr @malloc(i64 noundef %183) #34
   tail call void @llvm.memcpy.p0.p0.i64(ptr noundef nonnull align 1 dereferenceable(1) %184, ptr noundef nonnull align 1 dereferenceable(1) %1, i64 %183, i1 false)
   br label %189
 
@@ -3733,18 +3556,18 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
   br i1 %186, label %187, label %189
 
 187:                                              ; preds = %185
-  %188 = tail call noalias ptr @strdup(ptr noundef %1) #37
+  %188 = tail call noalias ptr @strdup(ptr noundef %1) #35
   br label %189
 
 189:                                              ; preds = %187, %185, %182
   %190 = phi ptr [ %188, %187 ], [ %184, %182 ], [ %1, %185 ]
-  %191 = load ptr, ptr %0, align 8, !tbaa !72
-  %192 = load i32, ptr %4, align 8, !tbaa !69
+  %191 = load ptr, ptr %0, align 8, !tbaa !67
+  %192 = load i32, ptr %4, align 8, !tbaa !64
   %193 = sext i32 %192 to i64
   %194 = getelementptr inbounds ptr, ptr %191, i64 %193
   store ptr %190, ptr %194, align 8, !tbaa !55
   %195 = getelementptr inbounds nuw i8, ptr %0, i64 28
-  %196 = load i32, ptr %195, align 4, !tbaa !71
+  %196 = load i32, ptr %195, align 4, !tbaa !66
   %197 = icmp slt i32 %196, 6
   br i1 %197, label %198, label %208
 
@@ -3761,7 +3584,7 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 
 205:                                              ; preds = %201, %198
   %206 = phi i64 [ %204, %201 ], [ 4, %198 ]
-  %207 = tail call noalias ptr @malloc(i64 noundef %206) #36
+  %207 = tail call noalias ptr @malloc(i64 noundef %206) #34
   tail call void @llvm.memcpy.p0.p0.i64(ptr noundef nonnull align 1 dereferenceable(1) %207, ptr noundef nonnull align 1 dereferenceable(1) %2, i64 %206, i1 false)
   br label %212
 
@@ -3770,18 +3593,18 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
   br i1 %209, label %210, label %212
 
 210:                                              ; preds = %208
-  %211 = tail call noalias ptr @strdup(ptr noundef %2) #37
+  %211 = tail call noalias ptr @strdup(ptr noundef %2) #35
   br label %212
 
 212:                                              ; preds = %210, %208, %205
   %213 = phi ptr [ %211, %210 ], [ %207, %205 ], [ %2, %208 ]
   %214 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %215 = load ptr, ptr %214, align 8, !tbaa !73
+  %215 = load ptr, ptr %214, align 8, !tbaa !68
   %216 = sext i32 %192 to i64
   %217 = getelementptr inbounds ptr, ptr %215, i64 %216
   store ptr %213, ptr %217, align 8, !tbaa !55
   %218 = add nsw i32 %192, 1
-  store i32 %218, ptr %4, align 8, !tbaa !69
+  store i32 %218, ptr %4, align 8, !tbaa !64
   br label %219
 
 219:                                              ; preds = %212, %151, %147, %141
@@ -3789,14 +3612,14 @@ define internal void @qc_map_set(ptr noundef captures(none) %0, ptr noundef %1, 
 }
 
 ; Function Attrs: mustprogress nofree norecurse nounwind willreturn memory(read, inaccessiblemem: none) uwtable
-define internal ptr @qc_map_get(ptr noundef readonly captures(none) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #34 {
+define internal ptr @qc_map_get(ptr noundef readonly captures(none) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #32 {
   %3 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %4 = load i32, ptr %3, align 8, !tbaa !69
+  %4 = load i32, ptr %3, align 8, !tbaa !64
   %5 = icmp sgt i32 %4, 0
   br i1 %5, label %6, label %54
 
 6:                                                ; preds = %2
-  %7 = load ptr, ptr %0, align 8, !tbaa !72
+  %7 = load ptr, ptr %0, align 8, !tbaa !67
   %8 = icmp eq ptr %1, null
   %9 = getelementptr inbounds nuw i8, ptr %0, i64 24
   br i1 %8, label %54, label %10
@@ -3813,7 +3636,7 @@ define internal ptr @qc_map_get(ptr noundef readonly captures(none) %0, ptr noun
   br i1 %16, label %51, label %17
 
 17:                                               ; preds = %12
-  %18 = load i32, ptr %9, align 8, !tbaa !70
+  %18 = load i32, ptr %9, align 8, !tbaa !65
   switch i32 %18, label %51 [
     i32 0, label %19
     i32 1, label %23
@@ -3861,13 +3684,13 @@ define internal ptr @qc_map_get(ptr noundef readonly captures(none) %0, ptr noun
   br i1 %42, label %46, label %51
 
 43:                                               ; preds = %17
-  %44 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %15, ptr noundef nonnull readonly dereferenceable(1) %1) #40
+  %44 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %15, ptr noundef nonnull readonly dereferenceable(1) %1) #38
   %45 = icmp eq i32 %44, 0
   br i1 %45, label %46, label %51
 
 46:                                               ; preds = %43, %39, %35, %31, %27, %23, %19
   %47 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %48 = load ptr, ptr %47, align 8, !tbaa !73
+  %48 = load ptr, ptr %47, align 8, !tbaa !68
   %49 = getelementptr inbounds nuw ptr, ptr %48, i64 %13
   %50 = load ptr, ptr %49, align 8, !tbaa !55
   br label %54
@@ -3875,249 +3698,11 @@ define internal ptr @qc_map_get(ptr noundef readonly captures(none) %0, ptr noun
 51:                                               ; preds = %43, %39, %35, %31, %27, %23, %19, %17, %12
   %52 = add nuw nsw i64 %13, 1
   %53 = icmp eq i64 %52, %11
-  br i1 %53, label %54, label %12, !llvm.loop !75
+  br i1 %53, label %54, label %12, !llvm.loop !70
 
 54:                                               ; preds = %51, %46, %6, %2
   %55 = phi ptr [ %50, %46 ], [ null, %2 ], [ null, %6 ], [ null, %51 ]
   ret ptr %55
-}
-
-; Function Attrs: mustprogress nofree norecurse nounwind willreturn memory(read, inaccessiblemem: none) uwtable
-define internal noundef zeroext i1 @qc_map_has(ptr noundef readonly captures(none) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #34 {
-  %3 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %4 = load i32, ptr %3, align 8, !tbaa !69
-  %5 = icmp sgt i32 %4, 0
-  br i1 %5, label %6, label %49
-
-6:                                                ; preds = %2
-  %7 = load ptr, ptr %0, align 8, !tbaa !72
-  %8 = icmp eq ptr %1, null
-  %9 = getelementptr inbounds nuw i8, ptr %0, i64 24
-  br i1 %8, label %49, label %10
-
-10:                                               ; preds = %6
-  %11 = zext nneg i32 %4 to i64
-  br label %12
-
-12:                                               ; preds = %46, %10
-  %13 = phi i64 [ 0, %10 ], [ %47, %46 ]
-  %14 = getelementptr inbounds nuw ptr, ptr %7, i64 %13
-  %15 = load ptr, ptr %14, align 8, !tbaa !55
-  %16 = icmp eq ptr %15, null
-  br i1 %16, label %46, label %17
-
-17:                                               ; preds = %12
-  %18 = load i32, ptr %9, align 8, !tbaa !70
-  switch i32 %18, label %46 [
-    i32 0, label %19
-    i32 1, label %23
-    i32 2, label %27
-    i32 3, label %31
-    i32 4, label %35
-    i32 5, label %39
-    i32 6, label %43
-  ]
-
-19:                                               ; preds = %17
-  %20 = load i32, ptr %15, align 4, !tbaa !19
-  %21 = load i32, ptr %1, align 4, !tbaa !19
-  %22 = icmp eq i32 %20, %21
-  br i1 %22, label %49, label %46
-
-23:                                               ; preds = %17
-  %24 = load float, ptr %15, align 4, !tbaa !22
-  %25 = load float, ptr %1, align 4, !tbaa !22
-  %26 = fcmp oeq float %24, %25
-  br i1 %26, label %49, label %46
-
-27:                                               ; preds = %17
-  %28 = load double, ptr %15, align 8, !tbaa !25
-  %29 = load double, ptr %1, align 8, !tbaa !25
-  %30 = fcmp oeq double %28, %29
-  br i1 %30, label %49, label %46
-
-31:                                               ; preds = %17
-  %32 = load i8, ptr %15, align 1, !tbaa !7
-  %33 = load i8, ptr %1, align 1, !tbaa !7
-  %34 = icmp eq i8 %32, %33
-  br i1 %34, label %49, label %46
-
-35:                                               ; preds = %17
-  %36 = load i8, ptr %15, align 1, !tbaa !32, !range !34, !noundef !35
-  %37 = load i8, ptr %1, align 1, !tbaa !32, !range !34, !noundef !35
-  %38 = icmp eq i8 %36, %37
-  br i1 %38, label %49, label %46
-
-39:                                               ; preds = %17
-  %40 = load i8, ptr %15, align 1, !tbaa !7
-  %41 = load i8, ptr %1, align 1, !tbaa !7
-  %42 = icmp eq i8 %40, %41
-  br i1 %42, label %49, label %46
-
-43:                                               ; preds = %17
-  %44 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %15, ptr noundef nonnull readonly dereferenceable(1) %1) #40
-  %45 = icmp eq i32 %44, 0
-  br i1 %45, label %49, label %46
-
-46:                                               ; preds = %43, %39, %35, %31, %27, %23, %19, %17, %12
-  %47 = add nuw nsw i64 %13, 1
-  %48 = icmp eq i64 %47, %11
-  br i1 %48, label %49, label %12, !llvm.loop !76
-
-49:                                               ; preds = %46, %43, %39, %35, %31, %27, %23, %19, %6, %2
-  %50 = phi i1 [ false, %2 ], [ false, %6 ], [ true, %39 ], [ true, %35 ], [ true, %31 ], [ true, %27 ], [ true, %23 ], [ true, %19 ], [ true, %43 ], [ false, %46 ]
-  ret i1 %50
-}
-
-; Function Attrs: mustprogress nofree norecurse nounwind memory(readwrite, inaccessiblemem: none) uwtable
-define internal void @qc_map_remove(ptr noundef captures(none) %0, ptr noundef readonly captures(address_is_null) %1) local_unnamed_addr #35 {
-  %3 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %4 = load i32, ptr %3, align 8, !tbaa !69
-  %5 = icmp sgt i32 %4, 0
-  br i1 %5, label %6, label %95
-
-6:                                                ; preds = %2
-  %7 = load ptr, ptr %0, align 8, !tbaa !72
-  %8 = icmp eq ptr %1, null
-  %9 = getelementptr inbounds nuw i8, ptr %0, i64 24
-  br i1 %8, label %95, label %10
-
-10:                                               ; preds = %6
-  %11 = zext nneg i32 %4 to i64
-  br label %12
-
-12:                                               ; preds = %92, %10
-  %13 = phi i64 [ 0, %10 ], [ %93, %92 ]
-  %14 = getelementptr inbounds nuw ptr, ptr %7, i64 %13
-  %15 = load ptr, ptr %14, align 8, !tbaa !55
-  %16 = icmp eq ptr %15, null
-  br i1 %16, label %92, label %17
-
-17:                                               ; preds = %12
-  %18 = load i32, ptr %9, align 8, !tbaa !70
-  switch i32 %18, label %92 [
-    i32 0, label %19
-    i32 1, label %23
-    i32 2, label %27
-    i32 3, label %31
-    i32 4, label %35
-    i32 5, label %39
-    i32 6, label %43
-  ]
-
-19:                                               ; preds = %17
-  %20 = load i32, ptr %15, align 4, !tbaa !19
-  %21 = load i32, ptr %1, align 4, !tbaa !19
-  %22 = icmp eq i32 %20, %21
-  br i1 %22, label %46, label %92
-
-23:                                               ; preds = %17
-  %24 = load float, ptr %15, align 4, !tbaa !22
-  %25 = load float, ptr %1, align 4, !tbaa !22
-  %26 = fcmp oeq float %24, %25
-  br i1 %26, label %46, label %92
-
-27:                                               ; preds = %17
-  %28 = load double, ptr %15, align 8, !tbaa !25
-  %29 = load double, ptr %1, align 8, !tbaa !25
-  %30 = fcmp oeq double %28, %29
-  br i1 %30, label %46, label %92
-
-31:                                               ; preds = %17
-  %32 = load i8, ptr %15, align 1, !tbaa !7
-  %33 = load i8, ptr %1, align 1, !tbaa !7
-  %34 = icmp eq i8 %32, %33
-  br i1 %34, label %46, label %92
-
-35:                                               ; preds = %17
-  %36 = load i8, ptr %15, align 1, !tbaa !32, !range !34, !noundef !35
-  %37 = load i8, ptr %1, align 1, !tbaa !32, !range !34, !noundef !35
-  %38 = icmp eq i8 %36, %37
-  br i1 %38, label %46, label %92
-
-39:                                               ; preds = %17
-  %40 = load i8, ptr %15, align 1, !tbaa !7
-  %41 = load i8, ptr %1, align 1, !tbaa !7
-  %42 = icmp eq i8 %40, %41
-  br i1 %42, label %46, label %92
-
-43:                                               ; preds = %17
-  %44 = tail call i32 @strcmp(ptr noundef nonnull readonly dereferenceable(1) %15, ptr noundef nonnull readonly dereferenceable(1) %1) #40
-  %45 = icmp eq i32 %44, 0
-  br i1 %45, label %46, label %92
-
-46:                                               ; preds = %43, %39, %35, %31, %27, %23, %19
-  %47 = trunc nuw nsw i64 %13 to i32
-  %48 = add nsw i32 %4, -1
-  %49 = icmp sgt i32 %48, %47
-  br i1 %49, label %50, label %70
-
-50:                                               ; preds = %46
-  %51 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %52 = zext i32 %48 to i64
-  %53 = sub nsw i64 %52, %13
-  %54 = and i64 %53, 1
-  %55 = icmp eq i64 %54, 0
-  br i1 %55, label %66, label %56
-
-56:                                               ; preds = %50
-  %57 = load ptr, ptr %0, align 8, !tbaa !72
-  %58 = add nuw nsw i64 %13, 1
-  %59 = getelementptr inbounds nuw ptr, ptr %57, i64 %58
-  %60 = load ptr, ptr %59, align 8, !tbaa !55
-  %61 = getelementptr inbounds nuw ptr, ptr %57, i64 %13
-  store ptr %60, ptr %61, align 8, !tbaa !55
-  %62 = load ptr, ptr %51, align 8, !tbaa !73
-  %63 = getelementptr inbounds nuw ptr, ptr %62, i64 %58
-  %64 = load ptr, ptr %63, align 8, !tbaa !55
-  %65 = getelementptr inbounds nuw ptr, ptr %62, i64 %13
-  store ptr %64, ptr %65, align 8, !tbaa !55
-  br label %66
-
-66:                                               ; preds = %56, %50
-  %67 = phi i64 [ %13, %50 ], [ %58, %56 ]
-  %68 = add nsw i64 %52, -1
-  %69 = icmp eq i64 %13, %68
-  br i1 %69, label %70, label %71
-
-70:                                               ; preds = %71, %66, %46
-  store i32 %48, ptr %3, align 8, !tbaa !69
-  br label %95
-
-71:                                               ; preds = %71, %66
-  %72 = phi i64 [ %83, %71 ], [ %67, %66 ]
-  %73 = load ptr, ptr %0, align 8, !tbaa !72
-  %74 = add nuw nsw i64 %72, 1
-  %75 = getelementptr inbounds nuw ptr, ptr %73, i64 %74
-  %76 = load ptr, ptr %75, align 8, !tbaa !55
-  %77 = getelementptr inbounds nuw ptr, ptr %73, i64 %72
-  store ptr %76, ptr %77, align 8, !tbaa !55
-  %78 = load ptr, ptr %51, align 8, !tbaa !73
-  %79 = getelementptr inbounds nuw ptr, ptr %78, i64 %74
-  %80 = load ptr, ptr %79, align 8, !tbaa !55
-  %81 = getelementptr inbounds nuw ptr, ptr %78, i64 %72
-  store ptr %80, ptr %81, align 8, !tbaa !55
-  %82 = load ptr, ptr %0, align 8, !tbaa !72
-  %83 = add nuw nsw i64 %72, 2
-  %84 = getelementptr inbounds nuw ptr, ptr %82, i64 %83
-  %85 = load ptr, ptr %84, align 8, !tbaa !55
-  %86 = getelementptr inbounds nuw ptr, ptr %82, i64 %74
-  store ptr %85, ptr %86, align 8, !tbaa !55
-  %87 = load ptr, ptr %51, align 8, !tbaa !73
-  %88 = getelementptr inbounds nuw ptr, ptr %87, i64 %83
-  %89 = load ptr, ptr %88, align 8, !tbaa !55
-  %90 = getelementptr inbounds nuw ptr, ptr %87, i64 %74
-  store ptr %89, ptr %90, align 8, !tbaa !55
-  %91 = icmp eq i64 %83, %52
-  br i1 %91, label %70, label %71, !llvm.loop !77
-
-92:                                               ; preds = %43, %39, %35, %31, %27, %23, %19, %17, %12
-  %93 = add nuw nsw i64 %13, 1
-  %94 = icmp eq i64 %93, %11
-  br i1 %94, label %95, label %12, !llvm.loop !78
-
-95:                                               ; preds = %92, %70, %6, %2
-  ret void
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
@@ -4125,7 +3710,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   %2 = load ptr, ptr @stdout, align 8, !tbaa !10
   %3 = tail call noundef i32 @putc(i32 noundef 123, ptr noundef %2)
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %5 = load i32, ptr %4, align 8, !tbaa !69
+  %5 = load i32, ptr %4, align 8, !tbaa !64
   %6 = icmp sgt i32 %5, 0
   br i1 %6, label %7, label %11
 
@@ -4142,7 +3727,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
 
 14:                                               ; preds = %132, %7
   %15 = phi i64 [ 0, %7 ], [ %134, %132 ]
-  %16 = load i32, ptr %8, align 8, !tbaa !70
+  %16 = load i32, ptr %8, align 8, !tbaa !65
   switch i32 %16, label %69 [
     i32 0, label %17
     i32 1, label %23
@@ -4154,7 +3739,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   ]
 
 17:                                               ; preds = %14
-  %18 = load ptr, ptr %0, align 8, !tbaa !72
+  %18 = load ptr, ptr %0, align 8, !tbaa !67
   %19 = getelementptr inbounds nuw ptr, ptr %18, i64 %15
   %20 = load ptr, ptr %19, align 8, !tbaa !55
   %21 = load i32, ptr %20, align 4, !tbaa !19
@@ -4162,7 +3747,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 23:                                               ; preds = %14
-  %24 = load ptr, ptr %0, align 8, !tbaa !72
+  %24 = load ptr, ptr %0, align 8, !tbaa !67
   %25 = getelementptr inbounds nuw ptr, ptr %24, i64 %15
   %26 = load ptr, ptr %25, align 8, !tbaa !55
   %27 = load float, ptr %26, align 4, !tbaa !22
@@ -4171,7 +3756,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 30:                                               ; preds = %14
-  %31 = load ptr, ptr %0, align 8, !tbaa !72
+  %31 = load ptr, ptr %0, align 8, !tbaa !67
   %32 = getelementptr inbounds nuw ptr, ptr %31, i64 %15
   %33 = load ptr, ptr %32, align 8, !tbaa !55
   %34 = load double, ptr %33, align 8, !tbaa !25
@@ -4179,7 +3764,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 36:                                               ; preds = %14
-  %37 = load ptr, ptr %0, align 8, !tbaa !72
+  %37 = load ptr, ptr %0, align 8, !tbaa !67
   %38 = getelementptr inbounds nuw ptr, ptr %37, i64 %15
   %39 = load ptr, ptr %38, align 8, !tbaa !55
   %40 = load i8, ptr %39, align 1, !tbaa !7
@@ -4188,7 +3773,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 43:                                               ; preds = %14
-  %44 = load ptr, ptr %0, align 8, !tbaa !72
+  %44 = load ptr, ptr %0, align 8, !tbaa !67
   %45 = getelementptr inbounds nuw ptr, ptr %44, i64 %15
   %46 = load ptr, ptr %45, align 8, !tbaa !55
   %47 = load i8, ptr %46, align 1, !tbaa !32, !range !34, !noundef !35
@@ -4198,7 +3783,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 51:                                               ; preds = %14
-  %52 = load ptr, ptr %0, align 8, !tbaa !72
+  %52 = load ptr, ptr %0, align 8, !tbaa !67
   %53 = getelementptr inbounds nuw ptr, ptr %52, i64 %15
   %54 = load ptr, ptr %53, align 8, !tbaa !55
   %55 = load i8, ptr %54, align 1, !tbaa !7
@@ -4222,7 +3807,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %69
 
 64:                                               ; preds = %14
-  %65 = load ptr, ptr %0, align 8, !tbaa !72
+  %65 = load ptr, ptr %0, align 8, !tbaa !67
   %66 = getelementptr inbounds nuw ptr, ptr %65, i64 %15
   %67 = load ptr, ptr %66, align 8, !tbaa !55
   %68 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.45, ptr noundef %67)
@@ -4230,7 +3815,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
 
 69:                                               ; preds = %64, %61, %43, %36, %30, %23, %17, %14
   %70 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.49)
-  %71 = load i32, ptr %9, align 4, !tbaa !71
+  %71 = load i32, ptr %9, align 4, !tbaa !66
   switch i32 %71, label %124 [
     i32 0, label %72
     i32 1, label %78
@@ -4242,7 +3827,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   ]
 
 72:                                               ; preds = %69
-  %73 = load ptr, ptr %10, align 8, !tbaa !73
+  %73 = load ptr, ptr %10, align 8, !tbaa !68
   %74 = getelementptr inbounds nuw ptr, ptr %73, i64 %15
   %75 = load ptr, ptr %74, align 8, !tbaa !55
   %76 = load i32, ptr %75, align 4, !tbaa !19
@@ -4250,7 +3835,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 78:                                               ; preds = %69
-  %79 = load ptr, ptr %10, align 8, !tbaa !73
+  %79 = load ptr, ptr %10, align 8, !tbaa !68
   %80 = getelementptr inbounds nuw ptr, ptr %79, i64 %15
   %81 = load ptr, ptr %80, align 8, !tbaa !55
   %82 = load float, ptr %81, align 4, !tbaa !22
@@ -4259,7 +3844,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 85:                                               ; preds = %69
-  %86 = load ptr, ptr %10, align 8, !tbaa !73
+  %86 = load ptr, ptr %10, align 8, !tbaa !68
   %87 = getelementptr inbounds nuw ptr, ptr %86, i64 %15
   %88 = load ptr, ptr %87, align 8, !tbaa !55
   %89 = load double, ptr %88, align 8, !tbaa !25
@@ -4267,7 +3852,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 91:                                               ; preds = %69
-  %92 = load ptr, ptr %10, align 8, !tbaa !73
+  %92 = load ptr, ptr %10, align 8, !tbaa !68
   %93 = getelementptr inbounds nuw ptr, ptr %92, i64 %15
   %94 = load ptr, ptr %93, align 8, !tbaa !55
   %95 = load i8, ptr %94, align 1, !tbaa !7
@@ -4276,7 +3861,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 98:                                               ; preds = %69
-  %99 = load ptr, ptr %10, align 8, !tbaa !73
+  %99 = load ptr, ptr %10, align 8, !tbaa !68
   %100 = getelementptr inbounds nuw ptr, ptr %99, i64 %15
   %101 = load ptr, ptr %100, align 8, !tbaa !55
   %102 = load i8, ptr %101, align 1, !tbaa !32, !range !34, !noundef !35
@@ -4286,7 +3871,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 106:                                              ; preds = %69
-  %107 = load ptr, ptr %10, align 8, !tbaa !73
+  %107 = load ptr, ptr %10, align 8, !tbaa !68
   %108 = getelementptr inbounds nuw ptr, ptr %107, i64 %15
   %109 = load ptr, ptr %108, align 8, !tbaa !55
   %110 = load i8, ptr %109, align 1, !tbaa !7
@@ -4310,14 +3895,14 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   br label %124
 
 119:                                              ; preds = %69
-  %120 = load ptr, ptr %10, align 8, !tbaa !73
+  %120 = load ptr, ptr %10, align 8, !tbaa !68
   %121 = getelementptr inbounds nuw ptr, ptr %120, i64 %15
   %122 = load ptr, ptr %121, align 8, !tbaa !55
   %123 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.45, ptr noundef %122)
   br label %124
 
 124:                                              ; preds = %119, %116, %98, %91, %85, %78, %72, %69
-  %125 = load i32, ptr %4, align 8, !tbaa !69
+  %125 = load i32, ptr %4, align 8, !tbaa !64
   %126 = add nsw i32 %125, -1
   %127 = sext i32 %126 to i64
   %128 = icmp slt i64 %15, %127
@@ -4325,7 +3910,7 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
 
 129:                                              ; preds = %124
   %130 = tail call i32 (ptr, ...) @printf(ptr noundef nonnull dereferenceable(1) @.str.43)
-  %131 = load i32, ptr %4, align 8, !tbaa !69
+  %131 = load i32, ptr %4, align 8, !tbaa !64
   br label %132
 
 132:                                              ; preds = %129, %124
@@ -4333,17 +3918,17 @@ define internal void @qc_print_map(ptr noundef readonly captures(none) %0) local
   %134 = add nuw nsw i64 %15, 1
   %135 = sext i32 %133 to i64
   %136 = icmp slt i64 %134, %135
-  br i1 %136, label %14, label %11, !llvm.loop !79
+  br i1 %136, label %14, label %11, !llvm.loop !71
 }
 
 ; Function Attrs: mustprogress nounwind uwtable
 define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
   %2 = alloca [128 x i8], align 16
-  %3 = tail call noalias dereferenceable_or_null(256) ptr @malloc(i64 noundef 256) #36
+  %3 = tail call noalias dereferenceable_or_null(256) ptr @malloc(i64 noundef 256) #34
   %4 = getelementptr inbounds nuw i8, ptr %3, i64 1
   store i8 123, ptr %3, align 1, !tbaa !7
   %5 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %6 = load i32, ptr %5, align 8, !tbaa !69
+  %6 = load i32, ptr %5, align 8, !tbaa !64
   %7 = icmp sgt i32 %6, 0
   br i1 %7, label %8, label %12
 
@@ -4367,8 +3952,8 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %19 = phi ptr [ %3, %8 ], [ %178, %194 ]
   %20 = phi ptr [ %4, %8 ], [ %197, %194 ]
   %21 = phi i32 [ 255, %8 ], [ %196, %194 ]
-  call void @llvm.lifetime.start.p0(i64 128, ptr nonnull %2) #37
-  %22 = load i32, ptr %9, align 8, !tbaa !70
+  call void @llvm.lifetime.start.p0(i64 128, ptr nonnull %2) #35
+  %22 = load i32, ptr %9, align 8, !tbaa !65
   switch i32 %22, label %75 [
     i32 0, label %23
     i32 1, label %29
@@ -4380,51 +3965,51 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   ]
 
 23:                                               ; preds = %16
-  %24 = load ptr, ptr %0, align 8, !tbaa !72
+  %24 = load ptr, ptr %0, align 8, !tbaa !67
   %25 = getelementptr inbounds nuw ptr, ptr %24, i64 %17
   %26 = load ptr, ptr %25, align 8, !tbaa !55
   %27 = load i32, ptr %26, align 4, !tbaa !19
-  %28 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.34, i32 noundef %27) #37
+  %28 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.34, i32 noundef %27) #35
   br label %75
 
 29:                                               ; preds = %16
-  %30 = load ptr, ptr %0, align 8, !tbaa !72
+  %30 = load ptr, ptr %0, align 8, !tbaa !67
   %31 = getelementptr inbounds nuw ptr, ptr %30, i64 %17
   %32 = load ptr, ptr %31, align 8, !tbaa !55
   %33 = load float, ptr %32, align 4, !tbaa !22
   %34 = fpext float %33 to double
-  %35 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %34) #37
+  %35 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %34) #35
   br label %75
 
 36:                                               ; preds = %16
-  %37 = load ptr, ptr %0, align 8, !tbaa !72
+  %37 = load ptr, ptr %0, align 8, !tbaa !67
   %38 = getelementptr inbounds nuw ptr, ptr %37, i64 %17
   %39 = load ptr, ptr %38, align 8, !tbaa !55
   %40 = load double, ptr %39, align 8, !tbaa !25
-  %41 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %40) #37
+  %41 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %40) #35
   br label %75
 
 42:                                               ; preds = %16
-  %43 = load ptr, ptr %0, align 8, !tbaa !72
+  %43 = load ptr, ptr %0, align 8, !tbaa !67
   %44 = getelementptr inbounds nuw ptr, ptr %43, i64 %17
   %45 = load ptr, ptr %44, align 8, !tbaa !55
   %46 = load i8, ptr %45, align 1, !tbaa !7
   %47 = sext i8 %46 to i32
-  %48 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.46, i32 noundef %47) #37
+  %48 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.46, i32 noundef %47) #35
   br label %75
 
 49:                                               ; preds = %16
-  %50 = load ptr, ptr %0, align 8, !tbaa !72
+  %50 = load ptr, ptr %0, align 8, !tbaa !67
   %51 = getelementptr inbounds nuw ptr, ptr %50, i64 %17
   %52 = load ptr, ptr %51, align 8, !tbaa !55
   %53 = load i8, ptr %52, align 1, !tbaa !32, !range !34, !noundef !35
   %54 = trunc nuw i8 %53 to i1
   %55 = select i1 %54, ptr @.str.24, ptr @.str.25
-  %56 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %55) #37
+  %56 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %55) #35
   br label %75
 
 57:                                               ; preds = %16
-  %58 = load ptr, ptr %0, align 8, !tbaa !72
+  %58 = load ptr, ptr %0, align 8, !tbaa !67
   %59 = getelementptr inbounds nuw ptr, ptr %58, i64 %17
   %60 = load ptr, ptr %59, align 8, !tbaa !55
   %61 = load i8, ptr %60, align 1, !tbaa !7
@@ -4444,18 +4029,18 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
 
 67:                                               ; preds = %66, %63, %57
   %68 = phi ptr [ @.str.26, %57 ], [ %65, %63 ], [ @.str.27, %66 ]
-  %69 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %68) #37
+  %69 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %68) #35
   br label %75
 
 70:                                               ; preds = %16
-  %71 = load ptr, ptr %0, align 8, !tbaa !72
+  %71 = load ptr, ptr %0, align 8, !tbaa !67
   %72 = getelementptr inbounds nuw ptr, ptr %71, i64 %17
   %73 = load ptr, ptr %72, align 8, !tbaa !55
-  %74 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.45, ptr noundef %73) #37
+  %74 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.45, ptr noundef %73) #35
   br label %75
 
 75:                                               ; preds = %70, %67, %49, %42, %36, %29, %23, %16
-  %76 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #40
+  %76 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #38
   %77 = trunc i64 %76 to i32
   %78 = add nsw i32 %77, 10
   %79 = icmp slt i32 %21, %78
@@ -4468,7 +4053,7 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %84 = trunc i64 %83 to i32
   %85 = shl nsw i32 %18, 1
   %86 = sext i32 %85 to i64
-  %87 = tail call ptr @realloc(ptr noundef %19, i64 noundef %86) #38
+  %87 = tail call ptr @realloc(ptr noundef %19, i64 noundef %86) #36
   %88 = shl i64 %83, 32
   %89 = ashr exact i64 %88, 32
   %90 = getelementptr inbounds i8, ptr %87, i64 %89
@@ -4480,7 +4065,7 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %94 = phi ptr [ %90, %80 ], [ %20, %75 ]
   %95 = phi ptr [ %87, %80 ], [ %19, %75 ]
   %96 = phi i32 [ %85, %80 ], [ %18, %75 ]
-  %97 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %94, ptr noundef nonnull dereferenceable(1) %2) #37
+  %97 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %94, ptr noundef nonnull dereferenceable(1) %2) #35
   %98 = shl i64 %76, 32
   %99 = ashr exact i64 %98, 32
   %100 = getelementptr inbounds i8, ptr %94, i64 %99
@@ -4490,7 +4075,7 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %103 = getelementptr inbounds nuw i8, ptr %100, i64 2
   store i8 32, ptr %102, align 1, !tbaa !7
   %104 = add nsw i32 %101, -2
-  %105 = load i32, ptr %10, align 4, !tbaa !71
+  %105 = load i32, ptr %10, align 4, !tbaa !66
   switch i32 %105, label %158 [
     i32 0, label %106
     i32 1, label %112
@@ -4502,51 +4087,51 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   ]
 
 106:                                              ; preds = %92
-  %107 = load ptr, ptr %11, align 8, !tbaa !73
+  %107 = load ptr, ptr %11, align 8, !tbaa !68
   %108 = getelementptr inbounds nuw ptr, ptr %107, i64 %17
   %109 = load ptr, ptr %108, align 8, !tbaa !55
   %110 = load i32, ptr %109, align 4, !tbaa !19
-  %111 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.34, i32 noundef %110) #37
+  %111 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.34, i32 noundef %110) #35
   br label %158
 
 112:                                              ; preds = %92
-  %113 = load ptr, ptr %11, align 8, !tbaa !73
+  %113 = load ptr, ptr %11, align 8, !tbaa !68
   %114 = getelementptr inbounds nuw ptr, ptr %113, i64 %17
   %115 = load ptr, ptr %114, align 8, !tbaa !55
   %116 = load float, ptr %115, align 4, !tbaa !22
   %117 = fpext float %116 to double
-  %118 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %117) #37
+  %118 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %117) #35
   br label %158
 
 119:                                              ; preds = %92
-  %120 = load ptr, ptr %11, align 8, !tbaa !73
+  %120 = load ptr, ptr %11, align 8, !tbaa !68
   %121 = getelementptr inbounds nuw ptr, ptr %120, i64 %17
   %122 = load ptr, ptr %121, align 8, !tbaa !55
   %123 = load double, ptr %122, align 8, !tbaa !25
-  %124 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %123) #37
+  %124 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %123) #35
   br label %158
 
 125:                                              ; preds = %92
-  %126 = load ptr, ptr %11, align 8, !tbaa !73
+  %126 = load ptr, ptr %11, align 8, !tbaa !68
   %127 = getelementptr inbounds nuw ptr, ptr %126, i64 %17
   %128 = load ptr, ptr %127, align 8, !tbaa !55
   %129 = load i8, ptr %128, align 1, !tbaa !7
   %130 = sext i8 %129 to i32
-  %131 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.46, i32 noundef %130) #37
+  %131 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.46, i32 noundef %130) #35
   br label %158
 
 132:                                              ; preds = %92
-  %133 = load ptr, ptr %11, align 8, !tbaa !73
+  %133 = load ptr, ptr %11, align 8, !tbaa !68
   %134 = getelementptr inbounds nuw ptr, ptr %133, i64 %17
   %135 = load ptr, ptr %134, align 8, !tbaa !55
   %136 = load i8, ptr %135, align 1, !tbaa !32, !range !34, !noundef !35
   %137 = trunc nuw i8 %136 to i1
   %138 = select i1 %137, ptr @.str.24, ptr @.str.25
-  %139 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %138) #37
+  %139 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %138) #35
   br label %158
 
 140:                                              ; preds = %92
-  %141 = load ptr, ptr %11, align 8, !tbaa !73
+  %141 = load ptr, ptr %11, align 8, !tbaa !68
   %142 = getelementptr inbounds nuw ptr, ptr %141, i64 %17
   %143 = load ptr, ptr %142, align 8, !tbaa !55
   %144 = load i8, ptr %143, align 1, !tbaa !7
@@ -4566,18 +4151,18 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
 
 150:                                              ; preds = %149, %146, %140
   %151 = phi ptr [ @.str.26, %140 ], [ %148, %146 ], [ @.str.27, %149 ]
-  %152 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %151) #37
+  %152 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %151) #35
   br label %158
 
 153:                                              ; preds = %92
-  %154 = load ptr, ptr %11, align 8, !tbaa !73
+  %154 = load ptr, ptr %11, align 8, !tbaa !68
   %155 = getelementptr inbounds nuw ptr, ptr %154, i64 %17
   %156 = load ptr, ptr %155, align 8, !tbaa !55
-  %157 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.45, ptr noundef %156) #37
+  %157 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.45, ptr noundef %156) #35
   br label %158
 
 158:                                              ; preds = %153, %150, %132, %125, %119, %112, %106, %92
-  %159 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #40
+  %159 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #38
   %160 = trunc i64 %159 to i32
   %161 = add nsw i32 %160, 10
   %162 = icmp slt i32 %104, %161
@@ -4590,7 +4175,7 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %167 = trunc i64 %166 to i32
   %168 = shl nsw i32 %96, 1
   %169 = sext i32 %168 to i64
-  %170 = tail call ptr @realloc(ptr noundef %95, i64 noundef %169) #38
+  %170 = tail call ptr @realloc(ptr noundef %95, i64 noundef %169) #36
   %171 = shl i64 %166, 32
   %172 = ashr exact i64 %171, 32
   %173 = getelementptr inbounds i8, ptr %170, i64 %172
@@ -4602,12 +4187,12 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %177 = phi ptr [ %173, %163 ], [ %103, %158 ]
   %178 = phi ptr [ %170, %163 ], [ %95, %158 ]
   %179 = phi i32 [ %168, %163 ], [ %96, %158 ]
-  %180 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %177, ptr noundef nonnull dereferenceable(1) %2) #37
+  %180 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %177, ptr noundef nonnull dereferenceable(1) %2) #35
   %181 = shl i64 %159, 32
   %182 = ashr exact i64 %181, 32
   %183 = getelementptr inbounds i8, ptr %177, i64 %182
   %184 = sub nsw i32 %176, %160
-  %185 = load i32, ptr %5, align 8, !tbaa !69
+  %185 = load i32, ptr %5, align 8, !tbaa !64
   %186 = add nsw i32 %185, -1
   %187 = sext i32 %186 to i64
   %188 = icmp slt i64 %17, %187
@@ -4619,397 +4204,25 @@ define internal ptr @qc_map_to_string(ptr noundef readonly captures(none) %0) lo
   %191 = getelementptr inbounds nuw i8, ptr %183, i64 2
   store i8 32, ptr %190, align 1, !tbaa !7
   %192 = add nsw i32 %184, -2
-  %193 = load i32, ptr %5, align 8, !tbaa !69
+  %193 = load i32, ptr %5, align 8, !tbaa !64
   br label %194
 
 194:                                              ; preds = %189, %175
   %195 = phi i32 [ %193, %189 ], [ %185, %175 ]
   %196 = phi i32 [ %192, %189 ], [ %184, %175 ]
   %197 = phi ptr [ %191, %189 ], [ %183, %175 ]
-  call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %2) #37
+  call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %2) #35
   %198 = add nuw nsw i64 %17, 1
   %199 = sext i32 %195 to i64
   %200 = icmp slt i64 %198, %199
-  br i1 %200, label %16, label %12, !llvm.loop !80
+  br i1 %200, label %16, label %12, !llvm.loop !72
 }
 
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
 define internal i32 @qc_map_size(ptr noundef readonly captures(none) %0) local_unnamed_addr #26 {
   %2 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %3 = load i32, ptr %2, align 8, !tbaa !69
+  %3 = load i32, ptr %2, align 8, !tbaa !64
   ret i32 %3
-}
-
-; Function Attrs: mustprogress nounwind uwtable
-define internal noalias noundef ptr @qc_map_keys(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
-  %2 = getelementptr inbounds nuw i8, ptr %0, i64 24
-  %3 = load i32, ptr %2, align 8, !tbaa !70
-  %4 = tail call noalias dereferenceable_or_null(24) ptr @malloc(i64 noundef 24) #36
-  %5 = getelementptr inbounds nuw i8, ptr %4, i64 12
-  store i32 4, ptr %5, align 4, !tbaa !62
-  %6 = getelementptr inbounds nuw i8, ptr %4, i64 8
-  store i32 0, ptr %6, align 8, !tbaa !64
-  %7 = getelementptr inbounds nuw i8, ptr %4, i64 16
-  store i32 %3, ptr %7, align 8, !tbaa !65
-  %8 = tail call noalias dereferenceable_or_null(32) ptr @malloc(i64 noundef 32) #36
-  store ptr %8, ptr %4, align 8, !tbaa !66
-  %9 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  %10 = load i32, ptr %9, align 8, !tbaa !69
-  %11 = icmp sgt i32 %10, 4
-  br i1 %11, label %12, label %16
-
-12:                                               ; preds = %1
-  store i32 %10, ptr %5, align 4, !tbaa !62
-  %13 = zext nneg i32 %10 to i64
-  %14 = shl nuw nsw i64 %13, 3
-  %15 = tail call ptr @realloc(ptr noundef %8, i64 noundef %14) #38
-  store ptr %15, ptr %4, align 8, !tbaa !66
-  br label %18
-
-16:                                               ; preds = %1
-  %17 = icmp sgt i32 %10, 0
-  br i1 %17, label %18, label %108
-
-18:                                               ; preds = %16, %12
-  %19 = phi ptr [ %15, %12 ], [ %8, %16 ]
-  %20 = ptrtoint ptr %19 to i64
-  %21 = icmp slt i32 %3, 6
-  br i1 %21, label %22, label %59
-
-22:                                               ; preds = %18
-  switch i32 %3, label %26 [
-    i32 4, label %29
-    i32 5, label %29
-    i32 2, label %23
-    i32 3, label %29
-  ]
-
-23:                                               ; preds = %22
-  %24 = zext nneg i32 %10 to i64
-  %25 = load ptr, ptr %0, align 8, !tbaa !72
-  br label %41
-
-26:                                               ; preds = %22
-  %27 = zext nneg i32 %10 to i64
-  %28 = load ptr, ptr %0, align 8, !tbaa !72
-  br label %50
-
-29:                                               ; preds = %22, %22, %22
-  %30 = zext nneg i32 %10 to i64
-  %31 = load ptr, ptr %0, align 8, !tbaa !72
-  br label %32
-
-32:                                               ; preds = %32, %29
-  %33 = phi i64 [ %39, %32 ], [ 0, %29 ]
-  %34 = tail call noalias dereferenceable_or_null(1) ptr @malloc(i64 noundef 1) #36
-  %35 = getelementptr inbounds nuw ptr, ptr %31, i64 %33
-  %36 = load ptr, ptr %35, align 8, !tbaa !55
-  %37 = load i8, ptr %36, align 1
-  store i8 %37, ptr %34, align 1
-  %38 = getelementptr inbounds nuw ptr, ptr %19, i64 %33
-  store ptr %34, ptr %38, align 8, !tbaa !55
-  %39 = add nuw nsw i64 %33, 1
-  %40 = icmp eq i64 %39, %30
-  br i1 %40, label %108, label %32, !llvm.loop !81
-
-41:                                               ; preds = %41, %23
-  %42 = phi i64 [ 0, %23 ], [ %48, %41 ]
-  %43 = tail call noalias dereferenceable_or_null(8) ptr @malloc(i64 noundef 8) #36
-  %44 = getelementptr inbounds nuw ptr, ptr %25, i64 %42
-  %45 = load ptr, ptr %44, align 8, !tbaa !55
-  %46 = load i64, ptr %45, align 1
-  store i64 %46, ptr %43, align 1
-  %47 = getelementptr inbounds nuw ptr, ptr %19, i64 %42
-  store ptr %43, ptr %47, align 8, !tbaa !55
-  %48 = add nuw nsw i64 %42, 1
-  %49 = icmp eq i64 %48, %24
-  br i1 %49, label %108, label %41, !llvm.loop !81
-
-50:                                               ; preds = %50, %26
-  %51 = phi i64 [ 0, %26 ], [ %57, %50 ]
-  %52 = tail call noalias dereferenceable_or_null(4) ptr @malloc(i64 noundef 4) #36
-  %53 = getelementptr inbounds nuw ptr, ptr %28, i64 %51
-  %54 = load ptr, ptr %53, align 8, !tbaa !55
-  %55 = load i32, ptr %54, align 1
-  store i32 %55, ptr %52, align 1
-  %56 = getelementptr inbounds nuw ptr, ptr %19, i64 %51
-  store ptr %52, ptr %56, align 8, !tbaa !55
-  %57 = add nuw nsw i64 %51, 1
-  %58 = icmp eq i64 %57, %27
-  br i1 %58, label %108, label %50, !llvm.loop !81
-
-59:                                               ; preds = %18
-  %60 = icmp eq i32 %3, 6
-  %61 = zext i32 %10 to i64
-  %62 = load ptr, ptr %0, align 8, !tbaa !72
-  br i1 %60, label %100, label %63
-
-63:                                               ; preds = %59
-  %64 = ptrtoint ptr %62 to i64
-  %65 = icmp ult i32 %10, 6
-  %66 = sub i64 %20, %64
-  %67 = icmp ult i64 %66, 32
-  %68 = select i1 %65, i1 true, i1 %67
-  br i1 %68, label %83, label %69
-
-69:                                               ; preds = %63
-  %70 = and i64 %61, 4294967292
-  br label %71
-
-71:                                               ; preds = %71, %69
-  %72 = phi i64 [ 0, %69 ], [ %79, %71 ]
-  %73 = getelementptr inbounds nuw ptr, ptr %62, i64 %72
-  %74 = getelementptr inbounds nuw i8, ptr %73, i64 16
-  %75 = load <2 x ptr>, ptr %73, align 8, !tbaa !55
-  %76 = load <2 x ptr>, ptr %74, align 8, !tbaa !55
-  %77 = getelementptr inbounds nuw ptr, ptr %19, i64 %72
-  %78 = getelementptr inbounds nuw i8, ptr %77, i64 16
-  store <2 x ptr> %75, ptr %77, align 8, !tbaa !55
-  store <2 x ptr> %76, ptr %78, align 8, !tbaa !55
-  %79 = add nuw i64 %72, 4
-  %80 = icmp eq i64 %79, %70
-  br i1 %80, label %81, label %71, !llvm.loop !82
-
-81:                                               ; preds = %71
-  %82 = icmp eq i64 %70, %61
-  br i1 %82, label %108, label %83
-
-83:                                               ; preds = %81, %63
-  %84 = phi i64 [ 0, %63 ], [ %70, %81 ]
-  %85 = and i64 %61, 3
-  %86 = icmp eq i64 %85, 0
-  br i1 %86, label %96, label %87
-
-87:                                               ; preds = %87, %83
-  %88 = phi i64 [ %93, %87 ], [ %84, %83 ]
-  %89 = phi i64 [ %94, %87 ], [ 0, %83 ]
-  %90 = getelementptr inbounds nuw ptr, ptr %62, i64 %88
-  %91 = load ptr, ptr %90, align 8, !tbaa !55
-  %92 = getelementptr inbounds nuw ptr, ptr %19, i64 %88
-  store ptr %91, ptr %92, align 8, !tbaa !55
-  %93 = add nuw nsw i64 %88, 1
-  %94 = add i64 %89, 1
-  %95 = icmp eq i64 %94, %85
-  br i1 %95, label %96, label %87, !llvm.loop !83
-
-96:                                               ; preds = %87, %83
-  %97 = phi i64 [ %84, %83 ], [ %93, %87 ]
-  %98 = sub nsw i64 %84, %61
-  %99 = icmp ugt i64 %98, -4
-  br i1 %99, label %108, label %109
-
-100:                                              ; preds = %100, %59
-  %101 = phi i64 [ %106, %100 ], [ 0, %59 ]
-  %102 = getelementptr inbounds nuw ptr, ptr %62, i64 %101
-  %103 = load ptr, ptr %102, align 8, !tbaa !55
-  %104 = tail call noalias ptr @strdup(ptr noundef %103) #37
-  %105 = getelementptr inbounds nuw ptr, ptr %19, i64 %101
-  store ptr %104, ptr %105, align 8, !tbaa !55
-  %106 = add nuw nsw i64 %101, 1
-  %107 = icmp eq i64 %106, %61
-  br i1 %107, label %108, label %100, !llvm.loop !81
-
-108:                                              ; preds = %109, %100, %96, %81, %50, %41, %32, %16
-  store i32 %10, ptr %6, align 8, !tbaa !64
-  ret ptr %4
-
-109:                                              ; preds = %109, %96
-  %110 = phi i64 [ %126, %109 ], [ %97, %96 ]
-  %111 = getelementptr inbounds nuw ptr, ptr %62, i64 %110
-  %112 = load ptr, ptr %111, align 8, !tbaa !55
-  %113 = getelementptr inbounds nuw ptr, ptr %19, i64 %110
-  store ptr %112, ptr %113, align 8, !tbaa !55
-  %114 = add nuw nsw i64 %110, 1
-  %115 = getelementptr inbounds nuw ptr, ptr %62, i64 %114
-  %116 = load ptr, ptr %115, align 8, !tbaa !55
-  %117 = getelementptr inbounds nuw ptr, ptr %19, i64 %114
-  store ptr %116, ptr %117, align 8, !tbaa !55
-  %118 = add nuw nsw i64 %110, 2
-  %119 = getelementptr inbounds nuw ptr, ptr %62, i64 %118
-  %120 = load ptr, ptr %119, align 8, !tbaa !55
-  %121 = getelementptr inbounds nuw ptr, ptr %19, i64 %118
-  store ptr %120, ptr %121, align 8, !tbaa !55
-  %122 = add nuw nsw i64 %110, 3
-  %123 = getelementptr inbounds nuw ptr, ptr %62, i64 %122
-  %124 = load ptr, ptr %123, align 8, !tbaa !55
-  %125 = getelementptr inbounds nuw ptr, ptr %19, i64 %122
-  store ptr %124, ptr %125, align 8, !tbaa !55
-  %126 = add nuw nsw i64 %110, 4
-  %127 = icmp eq i64 %126, %61
-  br i1 %127, label %108, label %109, !llvm.loop !85
-}
-
-; Function Attrs: mustprogress nounwind uwtable
-define internal ptr @qc_list_to_string(ptr noundef readonly captures(none) %0) local_unnamed_addr #17 {
-  %2 = alloca [128 x i8], align 16
-  %3 = tail call noalias dereferenceable_or_null(256) ptr @malloc(i64 noundef 256) #36
-  %4 = getelementptr inbounds nuw i8, ptr %3, i64 1
-  store i8 91, ptr %3, align 1, !tbaa !7
-  %5 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %6 = load i32, ptr %5, align 8, !tbaa !64
-  %7 = icmp sgt i32 %6, 0
-  br i1 %7, label %8, label %10
-
-8:                                                ; preds = %1
-  %9 = getelementptr inbounds nuw i8, ptr %0, i64 16
-  br label %14
-
-10:                                               ; preds = %109, %1
-  %11 = phi ptr [ %4, %1 ], [ %112, %109 ]
-  %12 = phi ptr [ %3, %1 ], [ %93, %109 ]
-  %13 = getelementptr inbounds nuw i8, ptr %11, i64 1
-  store i8 93, ptr %11, align 1, !tbaa !7
-  store i8 0, ptr %13, align 1, !tbaa !7
-  ret ptr %12
-
-14:                                               ; preds = %109, %8
-  %15 = phi i64 [ 0, %8 ], [ %113, %109 ]
-  %16 = phi i32 [ 256, %8 ], [ %94, %109 ]
-  %17 = phi ptr [ %3, %8 ], [ %93, %109 ]
-  %18 = phi ptr [ %4, %8 ], [ %112, %109 ]
-  %19 = phi i32 [ 255, %8 ], [ %111, %109 ]
-  call void @llvm.lifetime.start.p0(i64 128, ptr nonnull %2) #37
-  %20 = load i32, ptr %9, align 8, !tbaa !65
-  switch i32 %20, label %73 [
-    i32 0, label %21
-    i32 1, label %27
-    i32 2, label %34
-    i32 3, label %40
-    i32 4, label %47
-    i32 5, label %55
-    i32 6, label %68
-  ]
-
-21:                                               ; preds = %14
-  %22 = load ptr, ptr %0, align 8, !tbaa !66
-  %23 = getelementptr inbounds nuw ptr, ptr %22, i64 %15
-  %24 = load ptr, ptr %23, align 8, !tbaa !55
-  %25 = load i32, ptr %24, align 4, !tbaa !19
-  %26 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.34, i32 noundef %25) #37
-  br label %73
-
-27:                                               ; preds = %14
-  %28 = load ptr, ptr %0, align 8, !tbaa !66
-  %29 = getelementptr inbounds nuw ptr, ptr %28, i64 %15
-  %30 = load ptr, ptr %29, align 8, !tbaa !55
-  %31 = load float, ptr %30, align 4, !tbaa !22
-  %32 = fpext float %31 to double
-  %33 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %32) #37
-  br label %73
-
-34:                                               ; preds = %14
-  %35 = load ptr, ptr %0, align 8, !tbaa !66
-  %36 = getelementptr inbounds nuw ptr, ptr %35, i64 %15
-  %37 = load ptr, ptr %36, align 8, !tbaa !55
-  %38 = load double, ptr %37, align 8, !tbaa !25
-  %39 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.35, double noundef %38) #37
-  br label %73
-
-40:                                               ; preds = %14
-  %41 = load ptr, ptr %0, align 8, !tbaa !66
-  %42 = getelementptr inbounds nuw ptr, ptr %41, i64 %15
-  %43 = load ptr, ptr %42, align 8, !tbaa !55
-  %44 = load i8, ptr %43, align 1, !tbaa !7
-  %45 = sext i8 %44 to i32
-  %46 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.46, i32 noundef %45) #37
-  br label %73
-
-47:                                               ; preds = %14
-  %48 = load ptr, ptr %0, align 8, !tbaa !66
-  %49 = getelementptr inbounds nuw ptr, ptr %48, i64 %15
-  %50 = load ptr, ptr %49, align 8, !tbaa !55
-  %51 = load i8, ptr %50, align 1, !tbaa !32, !range !34, !noundef !35
-  %52 = trunc nuw i8 %51 to i1
-  %53 = select i1 %52, ptr @.str.24, ptr @.str.25
-  %54 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %53) #37
-  br label %73
-
-55:                                               ; preds = %14
-  %56 = load ptr, ptr %0, align 8, !tbaa !66
-  %57 = getelementptr inbounds nuw ptr, ptr %56, i64 %15
-  %58 = load ptr, ptr %57, align 8, !tbaa !55
-  %59 = load i8, ptr %58, align 1, !tbaa !7
-  %60 = and i8 %59, 3
-  switch i8 %60, label %61 [
-    i8 0, label %65
-    i8 1, label %64
-  ]
-
-61:                                               ; preds = %55
-  %62 = icmp eq i8 %60, 2
-  %63 = select i1 %62, ptr @.str.28, ptr @.str.29
-  br label %65
-
-64:                                               ; preds = %55
-  br label %65
-
-65:                                               ; preds = %64, %61, %55
-  %66 = phi ptr [ @.str.26, %55 ], [ %63, %61 ], [ @.str.27, %64 ]
-  %67 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.39, ptr noundef nonnull %66) #37
-  br label %73
-
-68:                                               ; preds = %14
-  %69 = load ptr, ptr %0, align 8, !tbaa !66
-  %70 = getelementptr inbounds nuw ptr, ptr %69, i64 %15
-  %71 = load ptr, ptr %70, align 8, !tbaa !55
-  %72 = call i32 (ptr, i64, ptr, ...) @snprintf(ptr noundef nonnull dereferenceable(1) %2, i64 noundef 128, ptr noundef nonnull @.str.45, ptr noundef %71) #37
-  br label %73
-
-73:                                               ; preds = %68, %65, %47, %40, %34, %27, %21, %14
-  %74 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #40
-  %75 = trunc i64 %74 to i32
-  %76 = add nsw i32 %75, 10
-  %77 = icmp slt i32 %19, %76
-  br i1 %77, label %78, label %90
-
-78:                                               ; preds = %73
-  %79 = ptrtoint ptr %18 to i64
-  %80 = ptrtoint ptr %17 to i64
-  %81 = sub i64 %79, %80
-  %82 = trunc i64 %81 to i32
-  %83 = shl nsw i32 %16, 1
-  %84 = sext i32 %83 to i64
-  %85 = tail call ptr @realloc(ptr noundef %17, i64 noundef %84) #38
-  %86 = shl i64 %81, 32
-  %87 = ashr exact i64 %86, 32
-  %88 = getelementptr inbounds i8, ptr %85, i64 %87
-  %89 = sub nsw i32 %83, %82
-  br label %90
-
-90:                                               ; preds = %78, %73
-  %91 = phi i32 [ %89, %78 ], [ %19, %73 ]
-  %92 = phi ptr [ %88, %78 ], [ %18, %73 ]
-  %93 = phi ptr [ %85, %78 ], [ %17, %73 ]
-  %94 = phi i32 [ %83, %78 ], [ %16, %73 ]
-  %95 = call ptr @strcpy(ptr noundef nonnull dereferenceable(1) %92, ptr noundef nonnull dereferenceable(1) %2) #37
-  %96 = shl i64 %74, 32
-  %97 = ashr exact i64 %96, 32
-  %98 = getelementptr inbounds i8, ptr %92, i64 %97
-  %99 = sub nsw i32 %91, %75
-  %100 = load i32, ptr %5, align 8, !tbaa !64
-  %101 = add nsw i32 %100, -1
-  %102 = sext i32 %101 to i64
-  %103 = icmp slt i64 %15, %102
-  br i1 %103, label %104, label %109
-
-104:                                              ; preds = %90
-  %105 = getelementptr inbounds nuw i8, ptr %98, i64 1
-  store i8 44, ptr %98, align 1, !tbaa !7
-  %106 = getelementptr inbounds nuw i8, ptr %98, i64 2
-  store i8 32, ptr %105, align 1, !tbaa !7
-  %107 = add nsw i32 %99, -2
-  %108 = load i32, ptr %5, align 8, !tbaa !64
-  br label %109
-
-109:                                              ; preds = %104, %90
-  %110 = phi i32 [ %108, %104 ], [ %100, %90 ]
-  %111 = phi i32 [ %107, %104 ], [ %99, %90 ]
-  %112 = phi ptr [ %106, %104 ], [ %98, %90 ]
-  call void @llvm.lifetime.end.p0(i64 128, ptr nonnull %2) #37
-  %113 = add nuw nsw i64 %15, 1
-  %114 = sext i32 %110 to i64
-  %115 = icmp slt i64 %113, %114
-  br i1 %115, label %14, label %10, !llvm.loop !86
 }
 
 ; Function Attrs: mustprogress nofree nounwind uwtable
@@ -5044,17 +4257,17 @@ define internal noalias ptr @qc_fread(ptr noundef captures(address_is_null) %0) 
   br i1 %3, label %4, label %6
 
 4:                                                ; preds = %1
-  %5 = tail call noalias dereferenceable_or_null(1) ptr @strdup(ptr noundef nonnull @.str.2) #37
+  %5 = tail call noalias dereferenceable_or_null(1) ptr @strdup(ptr noundef nonnull @.str.2) #35
   br label %21
 
 6:                                                ; preds = %1
-  call void @llvm.lifetime.start.p0(i64 1024, ptr nonnull %2) #37
+  call void @llvm.lifetime.start.p0(i64 1024, ptr nonnull %2) #35
   %7 = call ptr @fgets(ptr noundef nonnull %2, i32 noundef 1024, ptr noundef nonnull %0)
   %8 = icmp eq ptr %7, null
   br i1 %8, label %18, label %9
 
 9:                                                ; preds = %6
-  %10 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #40
+  %10 = call i64 @strlen(ptr noundef nonnull dereferenceable(1) %2) #38
   %11 = icmp eq i64 %10, 0
   br i1 %11, label %18, label %12
 
@@ -5071,8 +4284,8 @@ define internal noalias ptr @qc_fread(ptr noundef captures(address_is_null) %0) 
 
 18:                                               ; preds = %17, %12, %9, %6
   %19 = phi ptr [ %2, %17 ], [ %2, %12 ], [ %2, %9 ], [ @.str.2, %6 ]
-  %20 = call noalias ptr @strdup(ptr noundef nonnull %19) #37
-  call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %2) #37
+  %20 = call noalias ptr @strdup(ptr noundef nonnull %19) #35
+  call void @llvm.lifetime.end.p0(i64 1024, ptr nonnull %2) #35
   br label %21
 
 21:                                               ; preds = %18, %4
@@ -5105,9 +4318,9 @@ declare noundef i32 @fputc(i32 noundef, ptr noundef captures(none)) local_unname
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: read) uwtable
 define internal zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(none) %0) local_unnamed_addr #26 {
   %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
-  %3 = load i32, ptr %2, align 4, !tbaa !87
+  %3 = load i32, ptr %2, align 4, !tbaa !73
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %5 = load i32, ptr %4, align 8, !tbaa !89
+  %5 = load i32, ptr %4, align 8, !tbaa !75
   %6 = icmp sge i32 %3, %5
   ret i1 %6
 }
@@ -5115,19 +4328,19 @@ define internal zeroext i1 @qc_variadic_is_empty(ptr noundef readonly captures(n
 ; Function Attrs: mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable
 define internal ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnamed_addr #33 {
   %2 = getelementptr inbounds nuw i8, ptr %0, i64 12
-  %3 = load i32, ptr %2, align 4, !tbaa !87
+  %3 = load i32, ptr %2, align 4, !tbaa !73
   %4 = getelementptr inbounds nuw i8, ptr %0, i64 8
-  %5 = load i32, ptr %4, align 8, !tbaa !89
+  %5 = load i32, ptr %4, align 8, !tbaa !75
   %6 = icmp slt i32 %3, %5
   br i1 %6, label %7, label %13
 
 7:                                                ; preds = %1
-  %8 = load ptr, ptr %0, align 8, !tbaa !90
+  %8 = load ptr, ptr %0, align 8, !tbaa !76
   %9 = sext i32 %3 to i64
   %10 = getelementptr inbounds ptr, ptr %8, i64 %9
   %11 = load ptr, ptr %10, align 8, !tbaa !55
   %12 = add nsw i32 %3, 1
-  store i32 %12, ptr %2, align 4, !tbaa !87
+  store i32 %12, ptr %2, align 4, !tbaa !73
   br label %13
 
 13:                                               ; preds = %7, %1
@@ -5135,79 +4348,303 @@ define internal ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnam
   ret ptr %14
 }
 
-define internal i32 @B_add(ptr %0, i32 %1, i32 %2) {
-entry:
-  %b = alloca i32, align 4
-  %a = alloca i32, align 4
-  store i32 %1, ptr %a, align 4
-  store i32 %2, ptr %b, align 4
-  %a1 = load i32, ptr %a, align 4
-  %b2 = load i32, ptr %b, align 4
-  %add = add i32 %a1, %b2
-  ret i32 %add
-}
-
-define internal void @B_B(ptr %0) {
-entry:
-  ret void
-}
-
-define internal i32 @A_add(ptr %0, i32 %1) {
-entry:
-  %a = alloca i32, align 4
-  store i32 %1, ptr %a, align 4
-  %a1 = load i32, ptr %a, align 4
-  %add = add i32 %a1, 2
-  ret i32 %add
-}
-
-define internal void @A_A(ptr %0) {
-entry:
-  ret void
-}
-
 define internal i32 @__user_entry() {
 entry:
-  %b = alloca %B, align 8
-  %aClass = alloca ptr, align 8
-  %a = alloca %A, align 8
-  call void @A_A(ptr %a)
-  %vptr_field = getelementptr inbounds nuw %A, ptr %a, i32 0, i32 0
-  store ptr @A_vtable, ptr %vptr_field, align 8
-  %a1 = load %A, ptr %a, align 1
-  store ptr %a, ptr %aClass, align 8
-  %aClass2 = load ptr, ptr %aClass, align 8
-  %aClass3 = load ptr, ptr %aClass, align 8
-  %deref = load %A, ptr %aClass3, align 1
-  %vptr_field4 = getelementptr inbounds nuw %A, %A %deref, i32 0, i32 0
-  %vptr = load ptr, %A %vptr_field4, align 8
-  %vtable_slot = getelementptr ptr, ptr %vptr, i32 0
-  %fn_ptr = load ptr, ptr %vtable_slot, align 8
-  %0 = call i32 %fn_ptr(%A %deref, i32 123)
-  %1 = sext i32 %0 to i64
+  %elem = alloca i32, align 4
+  %__foreach_i_elem = alloca i32, align 4
+  %__iter_elem = alloca %"ArrayIterator<int>", align 8
+  %x = alloca %"Array<int,2>", align 8
+  %0 = alloca [2 x i32], align 4
+  store [2 x i32] [i32 1, i32 2], ptr %0, align 4
+  %decayptr = getelementptr inbounds [2 x i32], ptr %0, i32 0, i32 0
+  %"operator[]=_result" = call void @"Array<int,2>_operator[]="(ptr %x, ptr %decayptr, i32 2)
+  %vptr_field = getelementptr inbounds nuw %"Array<int,2>", ptr %x, i32 0, i32 0
+  store ptr @"Array<int,2>_vtable", ptr %vptr_field, align 8
+  %x1 = load %"Array<int,2>", ptr %x, align 8
+  %_begin_result = call %"ArrayIterator<int>" @"Array<int,2>__begin"(%"Array<int,2>" %x1)
+  store %"ArrayIterator<int>" %_begin_result, ptr %__iter_elem, align 8
+  store i32 0, ptr %__foreach_i_elem, align 4
+  br label %foreach.cond
+
+foreach.cond:                                     ; preds = %foreach.body, %entry
+  %_atEnd_result = call i1 @"ArrayIterator<int>__atEnd"(ptr %__iter_elem)
+  br i1 %_atEnd_result, label %foreach.end, label %foreach.body
+
+foreach.body:                                     ; preds = %foreach.cond
+  %1 = load %"ArrayIterator<int>", ptr %__iter_elem, align 8
+  %_next_result = call i32 @"ArrayIterator<int>__next"(ptr %__iter_elem)
+  store i32 %_next_result, ptr %elem, align 4
+  %elem2 = load i32, ptr %elem, align 4
+  %2 = sext i32 %elem2 to i64
   call void @qc_print_string(ptr @0)
-  %2 = call ptr @qc_fmt_int(i64 %1, i32 -1, i32 -1, i1 false)
-  call void @qc_print_string(ptr %2)
+  %3 = call ptr @qc_fmt_int(i64 %2, i32 -1, i32 -1, i1 false)
+  call void @qc_print_string(ptr %3)
   call void @qc_print_string(ptr @1)
-  call void @B_B(ptr %b)
-  %vptr_field5 = getelementptr inbounds nuw %B, ptr %b, i32 0, i32 0
-  store ptr @B_vtable, ptr %vptr_field5, align 8
-  %assign_lhs_val = load ptr, ptr %aClass, align 8
-  store ptr %b, ptr %aClass, align 8
-  %aClass6 = load ptr, ptr %aClass, align 8
-  %aClass7 = load ptr, ptr %aClass, align 8
-  %deref8 = load %A, ptr %aClass7, align 1
-  %vptr_field9 = getelementptr inbounds nuw %A, %A %deref8, i32 0, i32 0
-  %vptr10 = load ptr, %A %vptr_field9, align 8
-  %vtable_slot11 = getelementptr ptr, ptr %vptr10, i32 0
-  %fn_ptr12 = load ptr, ptr %vtable_slot11, align 8
-  %3 = call i32 %fn_ptr12(%A %deref8, i32 123, i32 321)
-  %4 = sext i32 %3 to i64
-  call void @qc_print_string(ptr @2)
-  %5 = call ptr @qc_fmt_int(i64 %4, i32 -1, i32 -1, i1 false)
-  call void @qc_print_string(ptr %5)
-  call void @qc_print_string(ptr @3)
+  br label %foreach.cond
+
+foreach.inc:                                      ; No predecessors!
+
+foreach.end:                                      ; preds = %foreach.cond
   ret i32 0
+}
+
+define internal void @"Array<int,2>_Array"(ptr %0) {
+entry:
+  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %2, align 4
+  ret void
+}
+
+define internal void @"Array<int,2>_operator[]="(ptr %0, ptr %1, i32 %2) {
+entry:
+  %i = alloca i32, align 4
+  %length = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %length, align 4
+  %length1 = load i32, ptr %length, align 4
+  %icmpgt = icmp sgt i32 %length1, 2
+  br i1 %icmpgt, label %then, label %else
+
+then:                                             ; preds = %entry
+  %length2 = load i32, ptr %length, align 4
+  %3 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  store i32 %length2, ptr %3, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %else, %then
+  %4 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %4, align 4
+  %promote_int = sext i32 %size to i64
+  %mul = mul i64 4, %promote_int
+  %builtin_call = call ptr @qc_malloc(i64 %mul)
+  %5 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  store ptr %builtin_call, ptr %5, align 8
+  store i32 0, ptr %i, align 4
+  br label %for.cond
+
+else:                                             ; preds = %entry
+  %6 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  store i32 2, ptr %6, align 4
+  br label %ifcont
+
+for.cond:                                         ; preds = %for.inc, %ifcont
+  %i3 = load i32, ptr %i, align 4
+  %7 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %size4 = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i3, %size4
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i5 = load i32, ptr %i, align 4
+  %8 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %data6 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data6, i32 %i5
+  %i7 = load i32, ptr %i, align 4
+  %data8 = load ptr, ptr %data, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data8, i32 %i7
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i9 = load i32, ptr %i, align 4
+  %i10 = load i32, ptr %i, align 4
+  %inc_deref = load i32, ptr %i, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %i, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret void
+}
+
+define internal i32 @"Array<int,2>_operator[]"(ptr %0, i32 %1) {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %index1 = load i32, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %index1
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+}
+
+define internal void @"ArrayIterator<int>_ArrayIterator"(ptr %0, ptr %1, i32 %2, i1 %3) {
+entry:
+  %is_end = alloca i1, align 1
+  %size = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %size, align 4
+  store i1 %3, ptr %is_end, align 1
+  %data1 = load ptr, ptr %data, align 8
+  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  store ptr %data1, ptr %4, align 8
+  %size2 = load i32, ptr %size, align 4
+  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  store i32 %size2, ptr %5, align 4
+  %size3 = load i32, ptr %size, align 4
+  %sub = sub i32 %size3, 1
+  %is_end4 = load i1, ptr %is_end, align 1
+  %select_val = select i1 %is_end4, i32 %sub, i32 0
+  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  store i32 %select_val, ptr %6, align 4
+  ret void
+}
+
+define internal i1 @"ArrayIterator<int>__atEnd"(ptr %0) {
+entry:
+  %1 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %icmple = icmp sle i32 %size, %current_index
+  ret i1 %icmple
+}
+
+define internal i32 @"ArrayIterator<int>__next"(ptr %0) {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %inc_deref
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal i1 @"ArrayIterator<int>__atStart"(ptr %0) {
+entry:
+  %1 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %1, align 4
+  %icmple = icmp sle i32 %current_index, 0
+  ret i1 %icmple
+}
+
+define internal i32 @"ArrayIterator<int>__prev"(ptr %0) {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %dec
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal void @"ArrayIterator<int>__moveTo"(ptr %0, i32 %1) {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %index1 = load i32, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %index1, %size
+  br i1 %icmpge, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  %assign_lhs_val = load i32, ptr %index, align 4
+  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %sub = sub i32 %size2, 1
+  store i32 %sub, ptr %index, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %elif.body, %elif.cond, %then
+  %index5 = load i32, ptr %index, align 4
+  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  store i32 %index5, ptr %4, align 4
+  ret void
+
+elif.cond:                                        ; preds = %entry
+  %index3 = load i32, ptr %index, align 4
+  %icmplt = icmp slt i32 %index3, 0
+  br i1 %icmplt, label %elif.body, label %ifcont
+
+elif.body:                                        ; preds = %elif.cond
+  %assign_lhs_val4 = load i32, ptr %index, align 4
+  store i32 0, ptr %index, align 4
+  br label %ifcont
+}
+
+define internal %"ArrayIterator<int>" @"Array<int,2>__begin"(ptr %0) {
+entry:
+  %"temp_ArrayIterator<int>" = alloca %"ArrayIterator<int>", align 8
+  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"ArrayIterator<int>_ArrayIterator"(ptr %"temp_ArrayIterator<int>", ptr %data, i32 %size, i1 false)
+  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", i32 0, i32 0
+  store ptr @"ArrayIterator<int>_vtable", ptr %vptr_field, align 8
+  %"ArrayIterator<int>_inst" = load %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", align 8
+  ret %"ArrayIterator<int>" %"ArrayIterator<int>_inst"
+}
+
+define internal %"ArrayIterator<int>" @"Array<int,2>__end"(ptr %0) {
+entry:
+  %"temp_ArrayIterator<int>" = alloca %"ArrayIterator<int>", align 8
+  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"ArrayIterator<int>_ArrayIterator"(ptr %"temp_ArrayIterator<int>", ptr %data, i32 %size, i1 true)
+  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", i32 0, i32 0
+  store ptr @"ArrayIterator<int>_vtable", ptr %vptr_field, align 8
+  %"ArrayIterator<int>_inst" = load %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", align 8
+  ret %"ArrayIterator<int>" %"ArrayIterator<int>_inst"
 }
 
 define i32 @main() {
@@ -5248,15 +4685,13 @@ attributes #28 = { nocallback nofree nosync nounwind speculatable willreturn mem
 attributes #29 = { mustprogress nofree norecurse nosync nounwind willreturn memory(write, argmem: readwrite, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #30 = { mustprogress nofree norecurse nosync nounwind willreturn memory(read, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #31 = { mustprogress nofree norecurse nosync nounwind willreturn memory(argmem: readwrite) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #32 = { mustprogress nounwind willreturn uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
+attributes #32 = { mustprogress nofree norecurse nounwind willreturn memory(read, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
 attributes #33 = { mustprogress nofree norecurse nosync nounwind willreturn memory(read, argmem: readwrite, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #34 = { mustprogress nofree norecurse nounwind willreturn memory(read, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #35 = { mustprogress nofree norecurse nounwind memory(readwrite, inaccessiblemem: none) uwtable "min-legal-vector-width"="0" "no-trapping-math"="true" "stack-protector-buffer-size"="8" "target-cpu"="x86-64" "target-features"="+cmov,+cx8,+fxsr,+mmx,+sse,+sse2,+x87" "tune-cpu"="generic" }
-attributes #36 = { nounwind allocsize(0) }
-attributes #37 = { nounwind }
-attributes #38 = { nounwind allocsize(1) }
-attributes #39 = { nounwind allocsize(0,1) }
-attributes #40 = { nounwind willreturn memory(read) }
+attributes #34 = { nounwind allocsize(0) }
+attributes #35 = { nounwind }
+attributes #36 = { nounwind allocsize(1) }
+attributes #37 = { nounwind allocsize(0,1) }
+attributes #38 = { nounwind willreturn memory(read) }
 
 !llvm.ident = !{!0}
 !llvm.module.flags = !{!1, !2, !3, !4}
@@ -5323,32 +4758,18 @@ attributes #40 = { nounwind willreturn memory(read) }
 !59 = distinct !{!59, !6}
 !60 = distinct !{!60, !6}
 !61 = distinct !{!61, !6}
-!62 = !{!63, !20, i64 12}
-!63 = !{!"_ZTS7qc_list", !49, i64 0, !20, i64 8, !20, i64 12, !20, i64 16}
-!64 = !{!63, !20, i64 8}
-!65 = !{!63, !20, i64 16}
-!66 = !{!63, !49, i64 0}
-!67 = !{!68, !20, i64 20}
-!68 = !{!"_ZTS6qc_map", !49, i64 0, !49, i64 8, !20, i64 16, !20, i64 20, !20, i64 24, !20, i64 28}
-!69 = !{!68, !20, i64 16}
-!70 = !{!68, !20, i64 24}
-!71 = !{!68, !20, i64 28}
-!72 = !{!68, !49, i64 0}
-!73 = !{!68, !49, i64 8}
-!74 = distinct !{!74, !6}
-!75 = distinct !{!75, !6}
-!76 = distinct !{!76, !6}
-!77 = distinct !{!77, !6}
-!78 = distinct !{!78, !6}
-!79 = distinct !{!79, !6}
-!80 = distinct !{!80, !6}
-!81 = distinct !{!81, !6}
-!82 = distinct !{!82, !6, !39, !40}
-!83 = distinct !{!83, !84}
-!84 = !{!"llvm.loop.unroll.disable"}
-!85 = distinct !{!85, !6, !39}
-!86 = distinct !{!86, !6}
-!87 = !{!88, !20, i64 12}
-!88 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
-!89 = !{!88, !20, i64 8}
-!90 = !{!88, !49, i64 0}
+!62 = !{!63, !20, i64 20}
+!63 = !{!"_ZTS6qc_map", !49, i64 0, !49, i64 8, !20, i64 16, !20, i64 20, !20, i64 24, !20, i64 28}
+!64 = !{!63, !20, i64 16}
+!65 = !{!63, !20, i64 24}
+!66 = !{!63, !20, i64 28}
+!67 = !{!63, !49, i64 0}
+!68 = !{!63, !49, i64 8}
+!69 = distinct !{!69, !6}
+!70 = distinct !{!70, !6}
+!71 = distinct !{!71, !6}
+!72 = distinct !{!72, !6}
+!73 = !{!74, !20, i64 12}
+!74 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
+!75 = !{!74, !20, i64 8}
+!76 = !{!74, !49, i64 0}

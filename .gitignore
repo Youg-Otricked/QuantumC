@@ -34,3 +34,5 @@ CMakeFiles/
 qc
 *.ll
 review/*
+core.*
+

@@ -60,170 +60,381 @@ namespace AdvQBool {
         bool operator!() {
             return !this.eval();
         }
-        bool eval() {
+        bool _eval() {
             if (random(0, 100) < this.FalseLevel) {
                 return false;
             } else {
                 return true;
             }
         }
-        void init() {
-            this.TruthLevel = 50;
-            this.FalseLevel = 50;
-        }
-        string repr() {
+        string _repr() {
             return f"Advanced QBool is {this.TruthLevel} true and {this.FalseLevel} false.";
         }
     }
 }
-namespace Utils {
-    list<int> range(int start, int stop, int step = 1) {
-        list<int> fin = [];
-        if (step > 0 && start <= stop) {
-            for (; start < stop; start += step) {
-                fin.push(start);
+namespace Array {
+    namespace Iterator {
+        class It<T> {
+            T* data;
+            int size;
+            int current_index;
+            It(T* data, int size, bool is_end) {
+                this.data = data;
+                this.size = size;
+                this.current_index = ternary(is_end, size, 0);
+            }
+            bool _atEnd() {
+                return this.size <= this.current_index;
+            }
+            T _next() {
+                if (!this._atEnd()) {
+                    return this.data[this.current_index++];
+                }
+                return this.data[this.current_index];
+            } 
+            bool _atStart() {
+                return this.current_index <= 0;
+            }
+            T _prev() {
+                if (!this._atStart()) {
+                    return this.data[--this.current_index];
+                }
+                return this.data[this.current_index];
+            }
+            void _moveTo(int index) {
+                if (index >= this.size) {
+                    index = this.size - 1;
+                } else if (index < 0) {
+                    index = 0;
+                }
+                this.current_index = index;
             }
         }
-        else if (step < 0 && start >= stop) {
-            for (; start > stop; start += step) {
-                fin.push(start);
-            }
-        }
-        else {
-            return [];
-        }
-        return fin;
     }
-    void sleep(int crr) {
-        crr += time();
-        while (time() < crr) {
-            for (int i = 0; i < 5000; i++) {}
+    class Arr<T, int S = 0> {
+        T* data;
+        int size;
+        Arr() {
+            this.data = nullptr;
+            this.size = 0;
+        }
+        void operator[]=(T* data, int length) {
+            if (length > S) {
+                this.size = length;
+            } else {
+                this.size = S;
+            }
+            this.data = malloc(sizeof "T" * this.size);
+            for (int i = 0; i < this.size; i++) {
+                this.data[i] = data[i];
+            }
+        }
+        T operator[](int index) {
+            return this.data[index];
+        }
+        Iterator::It<T> _begin() {
+            return Iterator::It<T>(this.data, this.size, false);
+        }
+        Iterator::It<T> _end() {
+            return Iterator::It<T>(this.data, this.size, true);
+        }
+        void _destroy() {
+            free(this.data);
+            this.data = nullptr;
+            this.size = -1;
+        }
+        Arr<T, S> operator=(Arr<T, S> other) {
+            if (other.size != this.size) {
+                return Arr();
+            }
+            for (int i = 0; i < other.size; i++) {
+                this.data[i] = other.data[i];
+            }
+            return this;
         }
     }
 }
-namespace Math {
-    double e() {
-        return 2.71828182845904523536;
-    }
-    
-    double pi() {
-        return 3.14159265358979323846;
-    }
-    type Number = int | float | double;
-    Number max(Number a, Number b) {
-        if (a > b) {
-            return a;
-        }
-        return b;
-    }
-    Number min(Number a, Number b) {
-        if (a > b) {
-            return b;
-        }
-        return a;
-    }
-    Number sqrt(Number val) {
-        return to_double(val) #^ 0.5;
-    }
-    Number root(Number val, Number power) {
-        double base = to_double(val);
-        double exp  = 1.0 / to_double(power);
-        return base #^ exp;
-    }
-    type Floating = float | double;
-    int ceil(Floating a) {
-        double d = to_double(a);
-        int i = to_int(d);
-        if (d == to_double(i)) {
-            return i;
-        } else if (d > 0) {
-            return i + 1;
-        } else {
-            return i;
-        }
-    }
-    int floor(Floating a) {
-        double d = to_double(a);
-        int i = to_int(d);
-        if (d >= 0) {
-            return i;
-        } else {
-            if (d == to_double(i)) {
-                return i;
-            } else {
-                return i - 1;
+namespace Vector {
+    namespace Iterator {
+        class It<T> {
+            T* data;
+            int size;
+            int current_index;
+            It(T* data, int size, bool is_end) {
+                this.data = data;
+                this.size = size;
+                this.current_index = ternary(is_end, size, 0);
+            }
+            bool _atEnd() {
+                return this.size <= this.current_index;
+            }
+            T _next() {
+                if (!this._atEnd()) {
+                    return this.data[this.current_index++];
+                }
+                return this.data[this.current_index];
+            } 
+            bool _atStart() {
+                return this.current_index <= 0;
+            }
+            T _prev() {
+                if (!this._atStart()) {
+                    return this.data[--this.current_index];
+                }
+                return this.data[this.current_index];
+            }
+            void _moveTo(int index) {
+                if (index >= this.size) {
+                    index = this.size - 1;
+                } else if (index < 0) {
+                    index = 0;
+                }
+                this.current_index = index;
             }
         }
     }
-    Number abs(Number a) {
-        if (a < 0) {
-            return a * -1;
+    class Vec<T> {
+        T* data;
+        int size;
+        int capacity;
+        Vec() {
+            this.size = 0;
+            this.capacity = 0;
+            this.data = nullptr;
         }
-        return a;
+        void reserve(int cap) {
+            if (cap == 0) {
+                free(this.data);                
+                this.data = nullptr;
+                this.capacity = 0;
+                this.size = 0;
+                return;
+            }
+
+            T* new_data = realloc(this.data, sizeof "T" * cap);
+            if (new_data == nullptr) {
+                return;
+            }
+            this.capacity = cap;
+            if (this.size > this.capacity) {
+                this.size = this.capacity;
+            }
+            this.data = new_data;
+        }
+        void push(T value) {
+            if (this.capacity <= this.size) {
+                this.reserve(ternary(this.capacity == 0, 1, this.capacity * 2));
+                if (this.data == nullptr) return;
+            }
+            this.data[this.size] = value;
+            this.size++;
+        }
+        void pop() {
+            if (this.size > 0) {
+                this.size--;
+            }
+        }
+        void shrinkToFit() {
+            this.reserve(this.size);
+        }
+        void operator[]=(T* data, int length) {
+            this.capacity = length;
+            this.size = length;
+            this.data = malloc(sizeof "T" * this.capacity);
+            for (int i = 0; i < this.size; i++) {
+                this.data[i] = data[i];
+            }
+        }
+        T operator[](int index) {
+            return this.data[index];
+        }
+        Iterator::It<T> _begin() {
+            return Iterator::It<T>(this.data, this.size, false);
+        }
+        Iterator::It<T> _end() {
+            return Iterator::It<T>(this.data, this.size, true);
+        }
+        void _destroy() {
+            free(this.data);
+            this.data = nullptr;
+            this.size = -1;
+            this.capacity = -1;
+        }
+        Vec<T> operator=(Vec<T> other) {
+            if (other.capacity != this.capacity) {
+                this.reserve(other.capacity);
+            }
+            this.size = other.size;
+            for (int i = 0; i < other.size; i++) {
+                this.data[i] = other.data[i];
+            }
+            return this;
+        }
+        bool isEmpty() {
+            return this.size == 0;
+        }
     }
-    double sin(double x) {
-        double pi = 3.14159265358979323846;
-        while (x > pi) { x -= 2 * pi; }
-        while (x < -pi) { x += 2 * pi; }
-        
-        double result = 0.0;
-        double term = x;
-        int n = 1;
-        for (int i = 0; i < 10; i++) {
-            result += term;
-            term *= -1.0 * x * x / ((2 * n) * (2 * n + 1));
-            n++;
+}
+namespace List {
+    class Node<T> {
+        T data;
+        Node<T>* next;
+        Node<T>* prev;
+
+        Node(T data) {
+            this.data = data;
+            this.next = nullptr;
+            this.prev = nullptr;
         }
-        
-        return result;
     }
-    double cos(double x) {
-        
-        double pi = 3.14159265358979323846;
-        while (x > pi) { x -= 2 * pi; }
-        while (x < -pi) { x += 2 * pi; }
-        
-        double result = 0.0;
-        double term = 1.0;
-        int n = 1;
-        
-        for (int i = 0; i < 10; i++) {
-            result += term;
-            term *= -1.0 * x * x / ((2 * n - 1) * (2 * n));
-            n++;
+
+    namespace Iterator {
+        class It<T> {
+            Node<T>* current;
+
+            It(Node<T>* node) {
+                this.current = node;
+            }
+
+            bool _atEnd() {
+                return this.current == nullptr;
+            }
+
+            T _next() {
+                T value = this.current->data;
+                this.current = this.current->next;
+                return value;
+            }
+
+            bool _atStart() {
+                return this.current->prev == nullptr;
+            }
+
+            T _prev() {
+                T value = this.current->data;
+                this.current = this.current->prev;
+                return value;
+            }
         }
-        
-        return result;
     }
-    double tan(double x) {
-        return sin(x) / cos(x);
-    }
-    double log(double x) {
-        if (x <= 0) {
-            //throw("log: x must be positive");
-            return 0.0;
+
+    class List<T> {
+        Node<T>* head;
+        Node<T>* tail;
+        int size;
+        List() {
+            this.head = nullptr;
+            this.tail = nullptr;
+            this.size = 0;
         }
-        double log2 = 0.693147180559945309417;
-        int n = 0;
-        
-        while (x > 2.0) {
-            x /= 2.0;
-            n++;
+        bool isEmpty() {
+            return this.size == 0;
         }
-        while (x < 0.5) {
-            x *= 2.0;
-            n--;
+        T front() {
+            return this.head->data;
         }
-        double y = x - 1.0;
-        double result = 0.0;
-        double term = y;
-        
-        for (int i = 1; i <= 20; i++) {
-            result += term / to_double(i);
-            term *= -y;
+        T back() {
+            return this.tail->data;
         }
-        
-        return result + n * log2;
+        void pushFront(T value) {
+            Node<T>* node = malloc(sizeof "Node<T>");
+            node = Node<T>(value);
+
+            node.next = this.head;
+            if (this.head != nullptr) {
+                this.head->prev = node;
+            } else {
+                this.tail = node;
+            }
+            this.head = node;
+            this.size++;
+        }
+        void pushBack(T value) {
+            Node<T>* node = malloc(sizeof "Node<T>");
+            node = Node<T>(value);
+            node.prev = this.tail;
+            if (this.tail != nullptr) {
+                this.tail->next = node;
+            } else {
+                this.head = node;
+            }
+            this.tail = node;
+            this.size++;
+        }
+        void popFront() {
+            if (this.head == nullptr) {
+                return;
+            }
+            Node<T>* old = this.head;
+            this.head = this.head.next;
+            if (this.head != nullptr) {
+                this.head.prev = nullptr;
+            } else {
+                this.tail = nullptr;
+            }
+            free(old);
+            this.size--;
+        }
+        void popBack() {
+            if (this.tail == nullptr) {
+                return;
+            }
+            Node<T>* old = this.tail;
+            this.tail = this.tail->prev;
+            if (this.tail != nullptr) {
+                this.tail->next = nullptr;
+            } else {
+                this.head = nullptr;
+            }
+            free(old);
+            this.size--;
+        }
+        void clear() {
+            Node<T>* current = this.head;
+            while (current != nullptr) {
+                Node<T>* next = current.next;
+                free(current);
+                current = next;
+            }
+            this.head = nullptr;
+            this.tail = nullptr;
+            this.size = 0;
+        }
+        bool contains(T value) {
+            Node<T>* current = this.head;
+            while (current != nullptr) {
+                if (current.data == value) {
+                    return true;
+                }
+                current = current.next;
+            }
+            return false;
+        }
+        Iterator::It<T> _begin() {
+            return Iterator::It<T>(this.head);
+        }
+        Iterator::It<T> _end() {
+            return Iterator::It<T>(nullptr);
+        }
+        void _destroy() {
+            this.clear();
+
+            this.head = nullptr;
+            this.tail = nullptr;
+            this.size = -1;
+        }
+        List<T> operator=(List<T> other) {
+            this.clear();
+
+            Node<T>* current = other.head;
+
+            while (current != nullptr) {
+                this.pushBack(current.data);
+                current = current.next;
+            }
+
+            return this;
+        }
     }
 }
 namespace UnitTest {
@@ -232,7 +443,7 @@ namespace UnitTest {
         int Ran;
         int Passed;
         int Failed;
-        list<string> Messages;
+        Vector::Vec<string> Messages;
         Test(int Ttl) {
             this.Messages = [];
             this.Total = Ttl;
@@ -336,60 +547,6 @@ namespace UnitTest {
                 }
             }
         }
-    }
-}
-namespace Collections {
-    bool has(auto collection, auto value) {
-        foreach (auto val in collection) {
-            if (val == value) {
-                return true;
-            }
-        }
-        return false;
-    }
-    int index_of(auto collection, auto value) {
-        for (int i = 0; i < collection.length; i++) {
-            if (collection[i] == value) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    list<int> sort(list<int> collection) {
-        bool swapped = true;
-        int n = collection.length;
-        while(swapped) {
-            swapped = false;
-            for (int i = 0; i < n - 1; i++) {
-                if (collection[i] > collection[i + 1]) {
-                    int iv = collection[i];
-                    collection[i] = collection[i + 1];
-                    collection[i + 1] = iv;
-                    swapped = true;
-                }
-            }
-            n -= 1;
-        }
-        return collection;
-    }
-    auto remove(auto collection, auto value) {
-        int index = index_of(collection, value);
-        if (index != -1) {
-            for (int i = index; i < collection.length - 1; i++) {
-                collection[i] = collection[i + 1];
-            }
-            collection.pop();
-        }
-        return collection;
-    }
-    auto reverse(auto collection) {
-        int n = collection.length;
-        for (int i = 0; i < n / 2; i++) {
-            auto temp = collection[i];
-            collection[i] = collection[n - 1 - i];
-            collection[n - 1 - i] = temp;
-        }
-        return collection;
     }
 }
 namespace OSInterop {

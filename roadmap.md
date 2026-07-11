@@ -9,8 +9,8 @@ class Y {
 Y proves X;
 ```
 - Try/Catch 
-- Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`)
-- Operator[i] (subscript, eg `class[123]`), operator[](brace initialization, eg `Classname c = [1, 2, 3, 4]`), operator{:}(map initialization, e.g. `Classname c = {"true": 1, "false": 0};`)
+
+- Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`) everything but variadics done on classes, and need to do it for structs functions methods and unions
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
 - operator( )() (functor, can have codeblocks)
@@ -55,6 +55,8 @@ typedef struct {
     char*[] arg_types;
     char*[] arg_names;
     char* name;
+    char*[] modifiers;
+    generic_constraint[] constraints;
 } qc_function_typeof;
 ```
 - Constexpr
@@ -73,7 +75,10 @@ void loop(void) code {
 - Cqb lib in stl. Ci and build.
 - qcheck (QC Lint(qc linter. duh)
 - qconform (QC Formatter)
-- operator++/–/+=/-=//=/*=(combinational operators)
+- operator++/–-/-/+=/-=//=/*=(combinational operators)
+- operator<</|>\|>>/<<</&/......... (bitwise)
+- const params/returns
+- Copy VS Move assignment (no move only, im not rust), to make things faster.
 TOP PRIORITY:
 1. Generics.
 2. Self host the runtime.
@@ -83,8 +88,8 @@ TOP PRIORITY:
 6. Codeblocks.
 7. Concepts
 8. Modifier (x1.0.0)
-9. CQB.
-10. Other stuff
+9. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+10. Other stuff + Variadic Generics
 11. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
@@ -107,4 +112,4 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-
+?references(ns, ns, ns)? - states which namespaces in this file this namespace references to say what to compile with it. (to increase compile speed. not sure if compile full file or nothing but that namespace if missing)

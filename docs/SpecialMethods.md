@@ -8,9 +8,8 @@
 
 |Name|Signature|Use|
 |----|---------|---|
-|`repr`|`string repr();`|Auto called as a string representation, called when used in println, print, qout, fstrings|
-|`eval`|`bool eval();`  |Auto called when you A: use a class in a if statement with no operators. B: when used on a operator that lacks a operator overload for that logical operator. Defaults to `bool eval() { return true; }`|
-|`init`|`void init();`  |Auto called when you create a member of a class without initlizing with the constructor. Defaults to zero initlizing each field.|
+|`_repr`|`string _repr();`|Auto called as a string_representation, called when used in println, print, qout, fstrings|
+|`_eval`|`bool _eval();`  |Auto called when you A: use a class in a if statement with no operators. B: when used on a operator that lacks a operator overload for that logical operator. Defaults to `bool_eval() { return true; }`|
 |`operator?`|`type operator(opname)(single arg);`|Auto called when you use a logical or arithmetic operator on a class, eg `operator+` is called when you use `class + other thing`|
 
 ### Syntax And examples
@@ -23,14 +22,10 @@ class Vector2 {
         this.x = x;
         this.y = y;
     }
-    void init() {
-        this.x = 0;
-        this.y = 0;
-    }
-    string repr() {
+    string _repr() {
         return f"X: {this.x}, Y: {this.y}";
     }
-    bool eval() {
+    bool _eval() {
         return true;
     }
     Vector2 operator+(Vector2 other) {
@@ -57,4 +52,4 @@ int main() {
 }
 ```
 
-##### **Important**: If using string concatenation you must manualy call the .repr method but only on normal + concat. Just use fstrings for this. This is because if you do + concat it will try and call the .operator+ method instead of repr.
+##### **Important**: If using string concatenation you must manualy call the _repr method but only on normal + concat. Just use fstrings for this. This is because if you do + concat it will try and call the .operator+ method instead of_repr.
