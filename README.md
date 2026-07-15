@@ -69,8 +69,8 @@ qc [flags]
 
 # Development Status
 
-Current Version: x0.18.0 = "Generics"
-Next Version: x0.18.1 = "Generics (part 2)"
+Current Version: x0.18.1 = "Generics (Part 2)"
+Next Version: x0.18.2 = "Generics (Part 3)"
 
 ## Feature Roadmap
 
@@ -100,7 +100,7 @@ Next Version: x0.18.1 = "Generics (part 2)"
 |                     | HTTP                                                                   | Planned     |
 |                     | Generics                                                               |             |
 |                     |     Classes                                                            | Done        |
-|                     |     Structs                                                            | Planned     |
+|                     |     Structs                                                            | Done        |
 |                     |     Unions                                                             | Planned     |
 |                     |     Functions & Methods                                                | Planned     |
 |                     |     Variadic                                                           | Planned     |
@@ -228,11 +228,11 @@ QuantumC has rather unique naming conventions:
 | **Constants**                          | `SCREAMING_SNAKE_CASE` | Same as above.                                                                                                               |
 | **Private Member Variables**           | `__snake_case`         | Variable case prepended with __. Most underscores.                                                                           |
 | **Protected Member Variables**         | `_snake_case`          | Less underscores.                                                                                                            |
-| **Private Methods**                    | `__camelCase`          | Unique casing, more underscores.                                                                                             |
+| **Protected Methods**                  | `__camelCase`          | Unique casing, more underscores.                                                                                             |
 | **Private Methods**                    | `camel_Snake_Case`     | Function casing, more underscores.                                                                                           |
 | **Namespaces**                         | `PascalCase`           | Same as user types.                                                                                                          |
 | **Namespaces Not Meant For Inclusion** | `Pascal_Snake_Case`    | Unique casing style, more underscores, you have to be trying to include this.                                                |
-| **Global Scope Functions**             | `camel_Snake_Case`     | Unique casing style, more underscores, similar to private methods is intentional, because global scope cannot be included.   |
+| **Global Scope Functions**             | `camel_Snake_Case`     | Unique casing style, more underscores, similarity to private methods is intentional, because global scope cannot be included.   |
 | **Methods Used By Compiler**           | `_camelCase`           | Different from everything else. (these methods are iterators and stuff. Methods you define and compiler uses)                | 
 | **Compiler Reserved**                  | `_qc_, __qc_ and qc_`  | Unique, hard to use accidently                                                                                               |
 
@@ -400,7 +400,7 @@ int main() {
     C<int> thing = C();
 }
 ```
-Generics are allowed on `struct`s, `class`es, unions, functions, and methods.
+Generics will be allowed on `struct`s, `class`es, unions, functions, and methods.
 The unique thing about QuantumC's generics are its constraint system:
 The constraint system follows this syntax:
 ```
@@ -429,7 +429,7 @@ QuantumC also has non-type generic parameters.
 <int S> // S is a non-type generic parameter (a compile time int)
 ```
 
-Classes currently are the only thing to have generics.
+Currently only classes and structs have generics.
 
 In Rust, 
 ```

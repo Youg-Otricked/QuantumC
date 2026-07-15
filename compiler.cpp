@@ -3371,7 +3371,85 @@ Prs Parser::statement() {
         }
         Token struct_name = this->current_tok;
         this->advance();
-
+        std::vector<GenericType> generics;
+        if (this->current_tok.type == TokenType::LESS) {
+            this->advance();
+            while (true) {
+                GenericType curr;
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    if (this->current_tok.type == TokenType::KEYWORD &&
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        curr.isNonType = true;
+                        curr.nonTypeKind = this->current_tok.value;
+                    } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                        std::string prev = this->current_tok.value;
+                        this->advance();
+                        if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        curr.isNonType = true;
+                        curr.nonTypeKind = prev + " " + this->current_tok.value;
+                    } else {
+                        res.failure(
+                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                curr.name = this->current_tok.value;
+                this->advance();
+                if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::COLON) {
+                        if (this->current_tok.type == TokenType::IDENTIFIER &&
+                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                            curr.constraint = this->current_tok.value;
+                        } else {
+                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                               this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    } else {
+                        curr.constraint = "";
+                    }
+                    this->advance();
+                    if (this->current_tok.type == TokenType::NOT) {
+                        curr.negated = true;
+                        this->advance();
+                    }
+                    while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        curr.subconstraints.push_back(this->current_tok.value);
+                        this->advance();
+                        if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    curr.defaultValue = this->current_tok.value;
+                    this->advance();
+                }
+                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                generics.push_back(curr);
+                if (this->current_tok.type == TokenType::MORE) {
+                    this->advance();
+                    break;
+                }
+                this->advance();
+            }
+        }
+        auto saved_generics = this->current_generics;
+        this->current_generics.insert(this->current_generics.end(), generics.begin(), generics.end());
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after struct name", this->current_tok.pos));
             return res.to_prs();
@@ -3436,9 +3514,11 @@ Prs Parser::statement() {
         UserTypeInfo info;
         info.kind = UserTypeKind::Struct;
         info.fields = fields;
+        info.generics = generics;
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
         user_types[base_type_name(full_key)] = info;
+        this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
     }
     if (tok.type == TokenType::KEYWORD && tok.value == "type") {
@@ -3982,7 +4062,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (classTypes.find(type) != classTypes.end() || genericClasses.find(baseTypeName(type)) != genericClasses.end()) {
         return genericiseOrFindClass(resolveTypeName(qcType, false));
     }
-    if (structTypes.find(type) != structTypes.end()) { return structTypes[type]; }
+    if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) { return genericiseOrFindStruct(type); }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
     if (unionTypes.find(type) != unionTypes.end()) { return unionTypes[type]; }
     if (type == "function" || type == "fn" || type.starts_with(("fn "))) { return builder->getPtrTy(); }
@@ -4327,6 +4407,130 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     inProgressGenerics.erase(mangled_class_name);
     return classTy;
 }
+llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, UserTypeInfo structInfo, std::vector<std::string> genericParams) {
+    std::string mangled_struct_name = structName + "<";
+    for (int j = 0; j < structInfo.generics.size(); j++) {
+        std::string val;
+        if (genericParams.size() <= j) {
+            val = structInfo.generics[j].defaultValue;
+        } else {
+            val = genericParams[j];
+        }
+        mangled_struct_name += val;
+        if (j != structInfo.generics.size() - 1) { mangled_struct_name += ","; }
+    }
+    mangled_struct_name += ">";
+    if (inProgressGenerics.count(mangled_struct_name)) return nullptr;
+    if (structTypes.find(mangled_struct_name) != structTypes.end()) { return genericiseOrFindStruct(mangled_struct_name); }
+    llvm::StructType* structTy = getOrCreateStructType(mangled_struct_name);
+    structTypes[mangled_struct_name] = structTy;
+    inProgressGenerics.insert(mangled_struct_name);
+    llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
+    llvm::BasicBlock::iterator savedPoint = builder->GetInsertPoint();
+    auto oldGenericTypes = this->currentGenericTypes;
+    auto oldGenericTypeStrings = currentGenericTypeStrings;
+    auto oldNonTypeGenerics = currentNonTypeGenericValues;
+    for (int i = 0; i < structInfo.generics.size(); i++) {
+        GenericType generic = structInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "Too few generic params for struct " + structName);
+                return nullptr;
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return nullptr;
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return nullptr;
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = structInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "Too few generic params for struct " + structName);
+                    return nullptr;
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
+    }
+    auto oldNamespaceStack = namespaceStack;
+    namespaceStack.clear();
+    if (!structInfo.namespace_path.empty()) {
+        size_t start = 0;
+        size_t pos;
+        while ((pos = structInfo.namespace_path.find("::", start)) != std::string::npos) {
+            namespaceStack.push_back(structInfo.namespace_path.substr(start, pos - start));
+            start = pos + 2;
+        }
+        namespaceStack.push_back(structInfo.namespace_path.substr(start));
+    }
+    std::vector<llvm::Type*> fieldTypes;
+    for (auto& field : structInfo.fields) {
+        llvm::Type* ty = llvmTypeFor(field.type);
+        fieldTypes.push_back(ty);
+    }
+    structTypes[mangled_struct_name]->setBody(fieldTypes);
+    namespaceStack = oldNamespaceStack;
+    inProgressGenerics.erase(mangled_struct_name);
+    generateStructReprFunction(mangled_struct_name, structInfo);
+    this->currentGenericTypes = oldGenericTypes;
+    this->currentGenericTypeStrings = oldGenericTypeStrings;
+    currentNonTypeGenericValues = oldNonTypeGenerics;
+    return structTy;
+}
 void LLVMCompiler::createUserTypes() {
     auto getFullName = [](const std::string& name, const UserTypeInfo& info) {
         if (info.namespace_path.empty()) { return name; }
@@ -4354,6 +4558,11 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
+            if (!info.generics.empty()) {
+                genericStructs[mapKey] = true;
+                continue;
+            }
+            genericStructs[mapKey] = false;
             llvm::StructType* structTy = getOrCreateStructType(mapKey);
             structTypes[mapKey] = structTy;
         }
@@ -4527,6 +4736,7 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
+            if (!info.generics.empty()) continue;
             std::vector<llvm::Type*> fieldTypes;
             auto oldNamespaceStack = namespaceStack;
             namespaceStack.clear();
@@ -6324,7 +6534,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         std::string saved_qc_type = qcType;
         qcType = resolveTypeName(qcType);
-        if (genericClasses[qcType]) {
+        if (genericClasses.count(qcType) && genericClasses[qcType]) {
             std::string savedest_qc_type = saved_qc_type;
             std::string inner = saved_qc_type.substr(saved_qc_type.find('<') + 1, saved_qc_type.size() - saved_qc_type.find('<') - 2);
             std::vector<std::string> genericParams;
@@ -6421,11 +6631,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else {
                 llvm::Value *rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
-                if (rhs->getType() != classTy) {
-                    cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                llvm::Function* opMethod = findMethodOverload(buildMangledName(qcType, genericParams), "operator=", {rhs});
+                std::string mangledName = buildMangledName(qcType, genericParams);
+                if (opMethod) {
+                    emitMethodCall(opMethod, instance, {rhs}, "operator=");
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = instance;
+                    varTypes[fullName] = mangledName;
                     return nullptr;
+                } else {
+                    if (rhs->getType() != classTy) {
+                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        return nullptr;
+                    }
+                    builder->CreateStore(rhs, instance);
                 }
-                builder->CreateStore(rhs, instance);
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
@@ -6433,9 +6653,117 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             return nullptr; // do this for every single type.
         }
         auto userTypeIt = userTypes.find(qcType);
+        if (genericStructs.count(qcType) && genericStructs[qcType]) {
+            std::string savedest_qc_type = saved_qc_type;
+            std::string inner = saved_qc_type.substr(saved_qc_type.find('<') + 1, saved_qc_type.size() - saved_qc_type.find('<') - 2);
+            std::vector<std::string> genericParams;
+            std::string cur;
+            int depth = 0;
+            for (char c : inner) {
+                if (c == '<')
+                    depth++;
+                else if (c == '>')
+                    depth--;
+                else if (c == ',' && depth == 0) {
+                    genericParams.push_back(trim(cur));
+                    cur.clear();
+                    continue;
+                }
+                cur += c;
+            }
+            if (!cur.empty()) genericParams.push_back(trim(cur));
+            auto userTypeIt = userTypes.find(qcType);
+            llvm::StructType* structTy = generateGenericStruct(qcType, userTypeIt->second, genericParams);
+            if (structTy == nullptr) {
+                cg_error((*va)->var_name_tok.pos, "Failed to generate generic subset for struct " + qcType);
+                return nullptr;
+            }
+            if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
+                llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
+                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                auto& structInfo = userTypeIt->second;
+                for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
+                    std::string fieldType = structInfo.fields[i].type;
+                    auto fieldTypeIt = userTypes.find(fieldType);
+                    llvm::Value* val;
+                    if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
+                        if (auto nestedArrLit = std::get_if<ArrayLiteralNode*>(&(*arrLit)->elements[i])) {
+                            llvm::StructType* nestedStructTy = genericiseOrFindStruct(fieldType);
+                            llvm::Value* nestedStruct = llvm::UndefValue::get(nestedStructTy);
+                            for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
+                                llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
+                                if (!fieldVal) return nullptr;
+                                nestedStruct = builder->CreateInsertValue(nestedStruct, fieldVal, j);
+                            }
+                            val = nestedStruct;
+                        } else {
+                            val = emitExpr((*arrLit)->elements[i]);
+                            if (!val) return nullptr;
+                        }
+                    } else {
+                        val = emitExpr((*arrLit)->elements[i]);
+                        if (!val) return nullptr;
+                    }
+                    structVal = builder->CreateInsertValue(structVal, val, i);
+                }
+                llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
+                builder->CreateStore(structVal, structAlloc);
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = structAlloc;
+                varTypes[fullName] = buildMangledName(qcType, genericParams);
+                return nullptr;
+            } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
+                llvm::StructType* structTy = genericiseOrFindStruct(qcType);
+                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                auto& structInfo = userTypeIt->second;
+                for (auto& [keyNode, valueNode] : (*mapLit)->pairs) {
+                    std::string fieldName;
+                    if (auto key = std::get_if<VarAccessNode*>(&keyNode)) {
+                        fieldName = (*key)->var_name_tok.value;
+                    } 
+                    else if (auto key = std::get_if<StringNode>(&keyNode)) {
+                        fieldName = key->tok.value;
+                    }
+                    else {
+                        cg_error((*mapLit)->pos, "Struct field name must be an identifier");
+                        return nullptr;
+                    }
+                    int fieldIndex = -1;
+                    for (size_t i = 0; i < structInfo.fields.size(); i++) {
+                        if (structInfo.fields[i].name == fieldName) {
+                            fieldIndex = i;
+                            break;
+                        }
+                    }
+                    if (fieldIndex == -1) {
+                        cg_error((*mapLit)->pos,
+                            "Unknown field '" + fieldName + "' in struct " + qcType);
+                        return nullptr;
+                    }
+                    llvm::Value* fieldValue = emitExpr(valueNode);
+                    if (!fieldValue)
+                        return nullptr;
+                    structVal = builder->CreateInsertValue(
+                        structVal,
+                        fieldValue,
+                        fieldIndex
+                    );
+                }
+                llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
+                builder->CreateStore(structVal, structAlloc);
+                std::string fullName =
+                    getCurrentNamespace().empty()
+                    ? name
+                    : getCurrentNamespace() + "::" + name;
+                locals[fullName] = structAlloc;
+                varTypes[fullName] = buildMangledName(qcType, genericParams);
+                return nullptr;
+            }
+            return nullptr;        
+        }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
-                llvm::StructType* structTy = structTypes[qcType];
+                llvm::StructType* structTy = genericiseOrFindStruct(qcType);
                 llvm::Value* structVal = llvm::UndefValue::get(structTy);
                 auto& structInfo = userTypeIt->second;
                 for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
@@ -6445,7 +6773,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
                         if (auto nestedArrLit = std::get_if<ArrayLiteralNode*>(&(*arrLit)->elements[i])) {
-                            llvm::StructType* nestedStructTy = structTypes[fieldType];
+                            llvm::StructType* nestedStructTy = genericiseOrFindStruct(fieldType);
                             llvm::Value* nestedStruct = llvm::UndefValue::get(nestedStructTy);
                             for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
                                 llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
@@ -6472,7 +6800,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 varTypes[fullName] = qcType;
                 return nullptr;
             } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
-                llvm::StructType* structTy = structTypes[qcType];
+                llvm::StructType* structTy = genericiseOrFindStruct(qcType);
                 llvm::Value* structVal = llvm::UndefValue::get(structTy);
 
                 auto& structInfo = userTypeIt->second;
@@ -9305,7 +9633,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             llvm::Value* dataFieldPtr = builder->CreateStructGEP(unionTy, varAlloc, 1, "union_data_ptr");
                             llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), dataFieldPtr, "union_data");
 
-                            llvm::StructType* structTy = structTypes[resolvedVariant];
+                            llvm::StructType* structTy = genericiseOrFindStruct(resolvedVariant);
                             llvm::Value* castedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
 
                             llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
@@ -9776,7 +10104,7 @@ void LLVMCompiler::generateStructReprFunctions() {
 
     for (auto& [name, info] : userTypes) {
         if (info.kind != UserTypeKind::Struct) continue;
-
+        if (!info.generics.empty()) continue;
         llvm::StructType* structTy = structTypes[name];
         llvm::FunctionType* reprFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {structTy}, false);
 

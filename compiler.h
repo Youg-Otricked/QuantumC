@@ -1323,6 +1323,7 @@ class LLVMCompiler {
     std::unordered_map<std::string, std::unordered_map<std::string, int>> vtableSlotIndex;
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<llvm::Function*>>> classMethods;
     std::unordered_map<std::string, bool> genericClasses;
+    std::unordered_map<std::string, bool> genericStructs;
     std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
     std::unordered_map<std::string, std::string> currentGenericTypeStrings;
     std::unordered_map<std::string, GenericType> currentNonTypeGenericValues;
@@ -1374,6 +1375,7 @@ class LLVMCompiler {
     void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
     llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
     llvm::StructType* generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams);
+    llvm::StructType* generateGenericStruct(std::string structName, UserTypeInfo structInfo, std::vector<std::string> genericParams);
     std::unordered_map<std::string, llvm::GlobalVariable*> globals;
     std::unordered_map<std::string, FunctionSignature> functionSignatures;
     std::unordered_map<std::string, FuncDefNode*> functionDefs;
@@ -1669,7 +1671,8 @@ class LLVMCompiler {
             builder->CreateStore(rval, baseAddr);
         }
         std::string typeName = getExpressionType(*prop.base);
-        if (classTypes.count(typeName)) {
+        if (classTypes.count(typeName) || genericClasses.count(baseTypeName(typeName))) {
+            llvm::StructType* classTy = genericiseOrFindClass(typeName);
             int fieldIdx = getFlattenedFieldIndex(baseTypeName(typeName), propName);
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
@@ -1680,9 +1683,10 @@ class LLVMCompiler {
                 cg_error(prop.property_name.pos, "Cannot access " + fieldAccess + " field: " + propName);
                 return nullptr;
             }
-            return builder->CreateStructGEP(genericiseOrFindClass(typeName), baseAddr, fieldIdx, propName + "_ptr");
+            return builder->CreateStructGEP(classTy, baseAddr, fieldIdx, propName + "_ptr");
         }
-        if (structTypes.count(typeName)) {
+        if (structTypes.count(typeName) || genericStructs.count(baseTypeName(typeName))) {
+            auto structTy = genericiseOrFindStruct(typeName);
             auto& info = userTypes[typeName];
             int fieldIdx = -1;
             for (size_t i = 0; i < info.fields.size(); i++) {
@@ -1695,7 +1699,7 @@ class LLVMCompiler {
                 cg_error(prop.property_name.pos, "Field not found in struct " + typeName + ": " + propName);
                 return nullptr;
             }
-            return builder->CreateStructGEP(structTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
+            return builder->CreateStructGEP(structTy, baseAddr, fieldIdx, propName + "_ptr");
         }
         if (unionTypes.count(typeName)) {
             auto& unionInfo = userTypes[typeName];
@@ -1719,7 +1723,7 @@ class LLVMCompiler {
                     if (classTypes.count(variantName))
                         varTy = genericiseOrFindClass(variantName);
                     else if (structTypes.count(variantName))
-                        varTy = structTypes[variantName];
+                        varTy = genericiseOrFindStruct(variantName);
                     if (!varTy) continue;
                     return builder->CreateStructGEP(varTy, dataPtr, fieldIdx, propName + "_ptr");
                 }
@@ -3041,6 +3045,63 @@ class LLVMCompiler {
         }
         return result + ">";
     }
+    void generateStructReprFunction(std::string name, UserTypeInfo info) {
+        llvm::BasicBlock* savedBB = builder->GetInsertBlock();
+        if (info.kind != UserTypeKind::Struct) return;
+        llvm::StructType* structTy = genericiseOrFindStruct(name);
+        llvm::FunctionType* reprFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {structTy}, false);
+        llvm::Function* reprFn = llvm::Function::Create(reprFnTy, llvm::Function::InternalLinkage, name + "_repr", module);
+        llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
+        builder->SetInsertPoint(entryBB);
+        llvm::Value* structArg = reprFn->arg_begin();
+        llvm::Value* result = builder->CreateGlobalString(name + "(");
+        for (size_t i = 0; i < info.fields.size(); i++) {
+            auto& field = info.fields[i];
+            if (i > 0) {
+                llvm::Value* comma = builder->CreateGlobalString(", ");
+                result = callStringConcat(result, comma);
+            }
+            llvm::Value* fieldLabel = builder->CreateGlobalString(field.name + "=");
+            result = callStringConcat(result, fieldLabel);
+            llvm::Value* fieldVal = builder->CreateExtractValue(structArg, i);
+            llvm::Value* fieldStr = nullptr;
+            auto type = substituteGenerics(field.type);
+            if (type == "int") {
+                llvm::Function* toStrFn = module->getFunction("qc_to_string_int");
+                fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+            } else if (type == "float") {
+                llvm::Function* toStrFn = module->getFunction("qc_to_string_float");
+                fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+            } else if (type == "double") {
+                llvm::Function* toStrFn = module->getFunction("qc_to_string_double");
+                fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+            } else if (type == "bool") {
+                llvm::Function* toStrFn = module->getFunction("qc_to_string_bool");
+                fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+            } else if (type == "char") {
+                llvm::Function* toStrFn = module->getFunction("qc_to_string_char");
+                fieldStr = builder->CreateCall(toStrFn, {fieldVal});
+            } else if (type == "string") {
+                fieldStr = fieldVal;
+            } else if (structTypes.find(type) != structTypes.end()) {
+                llvm::Function* nestedReprFn = module->getFunction(type + "_repr");
+                if (nestedReprFn) {
+                    fieldStr = builder->CreateCall(nestedReprFn, {fieldVal});
+                } else {
+                    fieldStr = builder->CreateGlobalString("?");
+                }
+            } else {
+                fieldStr = builder->CreateGlobalString("?");
+            }
+
+            result = callStringConcat(result, fieldStr);
+        }
+        llvm::Value* closeParen = builder->CreateGlobalString(")");
+        result = callStringConcat(result, closeParen);
+
+        builder->CreateRet(result);
+        if (savedBB) { builder->SetInsertPoint(savedBB); }
+    }
     llvm::StructType* genericiseOrFindClass(std::string baseName) {
         if (genericClasses[baseTypeName(baseName)]) {
             if (classTypes.count(baseName)) return classTypes[baseName];
@@ -3053,6 +3114,19 @@ class LLVMCompiler {
             return classTy;
         }
         return classTypes[baseName];
+    }
+    llvm::StructType* genericiseOrFindStruct(std::string baseName) {
+        if (genericStructs[baseTypeName(baseName)]) {
+            if (structTypes.count(baseName)) return structTypes[baseName];
+            llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
+                                                             genericParamsFromName(baseName));
+            if (structTy == nullptr) {
+                cg_error(Position(), "Failed to create specialized version of struct " + baseTypeName(baseName));
+                return nullptr;
+            }
+            return structTy;
+        }
+        return structTypes[baseName];
     }
     std::string resolveTypeName(std::string name, bool strip = true) {
         if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
@@ -3072,6 +3146,7 @@ class LLVMCompiler {
         if (name.find("::") != std::string::npos) {
             if (classTypes.find(savedName) != classTypes.end()) return strip ? name : savedName;
             if (genericClasses.find(name) != genericClasses.end()) return strip ? name : savedName;
+            if (genericStructs.find(name) != genericStructs.end()) return strip ? name : savedName;
             if (structTypes.find(name) != structTypes.end()) return name;
             if (enumTypes.find(name) != enumTypes.end()) return name;
             if (unionTypes.find(name) != unionTypes.end()) return name;
@@ -3083,6 +3158,7 @@ class LLVMCompiler {
             std::string fullName = current.empty() ? name : current + "::" + name;
             if (classTypes.find(current.empty() ? savedName : current + "::" + savedName) != classTypes.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
             if (genericClasses.find(fullName) != genericClasses.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
+            if (genericStructs.find(fullName) != genericStructs.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
             if (structTypes.find(fullName) != structTypes.end()) return fullName;
             if (enumTypes.find(fullName) != enumTypes.end()) return fullName;
             if (unionTypes.find(fullName) != unionTypes.end()) return fullName;
