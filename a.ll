@@ -3,8 +3,15 @@ source_filename = "master_module"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-pc-linux-gnu"
 
-%"ArrayIterator<int>" = type { ptr, ptr, i32, i32 }
-%"Array<int,2>" = type { ptr, ptr, i32 }
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+%"Vector::Iterator::It<string>" = type { ptr, ptr, i32, i32 }
+%"UnitTest::Test" = type { ptr, i32, i32, i32, i32, %"Vector::Vec<string>" }
+%"AdvQBool::AQB" = type { ptr, i32, i32 }
+%"AdvQBool::AlTypes" = type { i32, ptr }
+%"Vector::Vec<int>" = type { ptr, ptr, i32, i32 }
+%"Vector::Iterator::It<int>" = type { ptr, ptr, i32, i32 }
+%"Math::Number" = type { i32, ptr }
+%"Math::Floating" = type { i32, ptr }
 
 @.str = private unnamed_addr constant [11 x i8] c"%%%s%d.%dd\00", align 1
 @.str.1 = private unnamed_addr constant [2 x i8] c"0\00", align 1
@@ -57,12 +64,306 @@ target triple = "x86_64-pc-linux-gnu"
 @switch.table.qc_set_leaf_element.52 = private unnamed_addr constant [5 x i64] [i64 8, i64 1, i64 1, i64 1, i64 8], align 8
 @switch.table.qc_stringify_jagged_helper = private unnamed_addr constant [5 x i32] [i32 8, i32 1, i32 1, i32 1, i32 8], align 4
 @switch.table.qc_map_set.54 = private unnamed_addr constant [4 x i64] [i64 8, i64 1, i64 1, i64 1], align 8
-@"ArrayIterator<int>_vtable" = internal constant [6 x ptr] [ptr @"ArrayIterator<int>_ArrayIterator", ptr @"ArrayIterator<int>__atEnd", ptr @"ArrayIterator<int>__next", ptr @"ArrayIterator<int>__atStart", ptr @"ArrayIterator<int>__prev", ptr @"ArrayIterator<int>__moveTo"]
-@"Array<int,2>_vtable" = internal constant [5 x ptr] [ptr @"Array<int,2>_Array", ptr @"Array<int,2>_operator[]=", ptr @"Array<int,2>_operator[]", ptr @"Array<int,2>__begin", ptr @"Array<int,2>__end"]
+@"Vector::Iterator::It<string>_vtable" = internal constant [6 x ptr] [ptr @"Vector::Iterator::It<string>_It", ptr @"Vector::Iterator::It<string>__atEnd", ptr @"Vector::Iterator::It<string>__next", ptr @"Vector::Iterator::It<string>__atStart", ptr @"Vector::Iterator::It<string>__prev", ptr @"Vector::Iterator::It<string>__moveTo"]
+@"Vector::Vec<string>_vtable" = internal constant [13 x ptr] [ptr @"Vector::Vec<string>_Vec", ptr @"Vector::Vec<string>_reserve", ptr @"Vector::Vec<string>_push", ptr @"Vector::Vec<string>_length", ptr @"Vector::Vec<string>_pop", ptr @"Vector::Vec<string>_shrinkToFit", ptr @"Vector::Vec<string>_operator[]=", ptr @"Vector::Vec<string>_operator[]", ptr @"Vector::Vec<string>__begin", ptr @"Vector::Vec<string>__end", ptr @"Vector::Vec<string>__destroy", ptr @"Vector::Vec<string>_operator=", ptr @"Vector::Vec<string>_isEmpty"]
 @.str.38 = private constant [2 x i8] c"T\00"
-@.str.40 = private constant [3 x i8] c"%i\00"
-@0 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
-@1 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.40 = private constant [2 x i8] c"T\00"
+@"UnitTest::Test_vtable" = internal constant [6 x ptr] [ptr @"UnitTest::Test_Test", ptr @"UnitTest::Test_Check", ptr @"UnitTest::Test_Success", ptr @"UnitTest::Test_Fail", ptr @"UnitTest::Test_AssertTrue", ptr @"UnitTest::Test_AssertFalse"]
+@"AdvQBool::AQB_vtable" = internal constant [8 x ptr] [ptr @"AdvQBool::AQB_AQB", ptr @"AdvQBool::AQB_operator=", ptr @"AdvQBool::AQB_operator&&", ptr @"AdvQBool::AQB_operator||", ptr @"AdvQBool::AQB_operator^", ptr @"AdvQBool::AQB_operator!", ptr @"AdvQBool::AQB__eval", ptr @"AdvQBool::AQB__repr"]
+@"Vector::Iterator::It<int>_vtable" = internal constant [6 x ptr] [ptr @"Vector::Iterator::It<int>_It", ptr @"Vector::Iterator::It<int>__atEnd", ptr @"Vector::Iterator::It<int>__next", ptr @"Vector::Iterator::It<int>__atStart", ptr @"Vector::Iterator::It<int>__prev", ptr @"Vector::Iterator::It<int>__moveTo"]
+@"Vector::Vec<int>_vtable" = internal constant [13 x ptr] [ptr @"Vector::Vec<int>_Vec", ptr @"Vector::Vec<int>_reserve", ptr @"Vector::Vec<int>_push", ptr @"Vector::Vec<int>_length", ptr @"Vector::Vec<int>_pop", ptr @"Vector::Vec<int>_shrinkToFit", ptr @"Vector::Vec<int>_operator[]=", ptr @"Vector::Vec<int>_operator[]", ptr @"Vector::Vec<int>__begin", ptr @"Vector::Vec<int>__end", ptr @"Vector::Vec<int>__destroy", ptr @"Vector::Vec<int>_operator=", ptr @"Vector::Vec<int>_isEmpty"]
+@.str.41 = private constant [2 x i8] c"T\00"
+@.str.42 = private constant [2 x i8] c"T\00"
+@.str.44 = private constant [12 x i8] c"Pushing %i\0A\00"
+@0 = private unnamed_addr constant [9 x i8] c"Pushing \00", align 1
+@1 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.48 = private constant [32 x i8] c"==============================\0A\00"
+@2 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.50 = private constant [4 x i8] c"%s\0A\00"
+@3 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@4 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.51 = private constant [32 x i8] c"==============================\0A\00"
+@5 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.52 = private constant [3 x i8] c"%s\00"
+@.str.53 = private constant [9 x i8] c"Failed: \00"
+@.str.54 = private constant [2 x i8] c"\0A\00"
+@6 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@7 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.55 = private constant [3 x i8] c"%s\00"
+@.str.56 = private constant [9 x i8] c"Passed: \00"
+@.str.57 = private constant [2 x i8] c"\0A\00"
+@8 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@9 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.58 = private constant [32 x i8] c"==============================\0A\00"
+@10 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.59 = private constant [8 x i8] c"[FAIL]\0A\00"
+@11 = private unnamed_addr constant [9 x i8] c"[FAIL]\0A\00\00", align 1
+@.str.60 = private constant [8 x i8] c"[PASS]\0A\00"
+@12 = private unnamed_addr constant [9 x i8] c"[PASS]\0A\00\00", align 1
+@.str.61 = private constant [4 x i8] c": [\00"
+@.str.62 = private constant [2 x i8] c"/\00"
+@.str.63 = private constant [2 x i8] c"]\00"
+@.str.64 = private constant [4 x i8] c": [\00"
+@.str.65 = private constant [2 x i8] c"/\00"
+@.str.66 = private constant [2 x i8] c"]\00"
+@.str.67 = private constant [1 x i8] zeroinitializer
+@.str.68 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.69 = private constant [34 x i8] c": Expected condition to be true. \00"
+@.str.70 = private constant [39 x i8] c"[FAIL] Expected condition to be true. \00"
+@.str.71 = private constant [1 x i8] zeroinitializer
+@.str.72 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.73 = private constant [21 x i8] c": Condition was true\00"
+@.str.74 = private constant [29 x i8] c"[SUCCESS] Condition was true\00"
+@.str.75 = private constant [1 x i8] zeroinitializer
+@.str.76 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.77 = private constant [35 x i8] c": Expected condition to be false. \00"
+@.str.78 = private constant [40 x i8] c"[FAIL] Expected condition to be false. \00"
+@.str.79 = private constant [1 x i8] zeroinitializer
+@.str.80 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.81 = private constant [22 x i8] c": Condition was false\00"
+@.str.82 = private constant [30 x i8] c"[SUCCESS] Condition was false\00"
+@13 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@14 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@15 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.83 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@16 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@17 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@18 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.84 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@19 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@20 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@21 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.85 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@.str.86 = private constant [19 x i8] c"Advanced QBool is \00"
+@.str.87 = private constant [11 x i8] c" true and \00"
+@.str.88 = private constant [8 x i8] c" false.\00"
+@"Vector::Iterator::It<string>_vtable.103" = internal constant [6 x ptr] [ptr @"Vector::Iterator::It<string>_It.97", ptr @"Vector::Iterator::It<string>__atEnd.98", ptr @"Vector::Iterator::It<string>__next.99", ptr @"Vector::Iterator::It<string>__atStart.100", ptr @"Vector::Iterator::It<string>__prev.101", ptr @"Vector::Iterator::It<string>__moveTo.102"]
+@"Vector::Vec<string>_vtable.109" = internal constant [13 x ptr] [ptr @"Vector::Vec<string>_Vec.89", ptr @"Vector::Vec<string>_reserve.90", ptr @"Vector::Vec<string>_push.91", ptr @"Vector::Vec<string>_length.92", ptr @"Vector::Vec<string>_pop.93", ptr @"Vector::Vec<string>_shrinkToFit.94", ptr @"Vector::Vec<string>_operator[]=.95", ptr @"Vector::Vec<string>_operator[].96", ptr @"Vector::Vec<string>__begin.104", ptr @"Vector::Vec<string>__end.105", ptr @"Vector::Vec<string>__destroy.106", ptr @"Vector::Vec<string>_operator=.107", ptr @"Vector::Vec<string>_isEmpty.108"]
+@.str.110 = private constant [2 x i8] c"T\00"
+@.str.111 = private constant [2 x i8] c"T\00"
+@"UnitTest::Test_vtable.118" = internal constant [6 x ptr] [ptr @"UnitTest::Test_Test.112", ptr @"UnitTest::Test_Check.113", ptr @"UnitTest::Test_Success.114", ptr @"UnitTest::Test_Fail.115", ptr @"UnitTest::Test_AssertTrue.116", ptr @"UnitTest::Test_AssertFalse.117"]
+@"AdvQBool::AQB_vtable.127" = internal constant [8 x ptr] [ptr @"AdvQBool::AQB_AQB.119", ptr @"AdvQBool::AQB_operator=.120", ptr @"AdvQBool::AQB_operator&&.121", ptr @"AdvQBool::AQB_operator||.122", ptr @"AdvQBool::AQB_operator^.123", ptr @"AdvQBool::AQB_operator!.124", ptr @"AdvQBool::AQB__eval.125", ptr @"AdvQBool::AQB__repr.126"]
+@.str.128 = private constant [35 x i8] c"=== TESTING QUANTUM C STDLIB ===\0A\0A\00"
+@22 = private unnamed_addr constant [36 x i8] c"=== TESTING QUANTUM C STDLIB ===\0A\0A\00\00", align 1
+@.str.129 = private constant [23 x i8] c"--- Testing Utils ---\0A\00"
+@23 = private unnamed_addr constant [24 x i8] c"--- Testing Utils ---\0A\00\00", align 1
+@"Vector::Iterator::It<int>_vtable.144" = internal constant [6 x ptr] [ptr @"Vector::Iterator::It<int>_It.138", ptr @"Vector::Iterator::It<int>__atEnd.139", ptr @"Vector::Iterator::It<int>__next.140", ptr @"Vector::Iterator::It<int>__atStart.141", ptr @"Vector::Iterator::It<int>__prev.142", ptr @"Vector::Iterator::It<int>__moveTo.143"]
+@"Vector::Vec<int>_vtable.150" = internal constant [13 x ptr] [ptr @"Vector::Vec<int>_Vec.130", ptr @"Vector::Vec<int>_reserve.131", ptr @"Vector::Vec<int>_push.132", ptr @"Vector::Vec<int>_length.133", ptr @"Vector::Vec<int>_pop.134", ptr @"Vector::Vec<int>_shrinkToFit.135", ptr @"Vector::Vec<int>_operator[]=.136", ptr @"Vector::Vec<int>_operator[].137", ptr @"Vector::Vec<int>__begin.145", ptr @"Vector::Vec<int>__end.146", ptr @"Vector::Vec<int>__destroy.147", ptr @"Vector::Vec<int>_operator=.148", ptr @"Vector::Vec<int>_isEmpty.149"]
+@.str.151 = private constant [2 x i8] c"T\00"
+@.str.152 = private constant [2 x i8] c"T\00"
+@.str.153 = private constant [4 x i8] c"%i\0A\00"
+@24 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@25 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.154 = private constant [3 x i8] c"%s\00"
+@.str.155 = private constant [18 x i8] c"range(0, 10, 2): \00"
+@.str.156 = private constant [3 x i8] c", \00"
+@.str.157 = private constant [3 x i8] c", \00"
+@.str.158 = private constant [3 x i8] c", \00"
+@.str.159 = private constant [3 x i8] c", \00"
+@.str.160 = private constant [2 x i8] c"\0A\00"
+@26 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@27 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.161 = private constant [24 x i8] c"Testing sleep(1000)...\0A\00"
+@28 = private unnamed_addr constant [25 x i8] c"Testing sleep(1000)...\0A\00\00", align 1
+@.str.162 = private constant [14 x i8] c"Sleep done!\0A\0A\00"
+@29 = private unnamed_addr constant [15 x i8] c"Sleep done!\0A\0A\00\00", align 1
+@.str.163 = private constant [22 x i8] c"--- Testing Math ---\0A\00"
+@30 = private unnamed_addr constant [23 x i8] c"--- Testing Math ---\0A\00\00", align 1
+@.str.164 = private constant [3 x i8] c"%s\00"
+@.str.165 = private constant [14 x i8] c"Math::pi() = \00"
+@.str.166 = private constant [2 x i8] c"\0A\00"
+@31 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@32 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.167 = private constant [3 x i8] c"%s\00"
+@.str.168 = private constant [13 x i8] c"Math::e() = \00"
+@.str.169 = private constant [2 x i8] c"\0A\00"
+@33 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@34 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.170 = private constant [3 x i8] c"%s\00"
+@.str.171 = private constant [20 x i8] c"Math::max(5, 10) = \00"
+@.str.172 = private constant [2 x i8] c"\0A\00"
+@35 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@36 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.173 = private constant [3 x i8] c"%s\00"
+@.str.174 = private constant [20 x i8] c"Math::min(5, 10) = \00"
+@.str.175 = private constant [2 x i8] c"\0A\00"
+@37 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@38 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.176 = private constant [3 x i8] c"%s\00"
+@.str.177 = private constant [18 x i8] c"Math::sqrt(16) = \00"
+@.str.178 = private constant [2 x i8] c"\0A\00"
+@39 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@40 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.179 = private constant [3 x i8] c"%s\00"
+@.str.180 = private constant [18 x i8] c"Math::abs(-42) = \00"
+@.str.181 = private constant [2 x i8] c"\0A\00"
+@41 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@42 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.182 = private constant [3 x i8] c"%s\00"
+@.str.183 = private constant [19 x i8] c"Math::ceil(3.2) = \00"
+@.str.184 = private constant [2 x i8] c"\0A\00"
+@43 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@44 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.185 = private constant [3 x i8] c"%s\00"
+@.str.186 = private constant [20 x i8] c"Math::floor(3.8) = \00"
+@.str.187 = private constant [2 x i8] c"\0A\00"
+@45 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@46 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.188 = private constant [3 x i8] c"%s\00"
+@.str.189 = private constant [16 x i8] c"Math::sin(0) = \00"
+@.str.190 = private constant [2 x i8] c"\0A\00"
+@47 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@48 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.191 = private constant [3 x i8] c"%s\00"
+@.str.192 = private constant [16 x i8] c"Math::cos(0) = \00"
+@.str.193 = private constant [2 x i8] c"\0A\00"
+@49 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@50 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.194 = private constant [3 x i8] c"%s\00"
+@.str.195 = private constant [16 x i8] c"Math::tan(0) = \00"
+@.str.196 = private constant [2 x i8] c"\0A\00"
+@51 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@52 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.197 = private constant [3 x i8] c"%s\00"
+@.str.198 = private constant [20 x i8] c"Math::log(2.718) = \00"
+@.str.199 = private constant [3 x i8] c"\0A\0A\00"
+@53 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@54 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.200 = private constant [26 x i8] c"--- Testing UnitTest ---\0A\00"
+@55 = private unnamed_addr constant [27 x i8] c"--- Testing UnitTest ---\0A\00\00", align 1
+@.str.201 = private constant [1 x i8] zeroinitializer
+@.str.202 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.203 = private constant [12 x i8] c": Expected \00"
+@.str.204 = private constant [7 x i8] c", got \00"
+@.str.205 = private constant [3 x i8] c". \00"
+@.str.206 = private constant [17 x i8] c"[FAIL] Expected \00"
+@.str.207 = private constant [7 x i8] c", got \00"
+@.str.208 = private constant [3 x i8] c". \00"
+@.str.209 = private constant [1 x i8] zeroinitializer
+@.str.210 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.211 = private constant [3 x i8] c": \00"
+@.str.212 = private constant [15 x i8] c" was equal to \00"
+@.str.213 = private constant [11 x i8] c"[SUCCESS] \00"
+@.str.214 = private constant [15 x i8] c" was equal to \00"
+@.str.215 = private constant [1 x i8] zeroinitializer
+@.str.216 = private constant [8 x i8] c"5 == 5\0A\00"
+@.str.217 = private constant [3 x i8] c"%s\00"
+@56 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@57 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.218 = private constant [1 x i8] zeroinitializer
+@.str.219 = private constant [11 x i8] c"10 == 5+5\0A\00"
+@.str.220 = private constant [1 x i8] zeroinitializer
+@.str.221 = private constant [14 x i8] c"true is true\0A\00"
+@.str.222 = private constant [1 x i8] zeroinitializer
+@.str.223 = private constant [16 x i8] c"false is false\0A\00"
+@.str.224 = private constant [1 x i8] zeroinitializer
+@.str.225 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.226 = private constant [12 x i8] c": Expected \00"
+@.str.227 = private constant [15 x i8] c" to not equal \00"
+@.str.228 = private constant [3 x i8] c". \00"
+@.str.229 = private constant [17 x i8] c"[FAIL] Expected \00"
+@.str.230 = private constant [15 x i8] c" to not equal \00"
+@.str.231 = private constant [3 x i8] c". \00"
+@.str.232 = private constant [1 x i8] zeroinitializer
+@.str.233 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.234 = private constant [3 x i8] c": \00"
+@.str.235 = private constant [18 x i8] c" wasn't equal to \00"
+@.str.236 = private constant [11 x i8] c"[SUCCESS] \00"
+@.str.237 = private constant [18 x i8] c" wasn't equal to \00"
+@.str.238 = private constant [1 x i8] zeroinitializer
+@.str.239 = private constant [9 x i8] c"5 != 10\0A\00"
+@.str.240 = private constant [27 x i8] c"\0A--- Testing AdvQBool ---\0A\00"
+@58 = private unnamed_addr constant [28 x i8] c"\0A--- Testing AdvQBool ---\0A\00\00", align 1
+@.str.241 = private constant [3 x i8] c"%s\00"
+@.str.242 = private constant [10 x i8] c"AQB(75): \00"
+@.str.243 = private constant [2 x i8] c"\0A\00"
+@59 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@60 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.244 = private constant [42 x i8] c"Testing 10 evaluations of 75%% true AQB:\0A\00"
+@61 = private unnamed_addr constant [42 x i8] c"Testing 10 evaluations of 75% true AQB:\0A\00\00", align 1
+@.str.245 = private constant [3 x i8] c"%s\00"
+@.str.246 = private constant [5 x i8] c"Got \00"
+@.str.247 = private constant [26 x i8] c"/10 true (expected ~7-8)\0A\00"
+@62 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@63 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.248 = private constant [3 x i8] c"%s\00"
+@.str.249 = private constant [15 x i8] c"\0AAQB && test: \00"
+@.str.250 = private constant [2 x i8] c"\0A\00"
+@64 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@65 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.251 = private constant [3 x i8] c"%s\00"
+@.str.252 = private constant [14 x i8] c"AQB || test: \00"
+@.str.253 = private constant [2 x i8] c"\0A\00"
+@66 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@67 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.254 = private constant [3 x i8] c"%s\00"
+@.str.255 = private constant [12 x i8] c"!AQB test: \00"
+@.str.256 = private constant [2 x i8] c"\0A\00"
+@68 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@69 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.257 = private constant [7 x i8] c"ls -la\00"
+@.str.258 = private constant [36 x i8] c"\0A=== ALL STDLIB TESTS COMPLETE ===\0A\00"
+@70 = private unnamed_addr constant [37 x i8] c"\0A=== ALL STDLIB TESTS COMPLETE ===\0A\00\00", align 1
+@.str.259 = private constant [32 x i8] c"==============================\0A\00"
+@71 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.260 = private constant [4 x i8] c"%s\0A\00"
+@72 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@73 = private unnamed_addr constant [3 x i8] c"\0A\00\00", align 1
+@.str.261 = private constant [32 x i8] c"==============================\0A\00"
+@74 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.262 = private constant [3 x i8] c"%s\00"
+@.str.263 = private constant [9 x i8] c"Failed: \00"
+@.str.264 = private constant [2 x i8] c"\0A\00"
+@75 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@76 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.265 = private constant [3 x i8] c"%s\00"
+@.str.266 = private constant [9 x i8] c"Passed: \00"
+@.str.267 = private constant [2 x i8] c"\0A\00"
+@77 = private unnamed_addr constant [1 x i8] zeroinitializer, align 1
+@78 = private unnamed_addr constant [2 x i8] zeroinitializer, align 1
+@.str.268 = private constant [32 x i8] c"==============================\0A\00"
+@79 = private unnamed_addr constant [33 x i8] c"==============================\0A\00\00", align 1
+@.str.269 = private constant [8 x i8] c"[FAIL]\0A\00"
+@80 = private unnamed_addr constant [9 x i8] c"[FAIL]\0A\00\00", align 1
+@.str.270 = private constant [8 x i8] c"[PASS]\0A\00"
+@81 = private unnamed_addr constant [9 x i8] c"[PASS]\0A\00\00", align 1
+@.str.271 = private constant [4 x i8] c": [\00"
+@.str.272 = private constant [2 x i8] c"/\00"
+@.str.273 = private constant [2 x i8] c"]\00"
+@.str.274 = private constant [4 x i8] c": [\00"
+@.str.275 = private constant [2 x i8] c"/\00"
+@.str.276 = private constant [2 x i8] c"]\00"
+@.str.277 = private constant [1 x i8] zeroinitializer
+@.str.278 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.279 = private constant [34 x i8] c": Expected condition to be true. \00"
+@.str.280 = private constant [39 x i8] c"[FAIL] Expected condition to be true. \00"
+@.str.281 = private constant [1 x i8] zeroinitializer
+@.str.282 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.283 = private constant [21 x i8] c": Condition was true\00"
+@.str.284 = private constant [29 x i8] c"[SUCCESS] Condition was true\00"
+@.str.285 = private constant [1 x i8] zeroinitializer
+@.str.286 = private constant [16 x i8] c"[FAIL] On call \00"
+@.str.287 = private constant [35 x i8] c": Expected condition to be false. \00"
+@.str.288 = private constant [40 x i8] c"[FAIL] Expected condition to be false. \00"
+@.str.289 = private constant [1 x i8] zeroinitializer
+@.str.290 = private constant [19 x i8] c"[SUCCESS] on call \00"
+@.str.291 = private constant [22 x i8] c": Condition was false\00"
+@.str.292 = private constant [30 x i8] c"[SUCCESS] Condition was false\00"
+@82 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@83 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@84 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.293 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@85 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@86 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@87 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.294 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@88 = private unnamed_addr constant [6 x i8] c"qbool\00", align 1
+@89 = private unnamed_addr constant [5 x i8] c"bool\00", align 1
+@90 = private unnamed_addr constant [4 x i8] c"AQB\00", align 1
+@.str.295 = private constant [14 x i8] c"AdvQBool::AQB\00"
+@.str.296 = private constant [19 x i8] c"Advanced QBool is \00"
+@.str.297 = private constant [11 x i8] c" true and \00"
+@.str.298 = private constant [8 x i8] c" false.\00"
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(inaccessiblemem: readwrite) uwtable
 define internal noalias noundef ptr @qc_malloc(i64 noundef %0) local_unnamed_addr #0 {
@@ -4348,132 +4649,239 @@ define internal ptr @qc_variadic_next(ptr noundef captures(none) %0) local_unnam
   ret ptr %14
 }
 
-define internal i32 @__user_entry() {
+define internal void @"Vector::Vec<string>_Vec"(ptr %0) !qc.return_types !35 {
 entry:
-  %elem = alloca i32, align 4
-  %__foreach_i_elem = alloca i32, align 4
-  %__iter_elem = alloca %"ArrayIterator<int>", align 8
-  %x = alloca %"Array<int,2>", align 8
-  %0 = alloca [2 x i32], align 4
-  store [2 x i32] [i32 1, i32 2], ptr %0, align 4
-  %decayptr = getelementptr inbounds [2 x i32], ptr %0, i32 0, i32 0
-  %"operator[]=_result" = call void @"Array<int,2>_operator[]="(ptr %x, ptr %decayptr, i32 2)
-  %vptr_field = getelementptr inbounds nuw %"Array<int,2>", ptr %x, i32 0, i32 0
-  store ptr @"Array<int,2>_vtable", ptr %vptr_field, align 8
-  %x1 = load %"Array<int,2>", ptr %x, align 8
-  %_begin_result = call %"ArrayIterator<int>" @"Array<int,2>__begin"(%"Array<int,2>" %x1)
-  store %"ArrayIterator<int>" %_begin_result, ptr %__iter_elem, align 8
-  store i32 0, ptr %__foreach_i_elem, align 4
-  br label %foreach.cond
-
-foreach.cond:                                     ; preds = %foreach.body, %entry
-  %_atEnd_result = call i1 @"ArrayIterator<int>__atEnd"(ptr %__iter_elem)
-  br i1 %_atEnd_result, label %foreach.end, label %foreach.body
-
-foreach.body:                                     ; preds = %foreach.cond
-  %1 = load %"ArrayIterator<int>", ptr %__iter_elem, align 8
-  %_next_result = call i32 @"ArrayIterator<int>__next"(ptr %__iter_elem)
-  store i32 %_next_result, ptr %elem, align 4
-  %elem2 = load i32, ptr %elem, align 4
-  %2 = sext i32 %elem2 to i64
-  call void @qc_print_string(ptr @0)
-  %3 = call ptr @qc_fmt_int(i64 %2, i32 -1, i32 -1, i1 false)
-  call void @qc_print_string(ptr %3)
-  call void @qc_print_string(ptr @1)
-  br label %foreach.cond
-
-foreach.inc:                                      ; No predecessors!
-
-foreach.end:                                      ; preds = %foreach.cond
-  ret i32 0
-}
-
-define internal void @"Array<int,2>_Array"(ptr %0) {
-entry:
-  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
-  store ptr null, ptr %1, align 8
-  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
   store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
   ret void
 }
 
-define internal void @"Array<int,2>_operator[]="(ptr %0, ptr %1, i32 %2) {
+define internal void @"Vector::Vec<string>_reserve"(ptr %0, i32 %1) !qc.return_types !77 {
 entry:
-  %i = alloca i32, align 4
+  %"Vector::new_data" = alloca ptr, align 8
+  %cap = alloca i32, align 4
+  store i32 %1, ptr %cap, align 4
+  %cap1 = load i32, ptr %cap, align 4
+  %icmpeq = icmp eq i32 %cap1, 0
+  br i1 %icmpeq, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  call void @qc_free(ptr %data)
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %5, align 4
+  ret void
+
+ifcont:                                           ; preds = %entry
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data2 = load ptr, ptr %6, align 8
+  %cap3 = load i32, ptr %cap, align 4
+  %promote_int = sext i32 %cap3 to i64
+  %mul = mul i64 8, %promote_int
+  %builtin_call = call ptr @qc_realloc(ptr %data2, i64 %mul)
+  store ptr %builtin_call, ptr %"Vector::new_data", align 8
+  %new_data = load ptr, ptr %"Vector::new_data", align 8
+  %ptr_eq = icmp eq ptr %new_data, null
+  br i1 %ptr_eq, label %then4, label %ifcont5
+
+then4:                                            ; preds = %ifcont
+  ret void
+
+ifcont5:                                          ; preds = %ifcont
+  %cap6 = load i32, ptr %cap, align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 %cap6, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %8, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %9, align 4
+  %icmpgt = icmp sgt i32 %size, %capacity
+  br i1 %icmpgt, label %then7, label %ifcont8
+
+then7:                                            ; preds = %ifcont5
+  %10 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity9 = load i32, ptr %10, align 4
+  %11 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %capacity9, ptr %11, align 4
+  br label %ifcont8
+
+ifcont8:                                          ; preds = %then7, %ifcont5
+  %new_data10 = load ptr, ptr %"Vector::new_data", align 8
+  %12 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr %new_data10, ptr %12, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_push"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %value = alloca ptr, align 8
+  store ptr %1, ptr %value, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %3, align 4
+  %icmple = icmp sle i32 %capacity, %size
+  br i1 %icmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity1 = load i32, ptr %4, align 4
+  %mul = mul i32 %capacity1, 2
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %5, align 4
+  %icmpeq = icmp eq i32 %capacity2, 0
+  %select_val = select i1 %icmpeq, i32 1, i32 %mul
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %select_val)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %6, align 8
+  %ptr_eq = icmp eq ptr %data, null
+  br i1 %ptr_eq, label %then3, label %ifcont4
+
+ifcont:                                           ; preds = %ifcont4, %entry
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size5 = load i32, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data6 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data6, i32 %size5
+  %value7 = load ptr, ptr %value, align 8
+  store ptr %value7, ptr %ptr_arr_asi, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size8 = load i32, ptr %9, align 4
+  %10 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size9 = load i32, ptr %10, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %size_ptr, align 4
+  ret void
+
+then3:                                            ; preds = %then
+  ret void
+
+ifcont4:                                          ; preds = %then
+  br label %ifcont
+}
+
+define internal i32 @"Vector::Vec<string>_length"(ptr %0) !qc.return_types !78 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  ret i32 %size
+}
+
+define internal void @"Vector::Vec<string>_pop"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpgt = icmp sgt i32 %size, 0
+  br i1 %icmpgt, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size1 = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %size_ptr, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_shrinkToFit"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %size)
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_operator[]="(ptr %0, ptr %1, i32 %2) !qc.return_types !77 {
+entry:
+  %"Vector::i" = alloca i32, align 4
   %length = alloca i32, align 4
   %data = alloca ptr, align 8
   store ptr %1, ptr %data, align 8
   store i32 %2, ptr %length, align 4
   %length1 = load i32, ptr %length, align 4
-  %icmpgt = icmp sgt i32 %length1, 2
-  br i1 %icmpgt, label %then, label %else
-
-then:                                             ; preds = %entry
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 %length1, ptr %3, align 4
   %length2 = load i32, ptr %length, align 4
-  %3 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
-  store i32 %length2, ptr %3, align 4
-  br label %ifcont
-
-ifcont:                                           ; preds = %else, %then
-  %4 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
-  %size = load i32, ptr %4, align 4
-  %promote_int = sext i32 %size to i64
-  %mul = mul i64 4, %promote_int
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %length2, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %5, align 4
+  %promote_int = sext i32 %capacity to i64
+  %mul = mul i64 8, %promote_int
   %builtin_call = call ptr @qc_malloc(i64 %mul)
-  %5 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
-  store ptr %builtin_call, ptr %5, align 8
-  store i32 0, ptr %i, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr %builtin_call, ptr %6, align 8
+  store i32 0, ptr %"Vector::i", align 4
   br label %for.cond
 
-else:                                             ; preds = %entry
-  %6 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
-  store i32 2, ptr %6, align 4
-  br label %ifcont
-
-for.cond:                                         ; preds = %for.inc, %ifcont
-  %i3 = load i32, ptr %i, align 4
-  %7 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
-  %size4 = load i32, ptr %7, align 4
-  %icmplt = icmp slt i32 %i3, %size4
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Vector::i", align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size
   br i1 %icmplt, label %for.body, label %for.end
 
 for.body:                                         ; preds = %for.cond
-  %i5 = load i32, ptr %i, align 4
-  %8 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
-  %data6 = load ptr, ptr %8, align 8
-  %ptr_arr_asi = getelementptr i32, ptr %data6, i32 %i5
-  %i7 = load i32, ptr %i, align 4
-  %data8 = load ptr, ptr %data, align 8
-  %ptr_arr_addr = getelementptr i32, ptr %data8, i32 %i7
-  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
-  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  %i3 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data4 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data4, i32 %i3
+  %i5 = load i32, ptr %"Vector::i", align 4
+  %data6 = load ptr, ptr %data, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data6, i32 %i5
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  store ptr %ptr_arr_val, ptr %ptr_arr_asi, align 8
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body
-  %i9 = load i32, ptr %i, align 4
-  %i10 = load i32, ptr %i, align 4
-  %inc_deref = load i32, ptr %i, align 4
+  %i7 = load i32, ptr %"Vector::i", align 4
+  %i8 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
   %inc = add i32 %inc_deref, 1
-  store i32 %inc, ptr %i, align 4
+  store i32 %inc, ptr %"Vector::i", align 4
   br label %for.cond
 
 for.end:                                          ; preds = %for.cond
   ret void
 }
 
-define internal i32 @"Array<int,2>_operator[]"(ptr %0, i32 %1) {
+define internal ptr @"Vector::Vec<string>_operator[]"(ptr %0, i32 %1) !qc.return_types !79 {
 entry:
   %index = alloca i32, align 4
   store i32 %1, ptr %index, align 4
-  %index1 = load i32, ptr %index, align 4
-  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
   %data = load ptr, ptr %2, align 8
-  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %index1
-  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
-  ret i32 %ptr_arr_val
+  %index1 = load i32, ptr %index, align 4
+  %lval_arr_addr = getelementptr ptr, ptr %data, i32 %index1
+  ret ptr %lval_arr_addr
 }
 
-define internal void @"ArrayIterator<int>_ArrayIterator"(ptr %0, ptr %1, i32 %2, i1 %3) {
+define internal void @"Vector::Iterator::It<string>_It"(ptr %0, ptr %1, i32 %2, i1 %3) !qc.return_types !35 {
 entry:
   %is_end = alloca i1, align 1
   %size = alloca i32, align 4
@@ -4482,33 +4890,32 @@ entry:
   store i32 %2, ptr %size, align 4
   store i1 %3, ptr %is_end, align 1
   %data1 = load ptr, ptr %data, align 8
-  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
   store ptr %data1, ptr %4, align 8
   %size2 = load i32, ptr %size, align 4
-  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
   store i32 %size2, ptr %5, align 4
   %size3 = load i32, ptr %size, align 4
-  %sub = sub i32 %size3, 1
   %is_end4 = load i1, ptr %is_end, align 1
-  %select_val = select i1 %is_end4, i32 %sub, i32 0
-  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %select_val = select i1 %is_end4, i32 %size3, i32 0
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   store i32 %select_val, ptr %6, align 4
   ret void
 }
 
-define internal i1 @"ArrayIterator<int>__atEnd"(ptr %0) {
+define internal i1 @"Vector::Iterator::It<string>__atEnd"(ptr %0) !qc.return_types !80 {
 entry:
-  %1 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
   %size = load i32, ptr %1, align 4
-  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index = load i32, ptr %2, align 4
   %icmple = icmp sle i32 %size, %current_index
   ret i1 %icmple
 }
 
-define internal i32 @"ArrayIterator<int>__next"(ptr %0) {
+define internal ptr @"Vector::Iterator::It<string>__next"(ptr %0) !qc.return_types !81 {
 entry:
-  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 0
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 0
   %vptr = load ptr, ptr %vptr_field, align 8
   %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
   %fn_ptr = load ptr, ptr %vtable_slot, align 8
@@ -4517,41 +4924,41 @@ entry:
   br i1 %not, label %then, label %ifcont
 
 then:                                             ; preds = %entry
-  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index = load i32, ptr %2, align 4
-  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index1 = load i32, ptr %3, align 4
-  %current_index_ptr = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %inc_deref = load i32, ptr %current_index_ptr, align 4
   %inc = add i32 %inc_deref, 1
   store i32 %inc, ptr %current_index_ptr, align 4
-  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
   %data = load ptr, ptr %4, align 8
-  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %inc_deref
-  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
-  ret i32 %ptr_arr_val
+  %ptr_arr_addr = getelementptr ptr, ptr %data, i32 %inc_deref
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  ret ptr %ptr_arr_val
 
 ifcont:                                           ; preds = %entry
-  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index2 = load i32, ptr %5, align 4
-  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
   %data3 = load ptr, ptr %6, align 8
-  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
-  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
-  ret i32 %ptr_arr_val5
+  %ptr_arr_addr4 = getelementptr ptr, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load ptr, ptr %ptr_arr_addr4, align 8
+  ret ptr %ptr_arr_val5
 }
 
-define internal i1 @"ArrayIterator<int>__atStart"(ptr %0) {
+define internal i1 @"Vector::Iterator::It<string>__atStart"(ptr %0) !qc.return_types !80 {
 entry:
-  %1 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index = load i32, ptr %1, align 4
   %icmple = icmp sle i32 %current_index, 0
   ret i1 %icmple
 }
 
-define internal i32 @"ArrayIterator<int>__prev"(ptr %0) {
+define internal ptr @"Vector::Iterator::It<string>__prev"(ptr %0) !qc.return_types !81 {
 entry:
-  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 0
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 0
   %vptr = load ptr, ptr %vptr_field, align 8
   %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
   %fn_ptr = load ptr, ptr %vtable_slot, align 8
@@ -4560,43 +4967,43 @@ entry:
   br i1 %not, label %then, label %ifcont
 
 then:                                             ; preds = %entry
-  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index = load i32, ptr %2, align 4
-  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index1 = load i32, ptr %3, align 4
-  %current_index_ptr = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %inc_deref = load i32, ptr %current_index_ptr, align 4
   %dec = sub i32 %inc_deref, 1
   store i32 %dec, ptr %current_index_ptr, align 4
-  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
   %data = load ptr, ptr %4, align 8
-  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %dec
-  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
-  ret i32 %ptr_arr_val
+  %ptr_arr_addr = getelementptr ptr, ptr %data, i32 %dec
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  ret ptr %ptr_arr_val
 
 ifcont:                                           ; preds = %entry
-  %5 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   %current_index2 = load i32, ptr %5, align 4
-  %6 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 1
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
   %data3 = load ptr, ptr %6, align 8
-  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
-  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
-  ret i32 %ptr_arr_val5
+  %ptr_arr_addr4 = getelementptr ptr, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load ptr, ptr %ptr_arr_addr4, align 8
+  ret ptr %ptr_arr_val5
 }
 
-define internal void @"ArrayIterator<int>__moveTo"(ptr %0, i32 %1) {
+define internal void @"Vector::Iterator::It<string>__moveTo"(ptr %0, i32 %1) !qc.return_types !77 {
 entry:
   %index = alloca i32, align 4
   store i32 %1, ptr %index, align 4
   %index1 = load i32, ptr %index, align 4
-  %2 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
   %size = load i32, ptr %2, align 4
   %icmpge = icmp sge i32 %index1, %size
   br i1 %icmpge, label %then, label %elif.cond
 
 then:                                             ; preds = %entry
   %assign_lhs_val = load i32, ptr %index, align 4
-  %3 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 2
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
   %size2 = load i32, ptr %3, align 4
   %sub = sub i32 %size2, 1
   store i32 %sub, ptr %index, align 4
@@ -4604,7 +5011,7 @@ then:                                             ; preds = %entry
 
 ifcont:                                           ; preds = %elif.body, %elif.cond, %then
   %index5 = load i32, ptr %index, align 4
-  %4 = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %0, i32 0, i32 3
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
   store i32 %index5, ptr %4, align 4
   ret void
 
@@ -4619,32 +5026,4774 @@ elif.body:                                        ; preds = %elif.cond
   br label %ifcont
 }
 
-define internal %"ArrayIterator<int>" @"Array<int,2>__begin"(ptr %0) {
+define internal %"Vector::Iterator::It<string>" @"Vector::Vec<string>__begin"(ptr %0) !qc.return_types !82 {
 entry:
-  %"temp_ArrayIterator<int>" = alloca %"ArrayIterator<int>", align 8
-  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %"temp_Vector::Iterator::It<string>" = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
   %data = load ptr, ptr %1, align 8
-  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
   %size = load i32, ptr %2, align 4
-  call void @"ArrayIterator<int>_ArrayIterator"(ptr %"temp_ArrayIterator<int>", ptr %data, i32 %size, i1 false)
-  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", i32 0, i32 0
-  store ptr @"ArrayIterator<int>_vtable", ptr %vptr_field, align 8
-  %"ArrayIterator<int>_inst" = load %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", align 8
-  ret %"ArrayIterator<int>" %"ArrayIterator<int>_inst"
+  call void @"Vector::Iterator::It<string>_It"(ptr %"temp_Vector::Iterator::It<string>", ptr %data, i32 %size, i1 false)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<string>_vtable", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<string>_inst" = load %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", align 8
+  ret %"Vector::Iterator::It<string>" %"Vector::Iterator::It<string>_inst"
 }
 
-define internal %"ArrayIterator<int>" @"Array<int,2>__end"(ptr %0) {
+define internal %"Vector::Iterator::It<string>" @"Vector::Vec<string>__end"(ptr %0) !qc.return_types !82 {
 entry:
-  %"temp_ArrayIterator<int>" = alloca %"ArrayIterator<int>", align 8
-  %1 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 1
+  %"temp_Vector::Iterator::It<string>" = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
   %data = load ptr, ptr %1, align 8
-  %2 = getelementptr inbounds nuw %"Array<int,2>", ptr %0, i32 0, i32 2
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
   %size = load i32, ptr %2, align 4
-  call void @"ArrayIterator<int>_ArrayIterator"(ptr %"temp_ArrayIterator<int>", ptr %data, i32 %size, i1 true)
-  %vptr_field = getelementptr inbounds nuw %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", i32 0, i32 0
-  store ptr @"ArrayIterator<int>_vtable", ptr %vptr_field, align 8
-  %"ArrayIterator<int>_inst" = load %"ArrayIterator<int>", ptr %"temp_ArrayIterator<int>", align 8
-  ret %"ArrayIterator<int>" %"ArrayIterator<int>_inst"
+  call void @"Vector::Iterator::It<string>_It"(ptr %"temp_Vector::Iterator::It<string>", ptr %data, i32 %size, i1 true)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<string>_vtable", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<string>_inst" = load %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", align 8
+  ret %"Vector::Iterator::It<string>" %"Vector::Iterator::It<string>_inst"
+}
+
+define internal void @"Vector::Vec<string>__destroy"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  call void @qc_free(ptr %data)
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 -1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 -1, ptr %4, align 4
+  ret void
+}
+
+define internal %"Vector::Vec<string>" @"Vector::Vec<string>_operator="(ptr %0, %"Vector::Vec<string>" %1) !qc.return_types !83 {
+entry:
+  %temp_obj14 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj9 = alloca %"Vector::Vec<string>", align 8
+  %"Vector::i" = alloca i32, align 4
+  %temp_obj7 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj4 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj = alloca %"Vector::Vec<string>", align 8
+  %other = alloca %"Vector::Vec<string>", align 8
+  store %"Vector::Vec<string>" %1, ptr %other, align 8
+  %other1 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other1, ptr %temp_obj, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %3, align 4
+  %icmpne = icmp ne i32 %capacity, %capacity2
+  br i1 %icmpne, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other3, ptr %temp_obj4, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj4, i32 0, i32 3
+  %capacity5 = load i32, ptr %4, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %capacity5)
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  %other6 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other6, ptr %temp_obj7, align 8
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj7, i32 0, i32 2
+  %size = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %size, ptr %6, align 4
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %ifcont
+  %i = load i32, ptr %"Vector::i", align 4
+  %other8 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other8, ptr %temp_obj9, align 8
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj9, i32 0, i32 2
+  %size10 = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i11 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data, i32 %i11
+  %i12 = load i32, ptr %"Vector::i", align 4
+  %other13 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other13, ptr %temp_obj14, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj14, i32 0, i32 1
+  %data15 = load ptr, ptr %9, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data15, i32 %i12
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  store ptr %ptr_arr_val, ptr %ptr_arr_asi, align 8
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i16 = load i32, ptr %"Vector::i", align 4
+  %i17 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret ptr %0
+}
+
+define internal i1 @"Vector::Vec<string>_isEmpty"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpeq = icmp eq i32 %size, 0
+  ret i1 %icmpeq
+}
+
+define internal void @"UnitTest::Test_Test"(ptr %0, i32 %1) !qc.return_types !35 {
+entry:
+  %"temp_Vector::Vec<string>" = alloca %"Vector::Vec<string>", align 8
+  %Ttl = alloca i32, align 4
+  store i32 %1, ptr %Ttl, align 4
+  call void @"Vector::Vec<string>_Vec"(ptr %"temp_Vector::Vec<string>")
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %"temp_Vector::Vec<string>", i32 0, i32 0
+  store ptr @"Vector::Vec<string>_vtable", ptr %vptr_field, align 8
+  %"Vector::Vec<string>_inst" = load %"Vector::Vec<string>", ptr %"temp_Vector::Vec<string>", align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  store %"Vector::Vec<string>" %"Vector::Vec<string>_inst", ptr %2, align 8
+  %Ttl1 = load i32, ptr %Ttl, align 4
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 %Ttl1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  ret void
+}
+
+define internal void @"UnitTest::Test_Check"(ptr %0) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  %__foreach_i_message = alloca i32, align 4
+  %__iter_message = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %Ran, %Total
+  br i1 %icmpge, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %4, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %5 = call i32 %fn_ptr(ptr %4)
+  %icmpgt = icmp sgt i32 %5, 0
+  br i1 %icmpgt, label %then1, label %ifcont2
+
+ifcont:                                           ; preds = %ifcont11, %entry
+  ret void
+
+then1:                                            ; preds = %then
+  %Messages_ptr = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %_begin_result = call %"Vector::Iterator::It<string>" @"Vector::Vec<string>__begin"(ptr %Messages_ptr)
+  store %"Vector::Iterator::It<string>" %_begin_result, ptr %__iter_message, align 8
+  store i32 0, ptr %__foreach_i_message, align 4
+  br label %foreach.cond
+
+ifcont2:                                          ; preds = %foreach.end, %then
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed = load i32, ptr %6, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Failed)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.53, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.54)
+  call void @qc_print_string(ptr @6)
+  %7 = call ptr @qc_fmt_string(ptr %fstr_concat4, i32 -1, i1 false)
+  call void @qc_print_string(ptr %7)
+  call void @qc_print_string(ptr @7)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Passed = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Passed)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr @.str.56, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.57)
+  call void @qc_print_string(ptr @8)
+  %9 = call ptr @qc_fmt_string(ptr %fstr_concat7, i32 -1, i1 false)
+  call void @qc_print_string(ptr %9)
+  call void @qc_print_string(ptr @9)
+  call void @qc_print_string(ptr @10)
+  %10 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed8 = load i32, ptr %10, align 4
+  %icmpgt9 = icmp sgt i32 %Failed8, 0
+  br i1 %icmpgt9, label %then10, label %else
+
+foreach.cond:                                     ; preds = %foreach.body, %then1
+  %_atEnd_result = call i1 @"Vector::Iterator::It<string>__atEnd"(ptr %__iter_message)
+  br i1 %_atEnd_result, label %foreach.end, label %foreach.body
+
+foreach.body:                                     ; preds = %foreach.cond
+  %11 = load %"Vector::Iterator::It<string>", ptr %__iter_message, align 8
+  %_next_result = call ptr @"Vector::Iterator::It<string>__next"(ptr %__iter_message)
+  store ptr %_next_result, ptr %message, align 8
+  call void @qc_print_string(ptr @2)
+  %message3 = load ptr, ptr %message, align 8
+  call void @qc_print_string(ptr @3)
+  %12 = call ptr @qc_fmt_string(ptr %message3, i32 -1, i1 false)
+  call void @qc_print_string(ptr %12)
+  call void @qc_print_string(ptr @4)
+  br label %foreach.cond
+
+foreach.inc:                                      ; No predecessors!
+
+foreach.end:                                      ; preds = %foreach.cond
+  call void @qc_print_string(ptr @5)
+  br label %ifcont2
+
+then10:                                           ; preds = %ifcont2
+  call void @qc_print_string(ptr @11)
+  br label %ifcont11
+
+ifcont11:                                         ; preds = %else, %then10
+  br label %ifcont
+
+else:                                             ; preds = %ifcont2
+  call void @qc_print_string(ptr @12)
+  br label %ifcont11
+}
+
+define internal void @"UnitTest::Test_Success"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Passed = load i32, ptr %4, align 4
+  %add1 = add i32 %Passed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.61, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.62)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.63)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %6, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 2
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %6, ptr %str_concat)
+  %vptr_field8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr9 = load ptr, ptr %vptr_field8, align 8
+  %vtable_slot10 = getelementptr ptr, ptr %vptr9, i32 1
+  %fn_ptr11 = load ptr, ptr %vtable_slot10, align 8
+  call void %fn_ptr11(ptr %0)
+  ret void
+}
+
+define internal void @"UnitTest::Test_Fail"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed = load i32, ptr %4, align 4
+  %add1 = add i32 %Failed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.64, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.65)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.66)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %6, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 2
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %6, ptr %str_concat)
+  %vptr_field8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr9 = load ptr, ptr %vptr_field8, align 8
+  %vtable_slot10 = getelementptr ptr, ptr %vptr9, i32 1
+  %fn_ptr11 = load ptr, ptr %vtable_slot10, align 8
+  call void %fn_ptr11(ptr %0)
+  ret void
+}
+
+define internal void @"UnitTest::Test_AssertTrue"(ptr %0, i1 %1, ptr %2, ptr %3) !qc.return_types !77 {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  %not = xor i1 %cond1, true
+  br i1 %not, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.67)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont18, %ifcont4
+  ret void
+
+else:                                             ; preds = %entry
+  %Call16 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call16, ptr @.str.71)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then17, label %else19
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.68, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.69)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.70, ptr %FailMessage10)
+  %vptr_field12 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr13 = load ptr, ptr %vptr_field12, align 8
+  %vtable_slot14 = getelementptr ptr, ptr %vptr13, i32 3
+  %fn_ptr15 = load ptr, ptr %vtable_slot14, align 8
+  call void %fn_ptr15(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then17:                                           ; preds = %else
+  %Call20 = load ptr, ptr %Call, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr @.str.72, ptr %Call20)
+  %fstr_concat22 = call ptr @qc_string_concat(ptr %fstr_concat21, ptr @.str.73)
+  %vptr_field23 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr24 = load ptr, ptr %vptr_field23, align 8
+  %vtable_slot25 = getelementptr ptr, ptr %vptr24, i32 2
+  %fn_ptr26 = load ptr, ptr %vtable_slot25, align 8
+  call void %fn_ptr26(ptr %0, ptr %fstr_concat22)
+  br label %ifcont18
+
+ifcont18:                                         ; preds = %else19, %then17
+  br label %ifcont
+
+else19:                                           ; preds = %else
+  %vptr_field27 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr28 = load ptr, ptr %vptr_field27, align 8
+  %vtable_slot29 = getelementptr ptr, ptr %vptr28, i32 2
+  %fn_ptr30 = load ptr, ptr %vtable_slot29, align 8
+  call void %fn_ptr30(ptr %0, ptr @.str.74)
+  br label %ifcont18
+}
+
+define internal void @"UnitTest::Test_AssertFalse"(ptr %0, i1 %1, ptr %2, ptr %3) !qc.return_types !77 {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  br i1 %cond1, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.75)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont18, %ifcont4
+  ret void
+
+else:                                             ; preds = %entry
+  %Call16 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call16, ptr @.str.79)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then17, label %else19
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.76, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.77)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.78, ptr %FailMessage10)
+  %vptr_field12 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr13 = load ptr, ptr %vptr_field12, align 8
+  %vtable_slot14 = getelementptr ptr, ptr %vptr13, i32 3
+  %fn_ptr15 = load ptr, ptr %vtable_slot14, align 8
+  call void %fn_ptr15(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then17:                                           ; preds = %else
+  %Call20 = load ptr, ptr %Call, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr @.str.80, ptr %Call20)
+  %fstr_concat22 = call ptr @qc_string_concat(ptr %fstr_concat21, ptr @.str.81)
+  %vptr_field23 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr24 = load ptr, ptr %vptr_field23, align 8
+  %vtable_slot25 = getelementptr ptr, ptr %vptr24, i32 2
+  %fn_ptr26 = load ptr, ptr %vtable_slot25, align 8
+  call void %fn_ptr26(ptr %0, ptr %fstr_concat22)
+  br label %ifcont18
+
+ifcont18:                                         ; preds = %else19, %then17
+  br label %ifcont
+
+else19:                                           ; preds = %else
+  %vptr_field27 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr28 = load ptr, ptr %vptr_field27, align 8
+  %vtable_slot29 = getelementptr ptr, ptr %vptr28, i32 2
+  %fn_ptr30 = load ptr, ptr %vtable_slot29, align 8
+  call void %fn_ptr30(ptr %0, ptr @.str.82)
+  br label %ifcont18
+}
+
+define internal void @"AdvQBool::AQB_AQB"(ptr %0, i32 %1) !qc.return_types !35 {
+entry:
+  %truth = alloca i32, align 4
+  store i32 %1, ptr %truth, align 4
+  %truth1 = load i32, ptr %truth, align 4
+  %icmpgt = icmp sgt i32 %truth1, 100
+  %truth2 = load i32, ptr %truth, align 4
+  %icmplt = icmp slt i32 %truth2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %truth3 = load i32, ptr %truth, align 4
+  %icmpgt4 = icmp sgt i32 %truth3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %truth8 = load i32, ptr %truth, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %truth8, ptr %2, align 4
+  %truth9 = load i32, ptr %truth, align 4
+  %sub = sub i32 100, %truth9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  store i32 %sub, ptr %3, align 4
+  ret void
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %truth, align 4
+  store i32 100, ptr %truth, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %truth, align 4
+  store i32 0, ptr %truth, align 4
+  br label %ifcont6
+}
+
+define internal void @"AdvQBool::AQB_operator="(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %other = alloca i32, align 4
+  store i32 %1, ptr %other, align 4
+  %other1 = load i32, ptr %other, align 4
+  %icmpgt = icmp sgt i32 %other1, 100
+  %other2 = load i32, ptr %other, align 4
+  %icmplt = icmp slt i32 %other2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load i32, ptr %other, align 4
+  %icmpgt4 = icmp sgt i32 %other3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %other8 = load i32, ptr %other, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %other8, ptr %2, align 4
+  %other9 = load i32, ptr %other, align 4
+  %sub = sub i32 100, %other9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  store i32 %sub, ptr %3, align 4
+  ret void
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %other, align 4
+  store i32 100, ptr %other, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %other, align 4
+  store i32 0, ptr %other, align 4
+  br label %ifcont6
+}
+
+define internal i1 @"AdvQBool::AQB_operator&&"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.83)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @13, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @14, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @15, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %and = and i1 %3, %9
+  ret i1 %and
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator||"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.84)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @16, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @17, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @18, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %or = or i1 %3, %9
+  ret i1 %or
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator^"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.85)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @19, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @20, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @21, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %xor = xor i1 %3, %9
+  ret i1 %xor
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator!"(ptr %0) !qc.return_types !80 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  ret i1 %not
+}
+
+define internal i1 @"AdvQBool::AQB__eval"(ptr %0) !qc.return_types !80 {
+entry:
+  %builtin_call = call i32 @qc_random_range(i32 0, i32 100)
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  %FalseLevel = load i32, ptr %1, align 4
+  %icmplt = icmp slt i32 %builtin_call, %FalseLevel
+  br i1 %icmplt, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i1 false
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %entry
+  ret i1 true
+}
+
+define internal ptr @"AdvQBool::AQB__repr"(ptr %0) !qc.return_types !84 {
+entry:
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  %TruthLevel = load i32, ptr %1, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %TruthLevel)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.86, ptr %fstr_i32)
+  %fstr_concat1 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.87)
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  %FalseLevel = load i32, ptr %2, align 4
+  %fstr_i322 = call ptr @qc_to_string_int(i32 %FalseLevel)
+  %fstr_concat3 = call ptr @qc_string_concat(ptr %fstr_concat1, ptr %fstr_i322)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat3, ptr @.str.88)
+  ret ptr %fstr_concat4
+}
+
+define internal void @"Vector::Vec<int>_Vec"(ptr %0) !qc.return_types !35 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_reserve"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %"Vector::new_data" = alloca ptr, align 8
+  %cap = alloca i32, align 4
+  store i32 %1, ptr %cap, align 4
+  %cap1 = load i32, ptr %cap, align 4
+  %icmpeq = icmp eq i32 %cap1, 0
+  br i1 %icmpeq, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  call void @qc_free(ptr %data)
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %5, align 4
+  ret void
+
+ifcont:                                           ; preds = %entry
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data2 = load ptr, ptr %6, align 8
+  %cap3 = load i32, ptr %cap, align 4
+  %promote_int = sext i32 %cap3 to i64
+  %mul = mul i64 4, %promote_int
+  %builtin_call = call ptr @qc_realloc(ptr %data2, i64 %mul)
+  store ptr %builtin_call, ptr %"Vector::new_data", align 8
+  %new_data = load ptr, ptr %"Vector::new_data", align 8
+  %ptr_eq = icmp eq ptr %new_data, null
+  br i1 %ptr_eq, label %then4, label %ifcont5
+
+then4:                                            ; preds = %ifcont
+  ret void
+
+ifcont5:                                          ; preds = %ifcont
+  %cap6 = load i32, ptr %cap, align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 %cap6, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %8, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %9, align 4
+  %icmpgt = icmp sgt i32 %size, %capacity
+  br i1 %icmpgt, label %then7, label %ifcont8
+
+then7:                                            ; preds = %ifcont5
+  %10 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity9 = load i32, ptr %10, align 4
+  %11 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %capacity9, ptr %11, align 4
+  br label %ifcont8
+
+ifcont8:                                          ; preds = %then7, %ifcont5
+  %new_data10 = load ptr, ptr %"Vector::new_data", align 8
+  %12 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr %new_data10, ptr %12, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_push"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %value = alloca i32, align 4
+  store i32 %1, ptr %value, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %3, align 4
+  %icmple = icmp sle i32 %capacity, %size
+  br i1 %icmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity1 = load i32, ptr %4, align 4
+  %mul = mul i32 %capacity1, 2
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %5, align 4
+  %icmpeq = icmp eq i32 %capacity2, 0
+  %select_val = select i1 %icmpeq, i32 1, i32 %mul
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %select_val)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %6, align 8
+  %ptr_eq = icmp eq ptr %data, null
+  br i1 %ptr_eq, label %then3, label %ifcont4
+
+ifcont:                                           ; preds = %ifcont4, %entry
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size5 = load i32, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data6 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data6, i32 %size5
+  %value7 = load i32, ptr %value, align 4
+  store i32 %value7, ptr %ptr_arr_asi, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size8 = load i32, ptr %9, align 4
+  %10 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size9 = load i32, ptr %10, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %size_ptr, align 4
+  ret void
+
+then3:                                            ; preds = %then
+  ret void
+
+ifcont4:                                          ; preds = %then
+  br label %ifcont
+}
+
+define internal i32 @"Vector::Vec<int>_length"(ptr %0) !qc.return_types !78 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  ret i32 %size
+}
+
+define internal void @"Vector::Vec<int>_pop"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpgt = icmp sgt i32 %size, 0
+  br i1 %icmpgt, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size1 = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %size_ptr, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_shrinkToFit"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %size)
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_operator[]="(ptr %0, ptr %1, i32 %2) !qc.return_types !77 {
+entry:
+  %"Vector::i" = alloca i32, align 4
+  %length = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %length, align 4
+  %length1 = load i32, ptr %length, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 %length1, ptr %3, align 4
+  %length2 = load i32, ptr %length, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %length2, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %5, align 4
+  %promote_int = sext i32 %capacity to i64
+  %mul = mul i64 4, %promote_int
+  %builtin_call = call ptr @qc_malloc(i64 %mul)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr %builtin_call, ptr %6, align 8
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Vector::i", align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i3 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data4 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data4, i32 %i3
+  %i5 = load i32, ptr %"Vector::i", align 4
+  %data6 = load ptr, ptr %data, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data6, i32 %i5
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i7 = load i32, ptr %"Vector::i", align 4
+  %i8 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret void
+}
+
+define internal ptr @"Vector::Vec<int>_operator[]"(ptr %0, i32 %1) !qc.return_types !79 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  %index1 = load i32, ptr %index, align 4
+  %lval_arr_addr = getelementptr i32, ptr %data, i32 %index1
+  ret ptr %lval_arr_addr
+}
+
+define internal void @"Vector::Iterator::It<int>_It"(ptr %0, ptr %1, i32 %2, i1 %3) !qc.return_types !35 {
+entry:
+  %is_end = alloca i1, align 1
+  %size = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %size, align 4
+  store i1 %3, ptr %is_end, align 1
+  %data1 = load ptr, ptr %data, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  store ptr %data1, ptr %4, align 8
+  %size2 = load i32, ptr %size, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  store i32 %size2, ptr %5, align 4
+  %size3 = load i32, ptr %size, align 4
+  %is_end4 = load i1, ptr %is_end, align 1
+  %select_val = select i1 %is_end4, i32 %size3, i32 0
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  store i32 %select_val, ptr %6, align 4
+  ret void
+}
+
+define internal i1 @"Vector::Iterator::It<int>__atEnd"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %icmple = icmp sle i32 %size, %current_index
+  ret i1 %icmple
+}
+
+define internal i32 @"Vector::Iterator::It<int>__next"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %inc_deref
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal i1 @"Vector::Iterator::It<int>__atStart"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %1, align 4
+  %icmple = icmp sle i32 %current_index, 0
+  ret i1 %icmple
+}
+
+define internal i32 @"Vector::Iterator::It<int>__prev"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %dec
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal void @"Vector::Iterator::It<int>__moveTo"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %index1 = load i32, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %index1, %size
+  br i1 %icmpge, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  %assign_lhs_val = load i32, ptr %index, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %sub = sub i32 %size2, 1
+  store i32 %sub, ptr %index, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %elif.body, %elif.cond, %then
+  %index5 = load i32, ptr %index, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  store i32 %index5, ptr %4, align 4
+  ret void
+
+elif.cond:                                        ; preds = %entry
+  %index3 = load i32, ptr %index, align 4
+  %icmplt = icmp slt i32 %index3, 0
+  br i1 %icmplt, label %elif.body, label %ifcont
+
+elif.body:                                        ; preds = %elif.cond
+  %assign_lhs_val4 = load i32, ptr %index, align 4
+  store i32 0, ptr %index, align 4
+  br label %ifcont
+}
+
+define internal %"Vector::Iterator::It<int>" @"Vector::Vec<int>__begin"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<int>" = alloca %"Vector::Iterator::It<int>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<int>_It"(ptr %"temp_Vector::Iterator::It<int>", ptr %data, i32 %size, i1 false)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<int>_vtable", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<int>_inst" = load %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", align 8
+  ret %"Vector::Iterator::It<int>" %"Vector::Iterator::It<int>_inst"
+}
+
+define internal %"Vector::Iterator::It<int>" @"Vector::Vec<int>__end"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<int>" = alloca %"Vector::Iterator::It<int>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<int>_It"(ptr %"temp_Vector::Iterator::It<int>", ptr %data, i32 %size, i1 true)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<int>_vtable", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<int>_inst" = load %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", align 8
+  ret %"Vector::Iterator::It<int>" %"Vector::Iterator::It<int>_inst"
+}
+
+define internal void @"Vector::Vec<int>__destroy"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  call void @qc_free(ptr %data)
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 -1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 -1, ptr %4, align 4
+  ret void
+}
+
+define internal %"Vector::Vec<int>" @"Vector::Vec<int>_operator="(ptr %0, %"Vector::Vec<int>" %1) !qc.return_types !83 {
+entry:
+  %temp_obj14 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj9 = alloca %"Vector::Vec<int>", align 8
+  %"Vector::i" = alloca i32, align 4
+  %temp_obj7 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj4 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj = alloca %"Vector::Vec<int>", align 8
+  %other = alloca %"Vector::Vec<int>", align 8
+  store %"Vector::Vec<int>" %1, ptr %other, align 8
+  %other1 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other1, ptr %temp_obj, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %3, align 4
+  %icmpne = icmp ne i32 %capacity, %capacity2
+  br i1 %icmpne, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other3, ptr %temp_obj4, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj4, i32 0, i32 3
+  %capacity5 = load i32, ptr %4, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %capacity5)
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  %other6 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other6, ptr %temp_obj7, align 8
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj7, i32 0, i32 2
+  %size = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %size, ptr %6, align 4
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %ifcont
+  %i = load i32, ptr %"Vector::i", align 4
+  %other8 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other8, ptr %temp_obj9, align 8
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj9, i32 0, i32 2
+  %size10 = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i11 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data, i32 %i11
+  %i12 = load i32, ptr %"Vector::i", align 4
+  %other13 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other13, ptr %temp_obj14, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj14, i32 0, i32 1
+  %data15 = load ptr, ptr %9, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data15, i32 %i12
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i16 = load i32, ptr %"Vector::i", align 4
+  %i17 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret ptr %0
+}
+
+define internal i1 @"Vector::Vec<int>_isEmpty"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpeq = icmp eq i32 %size, 0
+  ret i1 %icmpeq
+}
+
+define internal %"Vector::Vec<int>" @"Utils::range"(i32 %start, i32 %stop, i32 %step) !qc.return_types !85 {
+entry:
+  %"temp_Vector::Vec<int>" = alloca %"Vector::Vec<int>", align 8
+  %fin = alloca %"Vector::Vec<int>", align 8
+  %step3 = alloca i32, align 4
+  %stop2 = alloca i32, align 4
+  %start1 = alloca i32, align 4
+  store i32 %start, ptr %start1, align 4
+  store i32 %stop, ptr %stop2, align 4
+  store i32 %step, ptr %step3, align 4
+  call void @"Vector::Vec<int>_Vec"(ptr %fin)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %fin, i32 0, i32 0
+  store ptr @"Vector::Vec<int>_vtable", ptr %vptr_field, align 8
+  %step4 = load i32, ptr %step3, align 4
+  %icmpgt = icmp sgt i32 %step4, 0
+  %start5 = load i32, ptr %start1, align 4
+  %stop6 = load i32, ptr %stop2, align 4
+  %icmple = icmp sle i32 %start5, %stop6
+  %and = and i1 %icmpgt, %icmple
+  br i1 %and, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  br label %for.cond
+
+ifcont:                                           ; preds = %for.end21, %for.end
+  %fin34 = load %"Vector::Vec<int>", ptr %fin, align 8
+  ret %"Vector::Vec<int>" %fin34
+
+elif.cond:                                        ; preds = %entry
+  %step13 = load i32, ptr %step3, align 4
+  %icmplt14 = icmp slt i32 %step13, 0
+  %start15 = load i32, ptr %start1, align 4
+  %stop16 = load i32, ptr %stop2, align 4
+  %icmpge = icmp sge i32 %start15, %stop16
+  %and17 = and i1 %icmplt14, %icmpge
+  br i1 %and17, label %elif.body, label %else
+
+elif.body:                                        ; preds = %elif.cond
+  br label %for.cond18
+
+else:                                             ; preds = %elif.cond
+  call void @"Vector::Vec<int>_Vec"(ptr %"temp_Vector::Vec<int>")
+  %vptr_field33 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %"temp_Vector::Vec<int>", i32 0, i32 0
+  store ptr @"Vector::Vec<int>_vtable", ptr %vptr_field33, align 8
+  %"Vector::Vec<int>_inst" = load %"Vector::Vec<int>", ptr %"temp_Vector::Vec<int>", align 8
+  ret %"Vector::Vec<int>" %"Vector::Vec<int>_inst"
+
+for.cond:                                         ; preds = %for.inc, %then
+  %start7 = load i32, ptr %start1, align 4
+  %stop8 = load i32, ptr %stop2, align 4
+  %icmplt = icmp slt i32 %start7, %stop8
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %start9 = load i32, ptr %start1, align 4
+  %0 = sext i32 %start9 to i64
+  call void @qc_print_string(ptr @0)
+  %1 = call ptr @qc_fmt_int(i64 %0, i32 -1, i32 -1, i1 false)
+  call void @qc_print_string(ptr %1)
+  call void @qc_print_string(ptr @1)
+  %start10 = load i32, ptr %start1, align 4
+  %vptr_field11 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %fin, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field11, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 2
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %fin, i32 %start10)
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %assign_lhs_val = load i32, ptr %start1, align 4
+  %step12 = load i32, ptr %step3, align 4
+  %add = add i32 %assign_lhs_val, %step12
+  store i32 %add, ptr %start1, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  br label %ifcont
+
+for.cond18:                                       ; preds = %for.inc20, %elif.body
+  %start22 = load i32, ptr %start1, align 4
+  %stop23 = load i32, ptr %stop2, align 4
+  %icmpgt24 = icmp sgt i32 %start22, %stop23
+  br i1 %icmpgt24, label %for.body19, label %for.end21
+
+for.body19:                                       ; preds = %for.cond18
+  %start25 = load i32, ptr %start1, align 4
+  %vptr_field26 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %fin, i32 0, i32 0
+  %vptr27 = load ptr, ptr %vptr_field26, align 8
+  %vtable_slot28 = getelementptr ptr, ptr %vptr27, i32 2
+  %fn_ptr29 = load ptr, ptr %vtable_slot28, align 8
+  call void %fn_ptr29(ptr %fin, i32 %start25)
+  br label %for.inc20
+
+for.inc20:                                        ; preds = %for.body19
+  %assign_lhs_val30 = load i32, ptr %start1, align 4
+  %step31 = load i32, ptr %step3, align 4
+  %add32 = add i32 %assign_lhs_val30, %step31
+  store i32 %add32, ptr %start1, align 4
+  br label %for.cond18
+
+for.end21:                                        ; preds = %for.cond18
+  br label %ifcont
+}
+
+define internal void @"Utils::sleep"(i64 %milliseconds) !qc.return_types !77 {
+entry:
+  %"Utils::result" = alloca i64, align 8
+  %"Utils::rem_nsec" = alloca i64, align 8
+  %"Utils::rem_sec" = alloca i64, align 8
+  %"Utils::req_nsec" = alloca i64, align 8
+  %"Utils::req_sec" = alloca i64, align 8
+  %milliseconds1 = alloca i64, align 8
+  store i64 %milliseconds, ptr %milliseconds1, align 8
+  %milliseconds2 = load i64, ptr %milliseconds1, align 8
+  %sdiv = sdiv i64 %milliseconds2, 1000
+  store i64 %sdiv, ptr %"Utils::req_sec", align 8
+  %milliseconds3 = load i64, ptr %milliseconds1, align 8
+  %srem = srem i64 %milliseconds3, 1000
+  %mul = mul i64 %srem, 1000000
+  store i64 %mul, ptr %"Utils::req_nsec", align 8
+  store i64 0, ptr %"Utils::rem_sec", align 8
+  store i64 0, ptr %"Utils::rem_nsec", align 8
+  br label %while.cond
+
+while.cond:                                       ; preds = %then6, %entry
+  br i1 true, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  store i64 0, ptr %"Utils::result", align 8
+  %req_sec = load i64, ptr %"Utils::req_sec", align 8
+  %rem_sec = load i64, ptr %"Utils::rem_sec", align 8
+  %0 = call i64 asm sideeffect inteldialect "\0A                mov rax, 230\0A                mov rdi, 1\0A                mov rsi, 0\0A                mov rdx, $1\0A                mov r10, $2\0A                syscall\0A                mov $0, rax\0A            ", "=r,r,r,~{rax},~{rdi},~{rsi},~{rdx},~{r10},~{rcx},~{r11}"(ptr %"Utils::req_sec", ptr %"Utils::rem_sec")
+  store i64 %0, ptr %"Utils::result", align 8
+  %result = load i64, ptr %"Utils::result", align 8
+  %icmpeq = icmp eq i64 %result, 0
+  br i1 %icmpeq, label %then, label %ifcont
+
+while.end:                                        ; preds = %ifcont7, %then, %while.cond
+  ret void
+
+then:                                             ; preds = %while.body
+  br label %while.end
+
+ifcont:                                           ; preds = %while.body
+  %result4 = load i64, ptr %"Utils::result", align 8
+  %icmpeq5 = icmp eq i64 %result4, -4
+  br i1 %icmpeq5, label %then6, label %ifcont7
+
+then6:                                            ; preds = %ifcont
+  %assign_lhs_val = load i64, ptr %"Utils::req_sec", align 8
+  %rem_sec8 = load i64, ptr %"Utils::rem_sec", align 8
+  store i64 %rem_sec8, ptr %"Utils::req_sec", align 8
+  %assign_lhs_val9 = load i64, ptr %"Utils::req_nsec", align 8
+  %rem_nsec = load i64, ptr %"Utils::rem_nsec", align 8
+  store i64 %rem_nsec, ptr %"Utils::req_nsec", align 8
+  br label %while.cond
+
+ifcont7:                                          ; preds = %ifcont
+  br label %while.end
+}
+
+define internal double @"Math::e"() !qc.return_types !86 {
+entry:
+  ret double 0x4005BF0A8B145769
+}
+
+define internal double @"Math::pi"() !qc.return_types !86 {
+entry:
+  ret double 0x400921FB54442D18
+}
+
+define internal %"Math::Number" @"Math::max"(%"Math::Number" %a, %"Math::Number" %b) !qc.return_types !87 {
+entry:
+  %union_op_result = alloca i1, align 1
+  %b2 = alloca %"Math::Number", align 8
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  store %"Math::Number" %b, ptr %b2, align 8
+  %a3 = load %"Math::Number", ptr %a1, align 8
+  %b4 = load %"Math::Number", ptr %b2, align 8
+  %ltag = extractvalue %"Math::Number" %a3, 0
+  %lpayload = extractvalue %"Math::Number" %a3, 1
+  %rpayload = extractvalue %"Math::Number" %b4, 1
+  switch i32 %ltag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result9 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result9, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %lmember = load i32, ptr %lpayload, align 4
+  %rmember = load i32, ptr %rpayload, align 4
+  %0 = icmp sgt i32 %lmember, %rmember
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %lmember5 = load float, ptr %lpayload, align 4
+  %rmember6 = load float, ptr %rpayload, align 4
+  %1 = fcmp ogt float %lmember5, %rmember6
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %lmember7 = load double, ptr %lpayload, align 8
+  %rmember8 = load double, ptr %rpayload, align 8
+  %2 = fcmp ogt double %lmember7, %rmember8
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %a10 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a10
+
+ifcont:                                           ; preds = %union_op_end
+  %b11 = load %"Math::Number", ptr %b2, align 8
+  ret %"Math::Number" %b11
+}
+
+define internal %"Math::Number" @"Math::min"(%"Math::Number" %a, %"Math::Number" %b) !qc.return_types !87 {
+entry:
+  %union_op_result = alloca i1, align 1
+  %b2 = alloca %"Math::Number", align 8
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  store %"Math::Number" %b, ptr %b2, align 8
+  %a3 = load %"Math::Number", ptr %a1, align 8
+  %b4 = load %"Math::Number", ptr %b2, align 8
+  %ltag = extractvalue %"Math::Number" %a3, 0
+  %lpayload = extractvalue %"Math::Number" %a3, 1
+  %rpayload = extractvalue %"Math::Number" %b4, 1
+  switch i32 %ltag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result9 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result9, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %lmember = load i32, ptr %lpayload, align 4
+  %rmember = load i32, ptr %rpayload, align 4
+  %0 = icmp sgt i32 %lmember, %rmember
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %lmember5 = load float, ptr %lpayload, align 4
+  %rmember6 = load float, ptr %rpayload, align 4
+  %1 = fcmp ogt float %lmember5, %rmember6
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %lmember7 = load double, ptr %lpayload, align 8
+  %rmember8 = load double, ptr %rpayload, align 8
+  %2 = fcmp ogt double %lmember7, %rmember8
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %b10 = load %"Math::Number", ptr %b2, align 8
+  ret %"Math::Number" %b10
+
+ifcont:                                           ; preds = %union_op_end
+  %a11 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a11
+}
+
+define internal %"Math::Number" @"Math::sqrt"(%"Math::Number" %val) !qc.return_types !87 {
+entry:
+  %val1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %val, ptr %val1, align 8
+  %val2 = load %"Math::Number", ptr %val1, align 8
+  %conv_tag = extractvalue %"Math::Number" %val2, 0
+  %conv_payload = extractvalue %"Math::Number" %val2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+    i32 2, label %conv_union_case_2
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_2, %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %to_double4, %conv_union_case_1 ], [ %conv_loaded5, %conv_union_case_2 ]
+  %pow = call double @llvm.pow.f64(double %conv_union_phi, double 5.000000e-01)
+  %union_heap = call ptr @malloc(i64 8)
+  store double %pow, ptr %union_heap, align 8
+  %0 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %0
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load i32, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_int(i32 %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load float, ptr %conv_payload, align 4
+  %to_double4 = call double @qc_to_double_from_float(float %conv_loaded3)
+  br label %conv_union_end
+
+conv_union_case_2:                                ; preds = %entry
+  %conv_loaded5 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare double @llvm.pow.f64(double, double) #28
+
+define internal %"Math::Number" @"Math::root"(%"Math::Number" %val, %"Math::Number" %power) !qc.return_types !87 {
+entry:
+  %"Math::exp" = alloca double, align 8
+  %"Math::base" = alloca double, align 8
+  %power2 = alloca %"Math::Number", align 8
+  %val1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %val, ptr %val1, align 8
+  store %"Math::Number" %power, ptr %power2, align 8
+  %val3 = load %"Math::Number", ptr %val1, align 8
+  %conv_tag = extractvalue %"Math::Number" %val3, 0
+  %conv_payload = extractvalue %"Math::Number" %val3, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+    i32 2, label %conv_union_case_2
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_2, %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %to_double5, %conv_union_case_1 ], [ %conv_loaded6, %conv_union_case_2 ]
+  store double %conv_union_phi, ptr %"Math::base", align 8
+  %power7 = load %"Math::Number", ptr %power2, align 8
+  %conv_tag8 = extractvalue %"Math::Number" %power7, 0
+  %conv_payload9 = extractvalue %"Math::Number" %power7, 1
+  switch i32 %conv_tag8, label %conv_union_fail11 [
+    i32 0, label %conv_union_case_012
+    i32 1, label %conv_union_case_115
+    i32 2, label %conv_union_case_218
+  ]
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load i32, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_int(i32 %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded4 = load float, ptr %conv_payload, align 4
+  %to_double5 = call double @qc_to_double_from_float(float %conv_loaded4)
+  br label %conv_union_end
+
+conv_union_case_2:                                ; preds = %entry
+  %conv_loaded6 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+conv_union_end10:                                 ; preds = %conv_union_case_218, %conv_union_case_115, %conv_union_case_012
+  %conv_union_phi20 = phi double [ %to_double14, %conv_union_case_012 ], [ %to_double17, %conv_union_case_115 ], [ %conv_loaded19, %conv_union_case_218 ]
+  %fdiv = fdiv double 1.000000e+00, %conv_union_phi20
+  store double %fdiv, ptr %"Math::exp", align 8
+  %base = load double, ptr %"Math::base", align 8
+  %exp = load double, ptr %"Math::exp", align 8
+  %pow = call double @llvm.pow.f64(double %base, double %exp)
+  %union_heap = call ptr @malloc(i64 8)
+  store double %pow, ptr %union_heap, align 8
+  %0 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %0
+
+conv_union_fail11:                                ; preds = %conv_union_end
+  unreachable
+
+conv_union_case_012:                              ; preds = %conv_union_end
+  %conv_loaded13 = load i32, ptr %conv_payload9, align 4
+  %to_double14 = call double @qc_to_double_from_int(i32 %conv_loaded13)
+  br label %conv_union_end10
+
+conv_union_case_115:                              ; preds = %conv_union_end
+  %conv_loaded16 = load float, ptr %conv_payload9, align 4
+  %to_double17 = call double @qc_to_double_from_float(float %conv_loaded16)
+  br label %conv_union_end10
+
+conv_union_case_218:                              ; preds = %conv_union_end
+  %conv_loaded19 = load double, ptr %conv_payload9, align 8
+  br label %conv_union_end10
+}
+
+define internal i32 @"Math::ceil"(%"Math::Floating" %a) !qc.return_types !78 {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::d" = alloca double, align 8
+  %a1 = alloca %"Math::Floating", align 8
+  store %"Math::Floating" %a, ptr %a1, align 8
+  %a2 = load %"Math::Floating", ptr %a1, align 8
+  %conv_tag = extractvalue %"Math::Floating" %a2, 0
+  %conv_payload = extractvalue %"Math::Floating" %a2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %conv_loaded3, %conv_union_case_1 ]
+  store double %conv_union_phi, ptr %"Math::d", align 8
+  %d = load double, ptr %"Math::d", align 8
+  %to_int = call i32 @qc_to_int_from_double(double %d)
+  store i32 %to_int, ptr %"Math::i", align 4
+  %d4 = load double, ptr %"Math::d", align 8
+  %i = load i32, ptr %"Math::i", align 4
+  %to_double5 = call double @qc_to_double_from_int(i32 %i)
+  %fcmpeq = fcmp oeq double %d4, %to_double5
+  br i1 %fcmpeq, label %then, label %elif.cond
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load float, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_float(float %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+then:                                             ; preds = %conv_union_end
+  %i6 = load i32, ptr %"Math::i", align 4
+  ret i32 %i6
+
+ifcont:                                           ; No predecessors!
+  ret i32 0
+
+elif.cond:                                        ; preds = %conv_union_end
+  %d7 = load double, ptr %"Math::d", align 8
+  %fcmpgt = fcmp ogt double %d7, 0.000000e+00
+  br i1 %fcmpgt, label %elif.body, label %else
+
+elif.body:                                        ; preds = %elif.cond
+  %i8 = load i32, ptr %"Math::i", align 4
+  %add = add i32 %i8, 1
+  ret i32 %add
+
+else:                                             ; preds = %elif.cond
+  %i9 = load i32, ptr %"Math::i", align 4
+  ret i32 %i9
+}
+
+define internal i32 @"Math::floor"(%"Math::Floating" %a) !qc.return_types !78 {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::d" = alloca double, align 8
+  %a1 = alloca %"Math::Floating", align 8
+  store %"Math::Floating" %a, ptr %a1, align 8
+  %a2 = load %"Math::Floating", ptr %a1, align 8
+  %conv_tag = extractvalue %"Math::Floating" %a2, 0
+  %conv_payload = extractvalue %"Math::Floating" %a2, 1
+  switch i32 %conv_tag, label %conv_union_fail [
+    i32 0, label %conv_union_case_0
+    i32 1, label %conv_union_case_1
+  ]
+
+conv_union_end:                                   ; preds = %conv_union_case_1, %conv_union_case_0
+  %conv_union_phi = phi double [ %to_double, %conv_union_case_0 ], [ %conv_loaded3, %conv_union_case_1 ]
+  store double %conv_union_phi, ptr %"Math::d", align 8
+  %d = load double, ptr %"Math::d", align 8
+  %to_int = call i32 @qc_to_int_from_double(double %d)
+  store i32 %to_int, ptr %"Math::i", align 4
+  %d4 = load double, ptr %"Math::d", align 8
+  %fcmpge = fcmp oge double %d4, 0.000000e+00
+  br i1 %fcmpge, label %then, label %else
+
+conv_union_fail:                                  ; preds = %entry
+  unreachable
+
+conv_union_case_0:                                ; preds = %entry
+  %conv_loaded = load float, ptr %conv_payload, align 4
+  %to_double = call double @qc_to_double_from_float(float %conv_loaded)
+  br label %conv_union_end
+
+conv_union_case_1:                                ; preds = %entry
+  %conv_loaded3 = load double, ptr %conv_payload, align 8
+  br label %conv_union_end
+
+then:                                             ; preds = %conv_union_end
+  %i = load i32, ptr %"Math::i", align 4
+  ret i32 %i
+
+ifcont:                                           ; preds = %ifcont9
+  ret i32 0
+
+else:                                             ; preds = %conv_union_end
+  %d5 = load double, ptr %"Math::d", align 8
+  %i6 = load i32, ptr %"Math::i", align 4
+  %to_double7 = call double @qc_to_double_from_int(i32 %i6)
+  %fcmpeq = fcmp oeq double %d5, %to_double7
+  br i1 %fcmpeq, label %then8, label %else10
+
+then8:                                            ; preds = %else
+  %i11 = load i32, ptr %"Math::i", align 4
+  ret i32 %i11
+
+ifcont9:                                          ; No predecessors!
+  br label %ifcont
+
+else10:                                           ; preds = %else
+  %i12 = load i32, ptr %"Math::i", align 4
+  %sub = sub i32 %i12, 1
+  ret i32 %sub
+}
+
+define internal %"Math::Number" @"Math::abs"(%"Math::Number" %a) !qc.return_types !87 {
+entry:
+  %union_op_result10 = alloca double, align 8
+  %union_op_result = alloca i1, align 1
+  %a1 = alloca %"Math::Number", align 8
+  store %"Math::Number" %a, ptr %a1, align 8
+  %a2 = load %"Math::Number", ptr %a1, align 8
+  %tag = extractvalue %"Math::Number" %a2, 0
+  %payload = extractvalue %"Math::Number" %a2, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %entry
+  %union_op_result5 = load i1, ptr %union_op_result, align 1
+  br i1 %union_op_result5, label %then, label %ifcont
+
+union_op_case_0:                                  ; preds = %entry
+  %member = load i32, ptr %payload, align 4
+  %0 = icmp slt i32 %member, 0
+  store i1 %0, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %entry
+  %member3 = load float, ptr %payload, align 4
+  %1 = fcmp olt float %member3, 0.000000e+00
+  store i1 %1, ptr %union_op_result, align 1
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %entry
+  %member4 = load double, ptr %payload, align 8
+  %2 = fcmp olt double %member4, 0.000000e+00
+  store i1 %2, ptr %union_op_result, align 1
+  br label %union_op_end
+
+then:                                             ; preds = %union_op_end
+  %a6 = load %"Math::Number", ptr %a1, align 8
+  %tag7 = extractvalue %"Math::Number" %a6, 0
+  %payload8 = extractvalue %"Math::Number" %a6, 1
+  switch i32 %tag7, label %union_op_end9 [
+    i32 0, label %union_op_case_011
+    i32 1, label %union_op_case_113
+    i32 2, label %union_op_case_215
+  ]
+
+ifcont:                                           ; preds = %union_op_end
+  %a18 = load %"Math::Number", ptr %a1, align 8
+  ret %"Math::Number" %a18
+
+union_op_end9:                                    ; preds = %union_op_case_215, %union_op_case_113, %union_op_case_011, %then
+  %union_op_result17 = load double, ptr %union_op_result10, align 8
+  %union_heap = call ptr @malloc(i64 8)
+  store double %union_op_result17, ptr %union_heap, align 8
+  %3 = insertvalue %"Math::Number" { i32 2, ptr undef }, ptr %union_heap, 1
+  ret %"Math::Number" %3
+
+union_op_case_011:                                ; preds = %then
+  %member12 = load i32, ptr %payload8, align 4
+  %4 = mul i32 %member12, -1
+  %5 = sitofp i32 %4 to double
+  store double %5, ptr %union_op_result10, align 8
+  br label %union_op_end9
+
+union_op_case_113:                                ; preds = %then
+  %member14 = load float, ptr %payload8, align 4
+  %6 = fmul float %member14, -1.000000e+00
+  %7 = fpext float %6 to double
+  store double %7, ptr %union_op_result10, align 8
+  br label %union_op_end9
+
+union_op_case_215:                                ; preds = %then
+  %member16 = load double, ptr %payload8, align 8
+  %8 = fmul double %member16, -1.000000e+00
+  store double %8, ptr %union_op_result10, align 8
+  br label %union_op_end9
+}
+
+define internal double @"Math::sin"(double %x) !qc.return_types !86 {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::n" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::pi" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  store double 0x400921FB54442D18, ptr %"Math::pi", align 8
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %entry
+  %x2 = load double, ptr %x1, align 8
+  %pi = load double, ptr %"Math::pi", align 8
+  %fcmpgt = fcmp ogt double %x2, %pi
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %pi3 = load double, ptr %"Math::pi", align 8
+  %fmul = fmul double 2.000000e+00, %pi3
+  %fsub = fsub double %assign_lhs_val, %fmul
+  store double %fsub, ptr %x1, align 8
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond4
+
+while.cond4:                                      ; preds = %while.body5, %while.end
+  %x7 = load double, ptr %x1, align 8
+  %pi8 = load double, ptr %"Math::pi", align 8
+  %fneg = fneg double %pi8
+  %fcmplt = fcmp olt double %x7, %fneg
+  br i1 %fcmplt, label %while.body5, label %while.end6
+
+while.body5:                                      ; preds = %while.cond4
+  %assign_lhs_val9 = load double, ptr %x1, align 8
+  %pi10 = load double, ptr %"Math::pi", align 8
+  %fmul11 = fmul double 2.000000e+00, %pi10
+  %fadd = fadd double %assign_lhs_val9, %fmul11
+  store double %fadd, ptr %x1, align 8
+  br label %while.cond4
+
+while.end6:                                       ; preds = %while.cond4
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  %x12 = load double, ptr %x1, align 8
+  store double %x12, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::n", align 4
+  store i32 0, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end6
+  %i = load i32, ptr %"Math::i", align 4
+  %icmplt = icmp slt i32 %i, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val13 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %fadd14 = fadd double %assign_lhs_val13, %term
+  store double %fadd14, ptr %"Math::result", align 8
+  %assign_lhs_val15 = load double, ptr %"Math::term", align 8
+  %x16 = load double, ptr %x1, align 8
+  %fmul17 = fmul double -1.000000e+00, %x16
+  %x18 = load double, ptr %x1, align 8
+  %fmul19 = fmul double %fmul17, %x18
+  %n = load i32, ptr %"Math::n", align 4
+  %mul = mul i32 2, %n
+  %n20 = load i32, ptr %"Math::n", align 4
+  %mul21 = mul i32 2, %n20
+  %add = add i32 %mul21, 1
+  %mul22 = mul i32 %mul, %add
+  %int_to_float = sitofp i32 %mul22 to double
+  %fdiv = fdiv double %fmul19, %int_to_float
+  %fmul23 = fmul double %assign_lhs_val15, %fdiv
+  store double %fmul23, ptr %"Math::term", align 8
+  %n24 = load i32, ptr %"Math::n", align 4
+  %n25 = load i32, ptr %"Math::n", align 4
+  %inc_deref = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i26 = load i32, ptr %"Math::i", align 4
+  %i27 = load i32, ptr %"Math::i", align 4
+  %inc_deref28 = load i32, ptr %"Math::i", align 4
+  %inc29 = add i32 %inc_deref28, 1
+  store i32 %inc29, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  ret double %result
+}
+
+define internal double @"Math::cos"(double %x) !qc.return_types !86 {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::n" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::pi" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  store double 0x400921FB54442D18, ptr %"Math::pi", align 8
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %entry
+  %x2 = load double, ptr %x1, align 8
+  %pi = load double, ptr %"Math::pi", align 8
+  %fcmpgt = fcmp ogt double %x2, %pi
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %pi3 = load double, ptr %"Math::pi", align 8
+  %fmul = fmul double 2.000000e+00, %pi3
+  %fsub = fsub double %assign_lhs_val, %fmul
+  store double %fsub, ptr %x1, align 8
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond4
+
+while.cond4:                                      ; preds = %while.body5, %while.end
+  %x7 = load double, ptr %x1, align 8
+  %pi8 = load double, ptr %"Math::pi", align 8
+  %fneg = fneg double %pi8
+  %fcmplt = fcmp olt double %x7, %fneg
+  br i1 %fcmplt, label %while.body5, label %while.end6
+
+while.body5:                                      ; preds = %while.cond4
+  %assign_lhs_val9 = load double, ptr %x1, align 8
+  %pi10 = load double, ptr %"Math::pi", align 8
+  %fmul11 = fmul double 2.000000e+00, %pi10
+  %fadd = fadd double %assign_lhs_val9, %fmul11
+  store double %fadd, ptr %x1, align 8
+  br label %while.cond4
+
+while.end6:                                       ; preds = %while.cond4
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  store double 1.000000e+00, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::n", align 4
+  store i32 0, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end6
+  %i = load i32, ptr %"Math::i", align 4
+  %icmplt = icmp slt i32 %i, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val12 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %fadd13 = fadd double %assign_lhs_val12, %term
+  store double %fadd13, ptr %"Math::result", align 8
+  %assign_lhs_val14 = load double, ptr %"Math::term", align 8
+  %x15 = load double, ptr %x1, align 8
+  %fmul16 = fmul double -1.000000e+00, %x15
+  %x17 = load double, ptr %x1, align 8
+  %fmul18 = fmul double %fmul16, %x17
+  %n = load i32, ptr %"Math::n", align 4
+  %mul = mul i32 2, %n
+  %sub = sub i32 %mul, 1
+  %n19 = load i32, ptr %"Math::n", align 4
+  %mul20 = mul i32 2, %n19
+  %mul21 = mul i32 %sub, %mul20
+  %int_to_float = sitofp i32 %mul21 to double
+  %fdiv = fdiv double %fmul18, %int_to_float
+  %fmul22 = fmul double %assign_lhs_val14, %fdiv
+  store double %fmul22, ptr %"Math::term", align 8
+  %n23 = load i32, ptr %"Math::n", align 4
+  %n24 = load i32, ptr %"Math::n", align 4
+  %inc_deref = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i25 = load i32, ptr %"Math::i", align 4
+  %i26 = load i32, ptr %"Math::i", align 4
+  %inc_deref27 = load i32, ptr %"Math::i", align 4
+  %inc28 = add i32 %inc_deref27, 1
+  store i32 %inc28, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  ret double %result
+}
+
+define internal double @"Math::tan"(double %x) !qc.return_types !86 {
+entry:
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  %x2 = load double, ptr %x1, align 8
+  %calltmp = call double @"Math::sin"(double %x2)
+  %x3 = load double, ptr %x1, align 8
+  %calltmp4 = call double @"Math::cos"(double %x3)
+  %fdiv = fdiv double %calltmp, %calltmp4
+  %x5 = load double, ptr %x1, align 8
+  %calltmp6 = call double @"Math::sin"(double %x5)
+  %fcmpeq = fcmp oeq double %calltmp6, 0.000000e+00
+  %x7 = load double, ptr %x1, align 8
+  %calltmp8 = call double @"Math::cos"(double %x7)
+  %fcmpeq9 = fcmp oeq double %calltmp8, 0.000000e+00
+  %or = or i1 %fcmpeq, %fcmpeq9
+  %select_val = select i1 %or, double 0.000000e+00, double %fdiv
+  ret double %select_val
+}
+
+define internal double @"Math::log"(double %x) !qc.return_types !86 {
+entry:
+  %"Math::i" = alloca i32, align 4
+  %"Math::term" = alloca double, align 8
+  %"Math::result" = alloca double, align 8
+  %"Math::y" = alloca double, align 8
+  %"Math::n" = alloca i32, align 4
+  %"Math::log2" = alloca double, align 8
+  %x1 = alloca double, align 8
+  store double %x, ptr %x1, align 8
+  %x2 = load double, ptr %x1, align 8
+  %fcmple = fcmp ole double %x2, 0.000000e+00
+  br i1 %fcmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  ret double 0.000000e+00
+
+ifcont:                                           ; preds = %entry
+  store double 0x3FE62E42FEFA39EF, ptr %"Math::log2", align 8
+  store i32 0, ptr %"Math::n", align 4
+  br label %while.cond
+
+while.cond:                                       ; preds = %while.body, %ifcont
+  %x3 = load double, ptr %x1, align 8
+  %fcmpgt = fcmp ogt double %x3, 2.000000e+00
+  br i1 %fcmpgt, label %while.body, label %while.end
+
+while.body:                                       ; preds = %while.cond
+  %assign_lhs_val = load double, ptr %x1, align 8
+  %fdiv = fdiv double %assign_lhs_val, 2.000000e+00
+  store double %fdiv, ptr %x1, align 8
+  %n = load i32, ptr %"Math::n", align 4
+  %n4 = load i32, ptr %"Math::n", align 4
+  %inc_deref = load i32, ptr %"Math::n", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Math::n", align 4
+  br label %while.cond
+
+while.end:                                        ; preds = %while.cond
+  br label %while.cond5
+
+while.cond5:                                      ; preds = %while.body6, %while.end
+  %x8 = load double, ptr %x1, align 8
+  %fcmplt = fcmp olt double %x8, 5.000000e-01
+  br i1 %fcmplt, label %while.body6, label %while.end7
+
+while.body6:                                      ; preds = %while.cond5
+  %assign_lhs_val9 = load double, ptr %x1, align 8
+  %fmul = fmul double %assign_lhs_val9, 2.000000e+00
+  store double %fmul, ptr %x1, align 8
+  %n10 = load i32, ptr %"Math::n", align 4
+  %n11 = load i32, ptr %"Math::n", align 4
+  %inc_deref12 = load i32, ptr %"Math::n", align 4
+  %dec = sub i32 %inc_deref12, 1
+  store i32 %dec, ptr %"Math::n", align 4
+  br label %while.cond5
+
+while.end7:                                       ; preds = %while.cond5
+  %x13 = load double, ptr %x1, align 8
+  %fsub = fsub double %x13, 1.000000e+00
+  store double %fsub, ptr %"Math::y", align 8
+  store double 0.000000e+00, ptr %"Math::result", align 8
+  %y = load double, ptr %"Math::y", align 8
+  store double %y, ptr %"Math::term", align 8
+  store i32 1, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %while.end7
+  %i = load i32, ptr %"Math::i", align 4
+  %icmple = icmp sle i32 %i, 20
+  br i1 %icmple, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %assign_lhs_val14 = load double, ptr %"Math::result", align 8
+  %term = load double, ptr %"Math::term", align 8
+  %i15 = load i32, ptr %"Math::i", align 4
+  %to_double = call double @qc_to_double_from_int(i32 %i15)
+  %fdiv16 = fdiv double %term, %to_double
+  %fadd = fadd double %assign_lhs_val14, %fdiv16
+  store double %fadd, ptr %"Math::result", align 8
+  %assign_lhs_val17 = load double, ptr %"Math::term", align 8
+  %y18 = load double, ptr %"Math::y", align 8
+  %fneg = fneg double %y18
+  %fmul19 = fmul double %assign_lhs_val17, %fneg
+  store double %fmul19, ptr %"Math::term", align 8
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i20 = load i32, ptr %"Math::i", align 4
+  %i21 = load i32, ptr %"Math::i", align 4
+  %inc_deref22 = load i32, ptr %"Math::i", align 4
+  %inc23 = add i32 %inc_deref22, 1
+  store i32 %inc23, ptr %"Math::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %result = load double, ptr %"Math::result", align 8
+  %n24 = load i32, ptr %"Math::n", align 4
+  %log2 = load double, ptr %"Math::log2", align 8
+  %int_to_float = sitofp i32 %n24 to double
+  %fmul25 = fmul double %int_to_float, %log2
+  %fadd26 = fadd double %result, %fmul25
+  ret double %fadd26
+}
+
+define internal void @"OSInterop::system"(ptr %command) !qc.return_types !77 {
+entry:
+  %command1 = alloca ptr, align 8
+  store ptr %command, ptr %command1, align 8
+  call void @qc_flush()
+  %command2 = load ptr, ptr %command1, align 8
+  call void asm sideeffect inteldialect "\0A        mov rdi, $0\0A        call system\0A        ", "r,~{rdi}"(ptr %command2)
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_Vec.89"(ptr %0) !qc.return_types !35 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_reserve.90"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %"Vector::new_data" = alloca ptr, align 8
+  %cap = alloca i32, align 4
+  store i32 %1, ptr %cap, align 4
+  %cap1 = load i32, ptr %cap, align 4
+  %icmpeq = icmp eq i32 %cap1, 0
+  br i1 %icmpeq, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  call void @qc_free(ptr %data)
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %5, align 4
+  ret void
+
+ifcont:                                           ; preds = %entry
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data2 = load ptr, ptr %6, align 8
+  %cap3 = load i32, ptr %cap, align 4
+  %promote_int = sext i32 %cap3 to i64
+  %mul = mul i64 8, %promote_int
+  %builtin_call = call ptr @qc_realloc(ptr %data2, i64 %mul)
+  store ptr %builtin_call, ptr %"Vector::new_data", align 8
+  %new_data = load ptr, ptr %"Vector::new_data", align 8
+  %ptr_eq = icmp eq ptr %new_data, null
+  br i1 %ptr_eq, label %then4, label %ifcont5
+
+then4:                                            ; preds = %ifcont
+  ret void
+
+ifcont5:                                          ; preds = %ifcont
+  %cap6 = load i32, ptr %cap, align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 %cap6, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %8, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %9, align 4
+  %icmpgt = icmp sgt i32 %size, %capacity
+  br i1 %icmpgt, label %then7, label %ifcont8
+
+then7:                                            ; preds = %ifcont5
+  %10 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity9 = load i32, ptr %10, align 4
+  %11 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %capacity9, ptr %11, align 4
+  br label %ifcont8
+
+ifcont8:                                          ; preds = %then7, %ifcont5
+  %new_data10 = load ptr, ptr %"Vector::new_data", align 8
+  %12 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr %new_data10, ptr %12, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_push.91"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %value = alloca ptr, align 8
+  store ptr %1, ptr %value, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %3, align 4
+  %icmple = icmp sle i32 %capacity, %size
+  br i1 %icmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity1 = load i32, ptr %4, align 4
+  %mul = mul i32 %capacity1, 2
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %5, align 4
+  %icmpeq = icmp eq i32 %capacity2, 0
+  %select_val = select i1 %icmpeq, i32 1, i32 %mul
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %select_val)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %6, align 8
+  %ptr_eq = icmp eq ptr %data, null
+  br i1 %ptr_eq, label %then3, label %ifcont4
+
+ifcont:                                           ; preds = %ifcont4, %entry
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size5 = load i32, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data6 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data6, i32 %size5
+  %value7 = load ptr, ptr %value, align 8
+  store ptr %value7, ptr %ptr_arr_asi, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size8 = load i32, ptr %9, align 4
+  %10 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size9 = load i32, ptr %10, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %size_ptr, align 4
+  ret void
+
+then3:                                            ; preds = %then
+  ret void
+
+ifcont4:                                          ; preds = %then
+  br label %ifcont
+}
+
+define internal i32 @"Vector::Vec<string>_length.92"(ptr %0) !qc.return_types !78 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  ret i32 %size
+}
+
+define internal void @"Vector::Vec<string>_pop.93"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpgt = icmp sgt i32 %size, 0
+  br i1 %icmpgt, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size1 = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %size_ptr, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_shrinkToFit.94"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %size)
+  ret void
+}
+
+define internal void @"Vector::Vec<string>_operator[]=.95"(ptr %0, ptr %1, i32 %2) !qc.return_types !77 {
+entry:
+  %"Vector::i" = alloca i32, align 4
+  %length = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %length, align 4
+  %length1 = load i32, ptr %length, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 %length1, ptr %3, align 4
+  %length2 = load i32, ptr %length, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %length2, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %5, align 4
+  %promote_int = sext i32 %capacity to i64
+  %mul = mul i64 8, %promote_int
+  %builtin_call = call ptr @qc_malloc(i64 %mul)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr %builtin_call, ptr %6, align 8
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Vector::i", align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i3 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data4 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data4, i32 %i3
+  %i5 = load i32, ptr %"Vector::i", align 4
+  %data6 = load ptr, ptr %data, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data6, i32 %i5
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  store ptr %ptr_arr_val, ptr %ptr_arr_asi, align 8
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i7 = load i32, ptr %"Vector::i", align 4
+  %i8 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret void
+}
+
+define internal ptr @"Vector::Vec<string>_operator[].96"(ptr %0, i32 %1) !qc.return_types !79 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  %index1 = load i32, ptr %index, align 4
+  %lval_arr_addr = getelementptr ptr, ptr %data, i32 %index1
+  ret ptr %lval_arr_addr
+}
+
+define internal void @"Vector::Iterator::It<string>_It.97"(ptr %0, ptr %1, i32 %2, i1 %3) !qc.return_types !35 {
+entry:
+  %is_end = alloca i1, align 1
+  %size = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %size, align 4
+  store i1 %3, ptr %is_end, align 1
+  %data1 = load ptr, ptr %data, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
+  store ptr %data1, ptr %4, align 8
+  %size2 = load i32, ptr %size, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
+  store i32 %size2, ptr %5, align 4
+  %size3 = load i32, ptr %size, align 4
+  %is_end4 = load i1, ptr %is_end, align 1
+  %select_val = select i1 %is_end4, i32 %size3, i32 0
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  store i32 %select_val, ptr %6, align 4
+  ret void
+}
+
+define internal i1 @"Vector::Iterator::It<string>__atEnd.98"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %icmple = icmp sle i32 %size, %current_index
+  ret i1 %icmple
+}
+
+define internal ptr @"Vector::Iterator::It<string>__next.99"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data, i32 %inc_deref
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  ret ptr %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr ptr, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load ptr, ptr %ptr_arr_addr4, align 8
+  ret ptr %ptr_arr_val5
+}
+
+define internal i1 @"Vector::Iterator::It<string>__atStart.100"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %1, align 4
+  %icmple = icmp sle i32 %current_index, 0
+  ret i1 %icmple
+}
+
+define internal ptr @"Vector::Iterator::It<string>__prev.101"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data, i32 %dec
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  ret ptr %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr ptr, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load ptr, ptr %ptr_arr_addr4, align 8
+  ret ptr %ptr_arr_val5
+}
+
+define internal void @"Vector::Iterator::It<string>__moveTo.102"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %index1 = load i32, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %index1, %size
+  br i1 %icmpge, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  %assign_lhs_val = load i32, ptr %index, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %sub = sub i32 %size2, 1
+  store i32 %sub, ptr %index, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %elif.body, %elif.cond, %then
+  %index5 = load i32, ptr %index, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %0, i32 0, i32 3
+  store i32 %index5, ptr %4, align 4
+  ret void
+
+elif.cond:                                        ; preds = %entry
+  %index3 = load i32, ptr %index, align 4
+  %icmplt = icmp slt i32 %index3, 0
+  br i1 %icmplt, label %elif.body, label %ifcont
+
+elif.body:                                        ; preds = %elif.cond
+  %assign_lhs_val4 = load i32, ptr %index, align 4
+  store i32 0, ptr %index, align 4
+  br label %ifcont
+}
+
+define internal %"Vector::Iterator::It<string>" @"Vector::Vec<string>__begin.104"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<string>" = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<string>_It.97"(ptr %"temp_Vector::Iterator::It<string>", ptr %data, i32 %size, i1 false)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<string>_vtable.103", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<string>_inst" = load %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", align 8
+  ret %"Vector::Iterator::It<string>" %"Vector::Iterator::It<string>_inst"
+}
+
+define internal %"Vector::Iterator::It<string>" @"Vector::Vec<string>__end.105"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<string>" = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<string>_It.97"(ptr %"temp_Vector::Iterator::It<string>", ptr %data, i32 %size, i1 true)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<string>_vtable.103", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<string>_inst" = load %"Vector::Iterator::It<string>", ptr %"temp_Vector::Iterator::It<string>", align 8
+  ret %"Vector::Iterator::It<string>" %"Vector::Iterator::It<string>_inst"
+}
+
+define internal void @"Vector::Vec<string>__destroy.106"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  call void @qc_free(ptr %data)
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 -1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  store i32 -1, ptr %4, align 4
+  ret void
+}
+
+define internal %"Vector::Vec<string>" @"Vector::Vec<string>_operator=.107"(ptr %0, %"Vector::Vec<string>" %1) !qc.return_types !83 {
+entry:
+  %temp_obj14 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj9 = alloca %"Vector::Vec<string>", align 8
+  %"Vector::i" = alloca i32, align 4
+  %temp_obj7 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj4 = alloca %"Vector::Vec<string>", align 8
+  %temp_obj = alloca %"Vector::Vec<string>", align 8
+  %other = alloca %"Vector::Vec<string>", align 8
+  store %"Vector::Vec<string>" %1, ptr %other, align 8
+  %other1 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other1, ptr %temp_obj, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %3, align 4
+  %icmpne = icmp ne i32 %capacity, %capacity2
+  br i1 %icmpne, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other3, ptr %temp_obj4, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj4, i32 0, i32 3
+  %capacity5 = load i32, ptr %4, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %capacity5)
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  %other6 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other6, ptr %temp_obj7, align 8
+  %5 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj7, i32 0, i32 2
+  %size = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  store i32 %size, ptr %6, align 4
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %ifcont
+  %i = load i32, ptr %"Vector::i", align 4
+  %other8 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other8, ptr %temp_obj9, align 8
+  %7 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj9, i32 0, i32 2
+  %size10 = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i11 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr ptr, ptr %data, i32 %i11
+  %i12 = load i32, ptr %"Vector::i", align 4
+  %other13 = load %"Vector::Vec<string>", ptr %other, align 8
+  store %"Vector::Vec<string>" %other13, ptr %temp_obj14, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %temp_obj14, i32 0, i32 1
+  %data15 = load ptr, ptr %9, align 8
+  %ptr_arr_addr = getelementptr ptr, ptr %data15, i32 %i12
+  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8
+  store ptr %ptr_arr_val, ptr %ptr_arr_asi, align 8
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i16 = load i32, ptr %"Vector::i", align 4
+  %i17 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret ptr %0
+}
+
+define internal i1 @"Vector::Vec<string>_isEmpty.108"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpeq = icmp eq i32 %size, 0
+  ret i1 %icmpeq
+}
+
+define internal void @"UnitTest::Test_Test.112"(ptr %0, i32 %1) !qc.return_types !35 {
+entry:
+  %"temp_Vector::Vec<string>" = alloca %"Vector::Vec<string>", align 8
+  %Ttl = alloca i32, align 4
+  store i32 %1, ptr %Ttl, align 4
+  call void @"Vector::Vec<string>_Vec.89"(ptr %"temp_Vector::Vec<string>")
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %"temp_Vector::Vec<string>", i32 0, i32 0
+  store ptr @"Vector::Vec<string>_vtable.109", ptr %vptr_field, align 8
+  %"Vector::Vec<string>_inst" = load %"Vector::Vec<string>", ptr %"temp_Vector::Vec<string>", align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  store %"Vector::Vec<string>" %"Vector::Vec<string>_inst", ptr %2, align 8
+  %Ttl1 = load i32, ptr %Ttl, align 4
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  store i32 %Ttl1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  ret void
+}
+
+define internal void @"UnitTest::Test_Check.113"(ptr %0) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  %__foreach_i_message = alloca i32, align 4
+  %__iter_message = alloca %"Vector::Iterator::It<string>", align 8
+  %1 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %Ran, %Total
+  br i1 %icmpge, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %4, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %5 = call i32 %fn_ptr(ptr %4)
+  %icmpgt = icmp sgt i32 %5, 0
+  br i1 %icmpgt, label %then1, label %ifcont2
+
+ifcont:                                           ; preds = %ifcont11, %entry
+  ret void
+
+then1:                                            ; preds = %then
+  %Messages_ptr = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %_begin_result = call %"Vector::Iterator::It<string>" @"Vector::Vec<string>__begin.104"(ptr %Messages_ptr)
+  store %"Vector::Iterator::It<string>" %_begin_result, ptr %__iter_message, align 8
+  store i32 0, ptr %__foreach_i_message, align 4
+  br label %foreach.cond
+
+ifcont2:                                          ; preds = %foreach.end, %then
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed = load i32, ptr %6, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Failed)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.263, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.264)
+  call void @qc_print_string(ptr @75)
+  %7 = call ptr @qc_fmt_string(ptr %fstr_concat4, i32 -1, i1 false)
+  call void @qc_print_string(ptr %7)
+  call void @qc_print_string(ptr @76)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Passed = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Passed)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr @.str.266, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.267)
+  call void @qc_print_string(ptr @77)
+  %9 = call ptr @qc_fmt_string(ptr %fstr_concat7, i32 -1, i1 false)
+  call void @qc_print_string(ptr %9)
+  call void @qc_print_string(ptr @78)
+  call void @qc_print_string(ptr @79)
+  %10 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed8 = load i32, ptr %10, align 4
+  %icmpgt9 = icmp sgt i32 %Failed8, 0
+  br i1 %icmpgt9, label %then10, label %else
+
+foreach.cond:                                     ; preds = %foreach.body, %then1
+  %_atEnd_result = call i1 @"Vector::Iterator::It<string>__atEnd.98"(ptr %__iter_message)
+  br i1 %_atEnd_result, label %foreach.end, label %foreach.body
+
+foreach.body:                                     ; preds = %foreach.cond
+  %11 = load %"Vector::Iterator::It<string>", ptr %__iter_message, align 8
+  %_next_result = call ptr @"Vector::Iterator::It<string>__next.99"(ptr %__iter_message)
+  store ptr %_next_result, ptr %message, align 8
+  call void @qc_print_string(ptr @71)
+  %message3 = load ptr, ptr %message, align 8
+  call void @qc_print_string(ptr @72)
+  %12 = call ptr @qc_fmt_string(ptr %message3, i32 -1, i1 false)
+  call void @qc_print_string(ptr %12)
+  call void @qc_print_string(ptr @73)
+  br label %foreach.cond
+
+foreach.inc:                                      ; No predecessors!
+
+foreach.end:                                      ; preds = %foreach.cond
+  call void @qc_print_string(ptr @74)
+  br label %ifcont2
+
+then10:                                           ; preds = %ifcont2
+  call void @qc_print_string(ptr @80)
+  br label %ifcont11
+
+ifcont11:                                         ; preds = %else, %then10
+  br label %ifcont
+
+else:                                             ; preds = %ifcont2
+  call void @qc_print_string(ptr @81)
+  br label %ifcont11
+}
+
+define internal void @"UnitTest::Test_Success.114"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  %Passed = load i32, ptr %4, align 4
+  %add1 = add i32 %Passed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 3
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.271, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.272)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.273)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %6, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 2
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %6, ptr %str_concat)
+  %vptr_field8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr9 = load ptr, ptr %vptr_field8, align 8
+  %vtable_slot10 = getelementptr ptr, ptr %vptr9, i32 1
+  %fn_ptr11 = load ptr, ptr %vtable_slot10, align 8
+  call void %fn_ptr11(ptr %0)
+  ret void
+}
+
+define internal void @"UnitTest::Test_Fail.115"(ptr %0, ptr %1) !qc.return_types !77 {
+entry:
+  %message = alloca ptr, align 8
+  store ptr %1, ptr %message, align 8
+  %2 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran = load i32, ptr %2, align 4
+  %add = add i32 %Ran, 1
+  %3 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  store i32 %add, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  %Failed = load i32, ptr %4, align 4
+  %add1 = add i32 %Failed, 1
+  %5 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 4
+  store i32 %add1, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 5
+  %message2 = load ptr, ptr %message, align 8
+  %7 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 2
+  %Ran3 = load i32, ptr %7, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %Ran3)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.274, ptr %fstr_i32)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.275)
+  %8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 1
+  %Total = load i32, ptr %8, align 4
+  %fstr_i325 = call ptr @qc_to_string_int(i32 %Total)
+  %fstr_concat6 = call ptr @qc_string_concat(ptr %fstr_concat4, ptr %fstr_i325)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat6, ptr @.str.276)
+  %str_concat = call ptr @qc_string_concat(ptr %message2, ptr %fstr_concat7)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %6, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 2
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %6, ptr %str_concat)
+  %vptr_field8 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr9 = load ptr, ptr %vptr_field8, align 8
+  %vtable_slot10 = getelementptr ptr, ptr %vptr9, i32 1
+  %fn_ptr11 = load ptr, ptr %vtable_slot10, align 8
+  call void %fn_ptr11(ptr %0)
+  ret void
+}
+
+define internal void @"UnitTest::Test_AssertTrue.116"(ptr %0, i1 %1, ptr %2, ptr %3) !qc.return_types !77 {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  %not = xor i1 %cond1, true
+  br i1 %not, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.277)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont18, %ifcont4
+  ret void
+
+else:                                             ; preds = %entry
+  %Call16 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call16, ptr @.str.281)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then17, label %else19
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.278, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.279)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.280, ptr %FailMessage10)
+  %vptr_field12 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr13 = load ptr, ptr %vptr_field12, align 8
+  %vtable_slot14 = getelementptr ptr, ptr %vptr13, i32 3
+  %fn_ptr15 = load ptr, ptr %vtable_slot14, align 8
+  call void %fn_ptr15(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then17:                                           ; preds = %else
+  %Call20 = load ptr, ptr %Call, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr @.str.282, ptr %Call20)
+  %fstr_concat22 = call ptr @qc_string_concat(ptr %fstr_concat21, ptr @.str.283)
+  %vptr_field23 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr24 = load ptr, ptr %vptr_field23, align 8
+  %vtable_slot25 = getelementptr ptr, ptr %vptr24, i32 2
+  %fn_ptr26 = load ptr, ptr %vtable_slot25, align 8
+  call void %fn_ptr26(ptr %0, ptr %fstr_concat22)
+  br label %ifcont18
+
+ifcont18:                                         ; preds = %else19, %then17
+  br label %ifcont
+
+else19:                                           ; preds = %else
+  %vptr_field27 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr28 = load ptr, ptr %vptr_field27, align 8
+  %vtable_slot29 = getelementptr ptr, ptr %vptr28, i32 2
+  %fn_ptr30 = load ptr, ptr %vtable_slot29, align 8
+  call void %fn_ptr30(ptr %0, ptr @.str.284)
+  br label %ifcont18
+}
+
+define internal void @"UnitTest::Test_AssertFalse.117"(ptr %0, i1 %1, ptr %2, ptr %3) !qc.return_types !77 {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %cond = alloca i1, align 1
+  store i1 %1, ptr %cond, align 1
+  store ptr %2, ptr %FailMessage, align 8
+  store ptr %3, ptr %Call, align 8
+  %cond1 = load i1, ptr %cond, align 1
+  br i1 %cond1, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call2 = load ptr, ptr %Call, align 8
+  %4 = call i1 @qc_string_eq(ptr %Call2, ptr @.str.285)
+  %5 = xor i1 %4, true
+  br i1 %5, label %then3, label %else5
+
+ifcont:                                           ; preds = %ifcont18, %ifcont4
+  ret void
+
+else:                                             ; preds = %entry
+  %Call16 = load ptr, ptr %Call, align 8
+  %6 = call i1 @qc_string_eq(ptr %Call16, ptr @.str.289)
+  %7 = xor i1 %6, true
+  br i1 %7, label %then17, label %else19
+
+then3:                                            ; preds = %then
+  %Call6 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.286, ptr %Call6)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.287)
+  %FailMessage8 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat9 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr %FailMessage8)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat9)
+  br label %ifcont4
+
+ifcont4:                                          ; preds = %else5, %then3
+  br label %ifcont
+
+else5:                                            ; preds = %then
+  %FailMessage10 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat11 = call ptr @qc_string_concat(ptr @.str.288, ptr %FailMessage10)
+  %vptr_field12 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr13 = load ptr, ptr %vptr_field12, align 8
+  %vtable_slot14 = getelementptr ptr, ptr %vptr13, i32 3
+  %fn_ptr15 = load ptr, ptr %vtable_slot14, align 8
+  call void %fn_ptr15(ptr %0, ptr %fstr_concat11)
+  br label %ifcont4
+
+then17:                                           ; preds = %else
+  %Call20 = load ptr, ptr %Call, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr @.str.290, ptr %Call20)
+  %fstr_concat22 = call ptr @qc_string_concat(ptr %fstr_concat21, ptr @.str.291)
+  %vptr_field23 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr24 = load ptr, ptr %vptr_field23, align 8
+  %vtable_slot25 = getelementptr ptr, ptr %vptr24, i32 2
+  %fn_ptr26 = load ptr, ptr %vtable_slot25, align 8
+  call void %fn_ptr26(ptr %0, ptr %fstr_concat22)
+  br label %ifcont18
+
+ifcont18:                                         ; preds = %else19, %then17
+  br label %ifcont
+
+else19:                                           ; preds = %else
+  %vptr_field27 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr28 = load ptr, ptr %vptr_field27, align 8
+  %vtable_slot29 = getelementptr ptr, ptr %vptr28, i32 2
+  %fn_ptr30 = load ptr, ptr %vtable_slot29, align 8
+  call void %fn_ptr30(ptr %0, ptr @.str.292)
+  br label %ifcont18
+}
+
+define internal void @"AdvQBool::AQB_AQB.119"(ptr %0, i32 %1) !qc.return_types !35 {
+entry:
+  %truth = alloca i32, align 4
+  store i32 %1, ptr %truth, align 4
+  %truth1 = load i32, ptr %truth, align 4
+  %icmpgt = icmp sgt i32 %truth1, 100
+  %truth2 = load i32, ptr %truth, align 4
+  %icmplt = icmp slt i32 %truth2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %truth3 = load i32, ptr %truth, align 4
+  %icmpgt4 = icmp sgt i32 %truth3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %truth8 = load i32, ptr %truth, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %truth8, ptr %2, align 4
+  %truth9 = load i32, ptr %truth, align 4
+  %sub = sub i32 100, %truth9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  store i32 %sub, ptr %3, align 4
+  ret void
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %truth, align 4
+  store i32 100, ptr %truth, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %truth, align 4
+  store i32 0, ptr %truth, align 4
+  br label %ifcont6
+}
+
+define internal void @"AdvQBool::AQB_operator=.120"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %other = alloca i32, align 4
+  store i32 %1, ptr %other, align 4
+  %other1 = load i32, ptr %other, align 4
+  %icmpgt = icmp sgt i32 %other1, 100
+  %other2 = load i32, ptr %other, align 4
+  %icmplt = icmp slt i32 %other2, 0
+  %or = or i1 %icmpgt, %icmplt
+  br i1 %or, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load i32, ptr %other, align 4
+  %icmpgt4 = icmp sgt i32 %other3, 100
+  br i1 %icmpgt4, label %then5, label %else
+
+ifcont:                                           ; preds = %ifcont6, %entry
+  %other8 = load i32, ptr %other, align 4
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  store i32 %other8, ptr %2, align 4
+  %other9 = load i32, ptr %other, align 4
+  %sub = sub i32 100, %other9
+  %3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  store i32 %sub, ptr %3, align 4
+  ret void
+
+then5:                                            ; preds = %then
+  %assign_lhs_val = load i32, ptr %other, align 4
+  store i32 100, ptr %other, align 4
+  br label %ifcont6
+
+ifcont6:                                          ; preds = %else, %then5
+  br label %ifcont
+
+else:                                             ; preds = %then
+  %assign_lhs_val7 = load i32, ptr %other, align 4
+  store i32 0, ptr %other, align 4
+  br label %ifcont6
+}
+
+define internal i1 @"AdvQBool::AQB_operator&&.121"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.293)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @82, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @83, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @84, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %and = and i1 %3, %9
+  ret i1 %and
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator||.122"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.294)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @85, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @86, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @87, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %or = or i1 %3, %9
+  ret i1 %or
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator^.123"(ptr %0, %"AdvQBool::AlTypes" %1) !qc.return_types !80 {
+entry:
+  %union_op_result = alloca double, align 8
+  %typeof_result = alloca ptr, align 8
+  %other = alloca %"AdvQBool::AlTypes", align 8
+  store %"AdvQBool::AlTypes" %1, ptr %other, align 8
+  %other1 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %typeof_tag = extractvalue %"AdvQBool::AlTypes" %other1, 0
+  switch i32 %typeof_tag, label %typeof_end [
+    i32 0, label %typeof_case_0
+    i32 1, label %typeof_case_1
+    i32 2, label %typeof_case_2
+  ]
+
+typeof_end:                                       ; preds = %typeof_case_2, %typeof_case_1, %typeof_case_0, %entry
+  %typeof_result2 = load ptr, ptr %typeof_result, align 8
+  %2 = call i1 @qc_string_eq(ptr %typeof_result2, ptr @.str.295)
+  br i1 %2, label %then, label %else
+
+typeof_case_0:                                    ; preds = %entry
+  store ptr @88, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_1:                                    ; preds = %entry
+  store ptr @89, ptr %typeof_result, align 8
+  br label %typeof_end
+
+typeof_case_2:                                    ; preds = %entry
+  store ptr @90, ptr %typeof_result, align 8
+  br label %typeof_end
+
+then:                                             ; preds = %typeof_end
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call i1 %fn_ptr(ptr %0)
+  %4 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  switch i32 %5, label %union.bad [
+    i32 2, label %union.case
+  ]
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %typeof_end
+  %vptr_field7 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr8 = load ptr, ptr %vptr_field7, align 8
+  %vtable_slot9 = getelementptr ptr, ptr %vptr8, i32 6
+  %fn_ptr10 = load ptr, ptr %vtable_slot9, align 8
+  %6 = call i1 %fn_ptr10(ptr %0)
+  %other11 = load %"AdvQBool::AlTypes", ptr %other, align 8
+  %tag = extractvalue %"AdvQBool::AlTypes" %other11, 0
+  %payload = extractvalue %"AdvQBool::AlTypes" %other11, 1
+  switch i32 %tag, label %union_op_end [
+    i32 0, label %union_op_case_0
+    i32 1, label %union_op_case_1
+    i32 2, label %union_op_case_2
+  ]
+
+union.bad:                                        ; preds = %then
+  unreachable
+
+union.join:                                       ; preds = %union.case
+  %xor = xor i1 %3, %9
+  ret i1 %xor
+
+union.case:                                       ; preds = %then
+  %7 = getelementptr inbounds nuw %"AdvQBool::AlTypes", ptr %other, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %vptr_field3 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %8, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 6
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %9 = call i1 %fn_ptr6(ptr %8)
+  br label %union.join
+
+union_op_end:                                     ; preds = %union_op_case_2, %union_op_case_1, %union_op_case_0, %else
+  %union_op_result14 = load double, ptr %union_op_result, align 8
+  ret double %union_op_result14
+
+union_op_case_0:                                  ; preds = %else
+  %member = load i2, ptr %payload, align 1
+  %10 = sext i1 %6 to i2
+  %11 = sitofp i2 %member to double
+  store double %11, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_1:                                  ; preds = %else
+  %member12 = load i1, ptr %payload, align 1
+  %12 = sitofp i1 %member12 to double
+  store double %12, ptr %union_op_result, align 8
+  br label %union_op_end
+
+union_op_case_2:                                  ; preds = %else
+  %member13 = load %"AdvQBool::AQB", ptr %payload, align 8
+  store %"AdvQBool::AQB" %member13, ptr %union_op_result, align 8
+  br label %union_op_end
+}
+
+define internal i1 @"AdvQBool::AQB_operator!.124"(ptr %0) !qc.return_types !80 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 6
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  ret i1 %not
+}
+
+define internal i1 @"AdvQBool::AQB__eval.125"(ptr %0) !qc.return_types !80 {
+entry:
+  %builtin_call = call i32 @qc_random_range(i32 0, i32 100)
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  %FalseLevel = load i32, ptr %1, align 4
+  %icmplt = icmp slt i32 %builtin_call, %FalseLevel
+  br i1 %icmplt, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i1 false
+
+ifcont:                                           ; No predecessors!
+  ret i1 false
+
+else:                                             ; preds = %entry
+  ret i1 true
+}
+
+define internal ptr @"AdvQBool::AQB__repr.126"(ptr %0) !qc.return_types !84 {
+entry:
+  %1 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 1
+  %TruthLevel = load i32, ptr %1, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %TruthLevel)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.296, ptr %fstr_i32)
+  %fstr_concat1 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.297)
+  %2 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %0, i32 0, i32 2
+  %FalseLevel = load i32, ptr %2, align 4
+  %fstr_i322 = call ptr @qc_to_string_int(i32 %FalseLevel)
+  %fstr_concat3 = call ptr @qc_string_concat(ptr %fstr_concat1, ptr %fstr_i322)
+  %fstr_concat4 = call ptr @qc_string_concat(ptr %fstr_concat3, ptr @.str.298)
+  ret ptr %fstr_concat4
+}
+
+define internal i32 @__user_entry() !qc.return_types !78 {
+entry:
+  %aqb2 = alloca %"AdvQBool::AQB", align 8
+  %i = alloca i32, align 4
+  %trueCount = alloca i32, align 4
+  %temp_repr = alloca %"AdvQBool::AQB", align 8
+  %aqb = alloca %"AdvQBool::AQB", align 8
+  %test = alloca %"UnitTest::Test", align 8
+  %fstr_union_result84 = alloca ptr, align 8
+  %fstr_union_result66 = alloca ptr, align 8
+  %fstr_union_result48 = alloca ptr, align 8
+  %fstr_union_result = alloca ptr, align 8
+  %temp_obj = alloca %"Vector::Vec<int>", align 8
+  %r1 = alloca %"Vector::Vec<int>", align 8
+  call void @qc_print_string(ptr @22)
+  call void @qc_print_string(ptr @23)
+  %calltmp = call %"Vector::Vec<int>" @"Utils::range"(i32 0, i32 10, i32 2)
+  store %"Vector::Vec<int>" %calltmp, ptr %r1, align 8
+  %r11 = load %"Vector::Vec<int>", ptr %r1, align 8
+  store %"Vector::Vec<int>" %r11, ptr %temp_obj, align 8
+  %0 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj, i32 0, i32 2
+  %size = load i32, ptr %0, align 4
+  %1 = sext i32 %size to i64
+  call void @qc_print_string(ptr @24)
+  %2 = call ptr @qc_fmt_int(i64 %1, i32 -1, i32 -1, i1 false)
+  call void @qc_print_string(ptr %2)
+  call void @qc_print_string(ptr @25)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %r1, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 7
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %3 = call ptr %fn_ptr(ptr %r1, i32 0)
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.155, ptr %3)
+  %fstr_concat2 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.156)
+  %vptr_field3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %r1, i32 0, i32 0
+  %vptr4 = load ptr, ptr %vptr_field3, align 8
+  %vtable_slot5 = getelementptr ptr, ptr %vptr4, i32 7
+  %fn_ptr6 = load ptr, ptr %vtable_slot5, align 8
+  %4 = call ptr %fn_ptr6(ptr %r1, i32 1)
+  %fstr_concat7 = call ptr @qc_string_concat(ptr %fstr_concat2, ptr %4)
+  %fstr_concat8 = call ptr @qc_string_concat(ptr %fstr_concat7, ptr @.str.157)
+  %vptr_field9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %r1, i32 0, i32 0
+  %vptr10 = load ptr, ptr %vptr_field9, align 8
+  %vtable_slot11 = getelementptr ptr, ptr %vptr10, i32 7
+  %fn_ptr12 = load ptr, ptr %vtable_slot11, align 8
+  %5 = call ptr %fn_ptr12(ptr %r1, i32 2)
+  %fstr_concat13 = call ptr @qc_string_concat(ptr %fstr_concat8, ptr %5)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat13, ptr @.str.158)
+  %vptr_field15 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %r1, i32 0, i32 0
+  %vptr16 = load ptr, ptr %vptr_field15, align 8
+  %vtable_slot17 = getelementptr ptr, ptr %vptr16, i32 7
+  %fn_ptr18 = load ptr, ptr %vtable_slot17, align 8
+  %6 = call ptr %fn_ptr18(ptr %r1, i32 3)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr %6)
+  %fstr_concat20 = call ptr @qc_string_concat(ptr %fstr_concat19, ptr @.str.159)
+  %vptr_field21 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %r1, i32 0, i32 0
+  %vptr22 = load ptr, ptr %vptr_field21, align 8
+  %vtable_slot23 = getelementptr ptr, ptr %vptr22, i32 7
+  %fn_ptr24 = load ptr, ptr %vtable_slot23, align 8
+  %7 = call ptr %fn_ptr24(ptr %r1, i32 4)
+  %fstr_concat25 = call ptr @qc_string_concat(ptr %fstr_concat20, ptr %7)
+  %fstr_concat26 = call ptr @qc_string_concat(ptr %fstr_concat25, ptr @.str.160)
+  call void @qc_print_string(ptr @26)
+  %8 = call ptr @qc_fmt_string(ptr %fstr_concat26, i32 -1, i1 false)
+  call void @qc_print_string(ptr %8)
+  call void @qc_print_string(ptr @27)
+  call void @qc_print_string(ptr @28)
+  call void @"Utils::sleep"(i32 1000)
+  call void @qc_print_string(ptr @29)
+  call void @qc_print_string(ptr @30)
+  %calltmp27 = call double @"Math::pi"()
+  %fstr_f64 = call ptr @qc_to_string_double(double %calltmp27)
+  %fstr_concat28 = call ptr @qc_string_concat(ptr @.str.165, ptr %fstr_f64)
+  %fstr_concat29 = call ptr @qc_string_concat(ptr %fstr_concat28, ptr @.str.166)
+  call void @qc_print_string(ptr @31)
+  %9 = call ptr @qc_fmt_string(ptr %fstr_concat29, i32 -1, i1 false)
+  call void @qc_print_string(ptr %9)
+  call void @qc_print_string(ptr @32)
+  %calltmp30 = call double @"Math::e"()
+  %fstr_f6431 = call ptr @qc_to_string_double(double %calltmp30)
+  %fstr_concat32 = call ptr @qc_string_concat(ptr @.str.168, ptr %fstr_f6431)
+  %fstr_concat33 = call ptr @qc_string_concat(ptr %fstr_concat32, ptr @.str.169)
+  call void @qc_print_string(ptr @33)
+  %10 = call ptr @qc_fmt_string(ptr %fstr_concat33, i32 -1, i1 false)
+  call void @qc_print_string(ptr %10)
+  call void @qc_print_string(ptr @34)
+  %union_heap = call ptr @malloc(i64 4)
+  store i32 5, ptr %union_heap, align 4
+  %11 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap, 1
+  %union_heap34 = call ptr @malloc(i64 4)
+  store i32 10, ptr %union_heap34, align 4
+  %12 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap34, 1
+  %calltmp35 = call %"Math::Number" @"Math::max"(%"Math::Number" %11, %"Math::Number" %12)
+  %union_tag = extractvalue %"Math::Number" %calltmp35, 0
+  %union_payload = extractvalue %"Math::Number" %calltmp35, 1
+  switch i32 %union_tag, label %fstr_union_end [
+    i32 0, label %fstr_union_case_0
+    i32 1, label %fstr_union_case_1
+    i32 2, label %fstr_union_case_2
+  ]
+
+fstr_union_end:                                   ; preds = %fstr_union_case_2, %fstr_union_case_1, %fstr_union_case_0, %entry
+  %fstr_union_result39 = load ptr, ptr %fstr_union_result, align 8
+  %fstr_concat40 = call ptr @qc_string_concat(ptr @.str.171, ptr %fstr_union_result39)
+  %fstr_concat41 = call ptr @qc_string_concat(ptr %fstr_concat40, ptr @.str.172)
+  call void @qc_print_string(ptr @35)
+  %13 = call ptr @qc_fmt_string(ptr %fstr_concat41, i32 -1, i1 false)
+  call void @qc_print_string(ptr %13)
+  call void @qc_print_string(ptr @36)
+  %union_heap42 = call ptr @malloc(i64 4)
+  store i32 5, ptr %union_heap42, align 4
+  %14 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap42, 1
+  %union_heap43 = call ptr @malloc(i64 4)
+  store i32 10, ptr %union_heap43, align 4
+  %15 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap43, 1
+  %calltmp44 = call %"Math::Number" @"Math::min"(%"Math::Number" %14, %"Math::Number" %15)
+  %union_tag45 = extractvalue %"Math::Number" %calltmp44, 0
+  %union_payload46 = extractvalue %"Math::Number" %calltmp44, 1
+  switch i32 %union_tag45, label %fstr_union_end47 [
+    i32 0, label %fstr_union_case_049
+    i32 1, label %fstr_union_case_152
+    i32 2, label %fstr_union_case_255
+  ]
+
+fstr_union_case_0:                                ; preds = %entry
+  %union_member = load i32, ptr %union_payload, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %union_member)
+  store ptr %fstr_i32, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_case_1:                                ; preds = %entry
+  %union_member36 = load float, ptr %union_payload, align 4
+  %fstr_f32 = call ptr @qc_to_string_float(float %union_member36)
+  store ptr %fstr_f32, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_case_2:                                ; preds = %entry
+  %union_member37 = load double, ptr %union_payload, align 8
+  %fstr_f6438 = call ptr @qc_to_string_double(double %union_member37)
+  store ptr %fstr_f6438, ptr %fstr_union_result, align 8
+  br label %fstr_union_end
+
+fstr_union_end47:                                 ; preds = %fstr_union_case_255, %fstr_union_case_152, %fstr_union_case_049, %fstr_union_end
+  %fstr_union_result58 = load ptr, ptr %fstr_union_result48, align 8
+  %fstr_concat59 = call ptr @qc_string_concat(ptr @.str.174, ptr %fstr_union_result58)
+  %fstr_concat60 = call ptr @qc_string_concat(ptr %fstr_concat59, ptr @.str.175)
+  call void @qc_print_string(ptr @37)
+  %16 = call ptr @qc_fmt_string(ptr %fstr_concat60, i32 -1, i1 false)
+  call void @qc_print_string(ptr %16)
+  call void @qc_print_string(ptr @38)
+  %union_heap61 = call ptr @malloc(i64 4)
+  store i32 16, ptr %union_heap61, align 4
+  %17 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap61, 1
+  %calltmp62 = call %"Math::Number" @"Math::sqrt"(%"Math::Number" %17)
+  %union_tag63 = extractvalue %"Math::Number" %calltmp62, 0
+  %union_payload64 = extractvalue %"Math::Number" %calltmp62, 1
+  switch i32 %union_tag63, label %fstr_union_end65 [
+    i32 0, label %fstr_union_case_067
+    i32 1, label %fstr_union_case_170
+    i32 2, label %fstr_union_case_273
+  ]
+
+fstr_union_case_049:                              ; preds = %fstr_union_end
+  %union_member50 = load i32, ptr %union_payload46, align 4
+  %fstr_i3251 = call ptr @qc_to_string_int(i32 %union_member50)
+  store ptr %fstr_i3251, ptr %fstr_union_result48, align 8
+  br label %fstr_union_end47
+
+fstr_union_case_152:                              ; preds = %fstr_union_end
+  %union_member53 = load float, ptr %union_payload46, align 4
+  %fstr_f3254 = call ptr @qc_to_string_float(float %union_member53)
+  store ptr %fstr_f3254, ptr %fstr_union_result48, align 8
+  br label %fstr_union_end47
+
+fstr_union_case_255:                              ; preds = %fstr_union_end
+  %union_member56 = load double, ptr %union_payload46, align 8
+  %fstr_f6457 = call ptr @qc_to_string_double(double %union_member56)
+  store ptr %fstr_f6457, ptr %fstr_union_result48, align 8
+  br label %fstr_union_end47
+
+fstr_union_end65:                                 ; preds = %fstr_union_case_273, %fstr_union_case_170, %fstr_union_case_067, %fstr_union_end47
+  %fstr_union_result76 = load ptr, ptr %fstr_union_result66, align 8
+  %fstr_concat77 = call ptr @qc_string_concat(ptr @.str.177, ptr %fstr_union_result76)
+  %fstr_concat78 = call ptr @qc_string_concat(ptr %fstr_concat77, ptr @.str.178)
+  call void @qc_print_string(ptr @39)
+  %18 = call ptr @qc_fmt_string(ptr %fstr_concat78, i32 -1, i1 false)
+  call void @qc_print_string(ptr %18)
+  call void @qc_print_string(ptr @40)
+  %union_heap79 = call ptr @malloc(i64 4)
+  store i32 -42, ptr %union_heap79, align 4
+  %19 = insertvalue %"Math::Number" { i32 0, ptr undef }, ptr %union_heap79, 1
+  %calltmp80 = call %"Math::Number" @"Math::abs"(%"Math::Number" %19)
+  %union_tag81 = extractvalue %"Math::Number" %calltmp80, 0
+  %union_payload82 = extractvalue %"Math::Number" %calltmp80, 1
+  switch i32 %union_tag81, label %fstr_union_end83 [
+    i32 0, label %fstr_union_case_085
+    i32 1, label %fstr_union_case_188
+    i32 2, label %fstr_union_case_291
+  ]
+
+fstr_union_case_067:                              ; preds = %fstr_union_end47
+  %union_member68 = load i32, ptr %union_payload64, align 4
+  %fstr_i3269 = call ptr @qc_to_string_int(i32 %union_member68)
+  store ptr %fstr_i3269, ptr %fstr_union_result66, align 8
+  br label %fstr_union_end65
+
+fstr_union_case_170:                              ; preds = %fstr_union_end47
+  %union_member71 = load float, ptr %union_payload64, align 4
+  %fstr_f3272 = call ptr @qc_to_string_float(float %union_member71)
+  store ptr %fstr_f3272, ptr %fstr_union_result66, align 8
+  br label %fstr_union_end65
+
+fstr_union_case_273:                              ; preds = %fstr_union_end47
+  %union_member74 = load double, ptr %union_payload64, align 8
+  %fstr_f6475 = call ptr @qc_to_string_double(double %union_member74)
+  store ptr %fstr_f6475, ptr %fstr_union_result66, align 8
+  br label %fstr_union_end65
+
+fstr_union_end83:                                 ; preds = %fstr_union_case_291, %fstr_union_case_188, %fstr_union_case_085, %fstr_union_end65
+  %fstr_union_result94 = load ptr, ptr %fstr_union_result84, align 8
+  %fstr_concat95 = call ptr @qc_string_concat(ptr @.str.180, ptr %fstr_union_result94)
+  %fstr_concat96 = call ptr @qc_string_concat(ptr %fstr_concat95, ptr @.str.181)
+  call void @qc_print_string(ptr @41)
+  %20 = call ptr @qc_fmt_string(ptr %fstr_concat96, i32 -1, i1 false)
+  call void @qc_print_string(ptr %20)
+  call void @qc_print_string(ptr @42)
+  %union_heap97 = call ptr @malloc(i64 8)
+  store double 3.200000e+00, ptr %union_heap97, align 8
+  %21 = insertvalue %"Math::Floating" { i32 1, ptr undef }, ptr %union_heap97, 1
+  %calltmp98 = call i32 @"Math::ceil"(%"Math::Floating" %21)
+  %fstr_i3299 = call ptr @qc_to_string_int(i32 %calltmp98)
+  %fstr_concat100 = call ptr @qc_string_concat(ptr @.str.183, ptr %fstr_i3299)
+  %fstr_concat101 = call ptr @qc_string_concat(ptr %fstr_concat100, ptr @.str.184)
+  call void @qc_print_string(ptr @43)
+  %22 = call ptr @qc_fmt_string(ptr %fstr_concat101, i32 -1, i1 false)
+  call void @qc_print_string(ptr %22)
+  call void @qc_print_string(ptr @44)
+  %union_heap102 = call ptr @malloc(i64 8)
+  store double 3.800000e+00, ptr %union_heap102, align 8
+  %23 = insertvalue %"Math::Floating" { i32 1, ptr undef }, ptr %union_heap102, 1
+  %calltmp103 = call i32 @"Math::floor"(%"Math::Floating" %23)
+  %fstr_i32104 = call ptr @qc_to_string_int(i32 %calltmp103)
+  %fstr_concat105 = call ptr @qc_string_concat(ptr @.str.186, ptr %fstr_i32104)
+  %fstr_concat106 = call ptr @qc_string_concat(ptr %fstr_concat105, ptr @.str.187)
+  call void @qc_print_string(ptr @45)
+  %24 = call ptr @qc_fmt_string(ptr %fstr_concat106, i32 -1, i1 false)
+  call void @qc_print_string(ptr %24)
+  call void @qc_print_string(ptr @46)
+  %calltmp107 = call double @"Math::sin"(double 0.000000e+00)
+  %fstr_f64108 = call ptr @qc_to_string_double(double %calltmp107)
+  %fstr_concat109 = call ptr @qc_string_concat(ptr @.str.189, ptr %fstr_f64108)
+  %fstr_concat110 = call ptr @qc_string_concat(ptr %fstr_concat109, ptr @.str.190)
+  call void @qc_print_string(ptr @47)
+  %25 = call ptr @qc_fmt_string(ptr %fstr_concat110, i32 -1, i1 false)
+  call void @qc_print_string(ptr %25)
+  call void @qc_print_string(ptr @48)
+  %calltmp111 = call double @"Math::cos"(double 0.000000e+00)
+  %fstr_f64112 = call ptr @qc_to_string_double(double %calltmp111)
+  %fstr_concat113 = call ptr @qc_string_concat(ptr @.str.192, ptr %fstr_f64112)
+  %fstr_concat114 = call ptr @qc_string_concat(ptr %fstr_concat113, ptr @.str.193)
+  call void @qc_print_string(ptr @49)
+  %26 = call ptr @qc_fmt_string(ptr %fstr_concat114, i32 -1, i1 false)
+  call void @qc_print_string(ptr %26)
+  call void @qc_print_string(ptr @50)
+  %calltmp115 = call double @"Math::tan"(double 0.000000e+00)
+  %fstr_f64116 = call ptr @qc_to_string_double(double %calltmp115)
+  %fstr_concat117 = call ptr @qc_string_concat(ptr @.str.195, ptr %fstr_f64116)
+  %fstr_concat118 = call ptr @qc_string_concat(ptr %fstr_concat117, ptr @.str.196)
+  call void @qc_print_string(ptr @51)
+  %27 = call ptr @qc_fmt_string(ptr %fstr_concat118, i32 -1, i1 false)
+  call void @qc_print_string(ptr %27)
+  call void @qc_print_string(ptr @52)
+  %calltmp119 = call double @"Math::log"(double 2.718000e+00)
+  %fstr_f64120 = call ptr @qc_to_string_double(double %calltmp119)
+  %fstr_concat121 = call ptr @qc_string_concat(ptr @.str.198, ptr %fstr_f64120)
+  %fstr_concat122 = call ptr @qc_string_concat(ptr %fstr_concat121, ptr @.str.199)
+  call void @qc_print_string(ptr @53)
+  %28 = call ptr @qc_fmt_string(ptr %fstr_concat122, i32 -1, i1 false)
+  call void @qc_print_string(ptr %28)
+  call void @qc_print_string(ptr @54)
+  call void @qc_print_string(ptr @55)
+  call void @"UnitTest::Test_Test.112"(ptr %test, i32 5)
+  %vptr_field123 = getelementptr inbounds nuw %"UnitTest::Test", ptr %test, i32 0, i32 0
+  store ptr @"UnitTest::Test_vtable.118", ptr %vptr_field123, align 8
+  %AssertEqual_result = call void @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 5, i32 5, ptr @.str.215, ptr @.str.216)
+  %Messages_ptr = getelementptr inbounds nuw %"UnitTest::Test", ptr %test, i32 0, i32 5
+  %vptr_field124 = getelementptr inbounds nuw %"Vector::Vec<string>", ptr %Messages_ptr, i32 0, i32 0
+  %vptr125 = load ptr, ptr %vptr_field124, align 8
+  %vtable_slot126 = getelementptr ptr, ptr %vptr125, i32 7
+  %fn_ptr127 = load ptr, ptr %vtable_slot126, align 8
+  %29 = call ptr %fn_ptr127(ptr %Messages_ptr, i32 0)
+  %deref_ref = load ptr, ptr %29, align 8
+  call void @qc_print_string(ptr @56)
+  %30 = call ptr @qc_fmt_string(ptr %deref_ref, i32 -1, i1 false)
+  call void @qc_print_string(ptr %30)
+  call void @qc_print_string(ptr @57)
+  %AssertEqual_result128 = call void @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %test, i32 10, i32 10, ptr @.str.218, ptr @.str.219)
+  %vptr_field129 = getelementptr inbounds nuw %"UnitTest::Test", ptr %test, i32 0, i32 0
+  %vptr130 = load ptr, ptr %vptr_field129, align 8
+  %vtable_slot131 = getelementptr ptr, ptr %vptr130, i32 4
+  %fn_ptr132 = load ptr, ptr %vtable_slot131, align 8
+  call void %fn_ptr132(ptr %test, i1 true, ptr @.str.220, ptr @.str.221)
+  %vptr_field133 = getelementptr inbounds nuw %"UnitTest::Test", ptr %test, i32 0, i32 0
+  %vptr134 = load ptr, ptr %vptr_field133, align 8
+  %vtable_slot135 = getelementptr ptr, ptr %vptr134, i32 5
+  %fn_ptr136 = load ptr, ptr %vtable_slot135, align 8
+  call void %fn_ptr136(ptr %test, i1 false, ptr @.str.222, ptr @.str.223)
+  %AssertNotEqual_result = call void @"UnitTest::Test_AssertNotEqual_int_int_string_string"(ptr %test, i32 5, i32 10, ptr @.str.238, ptr @.str.239)
+  call void @qc_print_string(ptr @58)
+  call void @"AdvQBool::AQB_AQB.119"(ptr %aqb, i32 75)
+  %vptr_field137 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb, i32 0, i32 0
+  store ptr @"AdvQBool::AQB_vtable.127", ptr %vptr_field137, align 8
+  %aqb138 = load %"AdvQBool::AQB", ptr %aqb, align 8
+  store %"AdvQBool::AQB" %aqb138, ptr %temp_repr, align 8
+  %repr_result = call ptr @"AdvQBool::AQB__repr.126"(ptr %temp_repr)
+  %fstr_concat139 = call ptr @qc_string_concat(ptr @.str.242, ptr %repr_result)
+  %fstr_concat140 = call ptr @qc_string_concat(ptr %fstr_concat139, ptr @.str.243)
+  call void @qc_print_string(ptr @59)
+  %31 = call ptr @qc_fmt_string(ptr %fstr_concat140, i32 -1, i1 false)
+  call void @qc_print_string(ptr %31)
+  call void @qc_print_string(ptr @60)
+  call void @qc_print_string(ptr @61)
+  store i32 0, ptr %trueCount, align 4
+  store i32 0, ptr %i, align 4
+  br label %for.cond
+
+fstr_union_case_085:                              ; preds = %fstr_union_end65
+  %union_member86 = load i32, ptr %union_payload82, align 4
+  %fstr_i3287 = call ptr @qc_to_string_int(i32 %union_member86)
+  store ptr %fstr_i3287, ptr %fstr_union_result84, align 8
+  br label %fstr_union_end83
+
+fstr_union_case_188:                              ; preds = %fstr_union_end65
+  %union_member89 = load float, ptr %union_payload82, align 4
+  %fstr_f3290 = call ptr @qc_to_string_float(float %union_member89)
+  store ptr %fstr_f3290, ptr %fstr_union_result84, align 8
+  br label %fstr_union_end83
+
+fstr_union_case_291:                              ; preds = %fstr_union_end65
+  %union_member92 = load double, ptr %union_payload82, align 8
+  %fstr_f6493 = call ptr @qc_to_string_double(double %union_member92)
+  store ptr %fstr_f6493, ptr %fstr_union_result84, align 8
+  br label %fstr_union_end83
+
+for.cond:                                         ; preds = %for.inc, %fstr_union_end83
+  %i141 = load i32, ptr %i, align 4
+  %icmplt = icmp slt i32 %i141, 10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %vptr_field142 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb, i32 0, i32 0
+  %vptr143 = load ptr, ptr %vptr_field142, align 8
+  %vtable_slot144 = getelementptr ptr, ptr %vptr143, i32 6
+  %fn_ptr145 = load ptr, ptr %vtable_slot144, align 8
+  %32 = call i1 %fn_ptr145(ptr %aqb)
+  br i1 %32, label %then, label %ifcont
+
+for.inc:                                          ; preds = %ifcont
+  %i148 = load i32, ptr %i, align 4
+  %i149 = load i32, ptr %i, align 4
+  %inc_deref150 = load i32, ptr %i, align 4
+  %inc151 = add i32 %inc_deref150, 1
+  store i32 %inc151, ptr %i, align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  %trueCount152 = load i32, ptr %trueCount, align 4
+  %fstr_i32153 = call ptr @qc_to_string_int(i32 %trueCount152)
+  %fstr_concat154 = call ptr @qc_string_concat(ptr @.str.246, ptr %fstr_i32153)
+  %fstr_concat155 = call ptr @qc_string_concat(ptr %fstr_concat154, ptr @.str.247)
+  call void @qc_print_string(ptr @62)
+  %33 = call ptr @qc_fmt_string(ptr %fstr_concat155, i32 -1, i1 false)
+  call void @qc_print_string(ptr %33)
+  call void @qc_print_string(ptr @63)
+  call void @"AdvQBool::AQB_AQB.119"(ptr %aqb2, i32 50)
+  %vptr_field156 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb2, i32 0, i32 0
+  store ptr @"AdvQBool::AQB_vtable.127", ptr %vptr_field156, align 8
+  %vptr_field157 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb, i32 0, i32 0
+  %vptr158 = load ptr, ptr %vptr_field157, align 8
+  %vtable_slot159 = getelementptr ptr, ptr %vptr158, i32 6
+  %fn_ptr160 = load ptr, ptr %vtable_slot159, align 8
+  %34 = call i1 %fn_ptr160(ptr %aqb)
+  %vptr_field161 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb2, i32 0, i32 0
+  %vptr162 = load ptr, ptr %vptr_field161, align 8
+  %vtable_slot163 = getelementptr ptr, ptr %vptr162, i32 6
+  %fn_ptr164 = load ptr, ptr %vtable_slot163, align 8
+  %35 = call i1 %fn_ptr164(ptr %aqb2)
+  %and = and i1 %34, %35
+  %fstr_bool = call ptr @qc_to_string_bool(i1 %and)
+  %fstr_concat165 = call ptr @qc_string_concat(ptr @.str.249, ptr %fstr_bool)
+  %fstr_concat166 = call ptr @qc_string_concat(ptr %fstr_concat165, ptr @.str.250)
+  call void @qc_print_string(ptr @64)
+  %36 = call ptr @qc_fmt_string(ptr %fstr_concat166, i32 -1, i1 false)
+  call void @qc_print_string(ptr %36)
+  call void @qc_print_string(ptr @65)
+  %vptr_field167 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb, i32 0, i32 0
+  %vptr168 = load ptr, ptr %vptr_field167, align 8
+  %vtable_slot169 = getelementptr ptr, ptr %vptr168, i32 6
+  %fn_ptr170 = load ptr, ptr %vtable_slot169, align 8
+  %37 = call i1 %fn_ptr170(ptr %aqb)
+  %vptr_field171 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb2, i32 0, i32 0
+  %vptr172 = load ptr, ptr %vptr_field171, align 8
+  %vtable_slot173 = getelementptr ptr, ptr %vptr172, i32 6
+  %fn_ptr174 = load ptr, ptr %vtable_slot173, align 8
+  %38 = call i1 %fn_ptr174(ptr %aqb2)
+  %or = or i1 %37, %38
+  %fstr_bool175 = call ptr @qc_to_string_bool(i1 %or)
+  %fstr_concat176 = call ptr @qc_string_concat(ptr @.str.252, ptr %fstr_bool175)
+  %fstr_concat177 = call ptr @qc_string_concat(ptr %fstr_concat176, ptr @.str.253)
+  call void @qc_print_string(ptr @66)
+  %39 = call ptr @qc_fmt_string(ptr %fstr_concat177, i32 -1, i1 false)
+  call void @qc_print_string(ptr %39)
+  call void @qc_print_string(ptr @67)
+  %vptr_field178 = getelementptr inbounds nuw %"AdvQBool::AQB", ptr %aqb, i32 0, i32 0
+  %vptr179 = load ptr, ptr %vptr_field178, align 8
+  %vtable_slot180 = getelementptr ptr, ptr %vptr179, i32 6
+  %fn_ptr181 = load ptr, ptr %vtable_slot180, align 8
+  %40 = call i1 %fn_ptr181(ptr %aqb)
+  %not = xor i1 %40, true
+  %fstr_bool182 = call ptr @qc_to_string_bool(i1 %not)
+  %fstr_concat183 = call ptr @qc_string_concat(ptr @.str.255, ptr %fstr_bool182)
+  %fstr_concat184 = call ptr @qc_string_concat(ptr %fstr_concat183, ptr @.str.256)
+  call void @qc_print_string(ptr @68)
+  %41 = call ptr @qc_fmt_string(ptr %fstr_concat184, i32 -1, i1 false)
+  call void @qc_print_string(ptr %41)
+  call void @qc_print_string(ptr @69)
+  call void @"OSInterop::system"(ptr @.str.257)
+  call void @qc_print_string(ptr @70)
+  ret i32 0
+
+then:                                             ; preds = %for.body
+  %trueCount146 = load i32, ptr %trueCount, align 4
+  %trueCount147 = load i32, ptr %trueCount, align 4
+  %inc_deref = load i32, ptr %trueCount, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %trueCount, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %for.body
+  br label %for.inc
+}
+
+define internal void @"Vector::Vec<int>_Vec.130"(ptr %0) !qc.return_types !35 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_reserve.131"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %"Vector::new_data" = alloca ptr, align 8
+  %cap = alloca i32, align 4
+  store i32 %1, ptr %cap, align 4
+  %cap1 = load i32, ptr %cap, align 4
+  %icmpeq = icmp eq i32 %cap1, 0
+  br i1 %icmpeq, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  call void @qc_free(ptr %data)
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 0, ptr %5, align 4
+  ret void
+
+ifcont:                                           ; preds = %entry
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data2 = load ptr, ptr %6, align 8
+  %cap3 = load i32, ptr %cap, align 4
+  %promote_int = sext i32 %cap3 to i64
+  %mul = mul i64 4, %promote_int
+  %builtin_call = call ptr @qc_realloc(ptr %data2, i64 %mul)
+  store ptr %builtin_call, ptr %"Vector::new_data", align 8
+  %new_data = load ptr, ptr %"Vector::new_data", align 8
+  %ptr_eq = icmp eq ptr %new_data, null
+  br i1 %ptr_eq, label %then4, label %ifcont5
+
+then4:                                            ; preds = %ifcont
+  ret void
+
+ifcont5:                                          ; preds = %ifcont
+  %cap6 = load i32, ptr %cap, align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 %cap6, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %8, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %9, align 4
+  %icmpgt = icmp sgt i32 %size, %capacity
+  br i1 %icmpgt, label %then7, label %ifcont8
+
+then7:                                            ; preds = %ifcont5
+  %10 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity9 = load i32, ptr %10, align 4
+  %11 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %capacity9, ptr %11, align 4
+  br label %ifcont8
+
+ifcont8:                                          ; preds = %then7, %ifcont5
+  %new_data10 = load ptr, ptr %"Vector::new_data", align 8
+  %12 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr %new_data10, ptr %12, align 8
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_push.132"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %value = alloca i32, align 4
+  store i32 %1, ptr %value, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %3, align 4
+  %icmple = icmp sle i32 %capacity, %size
+  br i1 %icmple, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity1 = load i32, ptr %4, align 4
+  %mul = mul i32 %capacity1, 2
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %5, align 4
+  %icmpeq = icmp eq i32 %capacity2, 0
+  %select_val = select i1 %icmpeq, i32 1, i32 %mul
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %select_val)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %6, align 8
+  %ptr_eq = icmp eq ptr %data, null
+  br i1 %ptr_eq, label %then3, label %ifcont4
+
+ifcont:                                           ; preds = %ifcont4, %entry
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size5 = load i32, ptr %7, align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data6 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data6, i32 %size5
+  %value7 = load i32, ptr %value, align 4
+  store i32 %value7, ptr %ptr_arr_asi, align 4
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size8 = load i32, ptr %9, align 4
+  %10 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size9 = load i32, ptr %10, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %size_ptr, align 4
+  ret void
+
+then3:                                            ; preds = %then
+  ret void
+
+ifcont4:                                          ; preds = %then
+  br label %ifcont
+}
+
+define internal i32 @"Vector::Vec<int>_length.133"(ptr %0) !qc.return_types !78 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  ret i32 %size
+}
+
+define internal void @"Vector::Vec<int>_pop.134"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpgt = icmp sgt i32 %size, 0
+  br i1 %icmpgt, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size1 = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %size_ptr = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %inc_deref = load i32, ptr %size_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %size_ptr, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_shrinkToFit.135"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %size)
+  ret void
+}
+
+define internal void @"Vector::Vec<int>_operator[]=.136"(ptr %0, ptr %1, i32 %2) !qc.return_types !77 {
+entry:
+  %"Vector::i" = alloca i32, align 4
+  %length = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %length, align 4
+  %length1 = load i32, ptr %length, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 %length1, ptr %3, align 4
+  %length2 = load i32, ptr %length, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %length2, ptr %4, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity = load i32, ptr %5, align 4
+  %promote_int = sext i32 %capacity to i64
+  %mul = mul i64 4, %promote_int
+  %builtin_call = call ptr @qc_malloc(i64 %mul)
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr %builtin_call, ptr %6, align 8
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %entry
+  %i = load i32, ptr %"Vector::i", align 4
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i3 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data4 = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data4, i32 %i3
+  %i5 = load i32, ptr %"Vector::i", align 4
+  %data6 = load ptr, ptr %data, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data6, i32 %i5
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i7 = load i32, ptr %"Vector::i", align 4
+  %i8 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret void
+}
+
+define internal ptr @"Vector::Vec<int>_operator[].137"(ptr %0, i32 %1) !qc.return_types !79 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %2, align 8
+  %index1 = load i32, ptr %index, align 4
+  %lval_arr_addr = getelementptr i32, ptr %data, i32 %index1
+  ret ptr %lval_arr_addr
+}
+
+define internal void @"Vector::Iterator::It<int>_It.138"(ptr %0, ptr %1, i32 %2, i1 %3) !qc.return_types !35 {
+entry:
+  %is_end = alloca i1, align 1
+  %size = alloca i32, align 4
+  %data = alloca ptr, align 8
+  store ptr %1, ptr %data, align 8
+  store i32 %2, ptr %size, align 4
+  store i1 %3, ptr %is_end, align 1
+  %data1 = load ptr, ptr %data, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  store ptr %data1, ptr %4, align 8
+  %size2 = load i32, ptr %size, align 4
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  store i32 %size2, ptr %5, align 4
+  %size3 = load i32, ptr %size, align 4
+  %is_end4 = load i1, ptr %is_end, align 1
+  %select_val = select i1 %is_end4, i32 %size3, i32 0
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  store i32 %select_val, ptr %6, align 4
+  ret void
+}
+
+define internal i1 @"Vector::Iterator::It<int>__atEnd.139"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %icmple = icmp sle i32 %size, %current_index
+  ret i1 %icmple
+}
+
+define internal i32 @"Vector::Iterator::It<int>__next.140"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %inc_deref
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal i1 @"Vector::Iterator::It<int>__atStart.141"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %1, align 4
+  %icmple = icmp sle i32 %current_index, 0
+  ret i1 %icmple
+}
+
+define internal i32 @"Vector::Iterator::It<int>__prev.142"(ptr %0) !qc.return_types !81 {
+entry:
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  %1 = call i1 %fn_ptr(ptr %0)
+  %not = xor i1 %1, true
+  br i1 %not, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index1 = load i32, ptr %3, align 4
+  %current_index_ptr = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %inc_deref = load i32, ptr %current_index_ptr, align 4
+  %dec = sub i32 %inc_deref, 1
+  store i32 %dec, ptr %current_index_ptr, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %4, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data, i32 %dec
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  ret i32 %ptr_arr_val
+
+ifcont:                                           ; preds = %entry
+  %5 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  %current_index2 = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 1
+  %data3 = load ptr, ptr %6, align 8
+  %ptr_arr_addr4 = getelementptr i32, ptr %data3, i32 %current_index2
+  %ptr_arr_val5 = load i32, ptr %ptr_arr_addr4, align 4
+  ret i32 %ptr_arr_val5
+}
+
+define internal void @"Vector::Iterator::It<int>__moveTo.143"(ptr %0, i32 %1) !qc.return_types !77 {
+entry:
+  %index = alloca i32, align 4
+  store i32 %1, ptr %index, align 4
+  %index1 = load i32, ptr %index, align 4
+  %2 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  %icmpge = icmp sge i32 %index1, %size
+  br i1 %icmpge, label %then, label %elif.cond
+
+then:                                             ; preds = %entry
+  %assign_lhs_val = load i32, ptr %index, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 2
+  %size2 = load i32, ptr %3, align 4
+  %sub = sub i32 %size2, 1
+  store i32 %sub, ptr %index, align 4
+  br label %ifcont
+
+ifcont:                                           ; preds = %elif.body, %elif.cond, %then
+  %index5 = load i32, ptr %index, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %0, i32 0, i32 3
+  store i32 %index5, ptr %4, align 4
+  ret void
+
+elif.cond:                                        ; preds = %entry
+  %index3 = load i32, ptr %index, align 4
+  %icmplt = icmp slt i32 %index3, 0
+  br i1 %icmplt, label %elif.body, label %ifcont
+
+elif.body:                                        ; preds = %elif.cond
+  %assign_lhs_val4 = load i32, ptr %index, align 4
+  store i32 0, ptr %index, align 4
+  br label %ifcont
+}
+
+define internal %"Vector::Iterator::It<int>" @"Vector::Vec<int>__begin.145"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<int>" = alloca %"Vector::Iterator::It<int>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<int>_It.138"(ptr %"temp_Vector::Iterator::It<int>", ptr %data, i32 %size, i1 false)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<int>_vtable.144", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<int>_inst" = load %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", align 8
+  ret %"Vector::Iterator::It<int>" %"Vector::Iterator::It<int>_inst"
+}
+
+define internal %"Vector::Iterator::It<int>" @"Vector::Vec<int>__end.146"(ptr %0) !qc.return_types !82 {
+entry:
+  %"temp_Vector::Iterator::It<int>" = alloca %"Vector::Iterator::It<int>", align 8
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %2, align 4
+  call void @"Vector::Iterator::It<int>_It.138"(ptr %"temp_Vector::Iterator::It<int>", ptr %data, i32 %size, i1 true)
+  %vptr_field = getelementptr inbounds nuw %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", i32 0, i32 0
+  store ptr @"Vector::Iterator::It<int>_vtable.144", ptr %vptr_field, align 8
+  %"Vector::Iterator::It<int>_inst" = load %"Vector::Iterator::It<int>", ptr %"temp_Vector::Iterator::It<int>", align 8
+  ret %"Vector::Iterator::It<int>" %"Vector::Iterator::It<int>_inst"
+}
+
+define internal void @"Vector::Vec<int>__destroy.147"(ptr %0) !qc.return_types !77 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %1, align 8
+  call void @qc_free(ptr %data)
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 -1, ptr %3, align 4
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  store i32 -1, ptr %4, align 4
+  ret void
+}
+
+define internal %"Vector::Vec<int>" @"Vector::Vec<int>_operator=.148"(ptr %0, %"Vector::Vec<int>" %1) !qc.return_types !83 {
+entry:
+  %temp_obj14 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj9 = alloca %"Vector::Vec<int>", align 8
+  %"Vector::i" = alloca i32, align 4
+  %temp_obj7 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj4 = alloca %"Vector::Vec<int>", align 8
+  %temp_obj = alloca %"Vector::Vec<int>", align 8
+  %other = alloca %"Vector::Vec<int>", align 8
+  store %"Vector::Vec<int>" %1, ptr %other, align 8
+  %other1 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other1, ptr %temp_obj, align 8
+  %2 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj, i32 0, i32 3
+  %capacity = load i32, ptr %2, align 4
+  %3 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 3
+  %capacity2 = load i32, ptr %3, align 4
+  %icmpne = icmp ne i32 %capacity, %capacity2
+  br i1 %icmpne, label %then, label %ifcont
+
+then:                                             ; preds = %entry
+  %other3 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other3, ptr %temp_obj4, align 8
+  %4 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj4, i32 0, i32 3
+  %capacity5 = load i32, ptr %4, align 4
+  %vptr_field = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 1
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, i32 %capacity5)
+  br label %ifcont
+
+ifcont:                                           ; preds = %then, %entry
+  %other6 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other6, ptr %temp_obj7, align 8
+  %5 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj7, i32 0, i32 2
+  %size = load i32, ptr %5, align 4
+  %6 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  store i32 %size, ptr %6, align 4
+  store i32 0, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.cond:                                         ; preds = %for.inc, %ifcont
+  %i = load i32, ptr %"Vector::i", align 4
+  %other8 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other8, ptr %temp_obj9, align 8
+  %7 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj9, i32 0, i32 2
+  %size10 = load i32, ptr %7, align 4
+  %icmplt = icmp slt i32 %i, %size10
+  br i1 %icmplt, label %for.body, label %for.end
+
+for.body:                                         ; preds = %for.cond
+  %i11 = load i32, ptr %"Vector::i", align 4
+  %8 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 1
+  %data = load ptr, ptr %8, align 8
+  %ptr_arr_asi = getelementptr i32, ptr %data, i32 %i11
+  %i12 = load i32, ptr %"Vector::i", align 4
+  %other13 = load %"Vector::Vec<int>", ptr %other, align 8
+  store %"Vector::Vec<int>" %other13, ptr %temp_obj14, align 8
+  %9 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %temp_obj14, i32 0, i32 1
+  %data15 = load ptr, ptr %9, align 8
+  %ptr_arr_addr = getelementptr i32, ptr %data15, i32 %i12
+  %ptr_arr_val = load i32, ptr %ptr_arr_addr, align 4
+  store i32 %ptr_arr_val, ptr %ptr_arr_asi, align 4
+  br label %for.inc
+
+for.inc:                                          ; preds = %for.body
+  %i16 = load i32, ptr %"Vector::i", align 4
+  %i17 = load i32, ptr %"Vector::i", align 4
+  %inc_deref = load i32, ptr %"Vector::i", align 4
+  %inc = add i32 %inc_deref, 1
+  store i32 %inc, ptr %"Vector::i", align 4
+  br label %for.cond
+
+for.end:                                          ; preds = %for.cond
+  ret ptr %0
+}
+
+define internal i1 @"Vector::Vec<int>_isEmpty.149"(ptr %0) !qc.return_types !80 {
+entry:
+  %1 = getelementptr inbounds nuw %"Vector::Vec<int>", ptr %0, i32 0, i32 2
+  %size = load i32, ptr %1, align 4
+  %icmpeq = icmp eq i32 %size, 0
+  ret i1 %icmpeq
+}
+
+define void @"UnitTest::Test_AssertEqual_int_int_string_string"(ptr %0, i32 %expected1, i32 %result2, ptr %FailMessage3, ptr %Call4) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %result = alloca i32, align 4
+  %expected = alloca i32, align 4
+  store i32 %expected1, ptr %expected, align 4
+  store i32 %result2, ptr %result, align 4
+  store ptr %FailMessage3, ptr %FailMessage, align 8
+  store ptr %Call4, ptr %Call, align 8
+  %expected5 = load i32, ptr %expected, align 4
+  %result6 = load i32, ptr %result, align 4
+  %icmpne = icmp ne i32 %expected5, %result6
+  br i1 %icmpne, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call7 = load ptr, ptr %Call, align 8
+  %1 = call i1 @qc_string_eq(ptr %Call7, ptr @.str.201)
+  %2 = xor i1 %1, true
+  br i1 %2, label %then8, label %else10
+
+ifcont:                                           ; preds = %ifcont38, %ifcont9
+  ret void
+
+else:                                             ; preds = %entry
+  %Call36 = load ptr, ptr %Call, align 8
+  %3 = call i1 @qc_string_eq(ptr %Call36, ptr @.str.209)
+  %4 = xor i1 %3, true
+  br i1 %4, label %then37, label %else39
+
+then8:                                            ; preds = %then
+  %Call11 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.202, ptr %Call11)
+  %fstr_concat12 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.203)
+  %expected13 = load i32, ptr %expected, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %expected13)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat12, ptr %fstr_i32)
+  %fstr_concat15 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr @.str.204)
+  %result16 = load i32, ptr %result, align 4
+  %fstr_i3217 = call ptr @qc_to_string_int(i32 %result16)
+  %fstr_concat18 = call ptr @qc_string_concat(ptr %fstr_concat15, ptr %fstr_i3217)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.205)
+  %FailMessage20 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr %fstr_concat19, ptr %FailMessage20)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat21)
+  br label %ifcont9
+
+ifcont9:                                          ; preds = %else10, %then8
+  br label %ifcont
+
+else10:                                           ; preds = %then
+  %expected22 = load i32, ptr %expected, align 4
+  %fstr_i3223 = call ptr @qc_to_string_int(i32 %expected22)
+  %fstr_concat24 = call ptr @qc_string_concat(ptr @.str.206, ptr %fstr_i3223)
+  %fstr_concat25 = call ptr @qc_string_concat(ptr %fstr_concat24, ptr @.str.207)
+  %result26 = load i32, ptr %result, align 4
+  %fstr_i3227 = call ptr @qc_to_string_int(i32 %result26)
+  %fstr_concat28 = call ptr @qc_string_concat(ptr %fstr_concat25, ptr %fstr_i3227)
+  %fstr_concat29 = call ptr @qc_string_concat(ptr %fstr_concat28, ptr @.str.208)
+  %FailMessage30 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat31 = call ptr @qc_string_concat(ptr %fstr_concat29, ptr %FailMessage30)
+  %vptr_field32 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr33 = load ptr, ptr %vptr_field32, align 8
+  %vtable_slot34 = getelementptr ptr, ptr %vptr33, i32 3
+  %fn_ptr35 = load ptr, ptr %vtable_slot34, align 8
+  call void %fn_ptr35(ptr %0, ptr %fstr_concat31)
+  br label %ifcont9
+
+then37:                                           ; preds = %else
+  %Call40 = load ptr, ptr %Call, align 8
+  %fstr_concat41 = call ptr @qc_string_concat(ptr @.str.210, ptr %Call40)
+  %fstr_concat42 = call ptr @qc_string_concat(ptr %fstr_concat41, ptr @.str.211)
+  %result43 = load i32, ptr %result, align 4
+  %fstr_i3244 = call ptr @qc_to_string_int(i32 %result43)
+  %fstr_concat45 = call ptr @qc_string_concat(ptr %fstr_concat42, ptr %fstr_i3244)
+  %fstr_concat46 = call ptr @qc_string_concat(ptr %fstr_concat45, ptr @.str.212)
+  %expected47 = load i32, ptr %expected, align 4
+  %fstr_i3248 = call ptr @qc_to_string_int(i32 %expected47)
+  %fstr_concat49 = call ptr @qc_string_concat(ptr %fstr_concat46, ptr %fstr_i3248)
+  %vptr_field50 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr51 = load ptr, ptr %vptr_field50, align 8
+  %vtable_slot52 = getelementptr ptr, ptr %vptr51, i32 2
+  %fn_ptr53 = load ptr, ptr %vtable_slot52, align 8
+  call void %fn_ptr53(ptr %0, ptr %fstr_concat49)
+  br label %ifcont38
+
+ifcont38:                                         ; preds = %else39, %then37
+  br label %ifcont
+
+else39:                                           ; preds = %else
+  %result54 = load i32, ptr %result, align 4
+  %fstr_i3255 = call ptr @qc_to_string_int(i32 %result54)
+  %fstr_concat56 = call ptr @qc_string_concat(ptr @.str.213, ptr %fstr_i3255)
+  %fstr_concat57 = call ptr @qc_string_concat(ptr %fstr_concat56, ptr @.str.214)
+  %expected58 = load i32, ptr %expected, align 4
+  %fstr_i3259 = call ptr @qc_to_string_int(i32 %expected58)
+  %fstr_concat60 = call ptr @qc_string_concat(ptr %fstr_concat57, ptr %fstr_i3259)
+  %vptr_field61 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr62 = load ptr, ptr %vptr_field61, align 8
+  %vtable_slot63 = getelementptr ptr, ptr %vptr62, i32 2
+  %fn_ptr64 = load ptr, ptr %vtable_slot63, align 8
+  call void %fn_ptr64(ptr %0, ptr %fstr_concat60)
+  br label %ifcont38
+}
+
+define void @"UnitTest::Test_AssertNotEqual_int_int_string_string"(ptr %0, i32 %notExpected1, i32 %result2, ptr %FailMessage3, ptr %Call4) {
+entry:
+  %Call = alloca ptr, align 8
+  %FailMessage = alloca ptr, align 8
+  %result = alloca i32, align 4
+  %notExpected = alloca i32, align 4
+  store i32 %notExpected1, ptr %notExpected, align 4
+  store i32 %result2, ptr %result, align 4
+  store ptr %FailMessage3, ptr %FailMessage, align 8
+  store ptr %Call4, ptr %Call, align 8
+  %notExpected5 = load i32, ptr %notExpected, align 4
+  %result6 = load i32, ptr %result, align 4
+  %icmpeq = icmp eq i32 %notExpected5, %result6
+  br i1 %icmpeq, label %then, label %else
+
+then:                                             ; preds = %entry
+  %Call7 = load ptr, ptr %Call, align 8
+  %1 = call i1 @qc_string_eq(ptr %Call7, ptr @.str.224)
+  %2 = xor i1 %1, true
+  br i1 %2, label %then8, label %else10
+
+ifcont:                                           ; preds = %ifcont38, %ifcont9
+  ret void
+
+else:                                             ; preds = %entry
+  %Call36 = load ptr, ptr %Call, align 8
+  %3 = call i1 @qc_string_eq(ptr %Call36, ptr @.str.232)
+  %4 = xor i1 %3, true
+  br i1 %4, label %then37, label %else39
+
+then8:                                            ; preds = %then
+  %Call11 = load ptr, ptr %Call, align 8
+  %fstr_concat = call ptr @qc_string_concat(ptr @.str.225, ptr %Call11)
+  %fstr_concat12 = call ptr @qc_string_concat(ptr %fstr_concat, ptr @.str.226)
+  %result13 = load i32, ptr %result, align 4
+  %fstr_i32 = call ptr @qc_to_string_int(i32 %result13)
+  %fstr_concat14 = call ptr @qc_string_concat(ptr %fstr_concat12, ptr %fstr_i32)
+  %fstr_concat15 = call ptr @qc_string_concat(ptr %fstr_concat14, ptr @.str.227)
+  %notExpected16 = load i32, ptr %notExpected, align 4
+  %fstr_i3217 = call ptr @qc_to_string_int(i32 %notExpected16)
+  %fstr_concat18 = call ptr @qc_string_concat(ptr %fstr_concat15, ptr %fstr_i3217)
+  %fstr_concat19 = call ptr @qc_string_concat(ptr %fstr_concat18, ptr @.str.228)
+  %FailMessage20 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat21 = call ptr @qc_string_concat(ptr %fstr_concat19, ptr %FailMessage20)
+  %vptr_field = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr = load ptr, ptr %vptr_field, align 8
+  %vtable_slot = getelementptr ptr, ptr %vptr, i32 3
+  %fn_ptr = load ptr, ptr %vtable_slot, align 8
+  call void %fn_ptr(ptr %0, ptr %fstr_concat21)
+  br label %ifcont9
+
+ifcont9:                                          ; preds = %else10, %then8
+  br label %ifcont
+
+else10:                                           ; preds = %then
+  %result22 = load i32, ptr %result, align 4
+  %fstr_i3223 = call ptr @qc_to_string_int(i32 %result22)
+  %fstr_concat24 = call ptr @qc_string_concat(ptr @.str.229, ptr %fstr_i3223)
+  %fstr_concat25 = call ptr @qc_string_concat(ptr %fstr_concat24, ptr @.str.230)
+  %notExpected26 = load i32, ptr %notExpected, align 4
+  %fstr_i3227 = call ptr @qc_to_string_int(i32 %notExpected26)
+  %fstr_concat28 = call ptr @qc_string_concat(ptr %fstr_concat25, ptr %fstr_i3227)
+  %fstr_concat29 = call ptr @qc_string_concat(ptr %fstr_concat28, ptr @.str.231)
+  %FailMessage30 = load ptr, ptr %FailMessage, align 8
+  %fstr_concat31 = call ptr @qc_string_concat(ptr %fstr_concat29, ptr %FailMessage30)
+  %vptr_field32 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr33 = load ptr, ptr %vptr_field32, align 8
+  %vtable_slot34 = getelementptr ptr, ptr %vptr33, i32 3
+  %fn_ptr35 = load ptr, ptr %vtable_slot34, align 8
+  call void %fn_ptr35(ptr %0, ptr %fstr_concat31)
+  br label %ifcont9
+
+then37:                                           ; preds = %else
+  %Call40 = load ptr, ptr %Call, align 8
+  %fstr_concat41 = call ptr @qc_string_concat(ptr @.str.233, ptr %Call40)
+  %fstr_concat42 = call ptr @qc_string_concat(ptr %fstr_concat41, ptr @.str.234)
+  %result43 = load i32, ptr %result, align 4
+  %fstr_i3244 = call ptr @qc_to_string_int(i32 %result43)
+  %fstr_concat45 = call ptr @qc_string_concat(ptr %fstr_concat42, ptr %fstr_i3244)
+  %fstr_concat46 = call ptr @qc_string_concat(ptr %fstr_concat45, ptr @.str.235)
+  %notExpected47 = load i32, ptr %notExpected, align 4
+  %fstr_i3248 = call ptr @qc_to_string_int(i32 %notExpected47)
+  %fstr_concat49 = call ptr @qc_string_concat(ptr %fstr_concat46, ptr %fstr_i3248)
+  %vptr_field50 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr51 = load ptr, ptr %vptr_field50, align 8
+  %vtable_slot52 = getelementptr ptr, ptr %vptr51, i32 2
+  %fn_ptr53 = load ptr, ptr %vtable_slot52, align 8
+  call void %fn_ptr53(ptr %0, ptr %fstr_concat49)
+  br label %ifcont38
+
+ifcont38:                                         ; preds = %else39, %then37
+  br label %ifcont
+
+else39:                                           ; preds = %else
+  %result54 = load i32, ptr %result, align 4
+  %fstr_i3255 = call ptr @qc_to_string_int(i32 %result54)
+  %fstr_concat56 = call ptr @qc_string_concat(ptr @.str.236, ptr %fstr_i3255)
+  %fstr_concat57 = call ptr @qc_string_concat(ptr %fstr_concat56, ptr @.str.237)
+  %notExpected58 = load i32, ptr %notExpected, align 4
+  %fstr_i3259 = call ptr @qc_to_string_int(i32 %notExpected58)
+  %fstr_concat60 = call ptr @qc_string_concat(ptr %fstr_concat57, ptr %fstr_i3259)
+  %vptr_field61 = getelementptr inbounds nuw %"UnitTest::Test", ptr %0, i32 0, i32 0
+  %vptr62 = load ptr, ptr %vptr_field61, align 8
+  %vtable_slot63 = getelementptr ptr, ptr %vptr62, i32 2
+  %fn_ptr64 = load ptr, ptr %vtable_slot63, align 8
+  call void %fn_ptr64(ptr %0, ptr %fstr_concat60)
+  br label %ifcont38
 }
 
 define i32 @main() {
@@ -4773,3 +9922,14 @@ attributes #38 = { nounwind willreturn memory(read) }
 !74 = !{!"_ZTS11qc_variadic", !49, i64 0, !20, i64 8, !20, i64 12}
 !75 = !{!74, !20, i64 8}
 !76 = !{!74, !49, i64 0}
+!77 = !{!"void"}
+!78 = !{!"int"}
+!79 = !{!"T&"}
+!80 = !{!"bool"}
+!81 = !{!"T"}
+!82 = !{!"Iterator::It<T>"}
+!83 = !{!"Vec<T>"}
+!84 = !{!"string"}
+!85 = !{!"Vector::Vec<int>"}
+!86 = !{!"double"}
+!87 = !{!"Number"}

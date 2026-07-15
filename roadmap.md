@@ -9,7 +9,7 @@ class Y {
 Y proves X;
 ```
 - Try/Catch 
-
+- -L (link) -A (alias)
 - Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`) everything but variadics done on classes, and need to do it for structs functions methods and unions
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
@@ -77,7 +77,7 @@ void loop(void) code {
 - qconform (QC Formatter)
 - operator++/–-/-/+=/-=//=/*=(combinational operators)
 - operator<</|>\|>>/<<</&/......... (bitwise)
-- const params/returns
+- const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
 TOP PRIORITY:
 1. Generics.
@@ -113,3 +113,12 @@ TOP PRIORITY:
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
 ?references(ns, ns, ns)? - states which namespaces in this file this namespace references to say what to compile with it. (to increase compile speed. not sure if compile full file or nothing but that namespace if missing)
+12. Preproccessers
+#define - define a constant value
+#undef - undef a constant value
+#if - if
+#else - else 
+#ifdef - if defined
+#ifndef - if undefined
+#endif - end if
+#line - somthing idk

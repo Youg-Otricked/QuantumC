@@ -131,6 +131,9 @@ std::string get_token_name(TokenType tok) {
     case TokenType::INT: return "int";
     case TokenType::STRING: return "string";
     case TokenType::ADDR_T: return "addr_t";
+    case TokenType::LONG_INT: return "long int";
+    case TokenType::SHORT_INT: return "short int";
+    case TokenType::LONG_DOUBLE: return "long double";
     case TokenType::FLOAT: return "float";
     case TokenType::DOUBLE: return "double";
     case TokenType::CHAR: return "char";
@@ -249,14 +252,6 @@ Error::Error(std::string err, std::string details, Position pos) {
 }
 std::string Error::as_string() {
     return std::format("{}: {} (File {}, Line {}:{})", this->error_name, this->details, this->pos.Filename, this->pos.line, this->pos.column);
-}
-std::string RTError::as_string() {
-    std::string result;
-    result += "Compile or Runtime Error: " + this->details + "\n";
-    result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
-              "\n\n";
-    result += this->pos.arrow_string();
-    return result;
 }
 std::string MissingSemicolonError::as_string() {
     std::string result;
@@ -736,6 +731,9 @@ TokenType stringToTokenType(const std::string& str) {
                                                                             {"DECREMENT", TokenType::DECREMENT},
                                                                             {"IDENTIFIER", TokenType::IDENTIFIER},
                                                                             {"ADDR_T", TokenType::ADDR_T},
+                                                                            {"LONG_DOUBLE", TokenType::LONG_DOUBLE},
+                                                                            {"SHORT_INT", TokenType::SHORT_INT},
+                                                                            {"LONG_INT", TokenType::LONG_INT},
                                                                             {"KEYWORD", TokenType::KEYWORD},
                                                                             {"EQ", TokenType::EQ},
                                                                             {"EOFT", TokenType::EOFT},
@@ -752,13 +750,13 @@ TokenType stringToTokenType(const std::string& str) {
 AnyNode Parser::default_value_for_type(const Token& type_tok, const Position& pos) {
     std::string type = type_tok.value;
 
-    if (type == "short int") return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+    if (type == "short int") return AnyNode{NumberNode(Token(TokenType::SHORT_INT, "0", pos))};
     if (type == "int") return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
-    if (type == "long int") return AnyNode{NumberNode(Token(TokenType::INT, "0", pos))};
+    if (type == "long int") return AnyNode{NumberNode(Token(TokenType::LONG_INT, "0", pos))};
 
     if (type == "float") return AnyNode{NumberNode(Token(TokenType::FLOAT, "0.0f", pos))};
     if (type == "double") return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
-    if (type == "long double") return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
+    if (type == "long double") return AnyNode{NumberNode(Token(TokenType::LONG_DOUBLE, "0.0", pos))};
     if (type == "addr_t") return AnyNode{NumberNode(Token(TokenType::ADDR_T, "0", pos))};
 
     if (type == "string") return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};
@@ -1663,7 +1661,8 @@ Prs Parser::atom() {
         return this->qin_expr();
     }
 
-    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T) {
+    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T || tok.type == TokenType::LONG_INT
+        || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE) {
         this->advance();
         return res.success(NumberNode(tok));
     } else if (tok.type == TokenType::STRING) {
@@ -3032,7 +3031,7 @@ Prs Parser::statement() {
         info.kind = UserTypeKind::Class;
         dummy.is_abstract_class = is_abstract_class;
         info.is_abstract_class = is_abstract_class;
-        if (user_types.contains(class_name.value)) {
+        if (user_types.contains(base_type_name(class_name.value))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + class_name.value + "'", class_name.pos));
             return res.to_prs();
         }
@@ -3041,7 +3040,7 @@ Prs Parser::statement() {
         dummy.namespace_path = currentNamespace;
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
-        user_types[full_key] = dummy;
+        user_types[base_type_name(full_key)] = dummy;
 
         while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
 
@@ -3289,7 +3288,7 @@ Prs Parser::statement() {
         }
         this->advance();
         full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
-        user_types[full_key] = info;
+        user_types[base_type_name(full_key)] = info;
         this->current_generics = saved_generics;
         return res.success(std::monostate{});
     }
@@ -3430,7 +3429,7 @@ Prs Parser::statement() {
         this->advance();
 
         if (this->current_tok.type == TokenType::SEMICOLON) { this->advance(); }
-        if (user_types.contains(struct_name.value)) {
+        if (user_types.contains(base_type_name(struct_name.value))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
             return res.to_prs();
         }
@@ -3439,7 +3438,7 @@ Prs Parser::statement() {
         info.fields = fields;
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
-        user_types[full_key] = info;
+        user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
     if (tok.type == TokenType::KEYWORD && tok.value == "type") {
@@ -3466,6 +3465,9 @@ Prs Parser::statement() {
             case TokenType::INT: this->advance(); return UnionMember{"int:" + first_tok.value};
             case TokenType::FLOAT: this->advance(); return UnionMember{"float:" + first_tok.value};
             case TokenType::DOUBLE: this->advance(); return UnionMember{"double:" + first_tok.value};
+            case TokenType::LONG_INT: this->advance(); return UnionMember{"long_int:" + first_tok.value};
+            case TokenType::SHORT_INT: this->advance(); return UnionMember{"short_int:" + first_tok.value};
+            case TokenType::LONG_DOUBLE: this->advance(); return UnionMember{"long_double:" + first_tok.value};
             case TokenType::ADDR_T: this->advance(); return UnionMember{"addr_t:" + first_tok.value};
             case TokenType::CHAR: this->advance(); return UnionMember{"char:" + first_tok.value};
             case TokenType::BOOL: this->advance(); return UnionMember{"bool:" + first_tok.value};
@@ -3492,7 +3494,7 @@ Prs Parser::statement() {
         auto is_type_or_literal_token = [&](TokenType tt) {
             return tt == TokenType::STRING || tt == TokenType::IDENTIFIER || tt == TokenType::KEYWORD || tt == TokenType::INT ||
                    tt == TokenType::FLOAT || tt == TokenType::DOUBLE || tt == TokenType::ADDR_T || tt == TokenType::BOOL || tt == TokenType::QBOOL ||
-                   tt == TokenType::CHAR;
+                   tt == TokenType::CHAR || tt == TokenType::LONG_INT || tt == TokenType::SHORT_INT || tt == TokenType::LONG_DOUBLE;
         };
 
         if (!is_type_or_literal_token(this->current_tok.type)) {
@@ -3521,7 +3523,7 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        if (user_types.contains(type_name.value)) {
+        if (user_types.contains(base_type_name(type_name.value))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + type_name.value + "'", type_name.pos));
             return res.to_prs();
         }
@@ -3535,7 +3537,7 @@ Prs Parser::statement() {
         }
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? type_name.value : currentNamespace + "::" + type_name.value;
-        user_types[full_key] = info;
+        user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
     if (tok.type == TokenType::KEYWORD && tok.value == "enum") {
@@ -3560,6 +3562,9 @@ Prs Parser::statement() {
             case TokenType::INT: return "int:" + tok.value;
             case TokenType::FLOAT: return "float:" + tok.value;
             case TokenType::DOUBLE: return "double:" + tok.value;
+            case TokenType::LONG_INT: return "long_int:" + tok.value;
+            case TokenType::SHORT_INT: return "short_int:" + tok.value;
+            case TokenType::LONG_DOUBLE: return "long_double:" + tok.value;
             case TokenType::ADDR_T: return "addr_t:" + tok.value;
             case TokenType::CHAR: return "char:" + tok.value;
             case TokenType::BOOL: return "bool:" + tok.value;
@@ -3596,7 +3601,7 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        if (user_types.contains(enum_name.value)) {
+        if (user_types.contains(base_type_name(enum_name.value))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + enum_name.value + "'", enum_name.pos));
             return res.to_prs();
         }
@@ -3606,7 +3611,7 @@ Prs Parser::statement() {
         info.enumEntries = entries;
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? enum_name.value : currentNamespace + "::" + enum_name.value;
-        user_types[full_key] = info;
+        user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
     if (tok.type == TokenType::KEYWORD || tok.type == TokenType::IDENTIFIER && tok.value != "this") {
@@ -3937,7 +3942,7 @@ Aer Parser::parse() {
                 if (!found) { throw InvalidSyntaxError("Base class '" + ut.baseClassName + "' not found", Position()); }
             }
 
-            auto it = user_types.find(baseKey);
+            auto it = user_types.find(base_type_name(baseKey));
             if (it == user_types.end() || it->second.kind != UserTypeKind::Class) {
                 throw InvalidSyntaxError("class inherits from non-class or non-existent object", Position());
             }
@@ -3981,9 +3986,8 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
     if (unionTypes.find(type) != unionTypes.end()) { return unionTypes[type]; }
     if (type == "function" || type == "fn" || type.starts_with(("fn "))) { return builder->getPtrTy(); }
-    std::cout << "LLVMTypeFor returning void for " << qcType << '\n';
     if (type == "void") return builder->getVoidTy();
-    return builder->getVoidTy();
+    return nullptr;
 }
 std::string LLVMCompiler::resolveType(const std::string& typeName) {
     auto it = typeAliases.find(typeName);
@@ -4090,8 +4094,8 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         }
     }
     auto oldNamespaceStack = namespaceStack;
+    namespaceStack.clear();
     if (!classInfo.namespace_path.empty()) {
-        namespaceStack.clear();
         size_t start = 0;
         size_t pos;
         while ((pos = classInfo.namespace_path.find("::", start)) != std::string::npos) {
@@ -4099,10 +4103,6 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             start = pos + 2;
         }
         namespaceStack.push_back(classInfo.namespace_path.substr(start));
-    }
-    std::cout << "namespace_path: " << classInfo.namespace_path << '\n';
-    for (std::string path : namespaceStack) {
-        std::cout << "namespace stack: " << path << '\n';
     }
     std::vector<llvm::Type*> fieldTypes;
     std::function<void(const std::string&, std::unordered_map<std::string, std::string>)> collectFields =
@@ -4163,19 +4163,43 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     }
     std::vector<llvm::Constant*> vtableFuncs;
     std::vector<std::string> slotOrder;
+    std::unordered_map<std::string, int> nameCounts;
     for (auto& method : classInfo.classMethods) {
+        nameCounts[method.name_tok.value]++;
+    }
+    for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
+        auto& method = classInfo.classMethods[methodIdx];
         if (method.is_constructor && classInfo.is_abstract_class) {
             cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
             continue;
         }
+        if (std::find(autoMethodIndices[className].begin(), autoMethodIndices[className].end(), methodIdx) != autoMethodIndices[className].end()) {
+            continue;
+        }
         std::string methodName = mangled_class_name + "_" + method.name_tok.value;
+        if (nameCounts[method.name_tok.value] > 1) {
+            for (auto& param : method.params) {
+                methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
+            }
+        }
         std::vector<llvm::Type*> paramTypes;
         paramTypes.push_back(llvm::PointerType::get(context, 0));
         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
-        for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
+        for (auto* paramTy : baseFuncTy->params()) {
+            paramTypes.push_back(paramTy);
+        }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
-
+        llvm::SmallVector<llvm::Metadata*, 4> retTypes;
+        for (auto& ret : method.return_types) {
+            retTypes.push_back(
+                llvm::MDString::get(context, ret.value)
+            );
+        }
+        fn->setMetadata(
+            "qc.return_types",
+            llvm::MDNode::get(context, retTypes)
+        ); 
         classMethods[mangled_class_name][method.name_tok.value].push_back(fn);
         vtableFuncs.push_back(fn);
         slotOrder.push_back(methodName);
@@ -4349,12 +4373,24 @@ void LLVMCompiler::createUserTypes() {
         if (info.kind == UserTypeKind::Class) {
             if (!info.generics.empty()) continue;
             if (!info.baseClassName.empty()) {
-                auto base_it = userTypes.find(info.baseClassName);
+                auto base_it = userTypes.find(baseTypeName(info.baseClassName));
                 if (base_it != userTypes.end() && base_it->second.is_final_class) {
                     cg_error(Position(), "Cannot inherit from final class '" + info.baseClassName + "'");
                     continue;
                 }
             }
+            auto oldNamespaceStack = namespaceStack;
+            namespaceStack.clear();
+            if (!info.namespace_path.empty()) {
+                size_t start = 0;
+                size_t pos;
+                while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+                    namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+                    start = pos + 2;
+                }
+                namespaceStack.push_back(info.namespace_path.substr(start));
+            }
+
             std::vector<llvm::Type*> fieldTypes;
 
             std::function<void(const std::string&, std::unordered_map<std::string, std::string>)> collectFields =
@@ -4397,6 +4433,7 @@ void LLVMCompiler::createUserTypes() {
             if (fieldTypes.empty()) { fieldTypes.push_back(builder->getInt8Ty()); }
 
             classTypes[mapKey]->setBody(fieldTypes);
+            namespaceStack = oldNamespaceStack;
         }
     }
     for (auto& [mapKey, info] : userTypes) {
@@ -4426,42 +4463,89 @@ void LLVMCompiler::createUserTypes() {
                 }
             }
         }
+        auto oldNamespaceStack = namespaceStack;
+        namespaceStack.clear();
+        if (!info.namespace_path.empty()) {
+            size_t start = 0;
+            size_t pos;
+            while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+                namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+                start = pos + 2;
+            }
+            namespaceStack.push_back(info.namespace_path.substr(start));
+        }
         llvm::StructType* classTy = genericiseOrFindClass(mapKey);
         std::vector<llvm::Constant*> vtableFuncs;
         std::vector<std::string> slotOrder;
+        std::unordered_map<std::string, int> nameCounts;
         for (auto& method : info.classMethods) {
+            nameCounts[method.name_tok.value]++;
+        }
+        for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
+            auto& method = info.classMethods[methodIdx];
             if (method.is_constructor && info.is_abstract_class) {
                 cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
                 continue;
             }
+            if (std::find(autoMethodIndices[mapKey].begin(), autoMethodIndices[mapKey].end(), methodIdx) != autoMethodIndices[mapKey].end()) {
+                continue;
+            }
             std::string methodName = mapKey + "_" + method.name_tok.value;
+            if (nameCounts[method.name_tok.value] > 1) {
+                for (auto& param : method.params) {
+                    methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
+                }
+            }
             std::vector<llvm::Type*> paramTypes;
             paramTypes.push_back(llvm::PointerType::get(context, 0));
             llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
-            for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
+            for (auto* paramTy : baseFuncTy->params()) {
+                paramTypes.push_back(paramTy);
+            }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
             llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
-
+            llvm::SmallVector<llvm::Metadata*, 4> retTypes;
+            for (auto& ret : method.return_types) {
+                retTypes.push_back(
+                    llvm::MDString::get(context, ret.value)
+                );
+            }
+            fn->setMetadata(
+                "qc.return_types",
+                llvm::MDNode::get(context, retTypes)
+            ); 
             classMethods[mapKey][method.name_tok.value].push_back(fn);
             vtableFuncs.push_back(fn);
             slotOrder.push_back(methodName);
-        }
+        }  
         for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mapKey][slotOrder[i]] = i; }
         auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
         auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
         auto* vtable = new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::InternalLinkage, vtableInit, mapKey + "_vtable");
         vtables[mapKey] = vtable;
+        namespaceStack = oldNamespaceStack;
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
             std::vector<llvm::Type*> fieldTypes;
-
+            auto oldNamespaceStack = namespaceStack;
+            namespaceStack.clear();
+            if (!info.namespace_path.empty()) {
+                size_t start = 0;
+                size_t pos;
+                while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+                    namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+                    start = pos + 2;
+                }
+                namespaceStack.push_back(info.namespace_path.substr(start));
+            }
             for (auto& field : info.fields) {
                 llvm::Type* ty = llvmTypeFor(field.type);
                 fieldTypes.push_back(ty);
             }
 
             structTypes[mapKey]->setBody(fieldTypes);
+            namespaceStack = oldNamespaceStack;
         }
     } 
     generateStructReprFunctions();
@@ -4632,10 +4716,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         switch (num->tok.type) {
         case TokenType::INT: {
             intptr_t v = std::stoll(text);
-            if (v >= std::numeric_limits<int32_t>::min() && v <= std::numeric_limits<int32_t>::max()) {
-                return builder->getInt32(static_cast<int32_t>(v));
-            }
+            return builder->getInt32(static_cast<int32_t>(v));
+        }
+        case TokenType::LONG_INT: {
+            intptr_t v = std::stoll(text);
             return builder->getInt64(static_cast<int64_t>(v));
+        }
+        case TokenType::SHORT_INT: {
+            intptr_t v = std::stoi(text);
+            return builder->getInt16(static_cast<int16_t>(v));
         }
         case TokenType::ADDR_T: {
             size_t v = std::stoull(text);
@@ -4968,7 +5057,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* lhsPayload = builder->CreateExtractValue(L, 1, "lhs_payload");
                 llvm::Value* rhsPayload = builder->CreateExtractValue(R, 1, "rhs_payload");
 
-                auto& members = userTypes[lUnionName].members;
+                auto& members = userTypes.at(baseTypeName(lUnionName)).members;
                 llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(context, "payload_cmp_end", currentFunction);
                 llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(context, "cmp_default", currentFunction);
                 llvm::SwitchInst* sw = builder->CreateSwitch(lhsTag, defaultBB, members.size());
@@ -5173,7 +5262,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* lhsPayload = builder->CreateExtractValue(L, 1, "lhs_payload");
                 llvm::Value* rhsPayload = builder->CreateExtractValue(R, 1, "rhs_payload");
 
-                auto& entries = userTypes[lEnumName].enumEntries;
+                auto& entries = userTypes.at(baseTypeName(lEnumName)).enumEntries;
                 llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(context, "payload_cmp_end", currentFunction);
                 llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(context, "cmp_default", currentFunction);
                 llvm::SwitchInst* sw = builder->CreateSwitch(lhsTag, defaultBB, entries.size());
@@ -5239,7 +5328,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if ((*bin)->is_f) {
-            std::function<llvm::Value*(llvm::Value*, const Position&)> toString = [&](llvm::Value* v, const Position& pos) -> llvm::Value* {
+            std::function<llvm::Value*(llvm::Value*, AnyNode&, const Position&)> toString = [&](llvm::Value* v, AnyNode& node, const Position& pos) -> llvm::Value* {   
+                v = derefIfReference(v, node);
+                if (!v) return nullptr;
                 llvm::Type* ty = v->getType();
                 if (ty->isIntegerTy(32)) {
                     auto* fn = module->getFunction("qc_to_string_int");
@@ -5395,7 +5486,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                 for (auto& [unionName, unionTy] : unionTypes) {
                     if (ty == unionTy) {
-                        auto& members = userTypes[unionName].members;
+                        auto& members = userTypes.at(baseTypeName(unionName)).members;
                         llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
                         llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
 
@@ -5422,7 +5513,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 memberVal = builder->CreateLoad(memberTy, typedPtr, "union_member");
                             }
                             AnyNode fakeNode = std::monostate{};
-                            llvm::Value* strVal = toString(memberVal, pos);
+                            llvm::Value* strVal = toString(memberVal, fakeNode, pos);
                             if (!strVal) strVal = builder->CreateGlobalString("?");
                             builder->CreateStore(strVal, resultAlloc);
                             builder->CreateBr(endBB);
@@ -5437,11 +5528,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error(pos, "f-string: unsupported type in compiled mode");
                 return nullptr;
             };
-
-            llvm::Value* lStr = toString(L, (*bin)->op_tok.pos);
-            llvm::Value* rStr = toString(R, (*bin)->op_tok.pos);
+            llvm::Value* lStr = toString(L, (*bin)->left_node, (*bin)->op_tok.pos);
+            llvm::Value* rStr = toString(R, (*bin)->right_node, (*bin)->op_tok.pos);
             if (!lStr || !rStr) return nullptr;
-
             llvm::Function* concatFn = module->getFunction("qc_string_concat");
             if (!concatFn) {
                 auto* i8Ptr = llvm::PointerType::get(context, 0);
@@ -5456,7 +5545,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         bool lIsUnion = isUnionType(L->getType(), &lUnion);
         bool rIsUnion = isUnionType(R->getType(), &rUnion);
         if (lIsUnion && rIsUnion) {
-            auto& members = userTypes[lUnion].members;
+            auto& members = userTypes.at(baseTypeName(lUnion)).members;
             llvm::Value* lTag = builder->CreateExtractValue(L, 0, "ltag");
             llvm::Value* lPayload = builder->CreateExtractValue(L, 1, "lpayload");
             llvm::Value* rPayload = builder->CreateExtractValue(R, 1, "rpayload");
@@ -5525,7 +5614,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         if (lIsUnion || rIsUnion) {
             std::string unionName = lIsUnion ? lUnion : rUnion;
-            auto& members = userTypes[unionName].members;
+            auto& members = userTypes.at(baseTypeName(unionName)).members;
             llvm::Value* unionVal = lIsUnion ? L : R;
             llvm::Value* otherVal = lIsUnion ? R : L;
 
@@ -6262,6 +6351,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
             if (auto call = std::get_if<CallNode*>(&(*va)->value_node)) {
+                bool handled = false;
                 if (auto varAccess = std::get_if<VarAccessNode*>(&(*call)->node_to_call)) {
                     std::string calledName = (*varAccess)->var_name_tok.value;
                     if (calledName == buildMangledName(qcType, genericParams)) {
@@ -6292,9 +6382,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
                                     builder->CreateStore(vtableIt->second, vptrField);
                                 }
+                                handled = true;
                             }
                         }
                     }
+                }
+                if (!handled) {
+                    llvm::Value *rhs = emitExpr((*va)->value_node);
+                    if (!rhs) return nullptr;
+                    if (rhs->getType() != classTy) {
+                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        return nullptr;
+                    }
+                    builder->CreateStore(rhs, instance);
                 }
             } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::Value* rhsVal = emitExpr(*arrLit);
@@ -6318,6 +6418,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->CreateStore(vtableIt->second, vptrField);
                 }
                 return nullptr; 
+            } else {
+                llvm::Value *rhs = emitExpr((*va)->value_node);
+                if (!rhs) return nullptr;
+                if (rhs->getType() != classTy) {
+                    cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                    return nullptr;
+                }
+                builder->CreateStore(rhs, instance);
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
@@ -6363,12 +6471,72 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = qcType;
                 return nullptr;
+            } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
+                llvm::StructType* structTy = structTypes[qcType];
+                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+
+                auto& structInfo = userTypeIt->second;
+
+                for (auto& [keyNode, valueNode] : (*mapLit)->pairs) {
+                    std::string fieldName;
+
+                    if (auto key = std::get_if<VarAccessNode*>(&keyNode)) {
+                        fieldName = (*key)->var_name_tok.value;
+                    } 
+                    else if (auto key = std::get_if<StringNode>(&keyNode)) {
+                        fieldName = key->tok.value;
+                    }
+                    else {
+                        cg_error((*mapLit)->pos, "Struct field name must be an identifier");
+                        return nullptr;
+                    }
+
+                    int fieldIndex = -1;
+
+                    for (size_t i = 0; i < structInfo.fields.size(); i++) {
+                        if (structInfo.fields[i].name == fieldName) {
+                            fieldIndex = i;
+                            break;
+                        }
+                    }
+
+                    if (fieldIndex == -1) {
+                        cg_error((*mapLit)->pos,
+                            "Unknown field '" + fieldName + "' in struct " + qcType);
+                        return nullptr;
+                    }
+
+                    llvm::Value* fieldValue = emitExpr(valueNode);
+
+                    if (!fieldValue)
+                        return nullptr;
+
+                    structVal = builder->CreateInsertValue(
+                        structVal,
+                        fieldValue,
+                        fieldIndex
+                    );
+                }
+
+                llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
+                builder->CreateStore(structVal, structAlloc);
+
+                std::string fullName =
+                    getCurrentNamespace().empty()
+                    ? name
+                    : getCurrentNamespace() + "::" + name;
+
+                locals[fullName] = structAlloc;
+                varTypes[fullName] = qcType;
+
+                return nullptr;
             }
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Class) {
             llvm::StructType* classTy = genericiseOrFindClass(qcType);
             llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
             if (auto call = std::get_if<CallNode*>(&(*va)->value_node)) {
+                bool handled = false;
                 if (auto varAccess = std::get_if<VarAccessNode*>(&(*call)->node_to_call)) {
                     std::string calledName = (*varAccess)->var_name_tok.value;
 
@@ -6399,12 +6567,50 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
                                     builder->CreateStore(vtableIt->second, vptrField);
                                 }
+                                handled = true;
                             }
                         }
                     }
                 }
+                if (!handled) {
+                    llvm::Value *rhs = emitExpr((*va)->value_node);
+                    if (!rhs) return nullptr;
+                    if (rhs->getType() != classTy) {
+                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        return nullptr;
+                    }
+                    builder->CreateStore(rhs, instance);
+                }
+            } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
+                llvm::Value* rhsVal = emitExpr(*arrLit);
+                llvm::Value* len = builder->getInt32((*arrLit)->elements.size());
+                rhsVal = decayArrayToPointer(rhsVal);
+                if (rhsVal == nullptr) { return nullptr; }
+                llvm::Function* opMethod = findMethodOverload(qcType, "operator[]=", {rhsVal, len});
+                if (opMethod) {
+                    emitMethodCall(opMethod, instance, {rhsVal, len}, "operator[]=");
+                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                    locals[fullName] = instance;
+                    varTypes[fullName] = qcType;
+                } else {
+                    cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
+                    return nullptr;
+                }
+                auto vtableIt = vtables.find(qcType);
+                if (vtableIt != vtables.end()) {
+                    llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
+                    builder->CreateStore(vtableIt->second, vptrField);
+                }
+                return nullptr; 
+            } else {
+                llvm::Value *rhs = emitExpr((*va)->value_node);
+                if (!rhs) return nullptr;
+                if (rhs->getType() != classTy) {
+                    cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                    return nullptr;
+                }
+                builder->CreateStore(rhs, instance);
             }
-
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
             varTypes[fullName] = qcType;
@@ -6427,7 +6633,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*va)->var_name_tok.pos, "Value does not match any variant of union " + qcType);
                 return nullptr;
             }
-            auto& member = userTypes[qcType].members[tag];
+            auto& member = userTypes.at(baseTypeName(qcType)).members[tag];
             bool isLiteral = member.type.find(':') != std::string::npos;
             llvm::Type* rhsTy = rhs->getType();
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
@@ -6634,7 +6840,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     std::string resolvedFieldType;
                     std::function<bool(const std::string&)> findFieldType = [&](const std::string& cname) -> bool {
-                        auto& ci = userTypes[baseTypeName(cname)];
+                        auto& ci = userTypes.at(baseTypeName(baseTypeName(cname)));
                         if (!ci.baseClassName.empty() && findFieldType(ci.baseClassName)) return true;
                         for (auto& field : ci.classFields) {
                             if (field.name == fieldName) {
@@ -6681,14 +6887,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
 
                 std::string structName = structTy->getName().str();
-                auto userTypeIt = userTypes.find(structName);
-                int fieldIdx = -1;
-                for (size_t i = 0; i < userTypeIt->second.fields.size(); i++) {
-                    if (userTypeIt->second.fields[i].name == fieldName) {
-                        fieldIdx = i;
-                        break;
-                    }
-                }
+                int fieldIdx = getFlattenedFieldIndex(structName, fieldName);
 
                 llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, locAlloc, fieldIdx);
                 llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
@@ -6720,13 +6919,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                          "(variable, property, or dereference)");
             return nullptr;
         }
-        std::string lhsTypeStr = getExpressionType((*asn)->target, false);
-
-        bool isReference = lhsTypeStr.ends_with("&");
-        if (isReference) lhsTypeStr.pop_back();
+        std::string lhsTypeStr = getExpressionType((*asn)->target);
         llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
-            cg_error((*asn)->op_tok.pos, "Could not resolve type for assignment");
+            cg_error((*asn)->op_tok.pos, "Could not resolve type " + lhsTypeStr + " for assignment");
             return nullptr;
         }
         for (auto& [unionName, unionTy] : unionTypes) {
@@ -6743,7 +6939,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error((*asn)->op_tok.pos, "Value does not match any variant of union " + unionName);
                     return nullptr;
                 }
-                auto& member = userTypes[unionName].members[tag];
+                auto& member = userTypes.at(baseTypeName(unionName)).members[tag];
                 bool isLiteral = member.type.find(':') != std::string::npos;
 
                 std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
@@ -6800,7 +6996,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 break;
             }
         }
-
         if ((*asn)->op_tok.type != TokenType::EQ) {
             if (srcTy != destTy) {
                 if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
@@ -6811,7 +7006,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         std::string destClassName = structTy->getName().str();
                         std::string srcClassName = getExpressionType((*asn)->value);
                         if (classTypes.count(destClassName) && classTypes.count(srcClassName)) {
-                            auto& srcInfo = userTypes[srcClassName];
+                            auto& srcInfo = userTypes.at(baseTypeName(srcClassName));
                             if (srcInfo.baseClassName == destClassName) {
                             } else {
                                 cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
@@ -6964,7 +7159,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string destClassName = structTy->getName().str();
                     std::string srcClassName = getExpressionType((*asn)->value);
                     if (classTypes.count(destClassName) && classTypes.count(srcClassName)) {
-                        auto& srcInfo = userTypes[srcClassName];
+                        auto& srcInfo = userTypes.at(baseTypeName(srcClassName));
                         if (srcInfo.baseClassName == destClassName) {
                             builder->CreateStore(newVal, alloc);
                             auto vtableIt = vtables.find(srcClassName);
@@ -7158,50 +7353,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Function* f = emitFuncDef(*(*fnPtr));
         return f;
     } else if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
-        if ((*mapLit)->pairs.empty()) {
-            cg_error((*mapLit)->pos, "Cannot infer type of empty map literal");
-            return nullptr;
-        }
-        llvm::Value* firstKey = emitExpr((*mapLit)->pairs[0].first);
-        llvm::Value* firstVal = emitExpr((*mapLit)->pairs[0].second);
-        if (!firstKey || !firstVal) return nullptr;
-
-        int keyTypeCode = getTypeCodeFromLLVM(firstKey->getType());
-        int valueTypeCode = getTypeCodeFromLLVM(firstVal->getType());
-
-        llvm::Function* createFn = module->getFunction("qc_create_map");
-        if (!createFn) {
-            llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType* fnTy = llvm::FunctionType::get(ptrTy, {builder->getInt32Ty(), builder->getInt32Ty()}, false);
-            createFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_create_map", module);
-        }
-
-        llvm::Value* mapPtr = builder->CreateCall(createFn, {builder->getInt32(keyTypeCode), builder->getInt32(valueTypeCode)}, "map_lit_ptr");
-
-        llvm::Function* setFn = module->getFunction("qc_map_set");
-        if (!setFn) {
-            llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
-            llvm::FunctionType* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {voidPtrTy, voidPtrTy, voidPtrTy}, false);
-            setFn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, "qc_map_set", module);
-        }
-
-        for (auto& pair : (*mapLit)->pairs) {
-            llvm::Value* keyVal = emitExpr(pair.first);
-            llvm::Value* valueVal = emitExpr(pair.second);
-            if (!keyVal || !valueVal) continue;
-
-            llvm::AllocaInst* keyAlloc = createEntryAlloca("lit_key", keyVal->getType());
-            llvm::AllocaInst* valAlloc = createEntryAlloca("lit_val", valueVal->getType());
-            builder->CreateStore(keyVal, keyAlloc);
-            builder->CreateStore(valueVal, valAlloc);
-
-            llvm::Value* keyPtr = builder->CreateBitCast(keyAlloc, llvm::PointerType::get(context, 0));
-            llvm::Value* valPtr = builder->CreateBitCast(valAlloc, llvm::PointerType::get(context, 0));
-
-            builder->CreateCall(setFn, {mapPtr, keyPtr, valPtr});
-        }
-
-        return mapPtr;
+        cg_error(Position(), "Map literals may not be used outside of struct intialization (`Point p = {x: 321, y: 123}`)");
+        return nullptr;
     } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
         if ((*arrLit)->elements.empty()) {
             if (!currentFunction) {
@@ -7519,7 +7672,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     for (auto& [enumName, enumTy] : enumTypes) {
                         if (argTy == enumTy) {
                             llvm::Value* tag = builder->CreateExtractValue(arg, 0);
-                            auto& entries = userTypes[enumName].enumEntries;
+                            auto& entries = userTypes.at(baseTypeName(enumName)).enumEntries;
                             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
                             llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
                             llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, entries.size());
@@ -8439,12 +8592,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     std::string clobber_string = clobber_string_node->tok.value;
                     std::string current_clobber = "";
+                    std::string current_reg = "";
                     for (char c : clobber_string) {
                         if (c == '~') {
                             if (!current_clobber.empty()) { clobbers.push_back(current_clobber); }
                             current_clobber = "~";
+                            current_reg = "";
                         } else {
                             current_clobber += c;
+                        }
+                        if (c != '~' && c != '{' && c != '}') current_reg += c;
+                        if (c == '}' && (current_reg == "rsp" || current_reg == "esp" || current_reg == "rbp" || current_reg == "ebp")) {
+                            cg_error((*varAccess)->var_name_tok.pos, current_reg + " is the stack pointer. You cannot clobber the stack pointer "
+                                                                          "because the compiler relies on it to track local variables "
+                                                                          "and function returns; modifying it guarantees a runtime crash.");
+                            return nullptr;
                         }
                     }
                     if (!(current_clobber.empty())) { clobbers.push_back(current_clobber); }
@@ -8984,7 +9146,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
         if (!baseVal) return nullptr;
         llvm::Type* baseTy = baseVal->getType();
-        llvm::errs() << "\n";
         if (baseTy->isPointerTy()) {
             if (auto varAccess = std::get_if<VarAccessNode*>(&*(*propAccess)->base)) {
                 std::string varName = (*varAccess)->var_name_tok.value;
@@ -9075,7 +9236,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         for (auto& [unionName, unionTy] : unionTypes) {
             if (baseTy == unionTy) {
-                auto& unionInfo = userTypes[unionName];
+                auto& unionInfo = userTypes.at(baseTypeName(unionName));
 
                 for (auto& member : unionInfo.members) {
                     std::string resolvedBaseType = resolveTypeName(member.type, false);
@@ -9128,7 +9289,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                     }
                     if (structTypes.find(resolvedVariant) != structTypes.end()) {
-                        auto& structInfo = userTypes[resolvedVariant];
+                        auto& structInfo = userTypes.at(baseTypeName(resolvedVariant));
                         int fieldIdx = -1;
                         for (size_t i = 0; i < structInfo.fields.size(); i++) {
                             if (structInfo.fields[i].name == propName) {
@@ -9190,7 +9351,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         builder->SetInsertPoint(joinBB);
                         llvm::Value* result = nullptr;
                         int idx = 0;
-                        for (auto& m : userTypes[typeName].members) {
+                        for (auto& m : userTypes.at(baseTypeName(typeName)).members) {
                             std::string ty = resolveTypeName(m.type, false);
                             if (!classTypes.count(ty) && !genericClasses[ty]) {
                                 idx++;
@@ -9202,7 +9363,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, unionPtr, 1);
                             llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
                             ClassMethodInfo* info = nullptr;
-                            for (auto& m2 : userTypes[baseTypeName(ty)].classMethods) {
+                            for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
                                 if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
                                     info = &m2;
                                     break;
@@ -9251,7 +9412,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->SetInsertPoint(joinBB);
                     llvm::Value* result = nullptr;
                     int idx = 0;
-                    for (auto& m : userTypes[unionName].members) {
+                    for (auto& m : userTypes.at(baseTypeName(unionName)).members) {
                         std::string ty = resolveTypeName(m.type, false);
                         if (!classTypes.count(ty) && !genericClasses[ty]) {
                             idx++;
@@ -9263,7 +9424,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, unionPtr, 1);
                         llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
                         ClassMethodInfo* info = nullptr;
-                        for (auto& m2 : userTypes[baseTypeName(ty)].classMethods) {
+                        for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
                             if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
                                 info = &m2;
                                 break;
@@ -9298,7 +9459,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             unsigned fieldIndex = 0;
             bool found = false;
-            const auto& fields = userTypes[baseTypeName(ownerClass)].classFields;
+            const auto& fields = userTypes.at(baseTypeName(baseTypeName(ownerClass))).classFields;
             for (size_t i = 0; i < fields.size(); ++i) {
                 if (fields[i].name == propAcc->property_name.value) {
                     fieldIndex = (unsigned)i;
@@ -9308,7 +9469,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             if (!found) { return (cg_error((*call)->method_name.pos, "Field not found"), nullptr); }
             llvm::Value* fieldAddr = builder->CreateStructGEP(structType, baseAddr, fieldIndex);
-            thisPtr = builder->CreateLoad(builder->getPtrTy(), fieldAddr, "ptr_ld");
+            thisPtr = fieldAddr;
             AnyNode temp = AnyNode(propAcc);
             targetClass = getExpressionType(temp);
         } else {
@@ -9329,7 +9490,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->SetInsertPoint(joinBB);
                     llvm::Value* result = nullptr;
                     int idx = 0;
-                    for (auto& m : userTypes[unionName].members) {
+                    for (auto& m : userTypes.at(baseTypeName(unionName)).members) {
                         std::string ty = resolveTypeName(m.type);
                         if (!classTypes.count(ty)) {
                             idx++;
@@ -9341,7 +9502,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, baseVal, 1);
                         llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
                         ClassMethodInfo* info = nullptr;
-                        for (auto& m2 : userTypes[baseTypeName(ty)].classMethods) {
+                        for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
                             if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
                                 info = &m2;
                                 break;
@@ -9376,7 +9537,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         ClassMethodInfo* info = nullptr;
         std::string searchClass = baseTypeName(targetClass);
         while (!searchClass.empty() && !info) {
-            for (auto& m : userTypes[searchClass].classMethods) {
+            for (auto& m : userTypes.at(baseTypeName(searchClass)).classMethods) {
                 bool isVar = !m.params.empty() && m.params.back().type.value == "...";
                 if (m.name_tok.value == methodName) {
                     if (isVar && (*call)->args.size() >= m.params.size() - 1) {
@@ -9388,7 +9549,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                 }
             }
-            searchClass = userTypes[searchClass].baseClassName;
+            searchClass = userTypes.at(baseTypeName(searchClass)).baseClassName;
         }
 
         auto args = prepareArgs(info, (*call)->args);
@@ -9435,6 +9596,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         auto slotIt = vtableSlotIndex.find(targetClass);
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
             std::string mangledName = targetClass + "_" + methodName;
+            if (info && classMethods[targetClass][methodName].size() > 1) {
+                for (auto& param : info->params) {
+                    mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
+                }
+            }
             auto indexIt = slotIt->second.find(mangledName);
             if (indexIt != slotIt->second.end()) {
                 int slotIndex = indexIt->second;
@@ -9953,7 +10119,16 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     llvm::GlobalValue::LinkageTypes linkage = fn.is_extern || fn.is_foreign ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
 
     auto* func = llvm::Function::Create(fTy, linkage, name, module);
-
+    llvm::SmallVector<llvm::Metadata*, 4> retTypes;
+    for (auto& ret : fn.return_types) {
+        retTypes.push_back(
+            llvm::MDString::get(context, ret.value)
+        );
+    }
+    func->setMetadata(
+        "qc.return_types",
+        llvm::MDNode::get(context, retTypes)
+    ); 
     if (fn.is_foreign) return func;
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
@@ -10137,6 +10312,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     val = builder->CreateBitCast(typedPtr, destTy);
                 }
             }
+            if (this->returnsRef(i)) {
+                val = this->emitLValue(mret->values[i]);
+            }
             if (!val) { val = emitExpr(mret->values[i]); }
             if (!val) return;
             llvm::Type* srcTy = val->getType();
@@ -10257,7 +10435,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
         llvm::Value* v = nullptr;
         llvm::Type* destTy = currentFunction->getReturnType();
-        if (destTy->isPointerTy() && std::get_if<ArrayAccessNode*>(&(*ret)->value)) { v = emitLValue((*ret)->value); }
+        if (this->returnsRef()) {
+            v = this->emitLValue((*ret)->value);
+        } 
         if (!v) { v = emitExpr((*ret)->value); }
 
         if (!v) {
@@ -11120,6 +11300,8 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::Type* arrayElemTy = nullptr;
         std::string collName = "";
         std::string collTypeName = "";
+        llvm::Function* beginOverload = nullptr;
+        llvm::Value* collVal;
         if (auto varAccess = std::get_if<VarAccessNode*>(&foreach->collection)) {
             collName = (*varAccess)->var_name_tok.value;
             collTypeName = varTypes[collName];
@@ -11155,20 +11337,49 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     } else {
                     }
                 }
-            } 
+            }
+            beginOverload = findMethodOverload(collTypeName, "_begin", {});
+            bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;  
+            collVal = isIterator ? emitLValue(foreach->collection) : emitExpr(foreach->collection);
+        } else {
+            collVal = userTypes.find(baseTypeName(getExpressionType(foreach->collection))) == userTypes.end() ? emitExpr(foreach->collection) : emitLValue(foreach->collection);
+            if (userTypes.find(baseTypeName(getExpressionType(foreach->collection))) != userTypes.end()) {
+                if (userTypes[baseTypeName(getExpressionType(foreach->collection))].kind == UserTypeKind::Class) {
+                    collTypeName = getExpressionType(foreach->collection);
+                    isArray = false;
+                }
+            } else {
+                if (collVal->getType()->isArrayTy()) {
+                    collTypeName = getExpressionType(foreach->collection);
+                    isArray = true;
+                }
+            }
         }
-        collTypeName = fixMangling(collTypeName);
-        auto beginOverload = findMethodOverload(collTypeName, "_begin", {});
+        beginOverload = findMethodOverload(collTypeName, "_begin", {});
         bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;  
         llvm::AllocaInst* iterObjAlloc = nullptr;
         std::string iterTypeName = "";
         llvm::Type* iterLLVMTy = nullptr;
         llvm::Value* iterLoaded = nullptr;
-        llvm::Value* collVal = isIterator ? emitLValue(foreach->collection) : emitExpr(foreach->collection);
         if (!collVal) return;
         if (isIterator) {
-            iterTypeName = getMethodReturnTypeName(collTypeName, "_begin");
             auto baseInfo = userTypes.find(baseTypeName(collTypeName));
+            auto info = baseInfo->second;
+            auto oldNamespaceStack = namespaceStack;
+            namespaceStack.clear();
+
+            if (!info.namespace_path.empty()) {
+                size_t start = 0;
+                size_t pos;
+
+                while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+                    namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+                    start = pos + 2;
+                }
+
+                namespaceStack.push_back(info.namespace_path.substr(start));
+            }   
+            iterTypeName = resolveTypeName(getMethodReturnTypeName(collTypeName, "_begin"), false);
             auto concreteParams = genericParamsFromName(collTypeName);
             for (size_t i = 0; i < baseInfo->second.generics.size() && i < concreteParams.size(); i++) {
                 std::string gname = baseInfo->second.generics[i].name;
@@ -11181,6 +11392,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             iterObjAlloc = createEntryAlloca("__iter_" + elemName, iterLLVMTy);
             llvm::Value* iterObj = emitMethodCall(beginOverload, collVal, {}, "_begin");
             builder->CreateStore(iterObj, iterObjAlloc);
+            namespaceStack = oldNamespaceStack;
         }
         enterScope();
         llvm::Type* elemTy = llvmTypeFor(foreach->elem_type.value);
@@ -11300,6 +11512,24 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
     this->arrayLengthsStack = {visibleArrayLengths};
     this->runtimeArraySizes = visibleRuntimeArraySizes;
     this->lambdaTypes = visibleLambdaTypes;
+    for (auto& [className, info] : userTypes) {
+        if (info.kind != UserTypeKind::Class) continue;
+        if (!info.generics.empty()) continue;
+        for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
+            auto& method = info.classMethods[methodIdx];
+            bool hasAutoParam = false;
+            for (auto& param : method.params) {
+                if (param.type.value == "auto") {
+                    hasAutoParam = true;
+                    break;
+                }
+            }
+
+            bool hasAutoReturn = !method.return_types.empty() && method.return_types[0].value == "auto";
+
+            if (hasAutoParam || hasAutoReturn) { autoMethodIndices[className].push_back(methodIdx); }
+        }
+    }
     createUserTypes();
     std::function<void(NamespaceNode&)> createGlobals = [&](NamespaceNode& ns) {
         namespaceStack.push_back(ns.name);
@@ -11361,24 +11591,6 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
             std::string funcName = fnPtr->name_tok.value().value;
             if (funcName == entrypointName && !this->is_main) { continue; }
             functionDefs[funcName] = fnPtr;
-        }
-    }
-    for (auto& [className, info] : userTypes) {
-        if (info.kind != UserTypeKind::Class) continue;
-        if (!info.generics.empty()) continue;
-        for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
-            auto& method = info.classMethods[methodIdx];
-            bool hasAutoParam = false;
-            for (auto& param : method.params) {
-                if (param.type.value == "auto") {
-                    hasAutoParam = true;
-                    break;
-                }
-            }
-
-            bool hasAutoReturn = !method.return_types.empty() && method.return_types[0].value == "auto";
-
-            if (hasAutoParam || hasAutoReturn) { autoMethodIndices[className].push_back(methodIdx); }
         }
     }
     std::function<void(NamespaceNode&)> compileNamespaceFunctions = [&](NamespaceNode& ns) {
@@ -11913,6 +12125,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     std::unordered_map<std::string, std::string> raw_file_contents;
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> file_included_namespaces;
     raw_file_contents[file] = text;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::vector<std::string>>> file_namespace_deps;
     std::unordered_map<std::string, std::unordered_set<std::string>> fileAccessibleNamespaces;
     auto start = std::chrono::high_resolution_clock::now();
     try {
@@ -11941,6 +12154,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             cleaned_files[current_file] = outputofdeps.clean_source;
             fileAccessibleNamespaces[current_file] = outputofdeps.accessible_namespaces;
             file_included_namespaces[current_file] = outputofdeps.included_namespaces;
+            file_namespace_deps[current_file] = outputofdeps.namespace_depends;
             for (const std::string& dep_path : outputofdeps.dependency_paths) {
                 if (!visited.count(dep_path)) { queue.push_back(dep_path); }
             }
@@ -11959,7 +12173,20 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         std::unordered_map<std::string, UserTypeInfo> visible_types;
         for (auto const& [dep_path, ns_list] : deps) {
             auto& dep_types = type_registry[dep_path];
-            for (const std::string& ns : ns_list) {
+            std::unordered_set<std::string> widened_ns(ns_list.begin(), ns_list.end());
+            std::vector<std::string> worklist(ns_list.begin(), ns_list.end());
+            while (!worklist.empty()) {
+                std::string ns = worklist.back();
+                worklist.pop_back();
+                if (file_namespace_deps.count(dep_path) && file_namespace_deps[dep_path].count(ns)) {
+                    for (const std::string& needed_ns : file_namespace_deps[dep_path][ns]) {
+                        if (widened_ns.insert(needed_ns).second) {
+                            worklist.push_back(needed_ns);
+                        }
+                    }
+                }
+            }
+            for (const std::string& ns : widened_ns) {
                 for (auto& [type_name, info] : dep_types) {
                     if (type_name.rfind(ns + "::", 0) == 0) { visible_types[type_name] = info; }
                 }
@@ -11975,7 +12202,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         type_registry[path] = ast.user_types;
         file_asts[path] = ast;
         if (path == file) { resp = file_resp; }
-    };
+    };    
     try {
         process_file(file);
     } catch (InvalidSyntaxError& e) {
@@ -12125,7 +12352,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLen, visVars,
                                                          visAlloc, visLamb, visSpec, visGlobals);
                 if (!errs.empty()) {
-                    for (auto& err : errs) diagnostics.push_back({new RTError(err.details, err.pos), "Error"});
+                    for (auto& err : errs) diagnostics.push_back({new CTError(err.details, err.pos), err.is_warning ? "Warning" : "Error"});
                     break;
                 }
                 db_sigs[filepath] = comp.functionSignatures;
@@ -12138,6 +12365,11 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 db_lambdas[filepath] = comp.lambdaTypes;
                 db_specialized[filepath] = comp.specializedFunctions;
                 db_globals[filepath] = comp.globals;
+            }
+            for (Diagnostic& diagnostic : diagnostics) {
+                if (diagnostic.level != "Warning") {
+                    return Mer{ast, resp, "Program exited with code: 1", diagnostics};
+                }
             }
             std::string base_name = config.output_file.empty() ? "out" : removeExtension(config.output_file);
             size_t last_slash = base_name.find_last_of("/\\");
@@ -12196,7 +12428,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             int llc_result = emitObjectFile(*master_module, obj_file, config.debug);
             if (llc_result != 0) {
-                diagnostics.push_back({new RTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
+                diagnostics.push_back({new CTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
                 return Mer{ast, resp, message, diagnostics};
             }
             if (config.object_only) {
@@ -12209,7 +12441,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             if (config.debug) link_cmd += " -g";
             int link_result = system(link_cmd.c_str());
             if (link_result != 0) {
-                diagnostics.push_back({new RTError("Failed to link object file", Position("", "", 0, 0, 0)), "Error"});
+                diagnostics.push_back({new CTError("Failed to link object file", Position("", "", 0, 0, 0)), "Error"});
                 return Mer{ast, resp, message, diagnostics};
             }
             std::remove(ll_file.c_str());
@@ -12253,6 +12485,8 @@ Token Lexer::make_number() {
     bool is_float = false;
     bool is_octal = false;
     bool is_binary = false;
+    bool is_long = false;
+    bool is_short = false;
     bool is_hex = false;
     if (this->current_char == '0') {
         switch (this->text[this->pos.index + 1]) {
@@ -12298,7 +12532,7 @@ Token Lexer::make_number() {
         size_t val = std::stoull(num, nullptr, 2);
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".f")) {
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".fls")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
                     this->advance();
@@ -12311,6 +12545,14 @@ Token Lexer::make_number() {
                 is_float = true;
                 this->advance();
                 break;
+            } else if (this->current_char == 'l') {
+                is_long = true;
+                this->advance();
+                break;
+            } else if (this->current_char == 's') {
+                is_short = true;
+                this->advance();
+                break;
             } else {
                 num += this->current_char;
                 this->advance();
@@ -12319,8 +12561,11 @@ Token Lexer::make_number() {
     }
     if (dot_count == 1) {
         if (is_float) { return Token(TokenType::FLOAT, num, start_pos); }
+        if (is_long) return Token(TokenType::LONG_DOUBLE, num, start_pos);
         return Token(TokenType::DOUBLE, num, start_pos);
     }
+    if (is_long) return Token(TokenType::LONG_INT, num, start_pos);
+    if (is_short) return Token(TokenType::SHORT_INT, num, start_pos);
     return Token(TokenType::INT, num, start_pos);
 }
 Token Lexer::make_identifier() {
@@ -12863,6 +13108,7 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
     res.accessible_namespaces.insert("Exported");
     res.accessible_namespaces.insert("");
     std::vector<std::string> dependencies;
+    std::unordered_map<std::string, std::vector<std::string>> namespace_depends;
     std::unordered_map<std::string, std::vector<std::string>> from_where;
     size_t ep_pos = source.find("#entrypoint");
     size_t nomain_pos = source.find("#nomain");
@@ -12886,6 +13132,34 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         if (!in_string) { no_main = true; }
     }
     size_t pos = 0;
+    while ((pos = source.find("#depends", pos)) != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check - 1] != '\\')) { in_string = !in_string; }
+        }
+        if (in_string) {
+            pos++;
+            continue;
+        }
+        size_t start = source.find('(', pos);
+        size_t end = source.find(')', start);
+        std::string directive = source.substr(start + 1, end - start - 1);
+
+        size_t colon = directive.find(':');
+        std::string owner_ns = trim(directive.substr(0, colon));
+        std::string rest = directive.substr(colon + 1);
+        size_t segment_start = 0;
+        size_t comma = rest.find(',', segment_start);
+        while (comma != std::string::npos) {
+            namespace_depends[owner_ns].push_back(trim(rest.substr(segment_start, comma - segment_start)));
+            segment_start = comma + 1;
+            comma = rest.find(',', segment_start);
+        }
+        namespace_depends[owner_ns].push_back(trim(rest.substr(segment_start)));
+
+        pos = end + 1;
+    }
+    pos = 0;
     while ((pos = source.find("#include", pos)) != std::string::npos) {
         bool in_string = false;
         for (size_t check = 0; check < pos; check++) {
@@ -12964,6 +13238,20 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         }
     }
     pos = 0;
+    while ((pos = result.find("#depends", pos)) != std::string::npos) {
+        bool in_str = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+        }
+        if (!in_str) {
+            size_t line_end = result.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result.size();
+            result.erase(pos, line_end - pos + 1);
+        } else {
+            pos++;
+        }
+    }
+    pos = 0;
     while ((pos = result.find("#nomain", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
@@ -12980,5 +13268,6 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
     res.clean_source = result;
     res.dependency_paths = dependencies;
     res.included_namespaces = from_where;
+    res.namespace_depends = namespace_depends;
     return res;
 }

@@ -38,27 +38,27 @@ namespace AdvQBool {
         }
         bool operator&&(AlTypes other) {
             if (typeof(other) == "AdvQBool::AQB") {
-                return this.eval() && other.eval();
+                return this._eval() && other._eval();
             } else {
-                return this.eval() && other;
+                return this._eval() && other;
             }
         }
         bool operator||(AlTypes other) {
             if (typeof(other) == "AdvQBool::AQB") {
-                return this.eval() || other.eval();
+                return this._eval() || other._eval();
             } else {
-                return this.eval() || other;
+                return this._eval() || other;
             }
         }
         bool operator^(AlTypes other) {
             if (typeof(other) == "AdvQBool::AQB") {
-                return this.eval() ^ other.eval();
+                return this._eval() ^ other._eval();
             } else {
-                return this.eval() ^ other;
+                return this._eval() ^ other;
             }
         }
         bool operator!() {
-            return !this.eval();
+            return !this._eval();
         }
         bool _eval() {
             if (random(0, 100) < this.FalseLevel) {
@@ -129,7 +129,7 @@ namespace Array {
                 this.data[i] = data[i];
             }
         }
-        T operator[](int index) {
+        T& operator[](int index) {
             return this.data[index];
         }
         Iterator::It<T> _begin() {
@@ -229,6 +229,9 @@ namespace Vector {
             this.data[this.size] = value;
             this.size++;
         }
+        int length() {
+            return this.size;
+        }
         void pop() {
             if (this.size > 0) {
                 this.size--;
@@ -245,7 +248,7 @@ namespace Vector {
                 this.data[i] = data[i];
             }
         }
-        T operator[](int index) {
+        T& operator[](int index) {
             return this.data[index];
         }
         Iterator::It<T> _begin() {
@@ -437,116 +440,176 @@ namespace List {
         }
     }
 }
-namespace UnitTest {
-    class Test {
-        int Total;
-        int Ran;
-        int Passed;
-        int Failed;
-        Vector::Vec<string> Messages;
-        Test(int Ttl) {
-            this.Messages = [];
-            this.Total = Ttl;
-            this.Ran = 0;
-            this.Passed = 0;
-            this.Failed = 0;
-        }
-        void Check() {
-            if (this.Ran >= this.Total) {
-                this.Ran = 0;
-                if (this.Messages.length > 0) {
-                    foreach(string message in this.Messages) {
-                        qout("==============================\n");
-                        qout("%s\n", message);
-                    }
-                    qout("==============================\n");
-                }
-                
-                qout("%s", f"Failed: {this.Failed}\n");
-                qout("%s", f"Passed: {this.Passed}\n");
-
-                qout("==============================\n");
-                if (this.Failed > 0) {
-                    qout("[FAIL]\n");
-                } else {
-                    qout("[PASS]\n");
-                }
+#depends(Utils: Vector)
+namespace Utils {
+    Vector::Vec<int> range(int start, int stop, int step = 1) {
+        Vector::Vec<int> fin = Vector::Vec<int>();
+        if (step > 0 && start <= stop) {
+            for (; start < stop; start += step) {
+                fin.push(start);
             }
         }
-        void Success(string message = "[SUCCESS]") {
-            this.Ran += 1;
-            this.Passed += 1;
-            this.Messages.push(message + f": [{this.Ran}/{this.Total}]");
-            this.Check();
+        else if (step < 0 && start >= stop) {
+            for (; start > stop; start += step) {
+                fin.push(start);
+            }
         }
-        void Fail(string message = "[FAIL]") {
-            this.Ran += 1;
-            this.Failed += 1;
-            this.Messages.push(message + f": [{this.Ran}/{this.Total}]");
-            this.Check();
+        else {
+            return Vector::Vec<int>();
         }
-        void AssertEqual(auto expected, auto result, string FailMessage = "", string Call = "") {
-            if (expected != result) {
-                if (Call != "") {
-                    this.Fail(f"[FAIL] On call {Call}: Expected {expected}, got {result}. {FailMessage}");
-                } else {
-                    this.Fail(f"[FAIL] Expected {expected}, got {result}. {FailMessage}");
-                }
+        return fin;
+    }
+    void sleep(long int milliseconds) {
+        long int req_sec = milliseconds / 1000;
+        long int req_nsec = (milliseconds % 1000) * 1000000;
+        long int rem_sec = 0;
+        long int rem_nsec = 0;
+        while (true) {
+            long int result = 0;
+            inline(R"(
+                mov rax, 230
+                mov rdi, 1
+                mov rsi, 0
+                mov rdx, $1r
+                mov r10, $2r
+                syscall
+                mov $0=r, rax
+            )", result, &req_sec, &rem_sec, "~{rax}~{rdi}~{rsi}~{rdx}~{r10}~{rcx}~{r11}");
+            if (result == 0) {
+                break;
+            }
+            if (result == -4) {
+                req_sec = rem_sec;
+                req_nsec = rem_nsec;
+                continue;
+            }
+            break;
+        }
+    }
+}
+namespace Math {
+    double e() {
+        return 2.71828182845904523536;
+    }
+    
+    double pi() {
+        return 3.14159265358979323846;
+    }
+    type Number = int | float | double;
+    Number max(Number a, Number b) {
+        if (a > b) {
+            return a;
+        }
+        return b;
+    }
+    Number min(Number a, Number b) {
+        if (a > b) {
+            return b;
+        }
+        return a;
+    }
+    Number sqrt(Number val) {
+        return to_double(val) #^ 0.5;
+    }
+    Number root(Number val, Number power) {
+        double base = to_double(val);
+        double exp  = 1.0 / to_double(power);
+        return base #^ exp;
+    }
+    type Floating = float | double;
+    int ceil(Floating a) {
+        double d = to_double(a);
+        int i = to_int(d);
+        if (d == to_double(i)) {
+            return i;
+        } else if (d > 0) {
+            return i + 1;
+        } else {
+            return i;
+        }
+    }
+    int floor(Floating a) {
+        double d = to_double(a);
+        int i = to_int(d);
+        if (d >= 0) {
+            return i;
+        } else {
+            if (d == to_double(i)) {
+                return i;
             } else {
-                if (Call != "") {
-                    this.Success(f"[SUCCESS] on call {Call}: {result} was equal to {expected}");
-                } else {
-                    this.Success(f"[SUCCESS] {result} was equal to {expected}");
-                }
+                return i - 1;
             }
         }
-        void AssertTrue(bool cond, string FailMessage = "", string Call = "") {
-            if (!cond) {
-                if (Call != "") {
-                    this.Fail(f"[FAIL] On call {Call}: Expected condition to be true. {FailMessage}");
-                } else {
-                    this.Fail(f"[FAIL] Expected condition to be true. {FailMessage}");
-                }
-            } else {
-                if (Call != "") {
-                    this.Success(f"[SUCCESS] on call {Call}: Condition was true");
-                } else {
-                    this.Success(f"[SUCCESS] Condition was true");
-                }
-            }
+    }
+    Number abs(Number a) {
+        if (a < 0) {
+            return a * -1;
         }
-
-        void AssertFalse(bool cond, string FailMessage = "", string Call = "") {
-            if (cond) {
-                if (Call != "") {
-                    this.Fail(f"[FAIL] On call {Call}: Expected condition to be false. {FailMessage}");
-                } else {
-                    this.Fail(f"[FAIL] Expected condition to be false. {FailMessage}");
-                }
-            } else {
-                if (Call != "") {
-                    this.Success(f"[SUCCESS] on call {Call}: Condition was false");
-                } else {
-                    this.Success(f"[SUCCESS] Condition was false");
-                }
-            }
+        return a;
+    }
+    double sin(double x) {
+        double pi = 3.14159265358979323846;
+        while (x > pi) { x -= 2 * pi; }
+        while (x < -pi) { x += 2 * pi; }
+        
+        double result = 0.0;
+        double term = x;
+        int n = 1;
+        for (int i = 0; i < 10; i++) {
+            result += term;
+            term *= -1.0 * x * x / ((2 * n) * (2 * n + 1));
+            n++;
         }
-
-        void AssertNotEqual(auto notExpected, auto result, string FailMessage = "", string Call = "") {
-            if (notExpected == result) {
-                if (Call != "") {
-                    this.Fail(f"[FAIL] On call {Call}: Expected {result} to not equal {notExpected}. {FailMessage}");
-                } else {
-                    this.Fail(f"[FAIL] Expected {result} to not equal {notExpected}. {FailMessage}");
-                }
-            } else {
-                if (Call != "") {
-                    this.Success(f"[SUCCESS] on call {Call}: {result} wasn't equal to {notExpected}");
-                } else {
-                    this.Success(f"[SUCCESS] {result} wasn't equal to {notExpected}");
-                }
-            }
+        
+        return result;
+    }
+    double cos(double x) {
+        
+        double pi = 3.14159265358979323846;
+        while (x > pi) { x -= 2 * pi; }
+        while (x < -pi) { x += 2 * pi; }
+        
+        double result = 0.0;
+        double term = 1.0;
+        int n = 1;
+        
+        for (int i = 0; i < 10; i++) {
+            result += term;
+            term *= -1.0 * x * x / ((2 * n - 1) * (2 * n));
+            n++;
         }
+        
+        return result;
+    }
+    double tan(double x) {
+        return ternary(sin(x) == 0.0 || cos(x) == 0.0, 0.0, sin(x) / cos(x));
+    }
+    double log(double x) {
+        if (x <= 0) {
+            //throw("log: x must be positive");
+            return 0.0;
+        }
+        double log2 = 0.693147180559945309417;
+        int n = 0;
+        
+        while (x > 2.0) {
+            x /= 2.0;
+            n++;
+        }
+        while (x < 0.5) {
+            x *= 2.0;
+            n--;
+        }
+        double y = x - 1.0;
+        double result = 0.0;
+        double term = y;
+        
+        for (int i = 1; i <= 20; i++) {
+            result += term / to_double(i);
+            term *= -y;
+        }
+        
+        return result + n * log2;
     }
 }
 namespace OSInterop {

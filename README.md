@@ -98,12 +98,18 @@ Next Version: x0.18.1 = "Generics (part 2)"
 |                     | Concurrency functions                                                  | Planned     |
 |                     | Inline ASM                                                             | Done        |
 |                     | HTTP                                                                   | Planned     |
-|                     | Generics                                                               | Done        |
+|                     | Generics                                                               |             |
+|                     |     Classes                                                            | Done        |
+|                     |     Structs                                                            | Planned     |
+|                     |     Unions                                                             | Planned     |
+|                     |     Functions & Methods                                                | Planned     |
+|                     |     Variadic                                                           | Planned     |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
 |                     | Really fancy operator overloads                                        | Planned     |
 |                     | Try/Catch and `throw`                                                  | Planned     |
+|                     | Error message quality and helpfulness upgrade                          | Planned     |
 
 See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md)
 # Contributing
@@ -181,19 +187,30 @@ int main() {
     return Math::Max(1234, 432); // Using the math namespace.
 }
 ```
+
+Namespaces can also declare dependencies on other namespaces in the same file
+using `#depends`, ensuring includers automatically see required types even if
+they only explicitly included one namespace from that file:
+
+```cpp
+#depends(x: y)
+namespace x { /* uses y::Something internally */ }
+namespace y { /* ... */ }
+```
+
 Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuantumC/include.html)
 
 ---
-
 ## Why QuantumC?
 
-| **Feature**                 | **C++** | **Zig** | **Rust**       | **QuantumC**   |
-| --------------------------- | ------- | ------- | -------------- | --------------- |
-| **Total Runtime**           | Medium  | Medium  | Medium         | Medium          |
-| **Compile Time (relative)** | Slow    | Medium  | Medium         | Medium          |
-| **Runtime**                 | Fast    | Medium  | Medium         | Fast            |
-| **Memory safety**           | Manual  | GPA     | Borrow checker | Manual          |
-| **Multi-return**            | Structs | Tuples  | Tuples         | **Native**      |
+| **Feature**                 | **C++**              | **Zig**          | **Rust**         | **QuantumC**        |
+| --------------------------- | -------------------- | ---------------- | ---------------- | ------------------- |
+| **Total Runtime**           | Medium               | Medium           | Medium           | Medium              |
+| **Compile Time (relative)** | Slow                 | Medium           | Medium           | Medium              |
+| **Runtime**                 | Fast                 | Medium           | Medium           | Fast                |
+| **Memory safety**           | Manual               | GPA              | Borrow checker   | Manual              |
+| **Multi-return**            | Structs              | Tuples           | Tuples           | **Native**          |
+| **Generics**                | Templates + Concepts | Type as Argument | Trait Based      | Constraint-Based    |
 
 QuantumC has comparable performance to C++, with faster compile times, and similar amounts of QOL features to languages like Zig.
 
@@ -210,33 +227,37 @@ QuantumC has rather unique naming conventions:
 | **User Types**                         | `PascalCase`           | It is common across basically every programming language.                                                                    |
 | **Constants**                          | `SCREAMING_SNAKE_CASE` | Same as above.                                                                                                               |
 | **Private Member Variables**           | `__snake_case`         | Variable case prepended with __. Most underscores.                                                                           |
-| **Protected Member Variables**         | `__camelCase`          | Less underscores.                                                                                                            |
-| **Private Methods**                    | `camel_Snake_Case`     | Unique casing, more underscores.                                                                                             |
+| **Protected Member Variables**         | `_snake_case`          | Less underscores.                                                                                                            |
+| **Private Methods**                    | `__camelCase`          | Unique casing, more underscores.                                                                                             |
+| **Private Methods**                    | `camel_Snake_Case`     | Function casing, more underscores.                                                                                           |
 | **Namespaces**                         | `PascalCase`           | Same as user types.                                                                                                          |
 | **Namespaces Not Meant For Inclusion** | `Pascal_Snake_Case`    | Unique casing style, more underscores, you have to be trying to include this.                                                |
 | **Global Scope Functions**             | `camel_Snake_Case`     | Unique casing style, more underscores, similar to private methods is intentional, because global scope cannot be included.   |
-| **Methods Used By Compiler**           | `_camelCase`           | Different from everything else.                                                                                              |
+| **Methods Used By Compiler**           | `_camelCase`           | Different from everything else. (these methods are iterators and stuff. Methods you define and compiler uses)                | 
 | **Compiler Reserved**                  | `_qc_, __qc_ and qc_`  | Unique, hard to use accidently                                                                                               |
 
 
-Max line size is 180, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, and namespaces should fit the following rules:
+Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace (not a strict rule, just a ideal, no need to follow), and namespaces should fit the following rules:
 
 1. Namespaces should do one thing well, similar to the UNIX philosophy, 
 2. Namespaces should have either:
-        - one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
-        - above + namespaces containing extra helpers
-        - helper functions / utility functions (think a `Math` namespace with log, cos...)
-        - OR anything if directly mapping  C/C++/Zig/Rust code to C^4
+        * one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
+        * above + namespaces containing extra helpers
+        * helper functions / utility functions (think a `Math` namespace with log, cos...)
+        * OR anything if directly mapping  C/C++/Zig/Rust code to C^4
 3. Types in namespaces should have short names: The namespace should have the longer name
         e.g.
-        ```qc
+```qc
 namespace Array {
     class Arr<T, int S = 0> {
         ...
     }
 }
-        ```
-
+```
+All *'s in pointer types stick to the type other than the last, E.G.
+```
+int** *x;
+```
 QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
 My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or miss-type, unlike C/C++ where every single library uses entirely different conventions.
 
@@ -349,7 +370,7 @@ void printf(char* fmt, ...);
 
 ## Bitwise logic
 
-QuantumC has all the standard bitwise logic operators, however it has a non-standard XOR, and Right-Shift token. token.
+QuantumC has all the standard bitwise logic operators, however it has a non-standard XOR, and Right-Shift token.
 The Bitwise XOR operator in C^4 is `$`. It is `$` becuase ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
 The same logic applys for right-shift: `|>` is the right-shift token, becuase it allows the parser to immediately determine:
 ```
@@ -409,6 +430,35 @@ QuantumC also has non-type generic parameters.
 ```
 
 Classes currently are the only thing to have generics.
+
+In Rust, 
+```
+<T(numeric:)>
+```
+Would be
+```
+<T: std::ops::Add<Output = T> + std::ops::Sub<Output = T> + std::ops::Mul<Output = T> + std::ops::Div<Output = T> + PartialOrd + Copy>
+```
+And in C++, it would be
+```
+template <typename T>
+requires std::is_arithmetic_v<T>
+T
+```
+or in old SFINAE C++
+```
+template <typename T, typename = std::enable_if_t<std::is_arithmetic_v<T>>>
+T
+```
+And in Zig:
+```
+...(comptime T: type, ...) ... {
+    switch (@typeInfo(T)) {
+        .Int, .Float => ...,
+        else => @compileError("T must be numeric"),
+    }
+}
+```
 
 ## Iterators
 
@@ -515,6 +565,20 @@ namespace Array
 }
 ```
 
+## Simple File Example
+
+```qc
+namespace Exported {
+    #include<Vector, std>
+}
+int main() {
+    Vector::Vec<int> my_vec = [1, 2, 3];
+    my_vec.push(123);
+    qout("%i", my_vec[2]);
+    return 0;
+}
+```
+
 ---
 
 ## Performance Comparison:
@@ -523,7 +587,19 @@ Comparison output & `.csv` files are located in the `logs` directory.
 
 ## Known limitations:
 
-- You cannot use + style string concat on class instances if you aren't intending the + to call the operator+ method because it won't call _repr, instead it will try and call operator+ on the class with a string argument. This limitation doesn't exist on fstrings though.
+- `foreach` over class-typed fields (e.g. iterating a generic container stored as this.field) may not resolve correctly in all cases — actively being hardened.
+- `auto` param and returning functions and methods are rather finiky, and such, unrecommended
+## Standard Library Namespaces:
+
+```
+Vector
+List
+Array
+AdvQBool
+Math
+Utils
+OSInterop
+```
 
 ## Ideals
 
