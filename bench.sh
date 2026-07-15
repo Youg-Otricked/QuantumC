@@ -8,7 +8,7 @@ QC_OUT="build/qc"
 LOG_DIR="logs"
 mkdir -p "$LOG_DIR" "$CPP_OUT" "$QC_OUT"
 CPP_COMPILER="g++"
-QC_COMPILER="./qc -sv"
+QC_COMPILER="./qc "
 OPT_FLAGS=("O0" "O1" "O2" "O3" "Oz")
 TIME_CMD="/usr/bin/time -v"
 run_compiler_suite () {

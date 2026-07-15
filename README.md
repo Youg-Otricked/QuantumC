@@ -581,14 +581,25 @@ int main() {
 
 ---
 
-## Performance Comparison:
+## Performance Comparison
 
-Comparison output & `.csv` files are located in the `logs` directory. 
+Comparison output and `.csv` files are available in the `logs` directory.
+
+The benchmark compares generated QC code against equivalent C++ code across multiple optimization levels.
+
+> Note: Due to a measurement precision issue in the benchmark harness, `-O1` and `-Oz` results could not be measured reliably.
+
+Measured results:
+- `-O0`: QC performance is approximately 2× faster than the equivalent C++ benchmark.
+- `-O2` / `-O3`: QC performance is approximately 2× slower than the equivalent C++ benchmark.
+
+The benchmark uses a CPU-heavy workload designed to compare generated code performance.
 
 ## Known limitations:
 
 - `foreach` over class-typed fields (e.g. iterating a generic container stored as this.field) may not resolve correctly in all cases — actively being hardened.
 - `auto` param and returning functions and methods are rather finiky, and such, unrecommended
+
 ## Standard Library Namespaces:
 
 ```

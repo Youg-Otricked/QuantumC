@@ -330,6 +330,24 @@ namespace List {
             this.tail = nullptr;
             this.size = 0;
         }
+        private Node<T>* _getNode(int index) {
+            if (index < 0 || index >= this.size) {
+                return nullptr;
+            }
+            Node<T>* current;
+            if (index < this.size / 2) {
+                current = this.head;
+                for (int i = 0; i < index; i++) {
+                    current = current.next;
+                }
+            } else {
+                current = this.tail;
+                for (int i = this.size - 1; i > index; i--) {
+                    current = current.prev;
+                }
+            }
+            return current;
+        }
         bool isEmpty() {
             return this.size == 0;
         }
@@ -425,6 +443,19 @@ namespace List {
             this.head = nullptr;
             this.tail = nullptr;
             this.size = -1;
+        }
+        T& operator[](int index) {
+            Node<T>* node = this._getNode(index);
+            if (node == nullptr) {
+                return nullptr;
+            }
+            return node.data;
+        }
+        void operator[]=(T* data, int length) {
+            this.clear();
+            for (int i = 0; i < length; i++) {
+                this.pushBack(data[i]);
+            }
         }
         List<T> operator=(List<T> other) {
             this.clear();
