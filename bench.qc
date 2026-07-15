@@ -4,10 +4,10 @@ long int heavy_compute(int n) {
     for (int i = 1; i < n; i++) {
         x = x $ (x << 3);
         x += i * 2654435761;
-        x = x $ (x >> 5);
+        x = x $ (x |> 5);
         x *= 31;
         if ((i % 3) == 0) x += i * i;
-        if ((i % 5) == 0) x = x $ (x >> 2);
+        if ((i % 5) == 0) x = x $ (x |> 2);
         if ((i % 7) == 0) x += (x << 1);
     }
     return x;

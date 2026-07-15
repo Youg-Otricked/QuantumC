@@ -4,7 +4,7 @@
 
 [Back to Home](./index.md)
 
-### QBools are another important feature of Quantum C. They are booleans with 4 states. While this is simple to understand, beign able to assign both both and none along with qtrue and qfalse, what is complex is their logical operators, which they have 8 of.
+### QBools are i2 primitive types.
 
 |Logical operator|Name|Syntax |Use (Truth tables below)|
 |----------------|----|-------|------------------------|
@@ -60,5 +60,5 @@ Sorry this one is a bit confusing
 |**qtrue**|true|true|true|true|
 |**both**|true|true|true|true|
 
-# And thats the core of quantum booleans.
+# And thats the core of QuantumC's i2 type.
 

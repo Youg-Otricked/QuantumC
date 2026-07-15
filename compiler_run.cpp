@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.17.75";
+const std::string ver = "x0.18.0";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -485,25 +485,26 @@ const char* run_quantumc_code(const char* code) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     // wow. comments in my codebase? crazy.
-    auto result = tkz::run("<wasm>", code, tkz::RunConfig{
-        true,              // use_context
-        false,             // looser_types
-        false,             // print_ast
-        false,             // print_tokens
-        false,             // show_time
-        false,             // quiet_mode
-        false,             // raw
-        false,             // bst
-        true,              // compile_mode 
-        false,             // interpret_mode
-        false,             // compile_only
-        true,              // object_only
-        false,             // debug
-        false,             // optimize
-        "O0",              // opt_level
-        "/working/a.out",  // output_file
-        false              // output_wasm
-    });    
+    auto result = tkz::run("<wasm>", code,
+                           tkz::RunConfig{
+                               true,             // use_context
+                               false,            // looser_types
+                               false,            // print_ast
+                               false,            // print_tokens
+                               false,            // show_time
+                               false,            // quiet_mode
+                               false,            // raw
+                               false,            // bst
+                               true,             // compile_mode
+                               false,            // interpret_mode
+                               false,            // compile_only
+                               true,             // object_only
+                               false,            // debug
+                               false,            // optimize
+                               "O0",             // opt_level
+                               "/working/a.out", // output_file
+                               false             // output_wasm
+                           });
     if (result.ast.error) {
         output = result.ast.error->as_string();
         return output.c_str();

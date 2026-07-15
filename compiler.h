@@ -6,6 +6,7 @@
 #include <map>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -25,7 +26,7 @@
 #include <print>
 #endif
 bool isCharInSet(char, const std::string&);
-
+std::string trim(const std::string& str);
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION /////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +78,6 @@ class MultiVarDeclNode;
 class ArrayDeclNode;
 class ArrayLiteralNode;
 class ArrayAccessNode;
-class ListDeclNode;
 class MethodCallNode;
 class PropertyAccessNode;
 class SpreadNode;
@@ -86,7 +86,6 @@ class ForeachNode;
 class QBoolNode;
 class QIfNode;
 class QSwitchNode;
-class MapDeclNode;
 class ArrayAssignNode;
 class SeedCallNode;
 class RandomCallNode;
@@ -98,9 +97,9 @@ class NullptrNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
-                             MultiVarDeclNode*, ArrayDeclNode*, ListDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*,
-                             PropertyAccessNode*, SpreadNode*, ForeachNode*, MapDeclNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*,
-                             FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*>;
+                             MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
+                             SpreadNode*, ForeachNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*, FieldAssignNode*, MapLiteralNode*,
+                             NamespaceNode*, TryCatchNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -114,6 +113,9 @@ inline std::string LETTERSDIGITS = LETTERS + DIGITS;
 
 enum class TokenType {
     INT,
+    LONG_DOUBLE,
+    LONG_INT,
+    SHORT_INT,
     STRING,
     FLOAT,
     ADDR_T,
@@ -243,18 +245,13 @@ class MissingSemicolonError : public Error {
     std::string as_string() override;
 };
 
-class RTError : public Error {
-  public:
-    RTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
-    std::string as_string() override;
-};
 class CTError : public Error {
   public:
-    CTError(std::string d, Position pos) : Error("Error: ", d, pos) {}
-
+    CTError(std::string d, Position pos, bool is_warning = false) : Error("Error: ", d, pos) { this->is_warning = is_warning; }
+    bool is_warning = false;
     std::string as_string() override {
         std::string result;
-        result += "Compile-time Error: " + this->details + "\n";
+        result += (is_warning ? "Warning: " : "Compile-time Error: ") + this->details + "\n";
         result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
                   "\n\n";
         result += this->pos.arrow_string();
@@ -264,6 +261,16 @@ class CTError : public Error {
 struct Ler {
     std::vector<Token> Tkns;
     Error* error;
+};
+struct GenericType {
+    std::string name;
+    bool isVariadic = false;
+    bool isNonType = false;
+    std::string nonTypeKind;
+    std::string constraint;
+    std::string defaultValue;
+    bool negated = false;
+    std::vector<std::string> subconstraints;
 };
 struct StructField {
     std::string name;
@@ -287,6 +294,7 @@ struct ClassMethodInfo {
     bool is_constructor = false;
     std::string access;
     bool is_final = false;
+    std::vector<GenericType> generics;
 };
 
 enum class UserTypeKind { Struct, Alias, Union, Enum, Class };
@@ -307,6 +315,7 @@ struct UserTypeInfo {
     std::string namespace_path;
     bool is_abstract_class = false;
     bool is_final_class = false;
+    std::vector<GenericType> generics;
 };
 
 struct Aer {
@@ -594,6 +603,7 @@ class FuncDefNode {
     std::optional<Token> name_tok;
     std::list<Parameter> params;
     StatementsNode* body;
+    std::vector<GenericType> generics;
     std::string namespace_path;
     Position pos;
     bool is_extern = false;
@@ -682,18 +692,6 @@ class ArrayDeclNode {
     }
 };
 
-class ListDeclNode {
-  public:
-    bool is_const;
-    Token type_tok;
-    Token var_name_tok;
-    AnyNode value;
-
-    ListDeclNode(bool is_const, Token type_tok, Token var_name_tok, AnyNode value)
-        : is_const(is_const), type_tok(type_tok), var_name_tok(var_name_tok), value(value) {}
-
-    std::string print() { return type_tok.value + " " + var_name_tok.value + " = " + printAny(value); }
-};
 class ArrayLiteralNode {
   public:
     std::vector<AnyNode> elements;
@@ -784,19 +782,6 @@ class ForeachNode {
 
     std::string print() { return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)"; }
 };
-class MapDeclNode {
-  public:
-    bool is_const;
-    Token key_type;
-    Token value_type;
-    Token var_name;
-    std::vector<std::pair<AnyNode, AnyNode>> init_pairs;
-
-    MapDeclNode(bool is_const, Token k_type, Token v_type, Token name, std::vector<std::pair<AnyNode, AnyNode>> pairs)
-        : is_const(is_const), key_type(k_type), value_type(v_type), var_name(name), init_pairs(pairs) {}
-
-    std::string print() const { return "map<" + key_type.value + ", " + value_type.value + "> " + var_name.value; }
-};
 class FieldAssignNode {
   public:
     AnyNode base;
@@ -848,9 +833,9 @@ class ParseResult;
 using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, BinOpNode*, Error*, UnaryOpNode*, VarAccessNode*,
                          VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
-                         ArrayAccessNode*, ListDeclNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode,
-                         QIfNode*, QSwitchNode*, MapDeclNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*, FieldAssignNode*, MapLiteralNode*,
-                         NamespaceNode*, TryCatchNode*, RefVarDeclNode, NullptrNode>;
+                         ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
+                         QSwitchNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*,
+                         TryCatchNode*, RefVarDeclNode, NullptrNode>;
 
 class ParseResult {
   public:
@@ -880,6 +865,16 @@ class InterpEer {
 ////////////////////////////////////////////////////////////////////////////////////////////
 class Parser {
   public:
+    std::vector<GenericType> current_generics;
+    std::string base_type_name(std::string full_type) {
+        size_t open_bracket = full_type.find('<');
+        if (open_bracket == std::string::npos) { return full_type; }
+        std::string base = full_type.substr(0, open_bracket);
+        size_t last_valid_char = base.find_last_not_of(" \t\r\n");
+        if (last_valid_char != std::string::npos) { return base.substr(0, last_valid_char + 1); }
+        return base;
+    }
+
     AnyNode default_value_for_type(const Token& type_tok, const Position& pos);
     std::vector<std::string> namespaceStack;
     size_t index = 0;
@@ -890,17 +885,53 @@ class Parser {
     std::string currentNamespace;
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
-    bool is_known_type(const std::string& name) const {
-        if (user_types.count(name)) return true;
-        std::string ns;
-        for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
-            ns = namespaceStack[i] + (ns.empty() ? "" : "::" + ns);
-            for (auto& [k, info] : user_types) {
-                if (k == name && info.namespace_path == ns) { return true; }
+    bool is_known_type(std::string name) {
+        std::string base = base_type_name(name);
+        if (base.ends_with("&")) {
+            base.pop_back();
+        }
+        while (base.ends_with("*")) base.pop_back();
+        while (base.ends_with("[]")) {
+            base.pop_back();
+            base.pop_back();
+        } 
+        for (GenericType ty : current_generics) {
+            if (ty.name == base) {
+                return true;
             }
         }
-
+        if (user_types.count(base_type_name(base))) return true;
+        std::string ns;
+        for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
+            ns = ns.empty() ? namespaceStack[i] : namespaceStack[i] + "::" + ns;
+            std::string candidate = ns + "::" + base;
+            if (user_types.count(base_type_name(candidate))) return true;
+        }
         return false;
+    }
+    std::string get_known_type(std::string name) {
+        std::string base = base_type_name(name);
+        if (base.ends_with("&")) {
+            base.pop_back();
+        }
+        while (base.ends_with("*")) base.pop_back();
+        while (base.ends_with("[]")) {
+            name.pop_back();
+            base.pop_back();
+        } 
+        if (user_types.count(base)) return base;   
+        for (GenericType ty : current_generics) {
+            if (ty.name == base) {
+                return base;
+            }
+        }
+        std::string ns;
+        for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
+            ns = ns.empty() ? namespaceStack[i] : namespaceStack[i] + "::" + ns;
+            std::string candidate = ns + "::" + base;
+            if (user_types.count(candidate)) return candidate;
+        }
+        return base;
     }
     Token peek(int offset = 1) {
         size_t peek_idx = this->index + offset;
@@ -909,17 +940,7 @@ class Parser {
     }
     std::optional<std::string> try_parse_qualified_name() {
         if (current_tok.type != TokenType::IDENTIFIER) return std::nullopt;
-
-        std::string qualified = current_tok.value;
-        size_t i = index;
-
-        while (i + 1 < tokens.size() && tokens[i + 1].type == TokenType::SCOPE) {
-            if (i + 2 >= tokens.size()) return std::nullopt;
-            qualified += "::" + tokens[i + 2].value;
-            i += 2;
-        }
-
-        return qualified;
+        return parseTypeString();
     }
     Token consume_qualified_name() {
         if (current_tok.type != TokenType::IDENTIFIER) { throw InvalidSyntaxError("Expected identifier", current_tok.pos); }
@@ -938,19 +959,24 @@ class Parser {
 
         return Token(TokenType::IDENTIFIER, qualified, start_pos);
     }
-    UserTypeInfo* find_type(const std::string& name) {
+    UserTypeInfo* find_type(std::string name) {
+        if (is_known_type(base_type_name(name))) {
+            for (GenericType ty : current_generics) {
+                if (ty.name == base_type_name(get_known_type(name))) {
+                 return nullptr;
+                }
+            }
+            return &user_types[base_type_name(get_known_type(name))];
+        }
+        name = base_type_name(name);
         if (name.find("::") != std::string::npos) {
-            if (user_types.count(name)) { return &user_types[name]; }
+            if (user_types.count(base_type_name(name))) { return &user_types[base_type_name(name)]; }
             return nullptr;
         }
-
-        // Try current namespace
         if (!currentNamespace.empty()) {
             std::string key = currentNamespace + "::" + name;
-            if (user_types.count(key)) { return &user_types[key]; }
+            if (user_types.count(base_type_name(key))) { return &user_types[base_type_name(key)]; }
         }
-
-        // Try parent namespaces
         for (int i = namespaceStack.size() - 1; i >= 0; --i) {
             std::string ns;
             for (int j = 0; j <= i; ++j) {
@@ -958,11 +984,9 @@ class Parser {
                 ns += namespaceStack[j];
             }
             std::string key = ns + "::" + name;
-            if (user_types.count(key)) { return &user_types[key]; }
+            if (user_types.count(base_type_name(key))) { return &user_types[base_type_name(key)]; }
         }
-
-        // Try global
-        if (user_types.count(name)) { return &user_types[name]; }
+        if (user_types.count(base_type_name(name))) { return &user_types[base_type_name(name)]; }
 
         return nullptr;
     }
@@ -1010,6 +1034,64 @@ class Parser {
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
+    std::string parseTypeString() {
+        std::string type = "";
+        if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "short" || this->current_tok.value == "long")) {
+            type = this->current_tok.value + " ";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD || this->current_tok.type == TokenType::IDENTIFIER) {
+            type += this->current_tok.value;
+            this->advance();
+        } else {
+            return "";
+        }
+        while (this->current_tok.type == TokenType::SCOPE) {
+            this->advance();
+            type += "::" + this->current_tok.value;
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::LESS) {
+            this->advance();
+            type += "<";
+            int depth = 1;
+            while (depth > 0) {
+                if (this->current_tok.type == TokenType::EOFT) break;
+                if (this->current_tok.type == TokenType::LESS)
+                    depth++;
+                else if (this->current_tok.type == TokenType::MORE) {
+                    depth--;
+                    if (depth == 0) {
+                        this->advance();
+                        break;
+                    }
+                }
+                type += this->current_tok.value;
+                this->advance();
+            }
+            type += ">";
+        }
+        while (this->current_tok.type == TokenType::LBRACKET) {
+            this->advance();
+            if (this->current_tok.type == TokenType::INT) {
+                type += "[" + this->current_tok.value + "]";
+                this->advance();
+            } else {
+                type += "[]";
+            }
+            this->advance();
+        }
+        while (this->current_tok.type == TokenType::MUL) {
+            type += "*";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::AMPERSAND) {
+            type += "&";
+            this->advance();
+        }
+
+        return type;
+    }
     inline AnyNode prs_to_anynode(Prs st) {
         return std::visit(
             [](auto arg) -> AnyNode {
@@ -1099,6 +1181,23 @@ class LLVMCompiler {
         if (auto qin = std::get_if<QInNode>(&node)) { return true; }
         return false;
     }
+    std::string baseTypeName(const std::string& mangled) {
+        size_t angle = mangled.find('<');
+        if (angle == std::string::npos) return mangled;
+        int depth = 0;
+        size_t end = angle;
+        for (size_t i = angle; i < mangled.size(); i++) {
+            if (mangled[i] == '<') depth++;
+            else if (mangled[i] == '>') {
+                depth--;
+                if (depth == 0) {
+                    end = i + 1;
+                    break;
+                }
+            }
+        }
+        return mangled.substr(0, angle) + mangled.substr(end);
+    }
     void generateStructReprFunctions();
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
     void createUserTypes();
@@ -1108,15 +1207,14 @@ class LLVMCompiler {
                                  std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs,
                                  std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
                                  std::unordered_map<std::string, std::string> visibleArrayTypeStrings,
-                                 std::unordered_map<std::string, int> visibleLists, std::unordered_map<std::string, int> visibleArrayLengths,
-                                 std::unordered_map<std::string, std::pair<int, int>> visibleMaps,
+                                 std::unordered_map<std::string, int> visibleArrayLengths,
                                  std::unordered_map<std::string, std::string> visibleVarTypes,
                                  std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
                                  std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes,
                                  std::map<std::string, std::map<std::string, llvm::Function*>> visibleSpecializedFunctions,
                                  std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals);
     bool is_main;
-
+    void cg_warn(const Position& pos, const std::string& msg);
     void cg_error(const Position& pos, const std::string& msg);
     std::vector<CTError> errors;
     llvm::BasicBlock* currentBreakBB = nullptr;
@@ -1152,6 +1250,19 @@ class LLVMCompiler {
         std::string type;
         std::string value;
     };
+    std::string getMethodReturnTypeName(const std::string& typeName, const std::string& methodName) {
+        auto it = userTypes.find(baseTypeName(typeName));
+        if (it == userTypes.end()) return "";
+        
+        for (auto& method : it->second.classMethods) {
+            if (method.name_tok.value == methodName) {
+                if (!method.return_types.empty()) {
+                    return method.return_types[0].value;
+                }
+            }
+        }
+        return "";
+    }
     llvm::Value* createEnumData(const std::string& type, const std::string& value) {
         if (type == "string") {
             std::string str = value.substr(1, value.length() - 2);
@@ -1211,20 +1322,63 @@ class LLVMCompiler {
     std::unordered_map<std::string, llvm::GlobalVariable*> vtables;
     std::unordered_map<std::string, std::unordered_map<std::string, int>> vtableSlotIndex;
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<llvm::Function*>>> classMethods;
+    std::unordered_map<std::string, bool> genericClasses;
+    std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
+    std::unordered_map<std::string, std::string> currentGenericTypeStrings;
+    std::unordered_map<std::string, GenericType> currentNonTypeGenericValues;
     llvm::Value* currentThis = nullptr;
     std::string currentClassName = "";
     llvm::Value* copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex, llvm::Type* elemTy,
                                    int elemTypeCode);
+    std::string substituteGenerics(const std::string& typeStr) {
+        size_t anglePos = typeStr.find('<');
+        size_t suffix_start = anglePos;
+        if (anglePos == std::string::npos) {
+            size_t modifierPos = typeStr.find_first_of("*&[");
+            std::string base = modifierPos == std::string::npos ? typeStr : typeStr.substr(0, modifierPos);
+            std::string suffix = modifierPos == std::string::npos ? "" : typeStr.substr(modifierPos);
+            base.erase(0, base.find_first_not_of(" "));
+            base.erase(base.find_last_not_of(" ") + 1);
+            auto it = currentGenericTypeStrings.find(base);
+            if (it != currentGenericTypeStrings.end()) return it->second + suffix;
+            return typeStr;
+        }
+        std::string baseName = typeStr.substr(0, anglePos);
+        std::string inner = typeStr.substr(anglePos + 1, typeStr.rfind('>') - anglePos - 1);
+        std::string suffix = typeStr.substr(typeStr.rfind('>') + 1); // catches trailing * & etc
+        std::vector<std::string> args;
+        int depth = 0;
+        std::string current;
+        for (char c : inner) {
+            if (c == '<')
+                depth++;
+            else if (c == '>')
+                depth--;
+            else if (c == ',' && depth == 0) {
+                args.push_back(current);
+                current.clear();
+                continue;
+            }
+            current += c;
+        }
+        if (!current.empty()) args.push_back(current);
+        for (auto& arg : args) arg = substituteGenerics(arg);
+        std::string result = baseName + "<";
+        for (size_t i = 0; i < args.size(); i++) {
+            if (i != 0) result += ",";
+            result += args[i];
+        }
+        return result + ">" + suffix;
+    }
     llvm::Value* createRuntimeSizedArray(std::vector<AnyNode>& elements, llvm::Value* totalSize);
     void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
-    void expandSpreadIntoList(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* listPtr, llvm::Function* pushFn, int elemTypeCode);
     llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
+    llvm::StructType* generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams);
     std::unordered_map<std::string, llvm::GlobalVariable*> globals;
     std::unordered_map<std::string, FunctionSignature> functionSignatures;
     std::unordered_map<std::string, FuncDefNode*> functionDefs;
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> jaggedArraysStack;
     std::vector<std::unordered_map<std::string, std::string>> arrayTypeStringsStack;
-    std::vector<std::unordered_map<std::string, int>> listsStack;
     std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
     std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
@@ -1241,31 +1395,28 @@ class LLVMCompiler {
         return false;
     }
     unsigned getPtrSize() {
-        const llvm::DataLayout& DL = builder->GetInsertBlock()->getModule()->getDataLayout();
-        return DL.getPointerSizeInBits();
+        llvm::BasicBlock* bb = builder->GetInsertBlock();
+        if (!bb || !bb->getParent()) {
+            return 64;
+        }
+        return bb->getModule()->getDataLayout().getPointerSizeInBits();
     }
 #define hasVarType(name) foundInStack(varTypesStack, name)
 #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
-#define hasList(name) foundInStack(listsStack, name)
 #define hasArrayLength(name) foundInStack(arrayLengthsStack, name)
-#define hasMap(name) foundInStack(mapsStack, name)
 #define hasJaggedArray(name) foundInStack(jaggedArraysStack, name)
-#define lists (listsStack.back())
 #define arrayLengths (arrayLengthsStack.back())
 #define maps (mapsStack.back())
 #define jaggedArrays (jaggedArraysStack.back())
 #define varTypes (varTypesStack.back())
 #define arrayTypeStrings (arrayTypeStringsStack.back())
-#define findList(name) findInStack(listsStack, name)
 #define findArrayLength(name) findInStack(arrayLengthsStack, name)
-#define findMap(name) findInStack(mapsStack, name)
 #define findVarType(name) findInStack(varTypesStack, name)
 #define findJaggedArray(name) findInStack(jaggedArraysStack, name)
 #define findArrayType(name) findInStack(arrayTypeStringsStack, name)
     void enterScope() {
         jaggedArraysStack.push_back({});
         arrayTypeStringsStack.push_back({});
-        listsStack.push_back({});
         arrayLengthsStack.push_back({});
         mapsStack.push_back({});
         varTypesStack.push_back({});
@@ -1274,7 +1425,6 @@ class LLVMCompiler {
     void exitScope() {
         jaggedArraysStack.pop_back();
         arrayTypeStringsStack.pop_back();
-        listsStack.pop_back();
         arrayLengthsStack.pop_back();
         mapsStack.pop_back();
         varTypesStack.pop_back();
@@ -1333,10 +1483,6 @@ class LLVMCompiler {
             if (leftType == "double" || rightType == "double") return "double";
             if (leftType == "float" || rightType == "float") return "float";
             return leftType;
-        } else if (auto listDecl = std::get_if<ListDeclNode*>(&node)) {
-            return "list<" + (*listDecl)->type_tok.value + ">";
-        } else if (auto mapDecl = std::get_if<MapDeclNode*>(&node)) {
-            return "map<" + (*mapDecl)->key_type.value + "," + (*mapDecl)->value_type.value + ">";
         } else if (auto strNode = std::get_if<StringNode>(&node)) {
             return "string";
         } else if (auto numNode = std::get_if<NumberNode>(&node)) {
@@ -1358,47 +1504,9 @@ class LLVMCompiler {
             if (!resolveVarType(varName).empty()) {
                 std::string t = resolveVarType(varName);
                 if (t.ends_with("&") && strip) t.pop_back();
-                return t;
+                return substituteGenerics(t);
             }
-            if (hasList(varName)) {
-                auto it = findList(varName);
-                int code = it->second;
-                std::string elemType;
-                if (code == 0)
-                    elemType = "int";
-                else if (code == 1)
-                    elemType = "float";
-                else if (code == 2)
-                    elemType = "double";
-                else if (code == 3)
-                    elemType = "char";
-                else if (code == 4)
-                    elemType = "bool";
-                else if (code == 5)
-                    elemType = "qbool";
-                else if (code == 6)
-                    elemType = "string";
-                else
-                    elemType = "auto";
-                return "list<" + elemType + ">";
-            }
-            if (hasArrayType(varName)) { return findArrayType(varName)->second + "[]"; }
-            if (hasMap(varName)) {
-                auto it = findMap(varName);
-                auto codeToType = [](int code) -> std::string {
-                    if (code == 0) return "int";
-                    if (code == 1) return "float";
-                    if (code == 2) return "double";
-                    if (code == 3) return "char";
-                    if (code == 4) return "bool";
-                    if (code == 5) return "qbool";
-                    if (code == 6) return "string";
-                    return "auto";
-                };
-                std::string keyType = codeToType(it->second.first);
-                std::string valType = codeToType(it->second.second);
-                return "map<" + keyType + "," + valType + ">";
-            }
+            if (hasArrayType(varName)) { return substituteGenerics(findArrayType(varName)->second) + "[]"; }
             if (auto* var = getVarAddress(varName)) { return getTypeName(var->getType()); }
         } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
             std::string baseType = getExpressionType((*arrAcc)->base);
@@ -1407,35 +1515,41 @@ class LLVMCompiler {
             } else {
                 if (auto varAcc = std::get_if<VarAccessNode*>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
-                    if (hasList(name)) {
-                        auto it = findList(name);
-                        int code = it->second;
-                        if (code == 0) return "int";
-                        if (code == 1) return "float";
-                        if (code == 2) return "double";
-                        if (code == 3) return "char";
-                        if (code == 4) return "bool";
-                        if (code == 5) return "qbool";
-                        if (code == 6) return "string";
-                    }
                     if (hasArrayType(name)) { return arrayTypeStrings[name]; }
-                    if (hasMap(name)) {
-                        auto it = findMap(name);
-                        auto codeToType = [](int code) -> std::string {
-                            if (code == 0) return "int";
-                            if (code == 1) return "float";
-                            if (code == 2) return "double";
-                            if (code == 3) return "char";
-                            if (code == 4) return "bool";
-                            if (code == 5) return "qbool";
-                            if (code == 6) return "string";
-                            return "auto";
-                        };
-                        std::string keyType = codeToType(it->second.first);
-                        std::string valType = codeToType(it->second.second);
-                        return "map<" + keyType + "," + valType + ">";
+                }
+            }
+            std::string className = baseTypeName(baseType);
+            while (!className.empty() && userTypes.contains(className)) {
+                auto& info = userTypes[className];
+                auto originalGenericMap = currentGenericTypeStrings;
+                std::string ret;
+                for (auto& m : info.classMethods) {
+                    if (m.name_tok.value == "operator[]" && !m.return_types.empty()) {
+                        ret = m.return_types[0].value;
+                        std::vector<std::string> actualArgs = genericParamsFromName(baseType);
+                        auto& formalParams = userTypes[className].generics;
+                        for (size_t i = 0; i < formalParams.size() && i < actualArgs.size(); ++i) {
+                            currentGenericTypeStrings[formalParams[i].name] = actualArgs[i];
+                        }
+                        if (ret.ends_with("&") && strip) ret.pop_back();
+                        ret = substituteGenerics(ret);
+                        currentGenericTypeStrings = std::move(originalGenericMap);
+                        return ret;
                     }
                 }
+                std::string parentTypeStr = info.baseClassName;
+                if (parentTypeStr.empty()) break;
+                std::vector<std::string> parentActualArgs = genericParamsFromName(parentTypeStr);
+                std::string nextClassName = baseTypeName(parentTypeStr);
+                std::unordered_map<std::string, std::string> nextGenericMap;
+                if (userTypes.contains(nextClassName)) {
+                    auto& parentFormalParams = userTypes[nextClassName].generics;
+                    for (size_t i = 0; i < parentFormalParams.size() && i < parentActualArgs.size(); ++i) {
+                        nextGenericMap[parentFormalParams[i].name] = substituteGenerics(parentActualArgs[i]);
+                    }
+                }
+                className = nextClassName;
+                currentGenericTypeStrings = std::move(nextGenericMap);
             }
             return "unknown";
         } else if (auto nullp = std::get_if<NullptrNode>(&node)) {
@@ -1444,19 +1558,107 @@ class LLVMCompiler {
             std::string currentType = getExpressionType(*((*propAcc)->base));
             if (currentType.ends_with("*") || currentType.ends_with("&")) { currentType.pop_back(); }
             std::string fieldName = (*propAcc)->property_name.value;
-            while (!currentType.empty() && userTypes.contains(currentType)) {
-                auto& info = userTypes[currentType];
+            while (!currentType.empty() && userTypes.contains(baseTypeName(currentType))) {
+                auto& info = userTypes[baseTypeName(currentType)];
                 for (const auto& f : info.fields) {
-                    if (f.name == fieldName) { return f.type; }
+                    if (f.name == fieldName) { return substituteGenerics(f.type); }
                 }
                 for (const auto& f : info.classFields) {
-                    if (f.name == fieldName) return f.type;
+                    if (f.name == fieldName) return substituteGenerics(f.type);
                 }
                 currentType = info.baseClassName;
             }
             return "unknown";
+        } else if (auto callNode = std::get_if<CallNode*>(&node)) {
+            if (auto varAcc = std::get_if<VarAccessNode*>(&(*callNode)->node_to_call)) {
+                std::string funcName = (*varAcc)->var_name_tok.value;
+                if (functionDefs.contains(funcName)) {
+                    auto* def = functionDefs[funcName];
+                    if (!def->return_types.empty()) {
+                        std::string ret = def->return_types[0].value;
+                        if (ret.ends_with("&") && strip) ret.pop_back();
+                        return substituteGenerics(ret);
+                    }
+                }
+            }
+            return "unknown";
+        } else if (auto methCall = std::get_if<MethodCallNode*>(&node)) {
+            std::string baseType = getExpressionType((*methCall)->base);
+            if (baseType.ends_with("*") || baseType.ends_with("&")) baseType.pop_back();
+            auto originalGenericMap = currentGenericTypeStrings;
+            std::vector<std::string> actualArgs = genericParamsFromName(baseType);
+            std::string className = baseTypeName(baseType);
+            std::string methodName = (*methCall)->method_name.value;
+            if (userTypes.contains(className)) {
+                auto& formalParams = userTypes[className].generics;
+                for (size_t i = 0; i < formalParams.size() && i < actualArgs.size(); ++i) {
+                    currentGenericTypeStrings[formalParams[i].name] = actualArgs[i];
+                }
+            }
+            std::string foundReturnType = "unknown";
+            while (!className.empty() && userTypes.contains(className)) {
+                auto& info = userTypes[className];
+                bool methodFound = false;
+                for (auto& m : info.classMethods) {
+                    if (m.name_tok.value == methodName && !m.return_types.empty()) {
+                        std::string ret = m.return_types[0].value;
+                        if (ret.ends_with("&") && strip) ret.pop_back();
+                        foundReturnType = substituteGenerics(ret);
+                        methodFound = true;
+                        break;
+                    }
+                }
+                if (methodFound) break;
+                std::string parentTypeStr = info.baseClassName;
+                if (parentTypeStr.empty()) break;
+                std::vector<std::string> parentActualArgs = genericParamsFromName(parentTypeStr);
+                std::string nextClassName = baseTypeName(parentTypeStr);
+                std::unordered_map<std::string, std::string> nextGenericMap;
+                if (userTypes.contains(nextClassName)) {
+                    auto& parentFormalParams = userTypes[nextClassName].generics;
+                    for (size_t i = 0; i < parentFormalParams.size() && i < parentActualArgs.size(); ++i) {
+                        nextGenericMap[parentFormalParams[i].name] = substituteGenerics(parentActualArgs[i]);
+                    }
+                }
+                className = nextClassName;
+                currentGenericTypeStrings = std::move(nextGenericMap);
+            }
+            currentGenericTypeStrings = std::move(originalGenericMap);
+
+            return foundReturnType;
         }
         return "unknown";
+    }
+    bool returnsRef(unsigned index = 0) {
+        auto* md = currentFunction->getMetadata("qc.return_types");
+        if (!md || index >= md->getNumOperands())
+            return false;
+
+        auto* s = llvm::dyn_cast<llvm::MDString>(md->getOperand(index));
+        return s && s->getString().ends_with("&");
+    }
+    /*
+    class TypedValue {
+        llvm::Value* val;
+        std::string qcType; // "int&", "int*", "string", etc.
+        TypedValue(llvm::Value* val) {
+            this->val = val;
+        }
+        TypedValue(std::string qcType, llvm::Value* val) {
+            this->qcType = qcType;
+            this->val = val;
+        }
+        operator llvm::Value*() const { return this->val; }
+    };
+    */
+    llvm::Value* derefIfReference(llvm::Value* val, AnyNode& argNode) {
+        if (!val || !val->getType()->isPointerTy()) return val;
+        std::string qcType = substituteGenerics(getExpressionType(argNode, false));
+        if (!qcType.ends_with("&")) return val;
+        if (qcType.ends_with("&")) qcType.pop_back();
+        llvm::Type* pointeeTy = llvmTypeFor(qcType);
+        if (!pointeeTy || pointeeTy->isVoidTy()) return val;
+        return builder->CreateLoad(pointeeTy, val, "deref_ref");
     }
     llvm::Value* emitPropertyAddress(PropertyAccessNode& prop) {
         std::string propName = prop.property_name.value;
@@ -1468,17 +1670,17 @@ class LLVMCompiler {
         }
         std::string typeName = getExpressionType(*prop.base);
         if (classTypes.count(typeName)) {
-            int fieldIdx = getFlattenedFieldIndex(typeName, propName);
+            int fieldIdx = getFlattenedFieldIndex(baseTypeName(typeName), propName);
             if (fieldIdx == -1) {
                 cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
                 return nullptr;
             }
-            auto [fieldOwnerClass, fieldAccess] = getFieldOwner(typeName, propName);
+            auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(typeName), propName);
             if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
                 cg_error(prop.property_name.pos, "Cannot access " + fieldAccess + " field: " + propName);
                 return nullptr;
             }
-            return builder->CreateStructGEP(classTypes[typeName], baseAddr, fieldIdx, propName + "_ptr");
+            return builder->CreateStructGEP(genericiseOrFindClass(typeName), baseAddr, fieldIdx, propName + "_ptr");
         }
         if (structTypes.count(typeName)) {
             auto& info = userTypes[typeName];
@@ -1515,7 +1717,7 @@ class LLVMCompiler {
                     llvm::Value* dataPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), dataFieldPtr);
                     llvm::Type* varTy = nullptr;
                     if (classTypes.count(variantName))
-                        varTy = classTypes[variantName];
+                        varTy = genericiseOrFindClass(variantName);
                     else if (structTypes.count(variantName))
                         varTy = structTypes[variantName];
                     if (!varTy) continue;
@@ -1539,6 +1741,14 @@ class LLVMCompiler {
     llvm::Value* emitLValue(AnyNode& node) {
         if (auto var = std::get_if<VarAccessNode*>(&node)) {
             std::string name = (*var)->var_name_tok.value;
+            if (name == "this") {
+                if (currentThis) {
+                    return currentThis;
+                } else {
+                    cg_error((*var)->var_name_tok.pos, "'this' used outside class method");
+                    return nullptr;
+                }
+            }
             llvm::Value* addr = getVarAddress(name);
             return addr;
         } else if (auto unary = std::get_if<UnaryOpNode*>(&node)) {
@@ -1552,6 +1762,19 @@ class LLVMCompiler {
         } else if (auto method = std::get_if<MethodCallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
             if (retType.ends_with("&")) { return emitExpr(node); }
+        } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
+            std::string ptrTy = getExpressionType((*arrAcc)->base);
+            if (ptrTy.ends_with("*")) {
+                ptrTy.pop_back();
+                llvm::Value* base = emitExpr((*arrAcc)->base);
+                llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
+                return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_arr_addr");
+            }
+            if (genericiseOrFindClass(ptrTy)) {
+                llvm::Value* obj = emitLValue((*arrAcc)->base);
+                llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
+                return emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
+            }
         }
         return nullptr;
     }
@@ -1949,9 +2172,8 @@ class LLVMCompiler {
                     }
                 }
 
-                if (searchFields(baseClass)) { return true; }
+                if (searchFields(baseTypeName(baseClass))) { return true; }
             }
-
             for (auto& field : classInfo.classFields) {
                 if (field.name == fieldName) { return true; }
                 index++;
@@ -1995,8 +2217,12 @@ class LLVMCompiler {
         std::string currentClass = className;
 
         while (!currentClass.empty()) {
-            auto& classInfo = userTypes[currentClass];
+            auto it = userTypes.find(baseTypeName(currentClass));
+            if (it == userTypes.end()) {
+                return {"", "public"};
+            }
 
+            auto& classInfo = it->second;
             for (auto& field : classInfo.classFields) {
                 if (field.name == fieldName) { return {currentClass, field.access}; }
             }
@@ -2079,6 +2305,9 @@ class LLVMCompiler {
         }
         return nullptr;
     }
+    std::string fixMangling(std::string type) {
+        return buildMangledName(baseTypeName(type), genericParamsFromName(type));
+    }
     std::vector<llvm::Value*> reconcileArgs(llvm::Function* func, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args) {
         std::vector<llvm::Value*> reconciled = {thisPtr};
         auto* funcTy = func->getFunctionType();
@@ -2133,18 +2362,14 @@ class LLVMCompiler {
         }
         return builder->CreateCall(method, reconciled, name + "_result");
     }
-    std::string resolveVirtualTargetClass(const std::string& declaredClass, 
-                                       const std::string& methodName, 
-                                       size_t argCount) {
-        for (auto& m : userTypes[declaredClass].classMethods) {
-            if (m.name_tok.value == methodName && m.params.size() == argCount)
-                return declaredClass;
+    std::string resolveVirtualTargetClass(const std::string& declaredClass, const std::string& methodName, size_t argCount) {
+        for (auto& m : userTypes[baseTypeName(declaredClass)].classMethods) {
+            if (m.name_tok.value == methodName && m.params.size() == argCount) return declaredClass;
         }
         for (auto& [name, info] : userTypes) {
-            if (info.baseClassName == declaredClass) {
+            if (info.baseClassName == baseTypeName(declaredClass)) {
                 for (auto& m : info.classMethods) {
-                    if (m.name_tok.value == methodName && m.params.size() == argCount)
-                        return name;
+                    if (m.name_tok.value == methodName && m.params.size() == argCount) return name;
                 }
             }
         }
@@ -2169,7 +2394,14 @@ class LLVMCompiler {
                     int bestScore = 999;
                     for (auto* fn : methodIt->second) {
                         std::string lastargtype = "";
-                        for (const auto& method : userTypes.find(currentClass)->second.classMethods) {
+                        auto utIt = userTypes.find(baseTypeName(currentClass));
+                        if (utIt == userTypes.end()) {
+                            std::string baseName = currentClass.find('<') != std::string::npos ? currentClass.substr(0, currentClass.find('<'))
+                                                                                               : currentClass;
+                            utIt = userTypes.find(baseTypeName(baseName));
+                        }
+                        if (utIt == userTypes.end()) break;
+                        for (const auto& method : utIt->second.classMethods) {
                             if (method.name_tok.value == methodName && method.params.size() == (fn->arg_size() - 1)) {
                                 if (!method.params.empty()) { lastargtype = method.params.back().type.value; }
                                 break;
@@ -2198,32 +2430,42 @@ class LLVMCompiler {
                             }
                             continue;
                         }
-                        if (fn->arg_size() - 1 != args.size()) continue;
-                        for (size_t i = 0; i < args.size(); i++) {
 
-                            llvm::Type* expected = fn->getFunctionType()->getParamType(i + 1);
-                            llvm::Type* actual = args[i]->getType();
+                        if (fn->arg_size() - 1 != args.size())
+                            continue;
+                        else {
+                            for (size_t i = 0; i < args.size(); i++) {
 
-                            if (expected != actual) {
-                                if (expected->isPointerTy() || actual->isPointerTy()) {
-                                    currentScore += 1;
-                                } else {
-                                    matches = false;
-                                    break;
+                                llvm::Type* expected = fn->getFunctionType()->getParamType(i + 1);
+                                llvm::Type* actual = args[i]->getType();
+
+                                if (expected != actual) {
+                                    if (expected->isPointerTy() || actual->isPointerTy() || expected->isArrayTy() && actual->isPointerTy() ||
+                                        expected->isPointerTy() && actual->isArrayTy()) {
+                                        currentScore += 1;
+                                    } else {
+                                        matches = false;
+                                        break;
+                                    }
                                 }
                             }
-                        }
 
-                        if (matches && currentScore < bestScore) {
-                            bestMatch = fn;
-                            bestScore = currentScore;
-                            if (bestScore == 0) break;
+                            if (matches && currentScore < bestScore) {
+                                bestMatch = fn;
+                                bestScore = currentScore;
+                                if (bestScore == 0) break;
+                            }
                         }
                     }
                     return bestMatch;
                 }
             }
-            auto typeIt = userTypes.find(currentClass);
+            auto typeIt = userTypes.find(baseTypeName(currentClass));
+            if (typeIt == userTypes.end()) {
+                std::string baseName = currentClass.find('<') != std::string::npos ? currentClass.substr(0, currentClass.find('<')) : currentClass;
+                typeIt = userTypes.find(baseTypeName(baseName));
+            }
+
             if (typeIt != userTypes.end()) {
                 currentClass = typeIt->second.baseClassName;
                 if (!currentClass.empty() && currentClass.find("::") == std::string::npos) {
@@ -2241,36 +2483,63 @@ class LLVMCompiler {
 
         return nullptr;
     }
-    llvm::Value* emitVirtualOrDirectCall(
-        const std::string& ty,
-        const std::string& methodName,
-        llvm::Value* payload,
-        const std::vector<llvm::Value*>& args)
-    {
+    llvm::Value* decayArrayToPointer(llvm::Value* v) {
+        if (!v) return nullptr;
+        if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(v)) {
+            if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(alloca->getAllocatedType())) {
+
+                llvm::Value* zero = builder->getInt32(0);
+
+                return builder->CreateInBoundsGEP(arrTy, alloca, {zero, zero}, "decayptr");
+            }
+        }
+        if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(v->getType())) {
+            llvm::AllocaInst* tmp = builder->CreateAlloca(arrTy);
+            builder->CreateStore(v, tmp);
+            llvm::Value* zero = builder->getInt32(0);
+            return builder->CreateInBoundsGEP(arrTy, tmp, {zero, zero}, "decayptr");
+        }
+        if (v->getType()->isPointerTy()) return v;
+        cg_error({}, "Cannot decay non-array type to pointer for function call");
+        return nullptr;
+    }
+    llvm::Value* emitVirtualOrDirectCall(const std::string& ty, const std::string& methodName, llvm::Value* payload,
+                                     const std::vector<llvm::Value*>& args) {
+        llvm::Function* method = findMethodOverload(ty, methodName, args);
+        if (!method) return nullptr;
+        ClassMethodInfo* info = nullptr;
+        std::string searchClass = baseTypeName(ty);
+        while (!searchClass.empty() && !info) {
+            for (auto& m : userTypes.at(baseTypeName(searchClass)).classMethods) {
+                if (m.name_tok.value == methodName && m.params.size() == args.size()) {
+                    info = &m;
+                    break;
+                }
+            }
+            searchClass = userTypes.at(baseTypeName(searchClass)).baseClassName;
+        }
         auto vtableIt = vtables.find(ty);
         auto slotIt = vtableSlotIndex.find(ty);
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
             std::string mangledName = ty + "_" + methodName;
+            if (info && classMethods[ty][methodName].size() > 1) {
+                for (auto& param : info->params) {
+                    mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
+                }
+            }
             auto indexIt = slotIt->second.find(mangledName);
             if (indexIt != slotIt->second.end()) {
                 int slotIndex = indexIt->second;
-                llvm::StructType* classTy = classTypes[ty];
+                llvm::StructType* classTy = genericiseOrFindClass(ty);
                 llvm::Value* vptrField = builder->CreateStructGEP(classTy, payload, 0, "vptr_field");
                 llvm::Value* vptr = builder->CreateLoad(builder->getPtrTy(), vptrField, "vptr");
-                llvm::Value* fnPtrAddr = builder->CreateGEP(builder->getPtrTy(), vptr,
-                                            builder->getInt32(slotIndex), "vtable_slot");
+                llvm::Value* fnPtrAddr = builder->CreateGEP(builder->getPtrTy(), vptr, builder->getInt32(slotIndex), "vtable_slot");
                 llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
-
-                llvm::Function* method = findMethodOverload(ty, methodName, args);
-                if (!method) return nullptr;
-
                 std::vector<llvm::Value*> allArgs = {payload};
                 allArgs.insert(allArgs.end(), args.begin(), args.end());
                 return builder->CreateCall(method->getFunctionType(), fnPtr, allArgs);
             }
         }
-        llvm::Function* method = findMethodOverload(ty, methodName, args);
-        if (!method) return nullptr;
         return emitMethodCall(method, payload, args, methodName);
     }
     llvm::Function* generateSpecializedMethod(const std::string& className, size_t methodIdx, const std::vector<std::string>& concreteTypes,
@@ -2295,10 +2564,7 @@ class LLVMCompiler {
 
             paramTypes.push_back(llvmTypeFor(paramType));
 
-            if (paramType.starts_with("list<") && paramType.ends_with(">")) {
-                std::string elemType = paramType.substr(5, paramType.size() - 6);
-                lists[method.params[i].name.value] = getTypeCode(elemType);
-            } else if (paramType.ends_with("[]")) {
+            if (paramType.ends_with("[]")) {
                 arrayTypeStrings[method.params[i].name.value] = paramType.substr(0, paramType.size() - 2);
             } else {
                 varTypes[method.params[i].name.value] = paramType;
@@ -2421,10 +2687,6 @@ class LLVMCompiler {
             if (paramType.ends_with("[]")) {
                 std::string elemType = paramType.substr(0, paramType.size() - 2);
                 arrayTypeStrings[paramName] = elemType;
-            } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
-                std::string elemType = paramType.substr(5, paramType.size() - 6);
-                int typeCode = getTypeCode(elemType);
-                lists[paramName] = typeCode;
             }
 
             argIt->setName(paramName);
@@ -2452,6 +2714,11 @@ class LLVMCompiler {
 
         return fn;
     }
+    std::string strip_decorations(std::string old) {
+        old = old.substr(0, old.find("&"));
+        old = old.substr(0, old.find("*"));
+        return old;
+    }
     llvm::Function* generateSpecializedFunction(FuncDefNode* funcDef, const std::vector<std::string>& concreteTypes,
                                                 const std::string& specializedName) {
         llvm::Function* savedFunction = currentFunction;
@@ -2468,14 +2735,11 @@ class LLVMCompiler {
         size_t paramIdx = 0;
         for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
             std::string paramType = it->type.value;
-            if (paramType == "auto") paramType = concreteTypes[paramIdx];
+            if (strip_decorations(paramType) == "auto") paramType = concreteTypes[paramIdx];
 
             paramTypes.push_back(llvmTypeFor(paramType));
 
-            if (paramType.starts_with("list<") && paramType.ends_with(">")) {
-                std::string elemType = paramType.substr(5, paramType.size() - 6);
-                lists[it->name.value] = getTypeCode(elemType);
-            } else if (paramType.ends_with("[]")) {
+            if (paramType.ends_with("[]")) {
                 arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
             } else {
                 varTypes[it->name.value] = paramType;
@@ -2484,7 +2748,7 @@ class LLVMCompiler {
 
         llvm::Type* retTy = builder->getVoidTy();
 
-        if (!funcDef->return_types.empty() && funcDef->return_types[0].value == "auto") {
+        if (!funcDef->return_types.empty() && strip_decorations(funcDef->return_types[0].value) == "auto") {
             std::function<std::string(AnyNode&)> inferTypeFromAST = [&](AnyNode& node) -> std::string {
                 if (auto retNode = std::get_if<ReturnNode*>(&node)) {
                     if (auto arrAccess = std::get_if<ArrayAccessNode*>(&(*retNode)->value)) {
@@ -2493,11 +2757,8 @@ class LLVMCompiler {
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                                 if (paramIt->name.value == varName) {
-                                    std::string paramType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                    std::string paramType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
                                     if (paramType.ends_with("[]")) { return paramType.substr(0, paramType.size() - 2); }
-                                    if (paramType.starts_with("list<") && paramType.ends_with(">")) {
-                                        return paramType.substr(5, paramType.size() - 6);
-                                    }
                                 }
                             }
                         }
@@ -2507,7 +2768,7 @@ class LLVMCompiler {
                         auto paramIt = funcDef->params.begin();
                         for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                             if (paramIt->name.value == varName) {
-                                std::string paramType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                std::string paramType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
                                 return paramType;
                             }
                         }
@@ -2518,7 +2779,7 @@ class LLVMCompiler {
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                                 if (paramIt->name.value == varName) {
-                                    std::string paramType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                    std::string paramType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
                                     return paramType;
                                 }
                             }
@@ -2532,7 +2793,7 @@ class LLVMCompiler {
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                                 if (paramIt->name.value == varName) {
-                                    leftType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                    leftType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
                                     break;
                                 }
                             }
@@ -2542,7 +2803,7 @@ class LLVMCompiler {
                             auto paramIt = funcDef->params.begin();
                             for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                                 if (paramIt->name.value == varName) {
-                                    rightType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                    rightType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
                                     break;
                                 }
                             }
@@ -2566,7 +2827,7 @@ class LLVMCompiler {
                                 auto paramIt = funcDef->params.begin();
                                 for (size_t i = 0; i < funcDef->params.size(); i++, ++paramIt) {
                                     if (paramIt->name.value == varName) {
-                                        std::string paramType = (paramIt->type.value == "auto") ? concreteTypes[i] : paramIt->type.value;
+                                        std::string paramType = (strip_decorations(paramIt->type.value) == "auto") ? concreteTypes[i] : paramIt->type.value;
 
                                         if (paramType.ends_with("[]")) {
                                             types.push_back(paramType.substr(0, paramType.size() - 2));
@@ -2687,7 +2948,7 @@ class LLVMCompiler {
         paramIdx = 0;
         for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
             std::string paramName = it->name.value;
-            std::string paramType = (it->type.value == "auto") ? concreteTypes[paramIdx] : it->type.value;
+            std::string paramType = (strip_decorations(it->type.value) == "auto") ? concreteTypes[paramIdx] : it->type.value;
 
             llvm::Value* alloca = createEntryAlloca(paramName, llvmTypeFor(paramType));
             builder->CreateStore(&*argIt, alloca);
@@ -2696,10 +2957,6 @@ class LLVMCompiler {
             if (paramType.ends_with("[]")) {
                 std::string elemType = paramType.substr(0, paramType.size() - 2);
                 arrayTypeStrings[paramName] = elemType;
-            } else if (paramType.starts_with("list<") && paramType.ends_with(">")) {
-                std::string elemType = paramType.substr(5, paramType.size() - 6);
-                int typeCode = getTypeCode(elemType);
-                lists[paramName] = typeCode;
             }
 
             argIt->setName(paramName);
@@ -2753,16 +3010,68 @@ class LLVMCompiler {
         builder->CreateStore(builder->getInt32(0), builder->CreateStructGEP(VariadicStructTy, variadic_struct, 2));
         return variadic_struct;
     }
-    std::string resolveTypeName(const std::string& name) {
+    std::vector<std::string> genericParamsFromName(std::string baseName) {
+        size_t open = baseName.find('<');
+        if (open == std::string::npos) { return {}; }
+        size_t close = baseName.rfind('>');
+        std::string inner = baseName.substr(open + 1, close - open - 1);
+        std::vector<std::string> genericParams;
+        std::string cur;
+        int depth = 0;
+        for (char c : inner) {
+            if (c == '<')
+                depth++;
+            else if (c == '>')
+                depth--;
+            else if (c == ',' && depth == 0) {
+                genericParams.push_back(trim(cur));
+                cur.clear();
+                continue;
+            }
+            cur += c;
+        }
+        if (!cur.empty()) genericParams.push_back(trim(cur));
+        return genericParams;
+    }
+    std::string buildMangledName(const std::string& baseName, const std::vector<std::string>& params) {
+        std::string result = baseName + "<";
+        for (size_t i = 0; i < params.size(); i++) {
+            if (i != 0) result += ",";
+            result += params[i];
+        }
+        return result + ">";
+    }
+    llvm::StructType* genericiseOrFindClass(std::string baseName) {
+        if (genericClasses[baseTypeName(baseName)]) {
+            if (classTypes.count(baseName)) return classTypes[baseName];
+            llvm::StructType* classTy = generateGenericClass(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
+                                                             genericParamsFromName(baseName));
+            if (classTy == nullptr) {
+                cg_error(Position(), "Failed to create specialized version of class " + baseTypeName(baseName));
+                return nullptr;
+            }
+            return classTy;
+        }
+        return classTypes[baseName];
+    }
+    std::string resolveTypeName(std::string name, bool strip = true) {
         if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
             name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double") {
             return name;
         }
-        if (name.ends_with("[]") || name.starts_with("list<") || name.starts_with("map<")) { return name; }
+        if (name.ends_with("[]")) { return name; }
+        std::string savedName = name;
+        std::vector<std::string> params;
+        for (std::string param : genericParamsFromName(savedName)) {
+           params.push_back(resolveTypeName(param));
+        }
+        if (!params.empty()) savedName = buildMangledName(baseTypeName(name), params); 
+        name = baseTypeName(name);
         auto aliasIt = typeAliases.find(name);
         if (aliasIt != typeAliases.end()) { return resolveTypeName(aliasIt->second); }
         if (name.find("::") != std::string::npos) {
-            if (classTypes.find(name) != classTypes.end()) return name;
+            if (classTypes.find(savedName) != classTypes.end()) return strip ? name : savedName;
+            if (genericClasses.find(name) != genericClasses.end()) return strip ? name : savedName;
             if (structTypes.find(name) != structTypes.end()) return name;
             if (enumTypes.find(name) != enumTypes.end()) return name;
             if (unionTypes.find(name) != unionTypes.end()) return name;
@@ -2772,13 +3081,12 @@ class LLVMCompiler {
 
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
-            if (classTypes.find(fullName) != classTypes.end()) return fullName;
+            if (classTypes.find(current.empty() ? savedName : current + "::" + savedName) != classTypes.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
+            if (genericClasses.find(fullName) != genericClasses.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
             if (structTypes.find(fullName) != structTypes.end()) return fullName;
             if (enumTypes.find(fullName) != enumTypes.end()) return fullName;
             if (unionTypes.find(fullName) != unionTypes.end()) return fullName;
-            if (hasList(fullName)) return fullName;
             if (hasArrayType(fullName)) return fullName;
-            if (hasMap(fullName)) return fullName;
 
             if (current.empty()) break;
 
@@ -2888,8 +3196,6 @@ class LLVMCompiler {
         std::string current = getCurrentNamespace();
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
-            if (hasList(fullName) || hasArrayType(fullName) || hasJaggedArray(fullName)) { return fullName; }
-
             if (current.empty()) break;
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
@@ -2941,7 +3247,7 @@ class LLVMCompiler {
         if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
             std::string className = structTy->getName().str();
 
-            auto evalMethod = findMethodInHierarchy(className, "eval");
+            auto evalMethod = findMethodInHierarchy(className, "_eval");
             if (evalMethod.first) {
                 std::vector<llvm::Value*> args;
 
@@ -3056,14 +3362,14 @@ class LLVMCompiler {
     llvm::FunctionType* llvmFuncTypeForHelper(const std::vector<Token>& returnTypes, const std::vector<ParamTypeInfo>& params);
     llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& retTypes, const std::list<Parameter>& params);
     llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& returnTypes, const std::vector<Parameter>& params);
-    llvm::Type* llvmTypeFor(const std::string& qcType);
+    llvm::Type* llvmTypeFor(std::string qcType);
     std::string lambdaName();
     std::string mangleName(const FuncDefNode& fn);
     std::unordered_map<std::string, llvm::AllocaInst*> locals;
     std::unordered_map<std::string, llvm::Function*> functions;
     llvm::Function* currentFunction = nullptr;
     llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);
-    llvm::Value* emitExpr(AnyNode& node);
+    llvm::Value* emitExpr(AnyNode node);
     llvm::Value* extractUnionToBestGuess(llvm::Value* unionVal) {
         std::string unionName;
         if (!isUnionType(unionVal->getType(), &unionName)) { return unionVal; }
@@ -3201,7 +3507,7 @@ class LLVMCompiler {
 
         return std::nullopt;
     }
-    void emitStmt(AnyNode& node);
+    void emitStmt(AnyNode node);
 };
 #endif
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -3230,11 +3536,11 @@ class Lexer {
     Token make_raw_string();
 };
 } // namespace tkz
-std::string trim(const std::string& str);
 std::string resolve_path(const std::string& current_file, const std::string& include_path);
 struct PreprocessResult {
     std::string clean_source;
     std::vector<std::string> dependency_paths;
+    std::unordered_map<std::string, std::vector<std::string>> namespace_depends;
     std::unordered_map<std::string, std::vector<std::string>> included_namespaces;
     std::unordered_set<std::string> accessible_namespaces;
 };

@@ -1,11 +1,11 @@
 #include <cctype>
+#include <cinttypes>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <cstddef>
-#include <cinttypes>
 extern "C" {
 void* qc_malloc(size_t size) {
     return malloc(size);
@@ -277,7 +277,8 @@ char* qc_to_string_float(float x) {
 }
 char* qc_to_string_long_int(intptr_t x) {
     char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);    if (n < 0) return nullptr;
+    int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);
+    if (n < 0) return nullptr;
     char* out = (char*)malloc(n + 1);
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
@@ -962,66 +963,6 @@ char* qc_jagged_to_string(qc_jagged_array* arr) {
     return result;
 }
 typedef struct {
-    void** data;
-    int size;
-    int capacity;
-    int elem_type;
-} qc_list;
-
-qc_list* qc_create_list(int elem_type) {
-    qc_list* list = (qc_list*)malloc(sizeof(qc_list));
-    list->capacity = 4;
-    list->size = 0;
-    list->elem_type = elem_type;
-    list->data = (void**)malloc(list->capacity * sizeof(void*));
-    return list;
-}
-
-void qc_list_push(qc_list* list, void* elem, int elem_type) {
-    if (list->size >= list->capacity) {
-        list->capacity *= 2;
-        list->data = (void**)realloc(list->data, list->capacity * sizeof(void*));
-    }
-
-    if (elem_type <= 5) {
-        int size = qc_sizeof_type(elem_type);
-        void* copy = malloc(size);
-        memcpy(copy, elem, size);
-        list->data[list->size++] = copy;
-    } else {
-        list->data[list->size++] = *(void**)elem;
-    }
-}
-
-void qc_list_set(void* list_ptr, int index, void* value) {
-    qc_list* list = (qc_list*)list_ptr;
-    if (index < 0 || index >= list->size) return;
-
-    if (list->elem_type <= 5) {
-        int size = qc_sizeof_type(list->elem_type);
-        void* copy = malloc(size);
-        memcpy(copy, value, size);
-        free(list->data[index]);
-        list->data[index] = copy;
-    } else {
-        list->data[index] = *(void**)value;
-    }
-}
-void* qc_list_get(qc_list* list, int index) {
-
-    if (index < 0 || index >= list->size) { return nullptr; }
-    return list->data[index];
-}
-
-void* qc_list_pop(qc_list* list) {
-    if (list->size == 0) return nullptr;
-    return list->data[--list->size];
-}
-
-int qc_list_length(qc_list* list) {
-    return list->size;
-}
-typedef struct {
     void** keys;
     void** values;
     int size;
@@ -1108,26 +1049,6 @@ void* qc_map_get(qc_map* map, void* key) {
         if (qc_compare_keys(map->keys[i], key, map->key_type)) { return map->values[i]; }
     }
     return nullptr;
-}
-
-bool qc_map_has(qc_map* map, void* key) {
-    for (int i = 0; i < map->size; i++) {
-        if (qc_compare_keys(map->keys[i], key, map->key_type)) { return true; }
-    }
-    return false;
-}
-
-void qc_map_remove(qc_map* map, void* key) {
-    for (int i = 0; i < map->size; i++) {
-        if (qc_compare_keys(map->keys[i], key, map->key_type)) {
-            for (int j = i; j < map->size - 1; j++) {
-                map->keys[j] = map->keys[j + 1];
-                map->values[j] = map->values[j + 1];
-            }
-            map->size--;
-            return;
-        }
-    }
 }
 void qc_print_map(qc_map* map) {
     printf("{");
@@ -1251,82 +1172,6 @@ char* qc_map_to_string(qc_map* map) {
 }
 int qc_map_size(qc_map* map) {
     return map->size;
-}
-
-qc_list* qc_map_keys(qc_map* map) {
-    qc_list* list = qc_create_list(map->key_type);
-
-    if (map->size > list->capacity) {
-        list->capacity = map->size;
-        list->data = (void**)realloc(list->data, list->capacity * sizeof(void*));
-    }
-
-    for (int i = 0; i < map->size; i++) {
-
-        if (map->key_type <= 5) {
-            int size = qc_sizeof_type(map->key_type);
-            void* copy = malloc(size);
-            memcpy(copy, map->keys[i], size);
-            list->data[i] = copy;
-        } else if (map->key_type == 6) {
-            list->data[i] = (void*)strdup((char*)map->keys[i]);
-        } else {
-            list->data[i] = map->keys[i];
-        }
-    }
-    list->size = map->size;
-    return list;
-}
-char* qc_list_to_string(qc_list* list) {
-    int est_size = 256;
-    char* result = (char*)malloc(est_size);
-    char* p = result;
-    int remaining = est_size;
-
-    *p++ = '[';
-    remaining--;
-
-    for (int i = 0; i < list->size; i++) {
-        char buf[128];
-
-        switch (list->elem_type) {
-        case 0: snprintf(buf, 128, "%d", *(int*)list->data[i]); break;
-        case 1: snprintf(buf, 128, "%g", *(float*)list->data[i]); break;
-        case 2: snprintf(buf, 128, "%g", *(double*)list->data[i]); break;
-        case 3: snprintf(buf, 128, "'%c'", *(char*)list->data[i]); break;
-        case 4: snprintf(buf, 128, "%s", *(bool*)list->data[i] ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)list->data[i] & 0x3;
-            snprintf(buf, 128, "%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-            break;
-        }
-        case 6: snprintf(buf, 128, "\"%s\"", (char*)list->data[i]); break;
-        }
-
-        int len = strlen(buf);
-        if (remaining < len + 10) {
-            int offset = p - result;
-            est_size *= 2;
-            result = (char*)realloc(result, est_size);
-            p = result + offset;
-            remaining = est_size - offset;
-        }
-
-        strcpy(p, buf);
-        p += len;
-        remaining -= len;
-
-        if (i < list->size - 1) {
-            *p++ = ',';
-            *p++ = ' ';
-            remaining -= 2;
-        }
-    }
-
-    *p++ = ']';
-    *p = '\0';
-
-    return result;
 }
 void* qc_fopen(const char* path, const char* mode) {
     FILE* f = fopen(path, mode);

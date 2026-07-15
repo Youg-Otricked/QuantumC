@@ -1,0 +1,3986 @@
+- Running...MaybeQualified = qout, is not type
+Name = qout
+Calling call on qout
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+MaybeQualified = truth, is not type
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+MaybeQualified = truth, is not type
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = truth
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+MaybeQualified = other, is not type
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+MaybeQualified = other, is not type
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = typeof
+Calling call on typeof
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = typeof
+Calling call on typeof
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = typeof
+Calling call on typeof
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = random
+Calling call on random
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = this
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = data
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = size
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = ternary
+Calling call on ternary
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = is_end
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = size
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = index, is not type
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+MaybeQualified = index, is not type
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = length
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = S
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = length
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = S
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = malloc
+Calling call on malloc
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = data
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = free, is not type
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Arr
+Calling call on Arr
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = data
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = size
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = ternary
+Calling call on ternary
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = is_end
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = size
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = index, is not type
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+MaybeQualified = index, is not type
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = cap
+MaybeQualified = free, is not type
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = realloc
+Calling call on realloc
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = cap
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = new_data
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = cap
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = new_data
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = ternary
+Calling call on ternary
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = length
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = length
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = malloc
+Calling call on malloc
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = data
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = index
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = free, is not type
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = i
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = data
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = malloc
+Calling call on malloc
+MaybeQualified = node, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Node
+parsing generics
+Calling call on Node<T>
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+MaybeQualified = node, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = malloc
+Calling call on malloc
+MaybeQualified = node, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Node
+parsing generics
+Calling call on Node<T>
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+MaybeQualified = node, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = node
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = free, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = old
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = free, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = old
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+MaybeQualified = free, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = free
+Calling call on free
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+MaybeQualified = current, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = next
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = value
+MaybeQualified = current, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Iterator::It
+parsing generics
+Calling call on Iterator::It<T>
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = other
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+MaybeQualified = current, is not type
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = current
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Ttl
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = message
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+Name = this
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+Name = this
+\ Running...MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = message
+Name = this
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = message
+Name = this
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = expected
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = result
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = expected
+Name = result
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = expected
+Name = result
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = result
+Name = expected
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = result
+Name = expected
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = cond
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = cond
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = notExpected
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = result
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = result
+Name = notExpected
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = result
+Name = notExpected
+Name = FailMessage
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = Call
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = Call
+Name = result
+Name = notExpected
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = this
+Name = result
+Name = notExpected
+MaybeQualified = flush, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = flush
+Calling call on flush
+MaybeQualified = inline, is not type
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = inline
+Calling call on inline
+Usertype UnitTest::Test
+Usertype List::Iterator::It
+Usertype List::Node
+Usertype T
+Usertype Vector::Iterator::It
+Usertype Array::Arr
+Usertype List::List
+Usertype Vector::Vec
+Usertype Array::Iterator::It
+Usertype AdvQBool::AQB
+Usertype AdvQBool::AlTypes
+Name = command
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = Utils::range
+Calling call on Utils::range
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = r1
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = r1
+Name = r1
+Name = r1
+Name = r1
+Name = r1
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+MaybeQualified = Utils::sleep, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = Utils::sleep
+Calling call on Utils::sleep
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::pi
+Calling call on Math::pi
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::e
+Calling call on Math::e
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::max
+Calling call on Math::max
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::min
+Calling call on Math::min
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::sqrt
+Calling call on Math::sqrt
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::abs
+Calling call on Math::abs
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::ceil
+Calling call on Math::ceil
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::floor
+Calling call on Math::floor
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::sin
+Calling call on Math::sin
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::cos
+Calling call on Math::cos
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::tan
+Calling call on Math::tan
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = Math::log
+Calling call on Math::log
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = UnitTest::Test
+Calling call on UnitTest::Test
+MaybeQualified = test, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = test
+MaybeQualified = test, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = test
+MaybeQualified = test, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = test
+MaybeQualified = test, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = test
+MaybeQualified = test, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = test
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = AdvQBool::AQB
+Calling call on AdvQBool::AQB
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = aqb
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = i
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = i
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AgenerateGenericClass called: className=Vector::Vec, paramCount=1
+generateGenericClass called: className=Vector::Vec, params=string 
+generateGenericClass called: className=Vector::Iterator::It, paramCount=1
+generateGenericClass called: className=Vector::Iterator::It, params=string 
+fieldName: data, currentClassName: Vector::Iterator::It<string>
+about to call genericiseOrFindClass(Vector::Iterator::It<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: size, currentClassName: Vector::Iterator::It<string>
+about to call genericiseOrFindClass(Vector::Iterator::It<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: current_index, currentClassName: Vector::Iterator::It<string>
+about to call genericiseOrFindClass(Vector::Iterator::It<string>)
+returned from genericiseOrFindClass, classTy null? 0
+[findMethodOverload] className=Vector::Iterator::It<string> method=_atEnd argCount=0
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: _prev
+    method: _moveTo
+    method: _atStart
+    method: _atEnd
+    method: _next
+    method: It
+[findMethodOverload] className=Vector::Iterator::It<string> method=_atStart argCount=0
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: _prev
+    method: _moveTo
+    method: _atStart
+    method: _atEnd
+    method: _next
+    method: It
+fieldName: current_index, currentClassName: Vector::Iterator::It<string>
+about to call genericiseOrFindClass(Vector::Iterator::It<string>)
+returned from genericiseOrFindClass, classTy null? 0
+QB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = aqb
+MaybeQualified = trueCount, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = trueCount
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = trueCount
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = AdvQBool::AQB
+Calling call on AdvQBool::AQB
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = aqb
+Name = aqb2
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = aqb
+Name = aqb2
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+Name = aqb
+MaybeQualified = OSInterop::system, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = OSInterop::system
+Calling call on OSInterop::system
+MaybeQualified = qout, is not type
+Usertype UnitTest::Test
+Usertype AdvQBool::AlTypes
+Usertype Array::Arr
+Usertype List::Node
+Usertype List::Iterator::It
+Usertype AdvQBool::AQB
+Usertype Array::Iterator::It
+Usertype List::List
+Usertype Vector::Vec
+Usertype Vector::Iterator::It
+Name = qout
+Calling call on qout
+class lookup for type='Vector::Vec<string>' baseTypeName='Vector::Vec'
+namespace stack: Vector
+collectFields called with: Vector::Vec<string>
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHelper return type token: T
+llvmFuncTypeForHelper return type token: Iterator::It<T>
+class lookup for type='Vector::Iterator::It<string>' baseTypeName='Vector::Iterator::It'
+namespace stack: Vector
+namespace stack: Iterator
+collectFields called with: Vector::Iterator::It<string>
+llvmFuncTypeForHelper return type token: bool
+llvmFuncTypeForHelper return type token: T
+llvmFuncTypeForHelper return type token: bool
+llvmFuncTypeForHelper return type token: T
+llvmFuncTypeForHelper return type token: void
+class lookup for type='void' baseTypeName='void'
+LLVMTypeFor returning void for void
+llvmFuncTypeForHfieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: capacity, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: data, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: data, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: capacity, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: capacity, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: data, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+[findMethodOverload] className=Vector::Vec<string> method=reserve argCount=1
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: isEmpty
+    method: operator=
+    method: _end
+    method: _begin
+    method: _destroy
+    method: operator[]=
+    method: operator[]
+    method: pop
+    method: push
+    method: reserve
+    method: shrinkToFit
+    method: Vec
+[findMethodOverload] className=Vector::Vec<string> method=reserve argCount=1
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: isEmpty
+    method: operator=
+    method: _end
+    method: _begin
+    method: _destroy
+    method: operator[]=
+    method: operator[]
+    method: pop
+    method: push
+    method: reserve
+    method: shrinkToFit
+    method: Vec
+fieldName: capacity, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: data, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+ArrayAccess ptrTy = string*
+[findMethodOverload] className=Vector::Iterator::It<string> method=It argCount=3
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: _prev
+    method: _moveTo
+    method: _atStart
+    method: _atEnd
+    method: _next
+    method: It
+[findMethodOverload] className=Vector::Iterator::It<string> method=It argCount=3
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: _prev
+    method: _moveTo
+    method: _atStart
+    method: _atEnd
+    method: _next
+    method: It
+fieldName: data, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+fieldName: capacity, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+[findMethodOverload] className=Vector::Vec<string> method=reserve argCount=1
+  registered class: Vector::Iterator::It<string>
+  registered class: Vector::Vec<string>
+  found class entry, methods registered:
+    method: isEmpty
+    method: operator=
+    method: _end
+    method: _begin
+    method: _destroy
+    method: operator[]=
+    method: operator[]
+    method: pop
+    method: push
+    method: reserve
+    method: shrinkToFit
+    method: Vec
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+fieldName: size, currentClassName: Vector::Vec<string>
+about to call genericiseOrFindClass(Vector::Vec<string>)
+returned from genericiseOrFindClass, classTy null? 0
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+ArrayAccess ptrTy = string*
+%"Vector::Vec<string>" = type { ptr, ptr, i32, i32 }
+returning this, type: ptr currentClassName=Vector::Vec<string>

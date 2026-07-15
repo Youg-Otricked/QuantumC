@@ -98,7 +98,7 @@ You can dereference pointers to get their value
 qout("%i", *p); // 123
 ```
 However, you can also do addition, subtraction, and indicing on pointers!
-Arrays are just pointers.
+Arrays can be _decayed_ to pointers, which means they lose there length becomes unknown, but can be used as a pointer. To make an array a pointer, you can take the address of the first element.
 ```cpp
 int x = 10;
 int y = 20;
