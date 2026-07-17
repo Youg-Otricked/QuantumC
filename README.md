@@ -401,7 +401,7 @@ int main() {
     C<int> thing = C();
 }
 ```
-Generics will be allowed on `struct`s, `class`es, unions, functions, and methods.
+Generics will be allowed on `struct`s, `class`es, unions, aliases, functions, and methods.
 The unique thing about QuantumC's generics are its constraint system:
 The constraint system follows this syntax:
 ```
@@ -430,7 +430,7 @@ QuantumC also has non-type generic parameters.
 <int S> // S is a non-type generic parameter (a compile time int)
 ```
 
-Currently only classes and structs have generics.
+Currently classes structs unions and aliases have generics.
 
 In Rust, 
 ```

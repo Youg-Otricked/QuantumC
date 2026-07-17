@@ -92,6 +92,12 @@ void loop(void) code {
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
 - Actually decent error messages and errors (probbalt a lot of work)
 - Scoping blocks ({ })
+__qc_commit_hash() — exact git commit the compiler/runtime was built from, invaluable for bug reports since version numbers alone often don't pin down exactly which state of the code produced a binary
+__qc_build_date() — timestamp of the build
+__qc_target_triple() — what platform/arch this runtime was compiled for (x86_64-linux-gnu, wasm32-unknown-unknown, etc.) — relevant since your lesson context here is literally about compiling toward WASM/LLVM targets
+__qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
+__qc_abi_version() — a separate counter from the language version, specifically for binary-compatibility breaks (struct layout changes, calling convention changes) — useful once you have separately-compiled modules that need to check they agree on ABI
+__qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 TOP PRIORITY:
 1. Generics.
 2. Volitile
