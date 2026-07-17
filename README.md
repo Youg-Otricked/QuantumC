@@ -69,8 +69,8 @@ qc [flags]
 
 # Development Status
 
-Current Version: x0.18.1 = "Generics (Part 2)"
-Next Version: x0.18.2 = "Generics (Part 3)"
+Current Version: x0.18.2 = "Generics (Part 3)"
+Next Version: x0.18.3 = "Generics (Part 4)"
 
 ## Feature Roadmap
 
@@ -101,7 +101,7 @@ Next Version: x0.18.2 = "Generics (Part 3)"
 |                     | Generics                                                               |             |
 |                     |     Classes                                                            | Done        |
 |                     |     Structs                                                            | Done        |
-|                     |     Unions                                                             | Planned     |
+|                     |     Unions                                                             | Done        |
 |                     |     Functions & Methods                                                | Planned     |
 |                     |     Variadic                                                           | Planned     |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
@@ -212,7 +212,7 @@ Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/
 | **Multi-return**            | Structs              | Tuples           | Tuples           | **Native**          |
 | **Generics**                | Templates + Concepts | Type as Argument | Trait Based      | Constraint-Based    |
 
-QuantumC has comparable performance to C++, with faster compile times, and similar amounts of QOL features to languages like Zig.
+Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig. Current benchmarks are being improved and results should be considered preliminary.
 
 ---
 
@@ -258,6 +258,7 @@ All *'s in pointer types stick to the type other than the last, E.G.
 ```
 int** *x;
 ```
+Files are `kebab-case` (optional, sometimes I dont follow this)
 QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
 My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or miss-type, unlike C/C++ where every single library uses entirely different conventions.
 
@@ -580,25 +581,9 @@ int main() {
 ```
 
 ---
-
 ## Performance Comparison
 
-Comparison output and `.csv` files are available in the `logs` directory.
-
-The benchmark compares generated QC code against equivalent C++ code across multiple optimization levels.
-
-> Note: Due to a measurement precision issue in the benchmark harness, `-O1` and `-Oz` results could not be measured reliably.
-
-Measured results:
-- `-O0`: QC performance is approximately 2× faster than the equivalent C++ benchmark.
-- `-O2` / `-O3`: QC performance is approximately 2× slower than the equivalent C++ benchmark.
-
-The benchmark uses a CPU-heavy workload designed to compare generated code performance.
-
-## Known limitations:
-
-- `foreach` over class-typed fields (e.g. iterating a generic container stored as this.field) may not resolve correctly in all cases — actively being hardened.
-- `auto` param and returning functions and methods are rather finiky, and such, unrecommended
+Benchmarks are currently unreliable and show significant fluctuations between runs, or things like o millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
 
 ## Standard Library Namespaces:
 

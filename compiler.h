@@ -1243,7 +1243,6 @@ class LLVMCompiler {
         if (outName) *outName = name;
         return true;
     }
-    std::string resolveType(const std::string& typeName);
     std::unordered_map<std::string, UserTypeInfo>& userTypes;
     struct EnumMemberValue {
         int tag;
@@ -1324,6 +1323,9 @@ class LLVMCompiler {
     std::unordered_map<std::string, std::unordered_map<std::string, std::vector<llvm::Function*>>> classMethods;
     std::unordered_map<std::string, bool> genericClasses;
     std::unordered_map<std::string, bool> genericStructs;
+    std::unordered_map<std::string, bool> genericAliases;
+    std::unordered_map<std::string, bool> genericUnions;
+    std::unordered_map<std::string, UserTypeInfo> substitutedUnions;
     std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
     std::unordered_map<std::string, std::string> currentGenericTypeStrings;
     std::unordered_map<std::string, GenericType> currentNonTypeGenericValues;
@@ -1376,6 +1378,8 @@ class LLVMCompiler {
     llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
     llvm::StructType* generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams);
     llvm::StructType* generateGenericStruct(std::string structName, UserTypeInfo structInfo, std::vector<std::string> genericParams);
+    UserTypeInfo generateGenericUnion(std::string unionName, UserTypeInfo unionInfo, std::vector<std::string> genericParams);
+    std::string generateGenericAlias(std::string aliasName, UserTypeInfo aliasInfo, std::vector<std::string> genericParams);
     std::unordered_map<std::string, llvm::GlobalVariable*> globals;
     std::unordered_map<std::string, FunctionSignature> functionSignatures;
     std::unordered_map<std::string, FuncDefNode*> functionDefs;
@@ -1701,8 +1705,8 @@ class LLVMCompiler {
             }
             return builder->CreateStructGEP(structTy, baseAddr, fieldIdx, propName + "_ptr");
         }
-        if (unionTypes.count(typeName)) {
-            auto& unionInfo = userTypes[typeName];
+        if (unionTypes.count(typeName) || genericUnions.count(baseTypeName(typeName))) {
+            auto unionInfo = genericiseOrFindUnion(typeName);
             llvm::StructType* unionTy = unionTypes[typeName];
             for (auto& member : unionInfo.members) {
                 std::string variantName = resolveTypeName(member.type);
@@ -3128,48 +3132,92 @@ class LLVMCompiler {
         }
         return structTypes[baseName];
     }
+    UserTypeInfo genericiseOrFindUnion(std::string baseName) {
+        if (genericUnions[baseTypeName(baseName)]) {
+            if (unionTypes.count(baseName)) return substitutedUnions[baseName];
+            UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
+                                                             genericParamsFromName(baseName));
+            if (static_cast<int>(unionInfo.kind) == 0) {
+                cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
+                return {};
+            }
+            return unionInfo;
+        }
+        return userTypes[baseTypeName(baseName)];
+    }
+    std::string genericiseOrFindAlias(std::string baseName) {
+        if (genericAliases.count(baseTypeName(baseName)) && genericAliases[baseTypeName(baseName)]) {
+            if (typeAliases.count(baseName)) return resolveTypeName(typeAliases[baseName]);
+            std::string newAlias = generateGenericAlias(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
+                                                            genericParamsFromName(baseName));
+            if (newAlias == "") {
+                cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
+                return "";
+            }
+            return resolveTypeName(newAlias);
+        }
+        if (typeAliases.count(baseName)) return resolveTypeName(typeAliases[baseName]);
+        return baseName;
+    }
     std::string resolveTypeName(std::string name, bool strip = true) {
         if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
             name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double") {
             return name;
         }
-        if (name.ends_with("[]")) { return name; }
+        std::string suffix;
+        while (!name.empty() && (name.ends_with("*") || name.ends_with("&") || name.ends_with("[]"))) {
+            if (name.ends_with("[]")) {
+                suffix = "[]" + suffix;
+                name = name.substr(0, name.size() - 2);
+            } else {
+                suffix = std::string(1, name.back()) + suffix;
+                name = name.substr(0, name.size() - 1);
+            }
+        }
+        auto finish = [&](std::string s) { return s + suffix; };
+        name = genericiseOrFindAlias(name);
         std::string savedName = name;
         std::vector<std::string> params;
         for (std::string param : genericParamsFromName(savedName)) {
-           params.push_back(resolveTypeName(param));
+            params.push_back(resolveTypeName(param));
         }
-        if (!params.empty()) savedName = buildMangledName(baseTypeName(name), params); 
+        if (!params.empty()) savedName = buildMangledName(baseTypeName(name), params);
         name = baseTypeName(name);
-        auto aliasIt = typeAliases.find(name);
-        if (aliasIt != typeAliases.end()) { return resolveTypeName(aliasIt->second); }
+
         if (name.find("::") != std::string::npos) {
-            if (classTypes.find(savedName) != classTypes.end()) return strip ? name : savedName;
-            if (genericClasses.find(name) != genericClasses.end()) return strip ? name : savedName;
-            if (genericStructs.find(name) != genericStructs.end()) return strip ? name : savedName;
-            if (structTypes.find(name) != structTypes.end()) return name;
-            if (enumTypes.find(name) != enumTypes.end()) return name;
-            if (unionTypes.find(name) != unionTypes.end()) return name;
-            if (typeAliases.find(name) != typeAliases.end()) return name;
+            if (classTypes.find(savedName) != classTypes.end()) return finish(strip ? name : savedName);
+            if (genericClasses.find(name) != genericClasses.end()) return finish(strip ? name : savedName);
+            if (genericStructs.find(name) != genericStructs.end()) return finish(strip ? name : savedName);
+            if (genericUnions.find(name) != genericUnions.end()) return finish(strip ? name : savedName);
+            if (structTypes.find(savedName) != structTypes.end()) return finish(strip ? name : savedName);
+            if (enumTypes.find(savedName) != enumTypes.end()) return finish(strip ? name : savedName);
+            if (unionTypes.find(savedName) != unionTypes.end()) return finish(strip ? name : savedName);
+            if (typeAliases.find(savedName) != typeAliases.end()) return finish(strip ? name : savedName);
         }
+
         std::string current = getCurrentNamespace();
 
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
-            if (classTypes.find(current.empty() ? savedName : current + "::" + savedName) != classTypes.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
-            if (genericClasses.find(fullName) != genericClasses.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
-            if (genericStructs.find(fullName) != genericStructs.end()) return strip ? fullName : current.empty() ? savedName : current + "::" + savedName;
-            if (structTypes.find(fullName) != structTypes.end()) return fullName;
-            if (enumTypes.find(fullName) != enumTypes.end()) return fullName;
-            if (unionTypes.find(fullName) != unionTypes.end()) return fullName;
-            if (hasArrayType(fullName)) return fullName;
+            std::string fullSavedName = current.empty() ? savedName : current + "::" + savedName;
+            std::string result = strip ? fullName : fullSavedName;
+
+            if (typeAliases.count(fullSavedName)) return finish(result);
+            if (classTypes.count(fullSavedName)) return finish(result);
+            if (genericClasses.count(fullName)) return finish(result);
+            if (genericStructs.count(fullName)) return finish(result);
+            if (genericUnions.count(fullName)) return finish(result);
+            if (structTypes.count(fullSavedName)) return finish(result);
+            if (enumTypes.count(fullSavedName)) return finish(result);
+            if (unionTypes.count(fullSavedName)) return finish(result);
+            if (hasArrayType(fullSavedName)) return finish(result);
 
             if (current.empty()) break;
-
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
         }
-        return name;
+
+        return finish(name);
     }
     llvm::Type* getPointeeType(const std::string& name) {
         std::string typeStr = resolveVarType(name);

@@ -9,13 +9,23 @@ class Y {
 Y proves X;
 ```
 - Try/Catch 
+- allow special character literals in generics, eg:
+```
+class Function<T, '(', V, ')'> {
+    ...
+}
+...
+Function<int(int)>;
+```
 - `-L (link)` and  `-A (alias)` flags
-- Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`) need to do it for structs functions methods and unions, and add variadic generics
+- Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`) need to do it for functions and methods, and add variadic generics
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
 - operator( )() (functor, can have codeblocks)
 - Methos with code blocks
 - Operator.
+- Function pointers
+- Empty arrays with syntax `[int]`
 - Modifier user type:
 ```cpp
 modifier async type function {
@@ -56,6 +66,7 @@ typedef struct {
     char*[] arg_names;
     char* name;
     char*[] modifiers;
+    char*[] attributes;
     generic_constraint[] constraints;
 } qc_function_typeof;
 ```
@@ -79,6 +90,7 @@ void loop(void) code {
 - operator<</|>\|>>/<<</&/......... (bitwise)
 - const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
+- Actually decent error messages and errors (probbalt a lot of work)
 - Scoping blocks ({ })
 TOP PRIORITY:
 1. Generics.
@@ -87,12 +99,14 @@ TOP PRIORITY:
 4. Try/Catch.
 5. Fancy operator overloads
 6. Token/ident/type/keyword/usertype direct type (parser refactor)
-7. Codeblocks.
-8. Concepts
-9. Modifier (x1.0.0)
-10. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-11. Other stuff + Variadic Generics
-12. Metadata
+7. Empty arrays.
+8. Codeblocks.
+9. Concepts
+10. Modifier (x1.0.0)
+11. Variadics on generics
+12. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+13. Other stuff + Variadic Generics
+14. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -114,7 +128,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-13. Preproccessers
+15. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -123,3 +137,4 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
+16. User-Defined metadata

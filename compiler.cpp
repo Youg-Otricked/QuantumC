@@ -222,6 +222,7 @@ std::string get_token_name(TokenType tok) {
     case TokenType::SIZEOF: return "sizeof";
     case TokenType::EOFT: return "<eof>";
     case TokenType::VARADIC: return "...";
+    default: return "<unknown token>";
     }
 
     return "<unknown token>";
@@ -3531,7 +3532,85 @@ Prs Parser::statement() {
 
         Token type_name = this->current_tok;
         this->advance();
-
+        std::vector<GenericType> generics;
+        if (this->current_tok.type == TokenType::LESS) {
+            this->advance();
+            while (true) {
+                GenericType curr;
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    if (this->current_tok.type == TokenType::KEYWORD &&
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        curr.isNonType = true;
+                        curr.nonTypeKind = this->current_tok.value;
+                    } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                        std::string prev = this->current_tok.value;
+                        this->advance();
+                        if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        curr.isNonType = true;
+                        curr.nonTypeKind = prev + " " + this->current_tok.value;
+                    } else {
+                        res.failure(
+                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                curr.name = this->current_tok.value;
+                this->advance();
+                if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::COLON) {
+                        if (this->current_tok.type == TokenType::IDENTIFIER &&
+                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                            curr.constraint = this->current_tok.value;
+                        } else {
+                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                               this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    } else {
+                        curr.constraint = "";
+                    }
+                    this->advance();
+                    if (this->current_tok.type == TokenType::NOT) {
+                        curr.negated = true;
+                        this->advance();
+                    }
+                    while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        curr.subconstraints.push_back(this->current_tok.value);
+                        this->advance();
+                        if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    curr.defaultValue = this->current_tok.value;
+                    this->advance();
+                }
+                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                generics.push_back(curr);
+                if (this->current_tok.type == TokenType::MORE) {
+                    this->advance();
+                    break;
+                }
+                this->advance();
+            }
+        }
+        auto saved_generics = this->current_generics;
+        this->current_generics.insert(this->current_generics.end(), generics.begin(), generics.end());
         if (this->current_tok.type != TokenType::EQ) {
             res.failure(new InvalidSyntaxError("QC-S075: Expected '=' after type name '" + type_name.value + "'", this->current_tok.pos));
             return res.to_prs();
@@ -3615,9 +3694,11 @@ Prs Parser::statement() {
             info.kind = UserTypeKind::Union;
             info.members = members;
         }
+        info.generics = generics;
         info.namespace_path = currentNamespace;
         std::string full_key = currentNamespace.empty() ? type_name.value : currentNamespace + "::" + type_name.value;
         user_types[base_type_name(full_key)] = info;
+        this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
     }
     if (tok.type == TokenType::KEYWORD && tok.value == "enum") {
@@ -4040,9 +4121,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
         std::string substituted = substituteGenerics(qcType);
         if (substituted != qcType) qcType = substituted;
     }
-    std::string type = resolveType(qcType);
-    type = resolveTypeName(type, false);
-    type = resolveType(type);
+    std::string type = resolveTypeName(qcType, false);
     type = resolveTypeName(type, false);
     if (type == "...") { return builder->getPtrTy(); }
     if (type.ends_with("[]")) { return llvm::PointerType::get(context, 0); }
@@ -4064,15 +4143,10 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     }
     if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) { return genericiseOrFindStruct(type); }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
-    if (unionTypes.find(type) != unionTypes.end()) { return unionTypes[type]; }
+    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericStructs.end()) { genericiseOrFindUnion(type); return unionTypes[type]; }
     if (type == "function" || type == "fn" || type.starts_with(("fn "))) { return builder->getPtrTy(); }
     if (type == "void") return builder->getVoidTy();
     return nullptr;
-}
-std::string LLVMCompiler::resolveType(const std::string& typeName) {
-    auto it = typeAliases.find(typeName);
-    if (it != typeAliases.end()) { return resolveType(it->second); }
-    return typeName;
 }
 llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams) {
     std::string mangled_class_name = className + "<";
@@ -4425,8 +4499,6 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     llvm::StructType* structTy = getOrCreateStructType(mangled_struct_name);
     structTypes[mangled_struct_name] = structTy;
     inProgressGenerics.insert(mangled_struct_name);
-    llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
-    llvm::BasicBlock::iterator savedPoint = builder->GetInsertPoint();
     auto oldGenericTypes = this->currentGenericTypes;
     auto oldGenericTypeStrings = currentGenericTypeStrings;
     auto oldNonTypeGenerics = currentNonTypeGenericValues;
@@ -4531,6 +4603,235 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     currentNonTypeGenericValues = oldNonTypeGenerics;
     return structTy;
 }
+UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeInfo unionInfo, std::vector<std::string> genericParams) {
+    std::string mangled_union_name = unionName + "<";
+    for (int j = 0; j < unionInfo.generics.size(); j++) {
+        std::string val;
+        if (genericParams.size() <= j) {
+            val = unionInfo.generics[j].defaultValue;
+        } else {
+            val = genericParams[j];
+        }
+        mangled_union_name += val;
+        if (j != unionInfo.generics.size() - 1) { mangled_union_name += ","; }
+    }
+    mangled_union_name += ">";
+    if (inProgressGenerics.count(mangled_union_name)) return {};
+    if (unionTypes.find(mangled_union_name) != unionTypes.end()) { return genericiseOrFindUnion(mangled_union_name); }
+    std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
+    llvm::StructType* unionTy = getOrCreateStructType(fields, mangled_union_name);
+    unionTypes[mangled_union_name] = unionTy;
+    inProgressGenerics.insert(mangled_union_name);
+    auto oldGenericTypes = this->currentGenericTypes;
+    auto oldGenericTypeStrings = currentGenericTypeStrings;
+    auto oldNonTypeGenerics = currentNonTypeGenericValues;
+    for (int i = 0; i < unionInfo.generics.size(); i++) {
+        GenericType generic = unionInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "Too few generic params for struct " + unionName);
+                return {};
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return {};
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return {};
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return {};
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return {};
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return {};
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        return {};
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = unionInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "Too few generic params for struct " + unionName);
+                    return {};
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
+    }
+    auto oldNamespaceStack = namespaceStack;
+    namespaceStack.clear();
+    if (!unionInfo.namespace_path.empty()) {
+        size_t start = 0;
+        size_t pos;
+        while ((pos = unionInfo.namespace_path.find("::", start)) != std::string::npos) {
+            namespaceStack.push_back(unionInfo.namespace_path.substr(start, pos - start));
+            start = pos + 2;
+        }
+        namespaceStack.push_back(unionInfo.namespace_path.substr(start));
+    }
+    UserTypeInfo genericisedInfo;
+    genericisedInfo.kind = UserTypeKind::Union;
+    for (UnionMember member : unionInfo.members) {
+        if (currentNonTypeGenericValues.count(member.type)) {
+            member.type = std::find_if(unionInfo.generics.begin(), unionInfo.generics.end(), [&](const auto& p) { return p.name == member.type; })->nonTypeKind + ":" + currentNonTypeGenericValues[member.type].name;
+        }
+        genericisedInfo.members.push_back({substituteGenerics(resolveTypeName(substituteGenerics(member.type)))});
+    }
+    substitutedUnions[mangled_union_name] = genericisedInfo; 
+    namespaceStack = oldNamespaceStack;
+    inProgressGenerics.erase(mangled_union_name);
+    this->currentGenericTypes = oldGenericTypes;
+    this->currentGenericTypeStrings = oldGenericTypeStrings;
+    currentNonTypeGenericValues = oldNonTypeGenerics;
+    return genericisedInfo;
+}
+std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeInfo aliasInfo, std::vector<std::string> genericParams) {
+    std::string mangled_alias_name = aliasName + "<";
+    for (int j = 0; j < aliasInfo.generics.size(); j++) {
+        std::string val;
+        if (genericParams.size() <= j) {
+            val = aliasInfo.generics[j].defaultValue;
+        } else {
+            val = genericParams[j];
+        }
+        mangled_alias_name += val;
+        if (j != aliasInfo.generics.size() - 1) { mangled_alias_name += ","; }
+    }
+    mangled_alias_name += ">";
+    if (inProgressGenerics.count(mangled_alias_name)) return "";
+    if (typeAliases.count(mangled_alias_name)) return typeAliases[mangled_alias_name];
+    inProgressGenerics.insert(mangled_alias_name);
+    auto oldGenericTypes = this->currentGenericTypes;
+    auto oldGenericTypeStrings = currentGenericTypeStrings;
+    auto oldNonTypeGenerics = currentNonTypeGenericValues;
+    for (int i = 0; i < aliasInfo.generics.size(); i++) {
+        GenericType generic = aliasInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "Too few generic params for alias " + aliasName);
+                return "";
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return "";
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return "";
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return "";
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return "";
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return "";
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        return "";
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = aliasInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "Too few generic params for alias " + aliasName);
+                    return "";
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
+    }
+    std::string substituted = substituteGenerics(aliasInfo.aliasTarget);
+    typeAliases[mangled_alias_name] = substituted;
+    inProgressGenerics.erase(mangled_alias_name);
+    this->currentGenericTypes = oldGenericTypes;
+    this->currentGenericTypeStrings = oldGenericTypeStrings;
+    currentNonTypeGenericValues = oldNonTypeGenerics;
+    return substituted;
+}
+
 void LLVMCompiler::createUserTypes() {
     auto getFullName = [](const std::string& name, const UserTypeInfo& info) {
         if (info.namespace_path.empty()) { return name; }
@@ -4647,13 +4948,15 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Union) {
+            if (!info.generics.empty()) { genericUnions[mapKey] = true; continue; } 
+            genericUnions[mapKey] = false;
             std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
             llvm::StructType* unionTy = getOrCreateStructType(fields, mapKey);
             unionTypes[mapKey] = unionTy;
         }
     }
     for (auto& [mapKey, info] : userTypes) {
-        if (info.kind == UserTypeKind::Alias) { typeAliases[mapKey] = info.aliasTarget; }
+        if (info.kind == UserTypeKind::Alias) { if (!info.generics.empty()) { genericAliases[mapKey] = true; continue; } genericAliases[mapKey] = false; typeAliases[mapKey] = info.aliasTarget; }
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind != UserTypeKind::Class) continue;
@@ -5693,45 +5996,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         return builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                     }
                 }
+                std::string unionName;
+                if (isUnionType(ty, &unionName)) {
+                    auto members = genericiseOrFindUnion(unionName).members;
+                    llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
+                    llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
 
-                for (auto& [unionName, unionTy] : unionTypes) {
-                    if (ty == unionTy) {
-                        auto& members = userTypes.at(baseTypeName(unionName)).members;
-                        llvm::Value* tag = builder->CreateExtractValue(v, 0, "union_tag");
-                        llvm::Value* payload = builder->CreateExtractValue(v, 1, "union_payload");
+                    llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "fstr_union_end", currentFunction);
+                    llvm::AllocaInst* resultAlloc = createEntryAlloca("fstr_union_result", llvm::PointerType::get(context, 0));
 
-                        llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "fstr_union_end", currentFunction);
-                        llvm::AllocaInst* resultAlloc = createEntryAlloca("fstr_union_result", llvm::PointerType::get(context, 0));
+                    llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
 
-                        llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, members.size());
+                    for (size_t i = 0; i < members.size(); i++) {
+                        llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "fstr_union_case_" + std::to_string(i), currentFunction);
+                        sw->addCase(builder->getInt32(i), caseBB);
+                        builder->SetInsertPoint(caseBB);
 
-                        for (size_t i = 0; i < members.size(); i++) {
-                            llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "fstr_union_case_" + std::to_string(i), currentFunction);
-                            sw->addCase(builder->getInt32(i), caseBB);
-                            builder->SetInsertPoint(caseBB);
+                        std::string ts = members[i].type;
+                        size_t c = ts.find(':');
+                        if (c != std::string::npos) ts = ts.substr(0, c);
+                        llvm::Type* memberTy = llvmTypeFor(ts);
 
-                            std::string ts = members[i].type;
-                            size_t c = ts.find(':');
-                            if (c != std::string::npos) ts = ts.substr(0, c);
-                            llvm::Type* memberTy = llvmTypeFor(ts);
-
-                            llvm::Value* memberVal;
-                            if (memberTy->isPointerTy()) {
-                                memberVal = builder->CreateBitCast(payload, memberTy);
-                            } else {
-                                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
-                                memberVal = builder->CreateLoad(memberTy, typedPtr, "union_member");
-                            }
-                            AnyNode fakeNode = std::monostate{};
-                            llvm::Value* strVal = toString(memberVal, fakeNode, pos);
-                            if (!strVal) strVal = builder->CreateGlobalString("?");
-                            builder->CreateStore(strVal, resultAlloc);
-                            builder->CreateBr(endBB);
+                        llvm::Value* memberVal;
+                        if (memberTy->isPointerTy()) {
+                            memberVal = builder->CreateBitCast(payload, memberTy);
+                        } else {
+                            llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
+                            memberVal = builder->CreateLoad(memberTy, typedPtr, "union_member");
                         }
-
-                        builder->SetInsertPoint(endBB);
-                        return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "fstr_union_result");
+                        AnyNode fakeNode = std::monostate{};
+                        llvm::Value* strVal = toString(memberVal, fakeNode, pos);
+                        if (!strVal) strVal = builder->CreateGlobalString("?");
+                        builder->CreateStore(strVal, resultAlloc);
+                        builder->CreateBr(endBB);
                     }
+
+                    builder->SetInsertPoint(endBB);
+                    return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "fstr_union_result");
                 }
                 if (ty->isPointerTy()) { return v; }
 
@@ -6761,6 +7062,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             return nullptr;        
         }
+        if (genericUnions.count(qcType) && genericUnions[qcType]) {
+            UserTypeInfo info = genericiseOrFindUnion(saved_qc_type);
+            llvm::StructType* unionTy = unionTypes[resolveTypeName(saved_qc_type, false)];
+            llvm::AllocaInst* unionAlloc = createEntryAlloca(name, unionTy);
+            llvm::Value* rhs = emitExpr((*va)->value_node);
+            if (!rhs) return nullptr;
+            if (rhs->getType() == unionTy) {
+                builder->CreateStore(rhs, unionAlloc);
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+                locals[fullName] = unionAlloc;
+                return nullptr;
+            }
+            int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
+
+            if (tag == -1) {
+                cg_error((*va)->var_name_tok.pos, "Value does not match any variant of union " + qcType);
+                return nullptr;
+            }
+            auto& member = info.members[tag];
+            bool isLiteral = member.type.find(':') != std::string::npos;
+            llvm::Type* rhsTy = rhs->getType();
+            std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
+            llvm::Type* memberTy = llvmTypeFor(baseType);
+            if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
+                cg_error((*va)->var_name_tok.pos, "Union literal variant type mismatch");
+                return nullptr;
+            }
+            llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+            unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
+            llvm::Value* dataPtr = storeAndGetPointer(rhs);
+            unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
+            builder->CreateStore(unionVal, unionAlloc);
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
+            locals[fullName] = unionAlloc;
+            varTypes[fullName] = fixMangling(saved_qc_type);
+            return nullptr;
+        }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
@@ -7060,20 +7398,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
 
         llvm::Type* srcTy = rhs->getType();
-        for (auto& [unionName, unionTy] : unionTypes) {
-            if (srcTy == unionTy && !isUnionType(destTy)) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(rhs, 1, "union_data");
+        if (isUnionType(srcTy) && !isUnionType(destTy)) {
+            llvm::Value* dataPtr = builder->CreateExtractValue(rhs, 1, "union_data");
 
-                if (destTy->isPointerTy()) {
-                    rhs = builder->CreateBitCast(dataPtr, destTy);
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    rhs = builder->CreateLoad(destTy, typedPtr);
-                }
-
-                srcTy = destTy;
-                break;
+            if (destTy->isPointerTy()) {
+                rhs = builder->CreateBitCast(dataPtr, destTy);
+            } else {
+                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
+                rhs = builder->CreateLoad(destTy, typedPtr);
             }
+
+            srcTy = destTy;
         }
         for (auto& [enumName, enumTy] : enumTypes) {
             if (srcTy == enumTy) {
@@ -7264,10 +7599,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
 
                 if (tag == -1) {
-                    cg_error((*asn)->op_tok.pos, "Value does not match any variant of union " + unionName);
-                    return nullptr;
+                   continue; 
                 }
-                auto& member = userTypes.at(baseTypeName(unionName)).members[tag];
+                auto member = genericiseOrFindUnion(unionName).members[tag];
                 bool isLiteral = member.type.find(':') != std::string::npos;
 
                 std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
@@ -7311,7 +7645,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         llvm::Type* srcTy = rhsVal->getType();
         for (auto& [unionName, unionTy] : unionTypes) {
-            if (srcTy == unionTy) {
+            if (fixMangling(rhsType) == unionName) {
                 llvm::Value* dataPtr = builder->CreateExtractValue(rhsVal, 1);
 
                 if (destTy->isPointerTy()) {
@@ -7510,7 +7844,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!operand) return nullptr;
         llvm::Type* operandTy = operand->getType();
         for (auto& [unionName, unionTy] : unionTypes) {
-            if (operandTy == unionTy) {
+            if (fixMangling(getExpressionType((*unary)->node)) == unionName) {
                 llvm::Type* targetTy = nullptr;
 
                 if (op == TokenType::MINUS) {
@@ -7975,26 +8309,24 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     for (auto& [unionName, unionTy] : unionTypes) {
                         if (argTy == unionTy) {
                             llvm::Value* tag = builder->CreateExtractValue(arg, 0, "typeof_tag");
-                            auto typeIt = userTypes.find(unionName);
-                            if (typeIt != userTypes.end()) {
-                                auto& members = typeIt->second.members;
-                                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
-                                llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
-                                llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, members.size());
-                                for (size_t i = 0; i < members.size(); i++) {
-                                    llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "typeof_case_" + std::to_string(i), currentFunction);
-                                    builder->SetInsertPoint(caseBB);
-                                    std::string baseType = members[i].type;
-                                    size_t colonPos = baseType.find(':');
-                                    if (colonPos != std::string::npos) baseType = baseType.substr(0, colonPos);
-                                    llvm::Value* variantName = builder->CreateGlobalString(baseType);
-                                    builder->CreateStore(variantName, resultAlloc);
-                                    builder->CreateBr(endBB);
-                                    switchInst->addCase(builder->getInt32(i), caseBB);
-                                }
-                                builder->SetInsertPoint(endBB);
-                                return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "typeof_result");
+                            auto type = genericiseOrFindUnion(unionName);
+                            auto& members = type.members;
+                            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
+                            llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
+                            llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, members.size());
+                            for (size_t i = 0; i < members.size(); i++) {
+                                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "typeof_case_" + std::to_string(i), currentFunction);
+                                builder->SetInsertPoint(caseBB);
+                                std::string baseType = members[i].type;
+                                size_t colonPos = baseType.find(':');
+                                if (colonPos != std::string::npos) baseType = baseType.substr(0, colonPos);
+                                llvm::Value* variantName = builder->CreateGlobalString(baseType);
+                                builder->CreateStore(variantName, resultAlloc);
+                                builder->CreateBr(endBB);
+                                switchInst->addCase(builder->getInt32(i), caseBB);
                             }
+                            builder->SetInsertPoint(endBB);
+                            return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "typeof_result");
                         }
                     }
                     for (auto& [enumName, enumTy] : enumTypes) {
@@ -9564,7 +9896,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         for (auto& [unionName, unionTy] : unionTypes) {
             if (baseTy == unionTy) {
-                auto& unionInfo = userTypes.at(baseTypeName(unionName));
+                auto unionInfo = genericiseOrFindUnion(unionName);
 
                 for (auto& member : unionInfo.members) {
                     std::string resolvedBaseType = resolveTypeName(member.type, false);
@@ -9642,9 +9974,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                     }
                 }
-
-                cg_error((*propAccess)->property_name.pos, "No variant of union '" + unionName + "' has field '" + propName + "'");
-                return nullptr;
             }
         }
         cg_error((*propAccess)->property_name.pos, "Unknown property: " + propName);
@@ -9679,7 +10008,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         builder->SetInsertPoint(joinBB);
                         llvm::Value* result = nullptr;
                         int idx = 0;
-                        for (auto& m : userTypes.at(baseTypeName(typeName)).members) {
+                        for (auto m : genericiseOrFindUnion(typeName).members) {
                             std::string ty = resolveTypeName(m.type, false);
                             if (!classTypes.count(ty) && !genericClasses[ty]) {
                                 idx++;
@@ -9740,7 +10069,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->SetInsertPoint(joinBB);
                     llvm::Value* result = nullptr;
                     int idx = 0;
-                    for (auto& m : userTypes.at(baseTypeName(unionName)).members) {
+                    for (auto& m : genericiseOrFindUnion(unionName).members) {
                         std::string ty = resolveTypeName(m.type, false);
                         if (!classTypes.count(ty) && !genericClasses[ty]) {
                             idx++;
@@ -9818,7 +10147,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->SetInsertPoint(joinBB);
                     llvm::Value* result = nullptr;
                     int idx = 0;
-                    for (auto& m : userTypes.at(baseTypeName(unionName)).members) {
+                    for (auto& m : genericiseOrFindUnion(unionName).members) {
                         std::string ty = resolveTypeName(m.type);
                         if (!classTypes.count(ty)) {
                             idx++;
@@ -10647,26 +10976,27 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!val) return;
             llvm::Type* srcTy = val->getType();
             llvm::Type* destTy = retStructTy->getElementType(i);
-            for (auto& [unionName, unionTy] : unionTypes) {
-                if (srcTy == unionTy && !isUnionType(destTy)) {
-                    llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "union_data");
-                    if (destTy->isPointerTy()) {
-                        val = builder->CreateBitCast(dataPtr, destTy);
-                    } else {
-                        llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                        val = builder->CreateLoad(destTy, typedPtr);
-                    }
-                    srcTy = destTy;
-                    break;
+            if (isUnionType(srcTy) && !isUnionType(destTy)) {
+                llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "union_data");
+                if (destTy->isPointerTy()) {
+                    val = builder->CreateBitCast(dataPtr, destTy);
+                } else {
+                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
+                    val = builder->CreateLoad(destTy, typedPtr);
                 }
-                if (!isUnionType(srcTy) && destTy == unionTy) {
+                srcTy = destTy;
+                break;
+            }
+            if (!isUnionType(srcTy)) {
+                std::string unionName;
+                if (isUnionType(destTy, &unionName)) {
                     int tag = findUnionVariantTag(unionName, mret->values[i], val);
                     if (tag == -1) {
                         cg_error(mret->pos, "Return value doesn't match union variant");
                         return;
                     }
 
-                    llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                    llvm::Value* unionVal = llvm::UndefValue::get(destTy);
                     unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
                     llvm::Value* dataPtr = storeAndGetPointer(val);
                     val = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -10676,7 +11006,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 }
             }
             for (auto& [enumName, enumTy] : enumTypes) {
-                if (srcTy == enumTy && !isEnumType(destTy)) {
+                if (isEnumType(srcTy) && !isEnumType(destTy)) {
                     llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "enum_data");
                     if (destTy->isPointerTy()) {
                         val = builder->CreateBitCast(dataPtr, destTy);
@@ -10687,7 +11017,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     srcTy = destTy;
                     break;
                 }
-                if (!isEnumType(srcTy) && destTy == enumTy) {
+                if (!isEnumType(srcTy) && isEnumType(destTy)) {
                     int tag = findEnumVariantTag(enumName, mret->values[i], val);
                     if (tag == -1) {
                         cg_error(mret->pos, "Return value doesn't match enum variant");

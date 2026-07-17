@@ -7,6 +7,15 @@
 #include <cstring>
 #include <ctime>
 extern "C" {
+const char* __qc_version() {
+    return "x0.18.2";
+}
+int __qc_llvm_ver() {
+    return 21;
+}
+void __qc_changes() {
+    printf("Added generic unions and various static helpers");
+}
 void* qc_malloc(size_t size) {
     return malloc(size);
 }
