@@ -77,7 +77,7 @@ qc [flags]
 
 QuantumC uses the following versioning scheme:
 `cMa.Mo.MiP`
-Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor, tracking the addition/removal of features, and `P` being the patch version. 
+Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
 For the version
 `x1.2.34`
 `c` = `x`
@@ -100,11 +100,13 @@ Development toward future critical versions may begin before the current
 critical version is complete. Multiple critical generations may therefore
 be in development simultaneously.
 
+Minor (Mi) and Patch (P) are always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
+
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.18.3 = "Generics (Part 4)"
-Next Version: x0.19.0 = "Storage Modifiers (`restrict`, `out`, `inout`, `volatile`)"
+Current Version: x0.19.0 = "Storage Modifiers (`restrict`, `out`, `inout`, `volatile`)"
+Next Version: x0.20.0 = "Self-Hosted Runtime"
 
 # Current Version Highlights
 
@@ -116,11 +118,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Generics
+└─ Storage Modifiers
 
 Minor
-├─ Generic functions & methods
-└─ Deprecated `auto` parameters and return types
+└─ Volatile, Restrict, Out, InOut
 
 Patch
 └─ N/A
@@ -128,7 +129,7 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.15.* -> x0.18.*`)
+These are deprecations in the past 3 moderate versions (`x0.16.* -> x0.19.*`)
 
 1. Power operator changed to `#^`
 2. Deletion of interpreter
@@ -170,7 +171,7 @@ These are deprecations in the past 3 moderate versions (`x0.15.* -> x0.18.*`)
 |                     |     Functions & Methods                                                | Done        |
 |                     |     Variadic                                                           | Planned     |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
-|                     | `restrict`, `out`, `inout`, `volatile`                                 | Planned     |
+|                     | `restrict`, `out`, `inout`, `volatile`                                 | Done        |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
 |                     | Really fancy operator overloads                                        | Planned     |
@@ -430,6 +431,49 @@ You can also use AT&T ASM syntax by making sure the first 5 characters of your A
 ```asm
 ; ATT
 ```
+
+## Storage & Argument Specifiers
+
+QuantumC has 4 special (non-`const`) storage modifiers.
+
+1. `volatile`
+Volatile means the compiler won't optimize it. It can be used before variable declarations, or on function definitions. On methods, it must go after the access modifier and `final`, and before the return type.
+```
+volatile void infinite_time() {
+    while(true) {
+    }
+    return;
+}
+```
+2. `restrict`
+Restrict tells the compiler that this pointer can be aggressivly optimized and that no other pointers overlap this memory location.
+```
+void doSomePointer(int *restrict ptr) {
+    // This is the violation: 'other' now points to the exact same memory.
+    // Accessing or modifying the data through 'other' breaks the restrict "contract".
+    int *other = ptr;     
+    *other = 10; // UNDEFINED BEHAVIOR!
+}
+```
+3. `out`
+Out tells the compiler that this paramater is write-only, and this memory address will not be copied. It also only exists for optimization purposes.
+```
+void writeOnly(out int p) {
+    p = 123; // OK
+    int x = p; // ILLEGAL. Breaks contract.
+    int *x = &p; // ILLEGAL also.
+}
+```
+4. `inout`
+Inout tells the compiler that this paramater will be read and wrote from but its address will not be copied.
+```
+void rw(inout int p) {
+    p = 123; // OK
+    int x = p; // OK
+    int *x = &p; // NOT OK
+}
+```
+
 ## Variadic arguments
 
 QuantumC variadic arguments look like this:
@@ -667,6 +711,9 @@ int main() {
 
 Benchmarks are currently unreliable and show significant fluctuations between runs, or things like 0 millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
 
+## Known Limitations
+
+Volatile does not exist on structs or class fields, and does not work on property accesses. In general, volatile is not 100%.
 ## Standard Library Namespaces:
 
 ```

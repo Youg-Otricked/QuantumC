@@ -52,6 +52,7 @@
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
+#include <llvm/Support/ModRef.h>
 #endif
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
@@ -928,11 +929,7 @@ Prs Parser::if_expr() {
     std::optional<AnyNode> init_node = std::nullopt;
 
     if (has_semicolon_before_closing_paren()) {
-        if (this->current_tok.type == TokenType::KEYWORD &&
-            (this->current_tok.value == "const" || this->current_tok.value == "int" || this->current_tok.value == "float" ||
-             this->current_tok.value == "double" || this->current_tok.value == "bool" || this->current_tok.value == "string" ||
-             this->current_tok.value == "char")) {
-
+        if (is_known_type(this->current_tok.value)) {
             bool is_const = false;
             Token tok = this->current_tok;
             if (tok.value == "const") {
@@ -1471,10 +1468,6 @@ Prs Parser::for_stmt() {
     auto fn = new ForNode(init, condition, update, body);
     return res.success(fn);
 }
-Prs Parser::func_def(Token return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep) {
-    std::vector<Token> return_types = {return_type};
-    return this->func_def_multi(return_types, func_name, generics, keep);
-}
 Prs Parser::call(AnyNode node_to_call) {
     ParseResult res;
     this->advance();
@@ -1701,6 +1694,7 @@ Prs Parser::atom() {
             if (this->current_tok.type == TokenType::MORE) {
                 name = oldName;
                 this->index = oldId;
+                this->current_tok = this->tokens[this->index];
                 depth = 0;
             }
             bool next_comma = false;
@@ -1710,12 +1704,14 @@ Prs Parser::atom() {
                     if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS && this->current_tok.type != TokenType::MORE) {
                         this->index = oldId;
                         name = oldName;
+                        this->current_tok = this->tokens[this->index];
                         break;
                     }
                 } else {
                     if (this->current_tok.type == TokenType::COMMA) {
                         this->index = oldId;
                         name = oldName;
+                        this->current_tok = this->tokens[this->index];
                         break;
                     }
                 }
@@ -1725,6 +1721,7 @@ Prs Parser::atom() {
                     }).contains(this->current_tok.type))) {
                     this->index = oldId;
                     name = oldName;
+                    this->current_tok = this->tokens[this->index];
                     break;
                 }
                 if (this->current_tok.type == TokenType::EOFT) {
@@ -1735,6 +1732,7 @@ Prs Parser::atom() {
                     if (just_incremented) {
                         this->index = oldId;
                         name = oldName;
+                        this->current_tok = this->tokens[this->index];
                         break;
                     }
                     just_incremented = true;
@@ -2688,7 +2686,24 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     } else {
         p.type = this->current_tok;
         if (!(p.type.type == TokenType::VARADIC)) {
-            p.type.value = parseTypeString();
+            p.type.value = "";
+            while (this->current_tok.type == TokenType::KEYWORD) {
+                if (std::unordered_set<std::string>({"out", "inout", "volatile"}).contains(this->current_tok.value)) {
+                    if (this->current_tok.value == "volatile") {
+                        p.isVolatile = true;
+                    } else {
+                        p.type.value += this->current_tok.value + " ";
+                    }
+                    this->advance();
+                } else {
+                    break;
+                }
+            }
+            p.type.value += parseTypeString();
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "restrict") {
+                p.type.value += "restrict";
+                this->advance();
+            }
         } else {
             this->advance();
             p.name = Token(TokenType::IDENTIFIER, "<varadic>", Position());
@@ -2707,7 +2722,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     }
     return p;
 }
-Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep) {
+Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep, bool is_volatile) {
     ParseResult res;
     std::vector<GenericType> old_generics = this->current_generics;
     if (keep) {
@@ -2800,7 +2815,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     this->advance();
     std::list<Parameter> params_list((params.begin()), (params.end()));
     this->current_generics = old_generics;
-    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics));
+    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics, is_volatile));
 }
 Prs Parser::statement() {
     ParseResult res;
@@ -3183,7 +3198,7 @@ Prs Parser::statement() {
 
             std::string access = "public";
             bool is_final_method = false;
-
+            bool is_volatile_method = false;
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "final") {
                 is_final_method = true;
                 this->advance();
@@ -3197,7 +3212,10 @@ Prs Parser::statement() {
                 is_final_method = true;
                 this->advance();
             }
-
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
+                is_volatile_method = true;
+                this->advance();
+            }
             if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value == class_name.value) {
 
                 if (is_abstract_class) {
@@ -3213,6 +3231,7 @@ Prs Parser::statement() {
                 }
                 std::vector<GenericType> genericsM;
                 Token ctor_name = this->current_tok;
+                size_t oldPos = this->index;
                 if (next_tok.type == TokenType::LESS) {
                     ctor_name = this->current_tok;
                     this->advance();
@@ -3312,9 +3331,13 @@ Prs Parser::statement() {
                     mi.body = fn->body;
                     mi.is_constructor = true;
                     mi.access = access;
+                    mi.is_volatile = is_volatile_method;
                     mi.generics = genericsM;
                     info.classMethods.push_back(mi);
                     continue;
+                } else {
+                    this->index = oldPos;
+                    this->current_tok = peek(0);
                 }
             }
             if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
@@ -3531,6 +3554,7 @@ Prs Parser::statement() {
                 mi.is_constructor = false;
                 mi.is_final = is_final_method;
                 mi.access = access;
+                mi.is_volatile = is_volatile_method;
                 mi.generics = genericsM;
                 info.classMethods.push_back(mi);
                 continue;
@@ -4068,7 +4092,7 @@ Prs Parser::statement() {
                 std::string base = *maybe_qualified;
                 size_t lc = base.rfind("::");
                 if (lc != std::string::npos) base = base.substr(lc + 2);
-                is_type = (find_type(base) != nullptr || find_type(*maybe_qualified) != nullptr || is_known_type(base));
+                is_type = (find_type(base) != nullptr || find_type(*maybe_qualified) != nullptr || is_known_type(base) || is_known_type(*maybe_qualified));
             }
             if (!is_type) {
                 if (!maybe_qualified.has_value())  this->parseTypeString();
@@ -4111,6 +4135,19 @@ Prs Parser::statement() {
         }
         bool is_const = false;
         if (tok.value == "const") {
+            is_const = true;
+            this->advance();
+        }
+        bool is_volatile = false;
+        if (tok.value == "volatile") {
+            is_volatile = true;
+            this->advance();
+        }
+        if (this->current_tok.value == "volatile") {
+            is_volatile = true;
+            this->advance();
+        }
+        if (this->current_tok.value == "const") {
             is_const = true;
             this->advance();
         }
@@ -4204,7 +4241,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
             }
-            if (this->current_tok.type == TokenType::LPAREN) return this->func_def_multi({type_tok}, func_name, genericsM);
+            if (this->current_tok.type == TokenType::LPAREN) return this->func_def_multi({type_tok}, func_name, genericsM, false, is_volatile);
             res.failure(new InvalidSyntaxError("Expected '(' after function name", this->current_tok.pos));
             return res.to_prs();
         }
@@ -4344,9 +4381,12 @@ Prs Parser::statement() {
         }
 
         if (this->current_tok.type == TokenType::LPAREN) {
-            auto func_def = res.reg(this->func_def_multi(return_types, name_tok, genericsM));
+            auto func_def = res.reg(this->func_def_multi(return_types, name_tok, genericsM, false, is_volatile));
             if (res.error) return res.to_prs();
             return res.success(func_def);
+        }
+        if (is_volatile) {
+            type_tok.value = "volatile " + type_tok.value;
         }
         if (this->current_tok.type == TokenType::COMMA) {
             std::vector<Token> var_names = {name_tok};
@@ -4817,7 +4857,38 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         fn->setMetadata(
             "qc.return_types",
             llvm::MDNode::get(context, retTypes)
-        ); 
+        );
+        if (method.is_volatile) {
+            fn->addFnAttr(llvm::Attribute::NoInline);
+            fn->addFnAttr(llvm::Attribute::OptimizeNone);
+            fn->addFnAttr("noipa");
+        }
+        for (int i = 1; i < fnTy->getNumParams(); i++) {
+            if (method.params[i - 1].type.value.starts_with("out ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::WriteOnly
+                );
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );
+            } else if (method.params[i - 1].type.value.starts_with("inout ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );        
+            }
+            if (method.params[i - 1].type.value.ends_with("restrict")) {
+                fn->addParamAttr(i, llvm::Attribute::NoAlias);
+            }
+        }
         classMethods[mangled_class_name][method.name_tok.value].push_back(fn);
         vtableFuncs.push_back(fn);
         slotOrder.push_back(methodName);
@@ -4871,6 +4942,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         auto oldLocals = locals;
         enterScope();
         currentThis = fn->getArg(0);
+        volatileVars["this"] = false;
         varTypes["this"] = mangled_class_name;
         currentClassName = mangled_class_name;
         currentFunction = fn;
@@ -4891,6 +4963,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             builder->CreateStore(fn->getArg(i + 1), alloc);
             locals[param.name.value] = alloc;
             varTypes[param.name.value] = typeDescriptor;
+            volatileVars[param.name.value] = param.isVolatile;
         }
         size_t bodyStartIdx = 0;
         if (method.is_constructor && !classInfo.baseClassName.empty()) {
@@ -5485,10 +5558,41 @@ void LLVMCompiler::createUserTypes() {
                     llvm::MDString::get(context, ret.value)
                 );
             }
+            if (method.is_volatile) {
+                fn->addFnAttr(llvm::Attribute::NoInline);
+                fn->addFnAttr(llvm::Attribute::OptimizeNone);
+                fn->addFnAttr("noipa");
+            }
             fn->setMetadata(
                 "qc.return_types",
                 llvm::MDNode::get(context, retTypes)
-            ); 
+            );
+            for (int i = 1; i < fnTy->getNumParams(); i++) {
+                if (method.params[i - 1].type.value.starts_with("out ")) {
+                    fn->addParamAttr(
+                        i,
+                        llvm::Attribute::WriteOnly
+                    );
+                    fn->addParamAttr(
+                        i,
+                        llvm::Attribute::getWithCaptureInfo(
+                            context,
+                            llvm::CaptureInfo::none()
+                        )
+                    );
+                } else if (method.params[i - 1].type.value.starts_with("inout ")) {
+                    fn->addParamAttr(
+                        i,
+                        llvm::Attribute::getWithCaptureInfo(
+                            context,
+                            llvm::CaptureInfo::none()
+                        )
+                    );        
+                }
+                if (method.params[i - 1].type.value.ends_with("restrict")) {
+                    fn->addParamAttr(i, llvm::Attribute::NoAlias);
+                }
+            }
             classMethods[mapKey][method.name_tok.value].push_back(fn);
             vtableFuncs.push_back(fn);
             slotOrder.push_back(methodName);
@@ -5559,11 +5663,21 @@ llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>
                 }
                 break;
             } else {
-                paramTypes.push_back(llvmTypeFor(p.type.value));
+                std::string toType = p.type.value;
+                while (toType.starts_with("out ") || toType.starts_with("inout ")) {
+                    toType = toType.substr(toType.find(" "), toType.length() - toType.find(" "));
+                }
+                if (toType.ends_with("restrict")) {
+                    toType = toType.substr(0, toType.length() - 8);
+                }
+                paramTypes.push_back(llvmTypeFor(toType));
             }
         }
     }
-    if (returnTypes.empty()) { return llvm::FunctionType::get(builder->getVoidTy(), paramTypes, is_c_varargs); }
+    if (returnTypes.empty()) {
+        llvm::FunctionType* funcTy = llvm::FunctionType::get(builder->getVoidTy(), paramTypes, is_c_varargs); 
+        return funcTy;
+    }
 
     if (returnTypes.size() == 1) {
         llvm::Type* retTy = llvmTypeFor(returnTypes[0].value);
@@ -7214,6 +7328,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
     } else if (auto va = std::get_if<VarAssignNode*>(&node)) {
         std::string name = (*va)->var_name_tok.value;
         std::string qcType = (*va)->type_tok.value;
+        bool isVolatile = false;
+        if (qcType.starts_with("volatile ")) {
+            isVolatile = true;
+            qcType = qcType.substr(9, qcType.length() - 9);
+        }
         if (qcType == "auto") {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
@@ -7223,7 +7342,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
             llvm::Type* inferredTy = rhs->getType();
             llvm::AllocaInst* alloc = createEntryAlloca(name, inferredTy);
-            builder->CreateStore(rhs, alloc);
+            builder->CreateStore(rhs, alloc, isVolatile);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = alloc;
             if (inferredTy->isArrayTy()) {
@@ -7249,6 +7368,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     arrayTypeStrings[name] = "string";
             } else {
                 varTypes[fullName] = qcType;
+                volatileVars[fullName] = isVolatile;
             }
 
             return nullptr;
@@ -7268,7 +7388,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
 
             llvm::AllocaInst* alloc = createEntryAlloca(name, rhsTy);
-            builder->CreateStore(rhs, alloc);
+            builder->CreateStore(rhs, alloc, isVolatile);
             name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[name] = alloc;
             llvm::Type* elemTy = rhsTy->getArrayElementType();
@@ -7292,7 +7412,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 arrayTypeStrings[name] = "string";
 
             arrayLengths[name] = rhsTy->getArrayNumElements();
-
+            volatileVars[name] = isVolatile;
             return nullptr;
         }
 
@@ -7368,7 +7488,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
-                    builder->CreateStore(rhs, instance);
+                    builder->CreateStore(rhs, instance, isVolatile);
                 }
             } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::Value* rhsVal = emitExpr(*arrLit);
@@ -7382,6 +7502,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                     locals[fullName] = instance;
                     varTypes[fullName] = mangledName;
+                    volatileVars[fullName] = isVolatile;
                 } else {
                     cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
                     return nullptr;
@@ -7402,17 +7523,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                     locals[fullName] = instance;
                     varTypes[fullName] = mangledName;
+                    volatileVars[fullName] = isVolatile;
                     return nullptr;
                 } else {
                     if (rhs->getType() != classTy) {
                         cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
-                    builder->CreateStore(rhs, instance);
+                    builder->CreateStore(rhs, instance, isVolatile);
                 }
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
+            volatileVars[fullName] = isVolatile;
             varTypes[fullName] = buildMangledName(qcType, genericParams);
             return nullptr; // do this for every single type.
         }
@@ -7471,10 +7594,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     structVal = builder->CreateInsertValue(structVal, val, i);
                 }
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc);
+                builder->CreateStore(structVal, structAlloc, isVolatile);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = buildMangledName(qcType, genericParams);
+                volatileVars[fullName] = isVolatile;
                 return nullptr;
             } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
@@ -7514,13 +7638,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     );
                 }
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc);
+                builder->CreateStore(structVal, structAlloc, isVolatile);
                 std::string fullName =
                     getCurrentNamespace().empty()
                     ? name
                     : getCurrentNamespace() + "::" + name;
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = buildMangledName(qcType, genericParams);
+                volatileVars[fullName] = isVolatile;                
                 return nullptr;
             }
             return nullptr;        
@@ -7556,10 +7681,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
             llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
-            builder->CreateStore(unionVal, unionAlloc);
+            builder->CreateStore(unionVal, unionAlloc, isVolatile);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = unionAlloc;
             varTypes[fullName] = fixMangling(saved_qc_type);
+            volatileVars[fullName] = isVolatile;
             return nullptr;
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
@@ -7594,11 +7720,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     structVal = builder->CreateInsertValue(structVal, val, i);
                 }
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc);
+                builder->CreateStore(structVal, structAlloc, isVolatile);
 
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = qcType;
+                volatileVars[fullName] = isVolatile;
                 return nullptr;
             } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
@@ -7648,7 +7775,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
 
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc);
+                builder->CreateStore(structVal, structAlloc, isVolatile);
 
                 std::string fullName =
                     getCurrentNamespace().empty()
@@ -7657,7 +7784,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = qcType;
-
+                volatileVars[fullName] = isVolatile;
                 return nullptr;
             }
         }
@@ -7708,7 +7835,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
-                    builder->CreateStore(rhs, instance);
+                    builder->CreateStore(rhs, instance, isVolatile);
                 }
             } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::Value* rhsVal = emitExpr(*arrLit);
@@ -7721,6 +7848,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                     locals[fullName] = instance;
                     varTypes[fullName] = qcType;
+                    volatileVars[fullName] = isVolatile;
                 } else {
                     cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
                     return nullptr;
@@ -7738,11 +7866,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
                     return nullptr;
                 }
-                builder->CreateStore(rhs, instance);
+                builder->CreateStore(rhs, instance, isVolatile);
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
             varTypes[fullName] = qcType;
+            volatileVars[fullName] = isVolatile;
             return nullptr;
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Union) {
@@ -7751,9 +7880,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
             if (rhs->getType() == unionTy) {
-                builder->CreateStore(rhs, unionAlloc);
+                builder->CreateStore(rhs, unionAlloc, isVolatile);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = unionAlloc;
+                volatileVars[fullName] = isVolatile;
                 return nullptr;
             }
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
@@ -7779,10 +7909,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
-            builder->CreateStore(unionVal, unionAlloc);
+            builder->CreateStore(unionVal, unionAlloc, isVolatile);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = unionAlloc;
             varTypes[fullName] = qcType;
+            volatileVars[fullName] = isVolatile;
             return nullptr;
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Enum) {
@@ -7791,10 +7922,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
-            builder->CreateStore(rhs, enumAlloc);
+            builder->CreateStore(rhs, enumAlloc, isVolatile);
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = enumAlloc;
             varTypes[fullName] = qcType;
+            volatileVars[fullName] = isVolatile;
             return nullptr;
         }
         if (qcType.find("[]") != std::string::npos) {
@@ -7812,8 +7944,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             alloc = createEntryAlloca(name, funcPtrTy);
 
             locals[name] = alloc;
-
-            builder->CreateStore(f, alloc);
+            volatileVars[name] = isVolatile;
+            builder->CreateStore(f, alloc, isVolatile);
             return nullptr;
         }
         llvm::Value* existingAlloc = getVarAddress(name);
@@ -7827,6 +7959,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             alloc = createEntryAlloca(fullName, ty);
             locals[fullName] = alloc;
             varTypes[fullName] = qcType;
+            volatileVars[fullName] = isVolatile;
         } else {
             if (auto* existingLocal = llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
                 llvm::Type* existingTy = existingLocal->getAllocatedType();
@@ -7838,6 +7971,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     alloc = createEntryAlloca(uniqueName, newTy);
                     locals[fullName] = alloc;
                     varTypes[fullName] = qcType;
+                    volatileVars[fullName] = isVolatile;
                 } else {
                     alloc = existingLocal;
                 }
@@ -7914,7 +8048,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
 
-        builder->CreateStore(rhs, alloc);
+        builder->CreateStore(rhs, alloc, isVolatile);
         return nullptr;
     } else if (auto acc = std::get_if<VarAccessNode*>(&node)) {
         std::string name = (*acc)->var_name_tok.value;
@@ -7935,7 +8069,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return llvm::ConstantFP::get(ty, std::stod(entry.name));
             } else if (entry.nonTypeKind == "string") {
                 return builder->CreateGlobalString(entry.name);
-            }         }
+            }         
+        }
         llvm::Value* alloc = getVarAddress(name);
         if (alloc) {
             llvm::Type* ty = getPointeeType(name);
@@ -7943,7 +8078,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*acc)->var_name_tok.pos, "Could not resolve var type");
                 return nullptr;
             }
-            return builder->CreateLoad(ty, alloc, name);
+            return builder->CreateLoad(ty, alloc, resolveVolatileVar(name), name);
         }
 
         llvm::Function* fn = resolveFunction(name);
@@ -8045,6 +8180,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                          "(variable, property, or dereference)");
             return nullptr;
         }
+        std::string name = "";
+        if (auto acc = std::get_if<VarAccessNode*>(&((*asn)->target)))  {
+            name = (*acc)->var_name_tok.value;
+        }
         std::string lhsTypeStr = getExpressionType((*asn)->target);
         llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
@@ -8056,7 +8195,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* rhs = emitExpr((*asn)->value);
                 if (!rhs) return nullptr;
                 if (rhs->getType() == unionTy) {
-                    builder->CreateStore(rhs, alloc);
+                    builder->CreateStore(rhs, alloc, resolveVolatileVar(name));
                     return rhs;
                 }
                 int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
@@ -8081,7 +8220,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* dataPtr = storeAndGetPointer(rhs);
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
-                builder->CreateStore(unionVal, alloc);
+                builder->CreateStore(unionVal, alloc, resolveVolatileVar(name));
                 return unionVal;
             }
         }
@@ -8090,11 +8229,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* rhs = emitExpr((*asn)->value);
                 if (!rhs) return nullptr;
 
-                builder->CreateStore(rhs, alloc);
+                builder->CreateStore(rhs, alloc, resolveVolatileVar(name));
                 return rhs;
             }
         }
-        llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, "assign_lhs_val");
+        llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, resolveVolatileVar(name), "assign_lhs_val");
         llvm::Value* rhsVal = nullptr;
         if (destTy->isPointerTy() && classTypes.count(getExpressionType((*asn)->value))) {
             rhsVal = emitLValue((*asn)->value);
@@ -8115,7 +8254,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     rhsVal = builder->CreateBitCast(dataPtr, destTy);
                 } else {
                     llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    rhsVal = builder->CreateLoad(destTy, typedPtr);
+                    rhsVal = builder->CreateLoad(destTy, typedPtr, resolveVolatileVar(name));
                 }
                 destTy = srcTy;
                 break;
@@ -8298,7 +8437,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
         }
-        builder->CreateStore(newVal, alloc);
+        builder->CreateStore(newVal, alloc, resolveVolatileVar(name));
         return newVal;
     } else if (auto unary = std::get_if<UnaryOpNode*>(&node)) {
         TokenType op = (*unary)->op_tok.type;
@@ -8420,8 +8559,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like");
                 return nullptr;
             }
-
-            llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, "inc_deref");
+            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
+            llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, resolveVolatileVar(name), "inc_deref");
             llvm::Value* one = llvm::ConstantInt::get(lhsVal->getType(), 1);
             llvm::Value* newVal;
             if ((*unary)->op_tok.type == TokenType::INCREMENT) {
@@ -8430,24 +8569,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 newVal = builder->CreateSub(oldVal, one, "dec");
             }
 
-            builder->CreateStore(newVal, lhs);
+            builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
             bool isPostfix = (*unary)->is_postfix;
             return isPostfix ? oldVal : newVal;
         }
         if ((*unary)->op_tok.type == TokenType::AMPERSAND) {
             auto* varPtr = *(std::get_if<VarAccessNode*>(&(*unary)->node));
-            if (!varPtr) {
-                cg_error((*unary)->op_tok.pos, "& only supported on variables");
-                return nullptr;
-            }
-            std::string name = varPtr->var_name_tok.value;
-            if (!(resolveVariable(name))) {
-                cg_error((*unary)->op_tok.pos, "cannot & something that doesn't exist.");
-                return nullptr;
-            }
-            return resolveVariable(name);
+            std::string name = varPtr ? varPtr->var_name_tok.value : "";
+            return emitLValue((*unary)->node);
         }
         if ((*unary)->op_tok.type == TokenType::MUL) {
+            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
             llvm::Value* val = emitExpr((*unary)->node);
             std::string type = getExpressionType((*unary)->node);
             if (!type.ends_with("*")) {
@@ -8460,7 +8592,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             std::string baseType = type.substr(0, type.size() - 1);
             if (classTypes.count(baseType)) { return val; }
-            return builder->CreateLoad(llvmTypeFor(baseType), val, "deref");
+            return builder->CreateLoad(llvmTypeFor(baseType), val, resolveVolatileVar(name), "deref");
         }
         if ((*unary)->op_tok.type == TokenType::SIZEOF) {
             const llvm::DataLayout& dl = module->getDataLayout();
@@ -10100,7 +10232,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
                     llvm::Value* idxPtr = builder->CreateInBoundsGEP(indicesArrTy, indicesAlloc, indices);
-                    builder->CreateStore(indexVal, idxPtr);
+                    builder->CreateStore(indexVal, idxPtr, resolveVolatileVar(name));
                 }
                 llvm::Function* getFn = module->getFunction("qc_jagged_array_get");
                 if (!getFn) {
@@ -10127,7 +10259,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 case 6: elemTy = llvm::PointerType::get(context, 0); break;
                 }
                 llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
-                return builder->CreateLoad(elemTy, typedPtr, "jagged_elem");
+                return builder->CreateLoad(elemTy, typedPtr, resolveVolatileVar(name), "jagged_elem");
             }
             llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
@@ -10139,13 +10271,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Type* arrTy = getPointeeType(name);
 
             if (arrTy->isPointerTy()) {
-                llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
+                llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, resolveVolatileVar(name), "arr_ptr");
                 llvm::Value* indexVal = emitExpr(arrAcc->indices[0]);
                 if (!indexVal) return nullptr;
                 std::string baseType = findArrayType(name)->second;
                 llvm::Type* elemTy = llvmTypeFor(baseType);
                 llvm::Value* elemPtr = builder->CreateGEP(elemTy, ptr, indexVal, "arr_elem_ptr");
-                return builder->CreateLoad(elemTy, elemPtr, "arr_elem");
+                return builder->CreateLoad(elemTy, elemPtr, resolveVolatileVar(name), "arr_elem");
             } else if (arrTy->isArrayTy()) {
                 std::vector<llvm::Value*> indices = {builder->getInt32(0)};
                 for (size_t i = 0; i < arrAcc->indices.size(); i++) {
@@ -10159,7 +10291,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 for (size_t i = 0; i < arrAcc->indices.size(); i++) {
                     if (elemTy->isArrayTy()) { elemTy = elemTy->getArrayElementType(); }
                 }
-                return builder->CreateLoad(elemTy, elemPtr, "arr_elem");
+                return builder->CreateLoad(elemTy, elemPtr, resolveVolatileVar(name), "arr_elem");
             }
         }
         llvm::Value* base;
@@ -10778,7 +10910,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         Token target_tok;
         Position pos;*/
         std::string fullName = (getCurrentNamespace().empty() ? "" : getCurrentNamespace() + "::") + ref->var_name_tok.value;
-        varTypes[fullName] = ref->type_tok.value + "&";
+        varTypes[fullName] = ref->type_tok.value.substr(9, ref->type_tok.value.length() - 9) + "&";
+        volatileVars[fullName] = ref->type_tok.value.starts_with("volatile ");
         if (resolveGlobal(ref->target_tok.value) != nullptr) {
             cg_error(ref->target_tok.pos, ref->target_tok.value + " is a global. You cannot create references to globals "
                                                                   "because it is wasted memory and unnecessary indirection; "
@@ -11240,6 +11373,39 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         "qc.return_types",
         llvm::MDNode::get(context, retTypes)
     ); 
+    if (fn.is_volatile) {
+        func->addFnAttr(llvm::Attribute::NoInline);
+        func->addFnAttr(llvm::Attribute::OptimizeNone); 
+        func->addFnAttr("noipa");
+    }
+    for (int i = 0; i < fTy->getNumParams(); i++) {
+        auto it = fn.params.begin();
+        std::advance(it, i);
+        if (it->type.value.starts_with("out ")) {
+            func->addParamAttr(
+                i,
+                llvm::Attribute::WriteOnly
+            );
+            func->addParamAttr(
+                i,
+                llvm::Attribute::getWithCaptureInfo(
+                    context,
+                    llvm::CaptureInfo::none()
+                )
+            );
+        } else if (it->type.value.starts_with("inout ")) {
+            func->addParamAttr(
+                i,
+                llvm::Attribute::getWithCaptureInfo(
+                    context,
+                    llvm::CaptureInfo::none()
+                )
+            );        
+        }
+        if (it->type.value.ends_with("restrict")) {
+            func->addParamAttr(i, llvm::Attribute::NoAlias);
+        }
+    }
     if (fn.is_foreign) return func;
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
@@ -11300,6 +11466,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                 varTypes[param.name.value] = t;
             }
         }
+        volatileVars[param.name.value] = param.isVolatile;
         idx++;
     }
 
@@ -13494,7 +13661,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 return Mer{ast, resp, message, diagnostics};
             }
             for (llvm::Function& F : master_module->functions()) {
-                if (F.getName().starts_with("qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
+                if (F.getName().starts_with("qc_") || F.getName().starts_with("__qc_") || F.getName().starts_with("_qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
             }
 #ifndef __EMSCRIPTEN__
             if (config.optimize) {
@@ -13681,8 +13848,8 @@ Token Lexer::make_identifier() {
         id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || id == "const" || id == "default" || id == "class" || id == "struct" ||
         id == "enum" || id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || id == "foreach" || id == "do" ||
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
-        id == "function" || id == "namespace" || id == "keyword" || id == "operator" || id == "abstract" || id == "final" || id == "try" ||
-        id == "catch" || id == "nullptr" || id == "addr_t") {
+        id == "function" || id == "namespace" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" || 
+        id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }

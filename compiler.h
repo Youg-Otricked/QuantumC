@@ -287,6 +287,7 @@ struct ClassMethodInfo {
     bool is_constructor = false;
     std::string access;
     bool is_final = false;
+    bool is_volatile = false;
     std::vector<GenericType> generics;
 };
 
@@ -414,6 +415,7 @@ struct Parameter {
         std::vector<Parameter> params;
     };
     std::optional<FunctionSignature> signature;
+    bool isVolatile = false;
 };
 struct ParamTypeInfo {
     Token type;
@@ -423,6 +425,7 @@ struct ParamTypeInfo {
     };
     Token name;
     std::optional<FunctionSignature> signature;
+    bool isVolatile = false;
 };
 class BinOpNode {
   public:
@@ -601,12 +604,14 @@ class FuncDefNode {
     Position pos;
     bool is_extern = false;
     bool is_foreign = false;
+    bool is_volatile = false;
     FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, StatementsNode* func_body,
-                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {})
+                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false)
         : return_types(ret_types), name_tok(name), params(parameters), body(func_body), namespace_path(ns) {
         this->is_extern = is_ex;
         this->is_foreign = is_f;
         this->generics = generics;
+        this->is_volatile = is_volatile;
     }
     std::string print() {
         std::string result = "";
@@ -1022,13 +1027,16 @@ class Parser {
     Prs try_catch_expr();
     Prs array_literal();
     Prs call(AnyNode node_to_call);
-    Prs func_def(Token return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false);
-    Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false);
+    Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false, bool is_volatile = false);
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
     std::string parseTypeString() {
         std::string type = "";
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
+            type += "volatile ";
+            this->advance();
+        }
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "fn") {
             type = "fn";
             this->advance();
@@ -1430,6 +1438,7 @@ class LLVMCompiler {
     std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
     std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
+    std::vector<std::unordered_map<std::string, bool>> volatileVarsStack;
     std::unordered_map<std::string, llvm::AllocaInst*> runtimeArraySizes;
     std::unordered_map<std::string, llvm::FunctionType*> lambdaTypes;
     int findUnionVariantTag(const std::string& unionName, AnyNode& valueNode, llvm::Value* val);
@@ -1453,11 +1462,14 @@ class LLVMCompiler {
 #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
 #define hasArrayLength(name) foundInStack(arrayLengthsStack, name)
 #define hasJaggedArray(name) foundInStack(jaggedArraysStack, name)
+#define hasVolatileVar(name) foundInStack(jaggedArraysStack, name)
+#define volatileVars (volatileVarsStack.back())
 #define arrayLengths (arrayLengthsStack.back())
 #define maps (mapsStack.back())
 #define jaggedArrays (jaggedArraysStack.back())
 #define varTypes (varTypesStack.back())
 #define arrayTypeStrings (arrayTypeStringsStack.back())
+#define findVolatileVar(name) findInStack(volatileVarsStack, name)
 #define findArrayLength(name) findInStack(arrayLengthsStack, name)
 #define findVarType(name) findInStack(varTypesStack, name)
 #define findJaggedArray(name) findInStack(jaggedArraysStack, name)
@@ -1468,9 +1480,11 @@ class LLVMCompiler {
         arrayLengthsStack.push_back({});
         mapsStack.push_back({});
         varTypesStack.push_back({});
+        volatileVarsStack.push_back({});
     }
 
     void exitScope() {
+        volatileVarsStack.pop_back();
         jaggedArraysStack.pop_back();
         arrayTypeStringsStack.pop_back();
         arrayLengthsStack.pop_back();
@@ -2742,29 +2756,62 @@ class LLVMCompiler {
         enterScope();
         std::vector<llvm::Type*> paramTypes;
         paramTypes.push_back(llvm::PointerType::get(context, 0));
-        size_t paramIdx = 0;
-        for (auto it = method.params.begin(); it != method.params.end(); ++it, ++paramIdx) {
-            std::string paramType = it->type.value;
-            paramTypes.push_back(llvmTypeFor(paramType));
-            paramType = resolveTypeName(substituteGenerics(paramType), false);
-            if (paramType.ends_with("[]")) {
-                arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
-            } else {
-                varTypes[it->name.value] = paramType;
-            }
+        llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
+        for (auto* paramTy : baseFuncTy->params()) {
+            paramTypes.push_back(paramTy);
         }
-        llvm::Type* retTy = builder->getVoidTy();
-        if (!method.return_types.empty()) {
-            if (method.return_types.size() > 1) {
-                std::vector<llvm::Type*> retTypes;
-                for (auto& rt : method.return_types) { retTypes.push_back(llvmTypeFor(rt.value)); }
-                retTy = llvm::StructType::get(context, retTypes);
-            } else {
-                retTy = llvmTypeFor(method.return_types[0].value);
-            }
-        }
-        llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
+        llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
+        size_t paramIdx = 0;
+        if (method.is_volatile) {
+            fn->addFnAttr(llvm::Attribute::NoInline);
+            fn->addFnAttr(llvm::Attribute::OptimizeNone);
+            fn->addFnAttr("noipa");
+        }
+        for (size_t i = 0; i < method.params.size(); i++) {
+            auto& param = method.params[i];
+            llvm::Type* paramTy;
+            std::string typeDescriptor;
+
+            if (param.signature.has_value()) {
+                paramTy = llvm::PointerType::get(context, 0);
+                typeDescriptor = "fn";
+            } else {
+                typeDescriptor = resolveTypeName(param.type.value, false);
+                paramTy = llvmTypeFor(typeDescriptor);
+            }
+            llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
+            builder->CreateStore(fn->getArg(i + 1), alloc);
+            locals[param.name.value] = alloc;
+            varTypes[param.name.value] = typeDescriptor;
+            volatileVars[param.name.value] = param.isVolatile;
+        }
+        for (int i = 1; i < fnTy->getNumParams(); i++) {
+            if (method.params[i - 1].type.value.starts_with("out ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::WriteOnly
+                );
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );
+            } else if (method.params[i - 1].type.value.starts_with("inout ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );        
+            }
+            if (method.params[i - 1].type.value.ends_with("restrict")) {
+                fn->addParamAttr(i, llvm::Attribute::NoAlias);
+            }
+        }
         currentFunction = fn;
         currentClassName = className;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -2773,25 +2820,12 @@ class LLVMCompiler {
         currentThis = &*argIt;
         ++argIt;
         paramIdx = 0;
-        for (auto it = method.params.begin(); it != method.params.end(); ++it, ++paramIdx) {
-            std::string paramName = it->name.value;
-            std::string paramType = resolveTypeName(substituteGenerics(it->type.value), false); 
-            llvm::Value* alloca = createEntryAlloca(paramName, llvmTypeFor(paramType));
-            builder->CreateStore(&*argIt, alloca);
-            locals[paramName] = llvm::cast<llvm::AllocaInst>(alloca);
-            if (paramType.ends_with("[]")) {
-                std::string elemType = paramType.substr(0, paramType.size() - 2);
-                arrayTypeStrings[paramName] = elemType;
-            }
-            argIt->setName(paramName);
-            ++argIt;
-        }
         for (auto& stmt : method.body->statements) { emitStmt(stmt); }
         if (!builder->GetInsertBlock()->getTerminator()) {
-            if (retTy->isVoidTy()) {
+            if (baseFuncTy->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
-                builder->CreateRet(llvm::Constant::getNullValue(retTy));
+                builder->CreateRet(llvm::Constant::getNullValue(baseFuncTy->getReturnType()));
             }
         }
         exitScope();
@@ -2900,54 +2934,104 @@ class LLVMCompiler {
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
         enterScope();
-        std::vector<llvm::Type*> paramTypes;
-        size_t paramIdx = 0;
-        for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
-            std::string paramType = it->type.value;
-            paramTypes.push_back(llvmTypeFor(paramType));
-            paramType = resolveTypeName(substituteGenerics(paramType), false);
-            if (paramType.ends_with("[]")) {
-                arrayTypeStrings[it->name.value] = paramType.substr(0, paramType.size() - 2);
-            } else {
-                varTypes[it->name.value] = paramType;
-            }
-        }
-        llvm::Type* retTy = builder->getVoidTy();
-        if (!funcDef->return_types.empty()) {
-            if (funcDef->return_types.size() > 1) {
-                std::vector<llvm::Type*> retTypes;
-                for (auto& rt : funcDef->return_types) { retTypes.push_back(llvmTypeFor(rt.value)); }
-                retTy = llvm::StructType::get(context, retTypes);
-            } else {
-                retTy = llvmTypeFor(funcDef->return_types[0].value);
-            }
-        }
-        llvm::FunctionType* fnTy = llvm::FunctionType::get(retTy, paramTypes, false);
+        llvm::FunctionType* fnTy = llvmFuncTypeFor(funcDef->return_types, funcDef->params);
         llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
+        if (funcDef->is_volatile) {
+            fn->addFnAttr("noipa");
+            fn->addFnAttr(llvm::Attribute::NoInline);
+            fn->addFnAttr(llvm::Attribute::OptimizeNone);
+        }
+        for (int i = 0; i < fnTy->getNumParams(); i++) {
+            auto it = funcDef->params.begin();
+            std::advance(it, i);
+            if (it->type.value.starts_with("out ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::WriteOnly
+                );
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );
+            } else if (it->type.value.starts_with("inout ")) {
+                fn->addParamAttr(
+                    i,
+                    llvm::Attribute::getWithCaptureInfo(
+                        context,
+                        llvm::CaptureInfo::none()
+                    )
+                );        
+            }
+            if (it->type.value.ends_with("restrict")) {
+                fn->addParamAttr(i, llvm::Attribute::NoAlias);
+            }
+        }
+
         currentFunction = fn;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
         builder->SetInsertPoint(entry);
         auto argIt = fn->arg_begin();
-        paramIdx = 0;
-        for (auto it = funcDef->params.begin(); it != funcDef->params.end(); ++it, ++paramIdx) {
-            std::string paramName = it->name.value;
-            std::string paramType = resolveTypeName(substituteGenerics(it->type.value), false); 
-            llvm::Value* alloca = createEntryAlloca(paramName, llvmTypeFor(paramType));
-            builder->CreateStore(&*argIt, alloca);
-            locals[paramName] = llvm::cast<llvm::AllocaInst>(alloca);
-            if (paramType.ends_with("[]")) {
-                std::string elemType = paramType.substr(0, paramType.size() - 2);
-                arrayTypeStrings[paramName] = elemType;
+        unsigned idx = 0;
+        for (auto& arg : fn->args()) {
+            auto& param = *std::next(funcDef->params.begin(), idx);
+            arg.setName(param.name.value);
+            auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
+            builder->CreateStore(&arg, alloca);
+            locals[param.name.value] = alloca;
+            if (param.signature.has_value()) {
+                varTypes[param.name.value] = "fn";
+                lambdaTypes[param.name.value] = llvmFuncTypeFor(param.signature->return_types, param.signature->params);
+            } else {
+                std::string t = param.type.value;
+                if (t.find("[]") != std::string::npos) {
+                    int dims = 0;
+                    size_t pos = t.find("[]");
+                    while (pos != std::string::npos) {
+                        dims++;
+                        pos = t.find("[]", pos + 2);
+                    }
+                    if (dims > 0) {
+                        cg_warn(Position(), "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                                                size_t pos = 0;
+                                                while ((pos = str.find("[]", pos)) != std::string::npos) {
+                                                    str.replace(pos, 2, "*");
+                                                    pos += 1;
+                                                }
+                                                return str;
+                                            }(t)) +
+                                                ". Please consider changing the type of this parameter to that type instead, and if you need the length "
+                                                "property (which won't exist on pointers), add an additional length parameter.");
+                    }
+                    if (dims > 1) {
+                        std::string base = t.substr(0, t.find("[]"));
+                        int baseTypeCode = getTypeCode(base);
+                        if (alloca->getType()->isArrayTy()) { arrayLengths[param.name.value] = alloca->getType()->getArrayNumElements(); }
+                        jaggedArrays[param.name.value] = {baseTypeCode, dims};
+                        arrayTypeStrings[param.name.value] = base;
+                        varTypes[param.name.value] = param.type.value;
+                    } else {
+                        std::string base = t.substr(0, t.find("[]"));
+                        if (alloca->getType()->isArrayTy()) { arrayLengths[param.name.value] = alloca->getType()->getArrayNumElements(); }
+                        arrayTypeStrings[param.name.value] = base;
+                        varTypes[param.name.value] = param.type.value;
+                    }
+                } else {
+                    varTypes[param.name.value] = t;
+                }
             }
-            argIt->setName(paramName);
-            ++argIt;
+            volatileVars[param.name.value] = param.isVolatile;
+            idx++;
         }
+
         for (auto& stmt : funcDef->body->statements) { emitStmt(stmt); }
         if (!builder->GetInsertBlock()->getTerminator()) {
-            if (retTy->isVoidTy()) {
+            if (fnTy->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
-                builder->CreateRet(llvm::Constant::getNullValue(retTy));
+                builder->CreateRet(llvm::Constant::getNullValue(fnTy->getReturnType()));
             }
         }
         exitScope();
@@ -3284,7 +3368,18 @@ class LLVMCompiler {
         if (hasVarType(name)) return findVarType(name)->second;
         return "";
     }
-
+    bool resolveVolatileVar(const std::string& name) {
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string fullName = current.empty() ? name : current + "::" + name;
+            if (hasVolatileVar(fullName)) return findVolatileVar(fullName)->second;
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+        }
+        if (hasVolatileVar(name)) return findVolatileVar(name)->second;
+        return false;
+    }
     llvm::Value* getVarAddress(const std::string& name) {
         llvm::Value* addr = resolveVariable(name);
         if (resolveVarType(name).ends_with("&")) { return builder->CreateLoad(builder->getPtrTy(), addr); }

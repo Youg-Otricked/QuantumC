@@ -89,6 +89,7 @@ void loop(void) code {
 - qconform (QC Formatter)
 - operator++/–-/-/+=/-=//=/*=(combinational operators)
 - operator<</|>\|>>/<<</&/......... (bitwise)
+- `__attributes__((...))`
 - const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
 - Actually decent error messages and errors (probbalt a lot of work)
@@ -97,8 +98,8 @@ __qc_commit_hash() — exact git commit the compiler/runtime was built from, inv
 __qc_build_date() — timestamp of the build
 __qc_target_triple() — what platform/arch this runtime was compiled for (x86_64-linux-gnu, wasm32-unknown-unknown, etc.) — relevant since your lesson context here is literally about compiling toward WASM/LLVM targets
 __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
-__qc_abi_version() — a separate counter from the language version, specifically for binary-compatibility breaks (struct layout changes, calling convention changes) — useful once you have separately-compiled modules that need to check they agree on ABI
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
+- atomics
 TOP PRIORITY:
 1. Volitile ("DONT OPTIMIZE THIS"), Restrict (noalias, means this memory will only be accessed by this pointer), Out (Read only pointer) (writeonly nocapture), inout (means both a read and a write) (nocapture + align
 2. Self host the runtime.

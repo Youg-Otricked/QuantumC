@@ -490,13 +490,13 @@ namespace Utils {
         }
         return fin;
     }
-    void sleep(long int milliseconds) {
-        long int req_sec = milliseconds / 1000;
-        long int req_nsec = (milliseconds % 1000) * 1000000;
-        long int rem_sec = 0;
-        long int rem_nsec = 0;
+    volatile void sleep(long int milliseconds) {
+        volatile long int req_sec = milliseconds / 1000;
+        volatile long int req_nsec = (milliseconds % 1000) * 1000000;
+        volatile long int rem_sec = 0;
+        volatile long int rem_nsec = 0;
         while (true) {
-            long int result = 0;
+            volatile long int result = 0;
             inline(R"(
                 mov rax, 230
                 mov rdi, 1
