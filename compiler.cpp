@@ -139,14 +139,6 @@ std::string get_token_name(TokenType tok) {
     case TokenType::CHAR: return "char";
     case TokenType::BOOL: return "bool";
     case TokenType::QBOOL: return "qbool";
-    case TokenType::VOID: return "void";
-    case TokenType::ENUM: return "enum";
-    case TokenType::CLASS: return "class";
-    case TokenType::STRUCT: return "struct";
-    case TokenType::ARRAY: return "array";
-    case TokenType::FUNC: return "func";
-    case TokenType::DEF: return "def";
-
     case TokenType::IF: return "if";
     case TokenType::ELSE: return "else";
     case TokenType::SWITCH: return "switch";
@@ -700,13 +692,6 @@ TokenType stringToTokenType(const std::string& str) {
                                                                             {"FLOAT", TokenType::FLOAT},
                                                                             {"DOUBLE", TokenType::DOUBLE},
                                                                             {"CHAR", TokenType::CHAR},
-                                                                            {"MAP", TokenType::MAP},
-                                                                            {"LIST", TokenType::LIST},
-                                                                            {"ARRAY", TokenType::ARRAY},
-                                                                            {"VOID", TokenType::VOID},
-                                                                            {"ENUM", TokenType::ENUM},
-                                                                            {"CLASS", TokenType::CLASS},
-                                                                            {"STRUCT", TokenType::STRUCT},
                                                                             {"BOOL", TokenType::BOOL},
                                                                             {"QBOOL", TokenType::QBOOL},
                                                                             {"PLUS", TokenType::PLUS},
@@ -1486,9 +1471,9 @@ Prs Parser::for_stmt() {
     auto fn = new ForNode(init, condition, update, body);
     return res.success(fn);
 }
-Prs Parser::func_def(Token return_type, std::optional<Token> func_name) {
+Prs Parser::func_def(Token return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep) {
     std::vector<Token> return_types = {return_type};
-    return this->func_def_multi(return_types, func_name);
+    return this->func_def_multi(return_types, func_name, generics, keep);
 }
 Prs Parser::call(AnyNode node_to_call) {
     ParseResult res;
@@ -1707,28 +1692,72 @@ Prs Parser::atom() {
             pos = this->current_tok.pos;
             this->advance();
         }
-        if (this->current_tok.type == TokenType::LESS && is_known_type(name)) {
+        if (this->current_tok.type == TokenType::LESS) {
+            size_t oldId = this->index;
+            std::string oldName = name;
             this->advance();
             name += "<";
             int depth = 1;
-            while (depth > 0) {
+            if (this->current_tok.type == TokenType::MORE) {
+                name = oldName;
+                this->index = oldId;
+                depth = 0;
+            }
+            bool next_comma = false;
+            bool just_incremented = true;
+            while (depth > 0) { 
+                if (next_comma) {
+                    if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS && this->current_tok.type != TokenType::MORE) {
+                        this->index = oldId;
+                        name = oldName;
+                        break;
+                    }
+                } else {
+                    if (this->current_tok.type == TokenType::COMMA) {
+                        this->index = oldId;
+                        name = oldName;
+                        break;
+                    }
+                }
+                if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                        TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT,
+                        TokenType::SHORT_INT, TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE
+                    }).contains(this->current_tok.type))) {
+                    this->index = oldId;
+                    name = oldName;
+                    break;
+                }
                 if (this->current_tok.type == TokenType::EOFT) {
                     res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
                     return res.to_prs();
                 }
-                if (this->current_tok.type == TokenType::LESS)
+                if (this->current_tok.type == TokenType::LESS) {
+                    if (just_incremented) {
+                        this->index = oldId;
+                        name = oldName;
+                        break;
+                    }
+                    just_incremented = true;
                     depth++;
+                    if (depth > 128) {
+                        res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                        return res.to_prs();
+                    }
+                }
                 else if (this->current_tok.type == TokenType::MORE) {
                     depth--;
                     if (depth == 0) {
                         this->advance();
                         break;
                     }
+                } else {
+                    just_incremented = false;
                 }
+                if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                 name += this->current_tok.value;
                 this->advance();
             }
-            name += ">";
+            if (this->index != oldId && name != oldName) name += ">";
         }
         Token ident(TokenType::IDENTIFIER, name, pos);
         AnyNode base = new VarAccessNode(ident);
@@ -1769,6 +1798,29 @@ Prs Parser::atom() {
 
                 Token property_name = this->current_tok;
                 this->advance();
+                if (this->current_tok.type == TokenType::LESS) {
+                    this->advance();
+                    property_name.value += "<";
+                    int depth = 1;
+                    while (depth > 0) {
+                        if (this->current_tok.type == TokenType::EOFT) {
+                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                            return res.to_prs();
+                        }
+                        if (this->current_tok.type == TokenType::LESS)
+                            depth++;
+                        else if (this->current_tok.type == TokenType::MORE) {
+                            depth--;
+                            if (depth == 0) {
+                                this->advance();
+                                break;
+                            }
+                        }
+                        property_name.value += this->current_tok.value;
+                        this->advance();
+                    }
+                    property_name.value += ">";
+                }
                 Token base_name_tok;
                 if (auto var = std::get_if<VarAccessNode*>(&base)) {
                     base_name_tok = (*var)->var_name_tok;
@@ -1819,7 +1871,29 @@ Prs Parser::atom() {
 
                 Token property_name = this->current_tok;
                 this->advance();
-
+                if (this->current_tok.type == TokenType::LESS) {
+                    this->advance();
+                    property_name.value += "<";
+                    int depth = 1;
+                    while (depth > 0) {
+                        if (this->current_tok.type == TokenType::EOFT) {
+                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                            return res.to_prs();
+                        }
+                        if (this->current_tok.type == TokenType::LESS)
+                            depth++;
+                        else if (this->current_tok.type == TokenType::MORE) {
+                            depth--;
+                            if (depth == 0) {
+                                this->advance();
+                                break;
+                            }
+                        }
+                        property_name.value += this->current_tok.value;
+                        this->advance();
+                    }
+                    property_name.value += ">";
+                }
                 if (this->current_tok.type == TokenType::LPAREN) {
                     this->advance();
                     std::vector<AnyNode> args;
@@ -1903,6 +1977,29 @@ Prs Parser::atom() {
 
                     Token property_name = this->current_tok;
                     this->advance();
+                    if (this->current_tok.type == TokenType::LESS) {
+                        this->advance();
+                        property_name.value += "<";
+                        int depth = 1;
+                        while (depth > 0) {
+                            if (this->current_tok.type == TokenType::EOFT) {
+                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                                return res.to_prs();
+                            }
+                            if (this->current_tok.type == TokenType::LESS)
+                                depth++;
+                            else if (this->current_tok.type == TokenType::MORE) {
+                                depth--;
+                                if (depth == 0) {
+                                    this->advance();
+                                    break;
+                                }
+                            }
+                            property_name.value += this->current_tok.value;
+                            this->advance();
+                        }
+                        property_name.value += ">";
+                    }
                     Token base_name_tok;
                     if (auto var = std::get_if<VarAccessNode*>(&base)) {
                         base_name_tok = (*var)->var_name_tok;
@@ -1953,7 +2050,29 @@ Prs Parser::atom() {
 
                     Token property_name = this->current_tok;
                     this->advance();
-
+                    if (this->current_tok.type == TokenType::LESS) {
+                        this->advance();
+                        property_name.value += "<";
+                        int depth = 1;
+                        while (depth > 0) {
+                            if (this->current_tok.type == TokenType::EOFT) {
+                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                                return res.to_prs();
+                            }
+                            if (this->current_tok.type == TokenType::LESS)
+                                depth++;
+                            else if (this->current_tok.type == TokenType::MORE) {
+                                depth--;
+                                if (depth == 0) {
+                                    this->advance();
+                                    break;
+                                }
+                            }
+                            property_name.value += this->current_tok.value;
+                            this->advance();
+                        }
+                        property_name.value += ">";
+                    }
                     if (this->current_tok.type == TokenType::LPAREN) {
                         this->advance();
                         std::vector<AnyNode> args;
@@ -2032,6 +2151,29 @@ Prs Parser::atom() {
 
                 Token property_name = this->current_tok;
                 this->advance();
+                if (this->current_tok.type == TokenType::LESS) {
+                    this->advance();
+                    property_name.value += "<";
+                    int depth = 1;
+                    while (depth > 0) {
+                        if (this->current_tok.type == TokenType::EOFT) {
+                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        if (this->current_tok.type == TokenType::LESS)
+                            depth++;
+                        else if (this->current_tok.type == TokenType::MORE) {
+                            depth--;
+                            if (depth == 0) {
+                                this->advance();
+                                break;
+                            }
+                        }
+                        property_name.value += this->current_tok.value;
+                        this->advance();
+                    }
+                    property_name.value += ">";
+                }
                 Token base_name_tok;
                 if (auto unary = std::get_if<UnaryOpNode*>(&base)) {
                     if ((*unary)->op_tok.type == TokenType::MUL) {
@@ -2159,31 +2301,19 @@ Prs Parser::atom() {
 
         if (this->current_tok.type == TokenType::ARROW) {
             this->advance();
-
-            if (this->current_tok.type != TokenType::KEYWORD && !find_type(this->current_tok.value)) {
-                res.failure(new InvalidSyntaxError("QC-S052: Expected return type after '->'", this->current_tok.pos));
-                return res.to_prs();
-            }
-
-            return_types.push_back(this->current_tok);
+            return_types.push_back(Token(TokenType::KEYWORD, parseTypeString(), this->current_tok.pos));
             this->advance();
 
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
-
-                if (this->current_tok.type != TokenType::KEYWORD) {
-                    res.failure(new InvalidSyntaxError("QC-S053: Expected return type after ','", this->current_tok.pos));
-                    return res.to_prs();
-                }
-
-                return_types.push_back(this->current_tok);
+                return_types.push_back(Token(TokenType::KEYWORD, parseTypeString(), this->current_tok.pos));
                 this->advance();
             }
         }
         this->index = saved_index;
         this->current_tok = this->tokens[this->index];
 
-        auto fn_pr = this->func_def_multi(return_types, std::nullopt);
+        auto fn_pr = this->func_def_multi(return_types, std::nullopt, {}, false);
 
         if (std::holds_alternative<Error*>(fn_pr)) return fn_pr;
 
@@ -2577,8 +2707,14 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     }
     return p;
 }
-Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name) {
+Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep) {
     ParseResult res;
+    std::vector<GenericType> old_generics = this->current_generics;
+    if (keep) {
+        this->current_generics.insert(this->current_generics.end(), generics.begin(), generics.end());
+    } else {
+        this->current_generics = generics;
+    }
     this->advance();
     std::vector<Parameter> params;
     if (this->current_tok.type != TokenType::RPAREN) {
@@ -2622,7 +2758,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
             std::vector<AnyNode> body;
             body.emplace_back(std::monostate{});
             return res.success(
-                new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern, this->in_foreign));
+                new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern, this->in_foreign, generics));
         }
         res.failure(new InvalidSyntaxError("QC-S003: Expected '{' to start function body", this->current_tok.pos));
         return res.to_prs();
@@ -2663,8 +2799,8 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     auto body = new StatementsNode(body_stmts, true);
     this->advance();
     std::list<Parameter> params_list((params.begin()), (params.end()));
-
-    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign));
+    this->current_generics = old_generics;
+    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics));
 }
 Prs Parser::statement() {
     ParseResult res;
@@ -2759,7 +2895,7 @@ Prs Parser::statement() {
         this->index = saved_index;
         this->current_tok = this->tokens[this->index];
 
-        auto fn_pr = this->func_def_multi(return_types, std::nullopt);
+        auto fn_pr = this->func_def_multi(return_types, std::nullopt, {}, false);
 
         if (std::holds_alternative<Error*>(fn_pr)) return fn_pr;
 
@@ -3075,16 +3211,95 @@ Prs Parser::statement() {
                 } else {
                     next_tok = Token(TokenType::EOFT, "", this->current_tok.pos);
                 }
-
+                std::vector<GenericType> genericsM;
+                Token ctor_name = this->current_tok;
+                if (next_tok.type == TokenType::LESS) {
+                    ctor_name = this->current_tok;
+                    this->advance();
+                    this->advance();
+                    while (true) {
+                        GenericType curr;
+                        if (this->current_tok.type != TokenType::IDENTIFIER) {
+                            if (this->current_tok.type == TokenType::KEYWORD &&
+                                std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                                curr.isNonType = true;
+                                curr.nonTypeKind = this->current_tok.value;
+                            } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                                std::string prev = this->current_tok.value;
+                                this->advance();
+                                if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                                    res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                    return res.to_prs();
+                                }
+                                curr.isNonType = true;
+                                curr.nonTypeKind = prev + " " + this->current_tok.value;
+                            } else {
+                                res.failure(
+                                    new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                        }
+                        curr.name = this->current_tok.value;
+                        this->advance();
+                        if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                            this->advance();
+                            if (this->current_tok.type != TokenType::COLON) {
+                                if (this->current_tok.type == TokenType::IDENTIFIER &&
+                                    (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                     this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                    curr.constraint = this->current_tok.value;
+                                } else {
+                                    res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                                       this->current_tok.pos));
+                                    return res.to_prs();
+                                }
+                                this->advance();
+                            } else {
+                                curr.constraint = "";
+                            }
+                            this->advance();
+                            if (this->current_tok.type == TokenType::NOT) {
+                                curr.negated = true;
+                                this->advance();
+                            }
+                            while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                                curr.subconstraints.push_back(this->current_tok.value);
+                                this->advance();
+                                if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                            }
+                            if (this->current_tok.type != TokenType::RPAREN) {
+                                res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                        }
+                        if (this->current_tok.type == TokenType::EQ) {
+                            this->advance();
+                            curr.defaultValue = this->current_tok.value;
+                            this->advance();
+                        }
+                        if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                            res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        genericsM.push_back(curr);
+                        if (this->current_tok.type == TokenType::MORE) {
+                            this->advance();
+                            break;
+                        }
+                        this->advance();
+                    }
+                }
+                next_tok = peek();
                 if (next_tok.type == TokenType::LPAREN) {
-                    Token ctor_name = this->current_tok;
                     this->advance();
                     if (this->current_tok.type != TokenType::LPAREN) {
                         res.failure(new InvalidSyntaxError("Expected '(' after constructor name", this->current_tok.pos));
                         return res.to_prs();
                     }
 
-                    auto ctor_pr = this->func_def_multi({}, std::nullopt);
+                    auto ctor_pr = this->func_def_multi({}, std::nullopt, genericsM, true);
                     if (std::holds_alternative<Error*>(ctor_pr)) return ctor_pr;
 
                     auto fn = std::get<FuncDefNode*>(ctor_pr);
@@ -3097,7 +3312,7 @@ Prs Parser::statement() {
                     mi.body = fn->body;
                     mi.is_constructor = true;
                     mi.access = access;
-
+                    mi.generics = genericsM;
                     info.classMethods.push_back(mi);
                     continue;
                 }
@@ -3110,16 +3325,7 @@ Prs Parser::statement() {
             std::vector<Token> type_list;
 
             auto parse_one_type_into = [&](Token& out_tok) -> bool {
-                std::string field_type;
-                if (this->current_tok.type == TokenType::IDENTIFIER) {
-                    field_type = parseTypeString();
-                } else if (this->current_tok.type == TokenType::KEYWORD) {
-                    field_type = parseTypeString();
-                } else {
-                    res.failure(new InvalidSyntaxError("QC-S071: Expected type in class body", this->current_tok.pos));
-                    return false;
-                }
-
+                std::string field_type = parseTypeString();
                 out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
                 return true;
             };
@@ -3217,6 +3423,83 @@ Prs Parser::statement() {
                 res.failure(new InvalidSyntaxError("Expected method or field name after type(s)", this->current_tok.pos));
                 return res.to_prs();
             }
+            std::vector<GenericType> genericsM;
+            if (this->current_tok.type == TokenType::LESS) {
+                this->advance();
+                while (true) {
+                    GenericType curr;
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        if (this->current_tok.type == TokenType::KEYWORD &&
+                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                            curr.isNonType = true;
+                            curr.nonTypeKind = this->current_tok.value;
+                        } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                            std::string prev = this->current_tok.value;
+                            this->advance();
+                            if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                                res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            curr.isNonType = true;
+                            curr.nonTypeKind = prev + " " + this->current_tok.value;
+                        } else {
+                            res.failure(
+                                new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    }
+                    curr.name = this->current_tok.value;
+                    this->advance();
+                    if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                        this->advance();
+                        if (this->current_tok.type != TokenType::COLON) {
+                            if (this->current_tok.type == TokenType::IDENTIFIER &&
+                                (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                curr.constraint = this->current_tok.value;
+                            } else {
+                                res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                                   this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                        } else {
+                            curr.constraint = "";
+                        }
+                        this->advance();
+                        if (this->current_tok.type == TokenType::NOT) {
+                            curr.negated = true;
+                            this->advance();
+                        }
+                        while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                            curr.subconstraints.push_back(this->current_tok.value);
+                            this->advance();
+                            if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                        }
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    }
+                    if (this->current_tok.type == TokenType::EQ) {
+                        this->advance();
+                        curr.defaultValue = this->current_tok.value;
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                        res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    genericsM.push_back(curr);
+                    if (this->current_tok.type == TokenType::MORE) {
+                        this->advance();
+                        break;
+                    }
+                    this->advance();
+                }
+            }
             if (this->current_tok.type == TokenType::LPAREN) {
                 ClassMethodInfo mi;
                 mi.name_tok = name_tok;
@@ -3235,7 +3518,7 @@ Prs Parser::statement() {
                     }
                 }
 
-                auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok));
+                auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
                 if (std::holds_alternative<Error*>(m_pr)) return m_pr;
 
                 auto fn = std::get<FuncDefNode*>(m_pr);
@@ -3248,7 +3531,7 @@ Prs Parser::statement() {
                 mi.is_constructor = false;
                 mi.is_final = is_final_method;
                 mi.access = access;
-
+                mi.generics = genericsM;
                 info.classMethods.push_back(mi);
                 continue;
             }
@@ -3260,15 +3543,15 @@ Prs Parser::statement() {
             int array_dims = 0;
             while (this->current_tok.type == TokenType::LBRACKET) {
                 this->advance();
-                if (this->current_tok.type == TokenType::KEYWORD) { this->advance(); }
+                field_type += "[";
+                if (this->current_tok.type != TokenType::RBRACKET) { field_type += this->current_tok.value; this->advance();}
                 if (this->current_tok.type != TokenType::RBRACKET) {
                     res.failure(new InvalidSyntaxError("QC-S061: Expected ']' after '[' in array", this->current_tok.pos));
                     return res.to_prs();
                 }
+                field_type += "]";
                 this->advance();
-                array_dims++;
             }
-            for (int i = 0; i < array_dims; ++i) field_type += "[]";
 
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(new InvalidSyntaxError("Expected ';' after field declaration", this->current_tok.pos));
@@ -3777,8 +4060,8 @@ Prs Parser::statement() {
     }
     if (tok.type == TokenType::KEYWORD || tok.type == TokenType::IDENTIFIER && tok.value != "this") {
         if (tok.type == TokenType::IDENTIFIER) {
-            size_t saved_index = this->index;
             Token saved_tok = this->current_tok;
+            size_t saved_index = this->index;
             auto maybe_qualified = this->try_parse_qualified_name();
             bool is_type = false;
             if (maybe_qualified.has_value()) {
@@ -3788,32 +4071,40 @@ Prs Parser::statement() {
                 is_type = (find_type(base) != nullptr || find_type(*maybe_qualified) != nullptr || is_known_type(base));
             }
             if (!is_type) {
-                this->index = saved_index;
-                this->current_tok = saved_tok;
-                size_t next_i = index + 1;
-                if (next_i < tokens.size() && (tokens[next_i].type == TokenType::EQ || tokens[next_i].type == TokenType::PLUS_EQ ||
-                                               tokens[next_i].type == TokenType::MINUS_EQ || tokens[next_i].type == TokenType::MUL_EQ ||
-                                               tokens[next_i].type == TokenType::DIV_EQ || tokens[next_i].type == TokenType::MOD_EQ)) {
+                if (!maybe_qualified.has_value())  this->parseTypeString();
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    this->parseTypeString();
+                }
+                bool looks_like_generic_func = (this->current_tok.type == TokenType::IDENTIFIER && peek(1).type == TokenType::LESS);
+                if (!looks_like_generic_func) {
+                    this->index = saved_index;
+                    this->current_tok = saved_tok;
+                    size_t next_i = index + 1;
+                    if (next_i < tokens.size() && (tokens[next_i].type == TokenType::EQ || tokens[next_i].type == TokenType::PLUS_EQ ||
+                                                   tokens[next_i].type == TokenType::MINUS_EQ || tokens[next_i].type == TokenType::MUL_EQ ||
+                                                   tokens[next_i].type == TokenType::DIV_EQ || tokens[next_i].type == TokenType::MOD_EQ)) {
 
-                    AnyNode assign_node = res.reg(this->assignment_expr());
-                    if (res.error) return res.to_prs();
+                        AnyNode assign_node = res.reg(this->assignment_expr());
+                        if (res.error) return res.to_prs();
 
-                    if (this->current_tok.type != TokenType::SEMICOLON) {
-                        res.failure(new MissingSemicolonError(this->current_tok.pos));
-                        return res.to_prs();
+                        if (this->current_tok.type != TokenType::SEMICOLON) {
+                            res.failure(new MissingSemicolonError(this->current_tok.pos));
+                            return res.to_prs();
+                        }
+
+                        this->advance();
+                        return res.success(assign_node);
                     }
-
-                    this->advance();
-                    return res.success(assign_node);
+                    AnyNode node = res.reg(this->assignment_expr());
+                    if (res.error) return res.to_prs();
+                    if (this->current_tok.type == TokenType::SEMICOLON) {
+                        this->advance();
+                        return res.success(node);
+                    }
+                    res.failure(new MissingSemicolonError(this->current_tok.pos));
+                    return res.to_prs();
                 }
-                AnyNode node = res.reg(this->assignment_expr());
-                if (res.error) return res.to_prs();
-                if (this->current_tok.type == TokenType::SEMICOLON) {
-                    this->advance();
-                    return res.success(node);
-                }
-                res.failure(new MissingSemicolonError(this->current_tok.pos));
-                return res.to_prs();
             }
             this->index = saved_index;
             this->current_tok = saved_tok;
@@ -3836,7 +4127,84 @@ Prs Parser::statement() {
             }
             Token func_name = this->current_tok;
             this->advance();
-            if (this->current_tok.type == TokenType::LPAREN) return this->func_def_multi({type_tok}, func_name);
+            std::vector<GenericType> genericsM;
+            if (this->current_tok.type == TokenType::LESS) {
+                this->advance();
+                while (true) {
+                    GenericType curr;
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        if (this->current_tok.type == TokenType::KEYWORD &&
+                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                            curr.isNonType = true;
+                            curr.nonTypeKind = this->current_tok.value;
+                        } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                            std::string prev = this->current_tok.value;
+                            this->advance();
+                            if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                                res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            curr.isNonType = true;
+                            curr.nonTypeKind = prev + " " + this->current_tok.value;
+                        } else {
+                            res.failure(
+                                new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    }
+                    curr.name = this->current_tok.value;
+                    this->advance();
+                    if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                        this->advance();
+                        if (this->current_tok.type != TokenType::COLON) {
+                            if (this->current_tok.type == TokenType::IDENTIFIER &&
+                                (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                curr.constraint = this->current_tok.value;
+                            } else {
+                                res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                                   this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                            this->advance();
+                        } else {
+                            curr.constraint = "";
+                        }
+                        this->advance();
+                        if (this->current_tok.type == TokenType::NOT) {
+                            curr.negated = true;
+                            this->advance();
+                        }
+                        while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                            curr.subconstraints.push_back(this->current_tok.value);
+                            this->advance();
+                            if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                        }
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    }
+                    if (this->current_tok.type == TokenType::EQ) {
+                        this->advance();
+                        curr.defaultValue = this->current_tok.value;
+                        this->advance();
+                    }
+                    if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                        res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    genericsM.push_back(curr);
+                    if (this->current_tok.type == TokenType::MORE) {
+                        this->advance();
+                        break;
+                    }
+                    this->advance();
+                }
+            }
+            if (this->current_tok.type == TokenType::LPAREN) return this->func_def_multi({type_tok}, func_name, genericsM);
             res.failure(new InvalidSyntaxError("Expected '(' after function name", this->current_tok.pos));
             return res.to_prs();
         }
@@ -3897,8 +4265,86 @@ Prs Parser::statement() {
             this->advance();
         }
         if (dimensions > 0) is_array = true;
+        std::vector<GenericType> genericsM;
+        if (this->current_tok.type == TokenType::LESS) {
+            this->advance();
+            while (true) {
+                GenericType curr;
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    if (this->current_tok.type == TokenType::KEYWORD &&
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        curr.isNonType = true;
+                        curr.nonTypeKind = this->current_tok.value;
+                    } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                        std::string prev = this->current_tok.value;
+                        this->advance();
+                        if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        curr.isNonType = true;
+                        curr.nonTypeKind = prev + " " + this->current_tok.value;
+                    } else {
+                        res.failure(
+                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                curr.name = this->current_tok.value;
+                this->advance();
+                if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::COLON) {
+                        if (this->current_tok.type == TokenType::IDENTIFIER &&
+                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                            curr.constraint = this->current_tok.value;
+                        } else {
+                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                                               this->current_tok.pos));
+                            return res.to_prs();
+                        }
+                        this->advance();
+                    } else {
+                        curr.constraint = "";
+                    }
+                    this->advance();
+                    if (this->current_tok.type == TokenType::NOT) {
+                        curr.negated = true;
+                        this->advance();
+                    }
+                    while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        curr.subconstraints.push_back(this->current_tok.value);
+                        this->advance();
+                        if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    curr.defaultValue = this->current_tok.value;
+                    this->advance();
+                }
+                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                genericsM.push_back(curr);
+                if (this->current_tok.type == TokenType::MORE) {
+                    this->advance();
+                    break;
+                }
+                this->advance();
+            }
+        }
+
         if (this->current_tok.type == TokenType::LPAREN) {
-            auto func_def = res.reg(this->func_def_multi(return_types, name_tok));
+            auto func_def = res.reg(this->func_def_multi(return_types, name_tok, genericsM));
             if (res.error) return res.to_prs();
             return res.success(func_def);
         }
@@ -4124,6 +4570,24 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     std::string type = resolveTypeName(qcType, false);
     type = resolveTypeName(type, false);
     if (type == "...") { return builder->getPtrTy(); }
+    if (type.ends_with("]")) {
+        size_t open = type.rfind('[');
+        if (open == std::string::npos) {
+            cg_error(Position(), "Malformed array type");
+            return nullptr;
+        }
+        std::string sizeStr = type.substr(open + 1, type.size() - open - 2);
+        size_t count;
+        try {
+            count = parseInteger(sizeStr);
+        } catch (...) {
+            cg_error(Position(), "Invalid array size: " + sizeStr);
+            return nullptr;
+        }
+        std::string elementType = type.substr(0, open);
+        llvm::Type* elemTy = llvmTypeFor(elementType);
+        return llvm::ArrayType::get(elemTy, count);
+    }
     if (type.ends_with("[]")) { return llvm::PointerType::get(context, 0); }
     if (type.ends_with("&") || type.ends_with("*")) { return builder->getPtrTy(); }
     if (type == "int") return builder->getInt32Ty();
@@ -4144,7 +4608,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) { return genericiseOrFindStruct(type); }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
     if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericStructs.end()) { genericiseOrFindUnion(type); return unionTypes[type]; }
-    if (type == "function" || type == "fn" || type.starts_with(("fn "))) { return builder->getPtrTy(); }
+    if (type == "function" || type == "fn" || type.starts_with("fn (") || type.starts_with("fn(")) { return builder->getPtrTy(); }
     if (type == "void") return builder->getVoidTy();
     return nullptr;
 }
@@ -4327,7 +4791,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
             continue;
         }
-        if (std::find(autoMethodIndices[className].begin(), autoMethodIndices[className].end(), methodIdx) != autoMethodIndices[className].end()) {
+        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) != genericMethodIndices[baseTypeName(className)].end()) {
             continue;
         }
         std::string methodName = mangled_class_name + "_" + method.name_tok.value;
@@ -4365,10 +4829,9 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     vtables[mangled_class_name] = vtable;
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
-        if (std::find(autoMethodIndices[className].begin(), autoMethodIndices[className].end(), methodIdx) != autoMethodIndices[className].end()) {
+        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) != genericMethodIndices[baseTypeName(className)].end()) {
             continue;
         }
-
         llvm::Function* fn = nullptr;
         auto& overloads = classMethods[mangled_class_name][method.name_tok.value];
         for (auto* overload : overloads) {
@@ -4999,7 +5462,7 @@ void LLVMCompiler::createUserTypes() {
                 cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
                 continue;
             }
-            if (std::find(autoMethodIndices[mapKey].begin(), autoMethodIndices[mapKey].end(), methodIdx) != autoMethodIndices[mapKey].end()) {
+            if (std::find(genericMethodIndices[mapKey].begin(), genericMethodIndices[mapKey].end(), methodIdx) != genericMethodIndices[mapKey].end()) {
                 continue;
             }
             std::string methodName = mapKey + "_" + method.name_tok.value;
@@ -6922,7 +7385,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else {
                     cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
                     return nullptr;
-                    }
+                }
                 auto vtableIt = vtables.find(mangledName);
                 if (vtableIt != vtables.end()) {
                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
@@ -7340,7 +7803,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             arrayTypeStrings[name] = baseType;
         }
         llvm::AllocaInst* alloc = nullptr;
-        if ((*va)->type_tok.value == "function" || (*va)->type_tok.value == "auto" && std::holds_alternative<FuncDefNode*>((*va)->value_node)) {
+        if ((*va)->type_tok.value == "function" || (*va)->type_tok.value.starts_with("fn(") || (*va)->type_tok.value.starts_with("fn (") || (*va)->type_tok.value == "auto" && std::holds_alternative<FuncDefNode*>((*va)->value_node)) {
             auto fnPtr = std::get<FuncDefNode*>((*va)->value_node);
             llvm::Function* f = emitFuncDef(*fnPtr);
             name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
@@ -8122,12 +8585,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
             funcName = resolvedName;
-            auto funcDefIt = functionDefs.find(funcName);
+            auto funcDefIt = functionDefs.find(baseTypeName(funcName));
             if (funcDefIt != functionDefs.end()) {
                 FuncDefNode* funcDef = funcDefIt->second;
-                if (funcHasAutoParams(funcDef)) {
+                if (!funcDef->generics.empty()) {
                     std::vector<llvm::Value*> argValues;
-                    std::vector<std::string> argTypes;
                     auto paramIt = funcDef->params.begin();
                     bool hasSpread = false;
                     for (auto& argNode : call.arg_nodes) {
@@ -8135,16 +8597,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         std::string ptype = (paramIt != funcDef->params.end()) ? paramIt->type.value : "...";
                         llvm::Value* argVal;
                         if (ptype.ends_with("&")) {
-                            auto* va = std::get_if<VarAccessNode*>(&argNode);
-                            if (!va) {
-                                cg_error(Position(), "L-value required for ref param");
-                                return nullptr;
-                            }
-                            argVal = getVarAddress((*va)->var_name_tok.value);
-                            argTypes.push_back(ptype);
+                            argVal = emitLValue(argNode);
                         } else {
                             argVal = emitExpr(argNode);
-                            argTypes.push_back(getExpressionType(argNode));
                         }
                         argValues.push_back(argVal);
                         if (paramIt != funcDef->params.end()) ++paramIt;
@@ -8153,14 +8608,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error(Position(), "Spread is no longer allowed in function calls.");
                         return nullptr;
                     }
-                    std::string sig = makeTypeSignature(argTypes);
-                    std::string specializedName = funcName + "_" + sig;
-                    if (specializedFunctions[funcName].count(sig) == 0) {
-                        llvm::Function* specializedFn = generateSpecializedFunction(funcDef, argTypes, specializedName);
+                    funcName = fixMangling(funcName);
+                    if (specializedFunctions.find(funcName) == specializedFunctions.end()) {
+                        llvm::Function* specializedFn = generateSpecializedFunction(funcDef, funcName);
                         if (!specializedFn) return nullptr;
-                        specializedFunctions[funcName][sig] = specializedFn;
+                        specializedFunctions[funcName] = specializedFn;
                     }
-                    llvm::Function* fn = specializedFunctions[funcName][sig];
+                    llvm::Function* fn = specializedFunctions[funcName];
                     if (funcDef->params.size() > 0 && funcDef->params.back().type.value == "...") {
                         size_t fixedCount = funcDef->params.size() - 1;
                         std::vector<llvm::Value*> varVals(argValues.begin() + fixedCount, argValues.end());
@@ -10190,7 +10644,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "Cannot resolve target"), nullptr);
-        if (llvm::Value* specializedCall = tryHandleSpecialized(baseTypeName(targetClass), methodName, *call, thisPtr)) { return specializedCall; }
+        if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, *call, thisPtr)) { return specializedCall; }
         ClassMethodInfo* info = nullptr;
         std::string searchClass = baseTypeName(targetClass);
         while (!searchClass.empty() && !info) {
@@ -12159,7 +12613,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
                                            std::unordered_map<std::string, std::string> visibleVarTypes,
                                            std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
                                            std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes,
-                                           std::map<std::string, std::map<std::string, llvm::Function*>> visibleSpecializedFunctions,
+                                           std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
                                            std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals) {
     this->functionSignatures = visibleFunctionSignatures;
     this->functionDefs = visibleFunctionDefs;
@@ -12172,20 +12626,9 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
     this->lambdaTypes = visibleLambdaTypes;
     for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class) continue;
-        if (!info.generics.empty()) continue;
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
-            bool hasAutoParam = false;
-            for (auto& param : method.params) {
-                if (param.type.value == "auto") {
-                    hasAutoParam = true;
-                    break;
-                }
-            }
-
-            bool hasAutoReturn = !method.return_types.empty() && method.return_types[0].value == "auto";
-
-            if (hasAutoParam || hasAutoReturn) { autoMethodIndices[className].push_back(methodIdx); }
+            if (!method.generics.empty()) { genericMethodIndices[className].push_back(methodIdx); }
         }
     }
     createUserTypes();
@@ -12222,7 +12665,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
             varTypes[name] = (*va)->type_tok.value;
         }
     }
-    std::function<void(NamespaceNode&)> scanAutoFunctions = [&](NamespaceNode& ns) {
+    std::function<void(NamespaceNode&)> scanGenericFunctions = [&](NamespaceNode& ns) {
         namespaceStack.push_back(ns.name);
 
         for (auto& decl : ns.body) {
@@ -12233,7 +12676,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
                     functionDefs[fullName] = fn;
                 }
             } else if (auto nested = std::get_if<NamespaceNode*>(&decl)) {
-                scanAutoFunctions(**nested);
+                scanGenericFunctions(**nested);
             }
         }
 
@@ -12242,7 +12685,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
 
     for (auto& stmt : root->statements) {
         if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
-            scanAutoFunctions(**ns);
+            scanGenericFunctions(**ns);
         } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
@@ -12259,7 +12702,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
                 if (fn->name_tok.has_value()) {
                     if (fn->name_tok.value().value == entrypointName && !this->is_main) { continue; }
 
-                    if (!funcHasAutoParams(fn)) { emitFuncDef(*fn); }
+                    if (fn->generics.empty()) { emitFuncDef(*fn); }
                 }
             } else if (auto va = std::get_if<VarAssignNode*>(&decl)) {
                 emitExpr(decl);
@@ -12280,7 +12723,7 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
             auto fnPtr = std::get<FuncDefNode*>(stmt);
             if (!fnPtr->name_tok.has_value()) continue;
             if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) { continue; }
-            if (!funcHasAutoParams(fnPtr)) { emitFuncDef(*fnPtr); }
+            if (fnPtr->generics.empty()) { emitFuncDef(*fnPtr); }
         }
     }
     for (auto& [className, info] : userTypes) {
@@ -12302,8 +12745,8 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
         }
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
-            if (std::find(autoMethodIndices[className].begin(), autoMethodIndices[className].end(), methodIdx) !=
-                autoMethodIndices[className].end()) {
+            if (std::find(genericMethodIndices[className].begin(), genericMethodIndices[className].end(), methodIdx) !=
+                genericMethodIndices[className].end()) {
                 continue;
             }
 
@@ -12948,7 +13391,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             std::unordered_map<std::string, std::unordered_map<std::string, llvm::AllocaInst*>> db_allocas;
             std::unordered_map<std::string, std::unordered_map<std::string, llvm::FunctionType*>> db_lambdas;
             std::unordered_map<std::string, std::unordered_map<std::string, llvm::GlobalVariable*>> db_globals;
-            std::unordered_map<std::string, std::map<std::string, std::map<std::string, llvm::Function*>>> db_specialized;
+            std::unordered_map<std::string, std::map<std::string, llvm::Function*>> db_specialized;
             std::vector<std::string> sorted_files;
             std::unordered_set<std::string> sort_visited;
             std::function<void(const std::string&)> sort_visit = [&](const std::string& p) {
@@ -12969,7 +13412,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 std::unordered_map<std::string, llvm::AllocaInst*> visAlloc;
                 std::unordered_map<std::string, llvm::GlobalVariable*> visGlobals;
                 std::unordered_map<std::string, llvm::FunctionType*> visLamb;
-                std::map<std::string, std::map<std::string, llvm::Function*>> visSpec;
+                std::map<std::string, llvm::Function*> visSpec;
                 for (auto const& [dep_p, ns_list] : file_included_namespaces[filepath]) {
                     if (db_sigs.find(dep_p) == db_sigs.end()) continue;
                     for (const std::string& ns : ns_list) {

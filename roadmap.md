@@ -18,7 +18,7 @@ class Function<T, '(', V, ')'> {
 Function<int(int)>;
 ```
 - `-L (link)` and  `-A (alias)` flags
-- Generics (`class List<T, int S>`....., `class MultiNumbers<T(!int|double|float)>`, `class VaradicTypes<...Tys>`) need to do it for functions and methods, and add variadic generics
+- Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
 - operator( )() (functor, can have codeblocks)
@@ -57,6 +57,7 @@ async <func def> foo <rest of def>
 …
 await foo();
 ```
+- float_bits and double_bits intrinsic (literal llvm `bitcast ` instruction)
 - Fields to get all obj fields
 - typeof(fn) giving a object with properties of argos ret types…  shape as a struct:
 ```c
@@ -99,11 +100,11 @@ __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version bui
 __qc_abi_version() — a separate counter from the language version, specifically for binary-compatibility breaks (struct layout changes, calling convention changes) — useful once you have separately-compiled modules that need to check they agree on ABI
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 TOP PRIORITY:
-1. Generics.
-2. Volitile
-3. Self host the runtime.
+1. Volitile ("DONT OPTIMIZE THIS"), Restrict (noalias, means this memory will only be accessed by this pointer), Out (Read only pointer) (writeonly nocapture), inout (means both a read and a write) (nocapture + align
+2. Self host the runtime.
+3. Error system + diagnostics overhaul
 4. Try/Catch.
-5. Fancy operator overloads
+5. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
 6. Token/ident/type/keyword/usertype direct type (parser refactor)
 7. Empty arrays.
 8. Codeblocks.
@@ -144,3 +145,4 @@ TOP PRIORITY:
 #endif - end if
 #line - somthing idk
 16. User-Defined metadata
+17. User-Defined macro _functions_ (the only good thing in rust)

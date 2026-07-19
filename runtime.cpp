@@ -8,13 +8,13 @@
 #include <ctime>
 extern "C" {
 const char* __qc_version() {
-    return "x0.18.2";
+    return "x0.18.3";
 }
 int __qc_llvm_ver() {
     return 21;
 }
-void __qc_changes() {
-    printf("Added generic unions and various static helpers");
+void __qc_release_notes() {
+    printf("Added generic functions & methods, deprecated `auto` functions");
 }
 void* qc_malloc(size_t size) {
     return malloc(size);

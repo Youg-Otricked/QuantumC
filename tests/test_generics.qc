@@ -2,17 +2,17 @@ class Pair<T, V> {
     T first;
     V second;
     Pair(T f, V s) {
-        this->first = f;
-        this->second = s;
+        this.first = f;
+        this.second = s;
     }
     T getFirst() {
-        return this->first;
+        return this.first;
     }
     V getSecond() {
-        return this->second;
+        return this.second;
     }
     T swapMethod<M>(M other) {
-        return this->first;
+        return this.first;
     }
 }
 
@@ -25,32 +25,32 @@ class Vector<T, int S> {
     T data[S];
     Vector() {}
     T get(int i) {
-        return this->data[i];
+        return this.data[i];
     }
     void set(int i, T val) {
-        this->data[i] = val;
+        this.data[i] = val;
     }
 }
 
 class Box<T> {
     T* ptr;
     Box(T* p) {
-        this->ptr = p;
+        this.ptr = p;
     }
     T get() {
-        return *this->ptr;
+        return *this.ptr;
     }
 }
-
-class Variant<...Tys> {
+/*
+class Variant<...Tys> { // variadic generics are a much later thing.
 }
-
+*/
 T identity<T>(T val) {
     return val;
 }
 
-int add<T(:numeric)>(T a, T b) {
-    return a + b;
+int add<T(numeric:)>(T a, T b) {
+    return to_int(a + b);
 }
 
 T cloneUserType<T(usertype:)>(T val) {
@@ -67,10 +67,10 @@ int main() {
     qout("%s", p2.getFirst());
     qout("%i", p2.getSecond());
 
-    Pair<List<int>, string> p3 = Pair<List<int>, string>(List<int>(), "nested");
+    Pair<int, string> p3 = Pair<int, string>(0, "nested");
     qout("%s", p3.getSecond());
 
-    Point<int> pt;
+    Point<int> pt = {1, 2};
     pt.x = 10;
     pt.y = 20;
     qout("%i", pt.x);
@@ -83,7 +83,7 @@ int main() {
     Box<int> b = Box<int>(&x);
     qout("%i", b.get());
 
-    Variant<int, string, float> var;
+  //  Variant<int, string, float> var;
 
     qout("%i", identity<int>(123));
     qout("%s", identity<string>("abc"));

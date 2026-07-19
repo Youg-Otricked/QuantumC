@@ -2,13 +2,19 @@
 
 ### The 4th Evolution of C
 
+```qc
+int main() {
+    qout("Hello, World!");
+    return 0;
+}
+```
+
 ## **THIS IS NOT A QCL**. It does not simulate quantum logic. It does not run on a quantum computer. It is a normal programming language.
 
 Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
 Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
-**More Powerful Than Explosives™**
-
+**More Powerful Than Explosives™**/j
 C⁴ combines the performance of C++, the ergonomics of Rust, and the cleanliness of Zig—without the 20 `#include` statements.
 
 ---
@@ -67,10 +73,69 @@ qc [flags]
 
 ---
 
+# Versioning Scheme
+
+QuantumC uses the following versioning scheme:
+`cMa.Mo.MiP`
+Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor, tracking the addition/removal of features, and `P` being the patch version. 
+For the version
+`x1.2.34`
+`c` = `x`
+`Ma` = `1`
+`Mo` = `2`
+`Mi` = `3`
+`P` = `4`
+
+Critical versions represent the largest generational milestones in QuantumC's development.
+
+v = Interpreter
+x = Compiler (Current)
+f = Feature-complete compiler
+s = Self-hosted compiler
+
+Critical versions are intentionally rare and denote architectural milestones,
+not language features.
+
+Development toward future critical versions may begin before the current
+critical version is complete. Multiple critical generations may therefore
+be in development simultaneously.
+
+Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.18.2 = "Generics (Part 3)"
-Next Version: x0.18.3 = "Generics (Part 4)"
+Current Version: x0.18.3 = "Generics (Part 4)"
+Next Version: x0.19.0 = "Storage Modifiers (`restrict`, `out`, `inout`, `volatile`)"
+
+# Current Version Highlights
+
+```text
+Critical
+└─ Added Compiler
+
+Major
+└─ N/A
+
+Moderate
+└─ Generics
+
+Minor
+├─ Generic functions & methods
+└─ Deprecated `auto` parameters and return types
+
+Patch
+└─ N/A
+```
+
+# Recent Deprecations / Breaking Changes
+
+These are deprecations in the past 3 moderate versions (`x0.15.* -> x0.18.*`)
+
+1. Power operator changed to `#^`
+2. Deletion of interpreter
+3. Removal of built-in `list` and `map` collection types
+4. Removal of `namespace UnitTest` from the standard library (better version coming version `x1.X.X+`)
+5. Deprecation of `auto` params and returns to functions and methods
+6. Deprecated spread (`@`) in function calls
 
 ## Feature Roadmap
 
@@ -102,9 +167,10 @@ Next Version: x0.18.3 = "Generics (Part 4)"
 |                     |     Classes                                                            | Done        |
 |                     |     Structs                                                            | Done        |
 |                     |     Unions                                                             | Done        |
-|                     |     Functions & Methods                                                | Planned     |
+|                     |     Functions & Methods                                                | Done        |
 |                     |     Variadic                                                           | Planned     |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
+|                     | `restrict`, `out`, `inout`, `volatile`                                 | Planned     |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
 |                     | Really fancy operator overloads                                        | Planned     |
@@ -241,10 +307,11 @@ Max line size is around 120 _relative to your starting indentation_, tabs or spa
 
 1. Namespaces should do one thing well, similar to the UNIX philosophy, 
 2. Namespaces should have either:
-        * one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
-        * above + namespaces containing extra helpers
-        * helper functions / utility functions (think a `Math` namespace with log, cos...)
-        * OR anything if directly mapping  C/C++/Zig/Rust code to C^4
+
+        1. one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
+        2. above + namespaces containing extra helpers
+        3. helper functions / utility functions (think a `Math` namespace with log, cos...)
+        4. OR anything if directly mapping  C/C++/Zig/Rust code to C^4
 3. Types in namespaces should have short names: The namespace should have the longer name
         e.g.
 ```qc
@@ -275,9 +342,26 @@ namespace Network {
 }
 namespace API_Keys_In_Plain_Text { // Intentionally formatted as a non-inclusion namespace.
     // Sure, you may not want to type all of that. That means your users absolutely don't.
-    ...
+    ..
 }
 ```
+## Ideals
+
+QuantumC follows 4 core rules:
+
+- Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
+- Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
+- No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
+- No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
+
+## Compiler Architecture
+
+QuantumC uses a classic multi-pass compilation pipeline:
+1. **Lexical Analysis / Preprocessing:** Custom lexer converts text to tokens in one loop.
+2. **AST Parsing:** Recursive descent parser generating a strongly typed Abstract Syntax Tree.
+3. **Type Checking & Semantic Analysis:** Resolves user-defined types, namespaces, and TypeScript-style union types. The unique thing is that this pass is _merged with the compilation/codegen phase_
+4. **Intermediate Representation (IR):** Generates LLVM IR. Target-aware pointer arithmetic is achieved dynamically via target-specific DataLayout queries.
+5. **Codegen:** Emits native platform object files (`.o`) or WebAssembly binaries via LLVM's target machines.
 
 ---
 
@@ -401,7 +485,7 @@ int main() {
     C<int> thing = C();
 }
 ```
-Generics will be allowed on `struct`s, `class`es, unions, aliases, functions, and methods.
+Generics are allowed on `struct`s, `class`es, unions, aliases, functions, and methods.
 The unique thing about QuantumC's generics are its constraint system:
 The constraint system follows this syntax:
 ```
@@ -429,8 +513,6 @@ QuantumC also has non-type generic parameters.
 ```
 <int S> // S is a non-type generic parameter (a compile time int)
 ```
-
-Currently classes structs unions and aliases have generics.
 
 In Rust, 
 ```
@@ -583,7 +665,7 @@ int main() {
 ---
 ## Performance Comparison
 
-Benchmarks are currently unreliable and show significant fluctuations between runs, or things like o millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
+Benchmarks are currently unreliable and show significant fluctuations between runs, or things like 0 millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
 
 ## Standard Library Namespaces:
 
@@ -596,23 +678,5 @@ Math
 Utils
 OSInterop
 ```
-
-## Ideals
-
-QuantumC follows 4 core rules:
-
-- Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
-- Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
-- No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
-- No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
-
-## Compiler Architecture
-
-QuantumC uses a classic multi-pass compilation pipeline:
-1. **Lexical Analysis / Preprocessing:** Custom lexer converts text to tokens in one loop.
-2. **AST Parsing:** Recursive descent parser generating a strongly typed Abstract Syntax Tree.
-3. **Type Checking & Semantic Analysis:** Resolves user-defined types, namespaces, and TypeScript-style union types. The unique thing is that this pass is _merged with the compilation/codegen phase_
-4. **Intermediate Representation (IR):** Generates LLVM IR. Target-aware pointer arithmetic is achieved dynamically via target-specific DataLayout queries.
-5. **Codegen:** Emits native platform object files (`.o`) or WebAssembly binaries via LLVM's target machines.
   Made by [Luca Fazio](https://github.com/Youg-Otricked)
 
