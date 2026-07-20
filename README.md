@@ -105,8 +105,8 @@ Minor (Mi) and Patch (P) are always a single decimal digit (0-9). Once a minor v
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.19.0 = "Storage Modifiers (`restrict`, `out`, `inout`, `volatile`)"
-Next Version: x0.20.0 = "Self-Hosted Runtime"
+Current Version: x0.20.0 = "Self-Hosted Runtime (Part 1)"
+Next Version: x0.20.1 = "Self-Hosted Runtime (Part 2)"
 
 # Current Version Highlights
 
@@ -118,10 +118,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Storage Modifiers
+└─ Runtime Selfhosting
 
 Minor
-└─ Volatile, Restrict, Out, InOut
+└─ Self hosted 11/98 runtime functions.
 
 Patch
 └─ N/A
@@ -129,7 +129,7 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.16.* -> x0.19.*`)
+These are deprecations in the past 3 moderate versions (`x0.17.* -> x0.20.*`)
 
 1. Power operator changed to `#^`
 2. Deletion of interpreter
@@ -164,12 +164,12 @@ These are deprecations in the past 3 moderate versions (`x0.16.* -> x0.19.*`)
 |                     | Concurrency functions                                                  | Planned     |
 |                     | Inline ASM                                                             | Done        |
 |                     | HTTP                                                                   | Planned     |
-|                     | Generics                                                               |             |
+|                     | Generics                                                               | Done        |
 |                     |     Classes                                                            | Done        |
 |                     |     Structs                                                            | Done        |
 |                     |     Unions                                                             | Done        |
 |                     |     Functions & Methods                                                | Done        |
-|                     |     Variadic                                                           | Planned     |
+|                     | Variadic Generic Arguments                                             | Planned     |
 |                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
 |                     | `restrict`, `out`, `inout`, `volatile`                                 | Done        |
 |                     | Extern                                                                 | Done        |

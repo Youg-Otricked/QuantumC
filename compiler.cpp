@@ -747,7 +747,7 @@ AnyNode Parser::default_value_for_type(const Token& type_tok, const Position& po
     if (type == "addr_t") return AnyNode{NumberNode(Token(TokenType::ADDR_T, "0", pos))};
 
     if (type == "string") return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};
-    if (type == "char") return AnyNode{CharNode(Token(TokenType::CHAR, "\0", pos))};
+    if (type == "char") return AnyNode{CharNode(Token(TokenType::CHAR, std::string(1, '\0'), pos))};
     if (type == "bool") return AnyNode{BoolNode(Token(TokenType::BOOL, "false", pos))};
     if (type == "qbool") return AnyNode{QBoolNode(Token(TokenType::QBOOL, "none", pos))};
     return AnyNode{std::monostate{}};
@@ -6851,14 +6851,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
         }
+        bool isCharOperation = false;
         if ((lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) && (op == TokenType::PLUS || op == TokenType::MINUS)) {
             if (lty == builder->getInt8Ty() && rty != builder->getInt8Ty()) {
                 L = builder->CreateSExt(L, rty, "char_promote");
                 lty = rty;
+                isCharOperation = true;
             } else if (rty == builder->getInt8Ty() && lty != builder->getInt8Ty()) {
                 R = builder->CreateSExt(R, lty, "char_promote");
+                auto tmp = L;
+                L = R;
+                R = tmp;
                 rty = lty;
+                isCharOperation = true;
             }
+
         }
         if (lty != rty) {
             if (lty->isFloatTy() && rty->isDoubleTy()) {
@@ -6871,7 +6878,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 unsigned lBits = lty->getIntegerBitWidth();
                 unsigned rBits = rty->getIntegerBitWidth();
                 if (lBits == 1 || rBits == 1 || lBits == 2 || rBits == 2 || lBits == 8 || rBits == 8) {
-                    if (lBits != rBits) {}
                 } else {
                     if (lBits < rBits) {
                         L = builder->CreateSExt(L, rty, "promote_int");
@@ -6892,8 +6898,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         bool isFloatTy = lty->isFloatingPointTy();
         switch ((*bin)->op_tok.type) {
         case TokenType::PLUS:
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
+            if (lty->isIntegerTy(8) && !isCharOperation) {
+                cg_error((*bin)->op_tok.pos, "Cannot add 2 chars together");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
@@ -6941,12 +6947,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
-            return isFloatTy ? builder->CreateFAdd(L, R, "fadd") : builder->CreateAdd(L, R, "add");
+            return isFloatTy ? builder->CreateFAdd(L, R, "fadd") : isCharOperation ? builder->CreateTrunc(builder->CreateAdd(L, R, "add"), builder->getInt8Ty(), "trunc_char")
+                                                                                  : builder->CreateAdd(L, R, "add");
         case TokenType::MINUS:
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
-                return nullptr;
-            }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
@@ -6993,7 +6996,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
-            return isFloatTy ? builder->CreateFSub(L, R, "fsub") : builder->CreateSub(L, R, "sub");
+            return isFloatTy ? builder->CreateFSub(L, R, "fsub") : isCharOperation ? 
+                                                                        builder->CreateTrunc(builder->CreateSub(L, R, "sub"), builder->getInt8Ty(), "trunc_char")
+                                                                        : builder->CreateSub(L, R, "sub");
         case TokenType::MUL:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
@@ -10183,7 +10188,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         return retTy->isVoidTy() ? nullptr : callInst;
     } else if (auto arrAcc = safe_get<ArrayAccessNode>(node)) {
         std::string ptrTy = getExpressionType(arrAcc->base);
-        if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
+        if (ptrTy.ends_with("*") || ptrTy == "@nullptr" || ptrTy == "string") {
             if (ptrTy == "@nullptr") {
                 cg_error(Position(), "Attempted to dereference nullptr");
                 return nullptr;
@@ -10198,7 +10203,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
-            ptrTy.pop_back();
+            if (ptrTy == "string") {
+                ptrTy = "char";
+            } else {
+                ptrTy.pop_back();
+            }
             llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy), emitExpr(arrAcc->base), value, "ptr_arr_addr");
             return builder->CreateLoad(llvmTypeFor(ptrTy), addr, "ptr_arr_val");
         }
@@ -10274,7 +10283,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, resolveVolatileVar(name), "arr_ptr");
                 llvm::Value* indexVal = emitExpr(arrAcc->indices[0]);
                 if (!indexVal) return nullptr;
-                std::string baseType = findArrayType(name)->second;
+                auto it = findArrayType(name);
+                if (it == arrayTypeStrings.end()) {
+                    cg_error(Position(), "Failed to find array access type");
+                    return nullptr;
+                }
+                std::string baseType = it->second;
                 llvm::Type* elemTy = llvmTypeFor(baseType);
                 llvm::Value* elemPtr = builder->CreateGEP(elemTy, ptr, indexVal, "arr_elem_ptr");
                 return builder->CreateLoad(elemTy, elemPtr, resolveVolatileVar(name), "arr_elem");
@@ -13510,12 +13524,14 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (config.compile_mode) {
             llvm::LLVMContext context;
             auto master_module = new llvm::Module("master_module", context);
-            llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
-            llvm::SMDiagnostic err;
-            llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
-            auto modulePtr = llvm::parseIR(bufRef, err, context);
-            if (!modulePtr) { throw "Failed to load runtime.ll"; }
-            if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
+            if (config.use_runtime) {
+                llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
+                llvm::SMDiagnostic err;
+                llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
+                auto modulePtr = llvm::parseIR(bufRef, err, context);
+                if (!modulePtr) { throw "Failed to load runtime.ll"; }
+                if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
+            }
 #ifdef __EMSCRIPTEN__
             llvm::InitializeAllTargets();
             llvm::InitializeAllTargetMCs();
@@ -13660,8 +13676,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 message = "Program exited with code: 1";
                 return Mer{ast, resp, message, diagnostics};
             }
-            for (llvm::Function& F : master_module->functions()) {
-                if (F.getName().starts_with("qc_") || F.getName().starts_with("__qc_") || F.getName().starts_with("_qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
+            if (config.use_runtime) {
+                for (llvm::Function& F : master_module->functions()) {
+                    if (F.getName().starts_with("qc_") || F.getName().starts_with("__qc_") || F.getName().starts_with("_qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
+                }
             }
 #ifndef __EMSCRIPTEN__
             if (config.optimize) {
@@ -13867,11 +13885,34 @@ Token Lexer::make_string() {
     while (this->current_char != '\0' && (this->current_char != '"' || escape_character)) {
         if (escape_character) {
             switch (this->current_char) {
-            case 'n': str += '\n'; break;
+            case '0': str += '\0'; break;
+            case 'a': str += '\a'; break;
+            case 'b': str += '\b'; break;
             case 't': str += '\t'; break;
+            case 'n': str += '\n'; break;
+            case 'v': str += '\v'; break;
+            case 'f': str += '\f'; break;
             case 'r': str += '\r'; break;
             case '\\': str += '\\'; break;
-            case '"': str += '\"'; break;
+            case '"': str += '"'; break;
+            case 'x': {
+                this->advance();
+                if (!std::isxdigit(this->current_char)) {
+                    throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos);
+                }
+                std::string hex = "";
+                while (std::isxdigit(this->current_char) && hex.size() < 2) {
+                    hex += this->current_char;
+                    this->advance();
+                }
+                if (hex.size() != 2) {
+                    throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos);
+                }
+
+                str += static_cast<char>(std::stoi(hex, nullptr, 16));
+
+                break;
+            }
             default: str += this->current_char; break;
             }
             escape_character = false;
@@ -13901,12 +13942,34 @@ Token Lexer::make_char() {
     if (this->current_char == '\\') {
         this->advance();
         switch (this->current_char) {
-        case 'n': val = "\n"; break;
-        case 't': val = "\t"; break;
-        case 'r': val = "\r"; break;
-        case '\'': val = "\'"; break;
-        case '\\': val = "\\"; break;
-        default: val = std::string(1, this->current_char); break;
+        case '0': val = std::string(1, '\0'); break;
+        case 'a': val = std::string(1, '\a'); break; 
+        case 'b': val = std::string(1, '\b'); break;
+        case 't': val = std::string(1, '\t'); break;
+        case 'n': val = std::string(1, '\n'); break;
+        case 'v': val = std::string(1, '\v'); break;
+        case 'f': val = std::string(1, '\f'); break;
+        case 'r': val = std::string(1, '\r'); break;
+        case '\\': val = std::string(1, '\\'); break; 
+        case '\'': val = std::string(1, '\''); break;
+        case '"': val = std::string(1, '"'); break;
+        case 'x': {
+            this->advance();
+            std::string hex = "";
+            for (int i = 0; i < 2; i++) {
+                if (!std::isxdigit(this->current_char)) {
+                    throw IllegalCharError("QC-IC01: Invalid hex escape", this->pos);
+                }
+                hex += this->current_char;
+                this->advance();
+            }
+            int byte = std::stoi(hex, nullptr, 16);
+            val = std::string(1, static_cast<char>(byte));
+            break;
+        }
+        default:
+            val = std::string(1, this->current_char);
+            break;
         }
         this->advance();
     } else {
@@ -13931,11 +13994,34 @@ Token Lexer::make_fstring() {
     while (this->current_char != '\0' && (this->current_char != '"' || escape)) {
         if (escape) {
             switch (this->current_char) {
-            case 'n': current += '\n'; break;
+            case '0': current += '\0'; break;
+            case 'a': current += '\a'; break;
+            case 'b': current += '\b'; break;
             case 't': current += '\t'; break;
+            case 'n': current += '\n'; break;
+            case 'v': current += '\v'; break;
+            case 'f': current += '\f'; break;
             case 'r': current += '\r'; break;
             case '\\': current += '\\'; break;
             case '"': current += '"'; break;
+            case 'x': {
+                this->advance();
+                if (!std::isxdigit(this->current_char)) {
+                    throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos);
+                }
+                std::string hex = "";
+                while (std::isxdigit(this->current_char) && hex.size() < 2) {
+                    hex += this->current_char;
+                    this->advance();
+                }
+                if (hex.size() != 2) {
+                    throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos);
+                }
+
+                current += static_cast<char>(std::stoi(hex, nullptr, 16));
+
+                break;
+            }
             default: current += this->current_char; break;
             }
             escape = false;

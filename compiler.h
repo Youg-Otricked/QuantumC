@@ -1182,6 +1182,7 @@ struct RunConfig {
     std::string opt_level = "O2";
     std::string output_file = "a.out";
     bool output_wasm = false;
+    bool use_runtime = true;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
@@ -1532,6 +1533,7 @@ class LLVMCompiler {
             if (leftType == rightType) return leftType;
             if (leftType == "double" || rightType == "double") return "double";
             if (leftType == "float" || rightType == "float") return "float";
+            if (leftType == "char" && rightType == "char") return "int";
             return leftType;
         } else if (auto strNode = std::get_if<StringNode>(&node)) {
             return "string";
@@ -1562,6 +1564,8 @@ class LLVMCompiler {
             std::string baseType = getExpressionType((*arrAcc)->base);
             if (baseType.ends_with("*")) {
                 return baseType.substr(0, baseType.size() - 1);
+            } else if (baseType == "string") {
+                return "char";
             } else {
                 if (auto varAcc = std::get_if<VarAccessNode*>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;

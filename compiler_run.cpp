@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.19.0";
+const std::string ver = "x0.20.0";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -231,8 +231,15 @@ Options:
   -oo, --object-only  Only compile up to object (.o) file
   -o, --output        Specift output file for compilation (defaults to a.out)
   -co, --compile-only Only compile to llvm, don't do anything else
-  -d, --debug         Adds debug symbols
   -sv, --silent-version Print just the version without the rest of the version output
+  -nrt, --no-runtime
+    Disable automatic QC runtime linking.
+    Generated code may still call runtime functions, but their
+    implementations must be provided manually by the user.
+    This allows custom runtimes or freestanding programs.
+    Features depending on runtime helpers, including string concatenation,
+    fstrings, conversion helpers, variadic helpers, and other runtime-backed
+    functions, require equivalent user-provided implementations.
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @print-ast == -a
@@ -248,6 +255,8 @@ Examples:
             )" << RESET
                       << std::endl;
             return 0;
+        } else if (arg == "--no-runtime" || arg == "-nrt") {
+            config.use_runtime = false;
         } else {
             filename = arg;
         }

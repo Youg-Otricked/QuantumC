@@ -7,13 +7,13 @@
 #include <cstring>
 #include <ctime>
 extern "C" {
-const char* __qc_version() {
+const char* __qc_version() { // self hosted
     return "x0.18.3";
 }
-int __qc_llvm_ver() {
+int __qc_llvm_ver() { // self hosted
     return 21;
 }
-void __qc_release_notes() {
+void __qc_release_notes() { // self hosted
     printf("Added generic functions & methods, deprecated `auto` functions");
 }
 void* qc_malloc(size_t size) {
@@ -227,7 +227,7 @@ bool qc_string_eq(const char* a, const char* b) {
     if (!a || !b) return 0;
     return strcmp(a, b) == 0 ? 1 : 0;
 }
-uint8_t qc_qand(uint8_t a, uint8_t b) {
+uint8_t qc_qand(uint8_t a, uint8_t b) { // self hosted
     if (a == 0 || a == 1 || b == 0 || b == 1) return 1;
     if (a == 2 && b == 2) return 2;
     if (a == 2 && b == 3) return 3;
@@ -235,7 +235,7 @@ uint8_t qc_qand(uint8_t a, uint8_t b) {
     return 3;
 }
 
-uint8_t qc_qor(uint8_t a, uint8_t b) {
+uint8_t qc_qor(uint8_t a, uint8_t b) { // self hosted 
     if (a == 0 && b == 0) return 0;
     if (a == 0 && b == 1) return 1;
     if (a == 0 && b == 2) return 2;
@@ -246,7 +246,7 @@ uint8_t qc_qor(uint8_t a, uint8_t b) {
     return 3;
 }
 
-uint8_t qc_qxor(uint8_t a, uint8_t b) {
+uint8_t qc_qxor(uint8_t a, uint8_t b) { // self hosted
     if (a <= 1 && b <= 1) return 0;
     if (a <= 1 && b >= 2) return 3;
     if (a >= 2 && b <= 1) return 3;
@@ -254,15 +254,15 @@ uint8_t qc_qxor(uint8_t a, uint8_t b) {
     return 3;
 }
 
-uint8_t qc_qnot(uint8_t a) {
+uint8_t qc_qnot(uint8_t a) { // self hosted 
     return 3 - a;
 }
 
-bool qc_qand_collapse(uint8_t a, uint8_t b) {
+bool qc_qand_collapse(uint8_t a, uint8_t b) { // self hosted
     return (a & 0b10) && (b & 0b10);
 }
 
-bool qc_qor_collapse(uint8_t a, uint8_t b) {
+bool qc_qor_collapse(uint8_t a, uint8_t b) { // self hosted
     return (a & 0b10) || (b & 0b10);
 }
 char* qc_to_string_int(int x) {
@@ -417,7 +417,7 @@ int qc_random_int(int max) {
 int qc_random_range(int min, int max) {
     return min + (rand() % (max - min));
 }
-int qc_len(const char* str) {
+int qc_len(const char* str) { // self hosted
     return strlen(str);
 }
 
@@ -605,81 +605,6 @@ float qc_to_float_from_int(int x) {
 double qc_to_double_from_int(int x) {
     return (double)x;
 }
-
-void qc_print(const char* s) {
-    if (s) printf("%s", s);
-}
-
-void qc_println(const char* s) {
-    if (s)
-        printf("%s\n", s);
-    else
-        printf("\n");
-}
-void qc_print_array_int(int* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("%d", arr[i]);
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-
-void qc_print_array_float(float* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("%g", arr[i]);
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-void qc_print_array_double(double* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("%g", arr[i]);
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-void qc_print_array_string(char** arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("\"%s\"", arr[i]);
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-void qc_print_array_char(char* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("'%c'", arr[i]);
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-
-void qc_print_array_bool(bool* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        printf("%s", arr[i] ? "true" : "false");
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
-
-void qc_print_array_qbool(uint8_t* arr, int size) {
-    printf("[");
-    for (int i = 0; i < size; i++) {
-        switch (arr[i] & 0x3) {
-        case 0: printf("none"); break;
-        case 1: printf("qfalse"); break;
-        case 2: printf("qtrue"); break;
-        case 3: printf("both"); break;
-        }
-        if (i < size - 1) printf(", ");
-    }
-    printf("]");
-}
 int qc_sizeof_type(int elem_type) {
     switch (elem_type) {
     case 0: return sizeof(int);
@@ -743,40 +668,6 @@ char* qc_array_to_string_recursive(void* arr, int elem_type, int ndims, int* dim
 
     return result;
 }
-
-void qc_print_array_recursive(void* arr, int elem_type, int ndims, int* dims) {
-    if (ndims == 0) {
-        switch (elem_type) {
-        case 0: printf("%d", *(int*)arr); break;
-        case 1: printf("%g", *(float*)arr); break;
-        case 2: printf("%g", *(double*)arr); break;
-        case 3: printf("'%c'", *(char*)arr); break;
-        case 4: printf("%s", *(bool*)arr ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)arr & 0x3;
-            switch (q) {
-            case 0: printf("none"); break;
-            case 1: printf("qfalse"); break;
-            case 2: printf("qtrue"); break;
-            case 3: printf("both"); break;
-            }
-            break;
-        }
-        case 6: printf("\"%s\"", *(char**)arr); break;
-        }
-        return;
-    }
-    printf("[");
-    int elem_size = qc_sizeof_type(elem_type);
-    for (int i = 1; i < ndims; i++) { elem_size *= dims[i]; }
-
-    for (int i = 0; i < dims[0]; i++) {
-        void* elem_ptr = (char*)arr + (i * elem_size);
-        qc_print_array_recursive(elem_ptr, elem_type, ndims - 1, dims + 1);
-        if (i < dims[0] - 1) printf(", ");
-    }
-    printf("]");
-}
 struct qc_jagged_array {
     void** data;
     int* sizes;
@@ -808,43 +699,6 @@ void qc_free_jagged_array(qc_jagged_array* arr) {
     free(arr->data);
     free(arr->sizes);
     free(arr);
-}
-
-void qc_print_jagged_array_recursive(qc_jagged_array* arr) {
-    printf("[");
-    for (int i = 0; i < arr->count; i++) {
-        if (arr->depth > 1) {
-            qc_print_jagged_array_recursive((qc_jagged_array*)arr->data[i]);
-        } else if (arr->depth == 1) {
-            void* row = arr->data[i];
-            printf("[");
-            for (int j = 0; j < arr->sizes[i]; j++) {
-                void* elem_ptr = (char*)row + (j * qc_sizeof_type(arr->elem_type));
-
-                switch (arr->elem_type) {
-                case 0: printf("%d", *(int*)elem_ptr); break;
-                case 1: printf("%g", *(float*)elem_ptr); break;
-                case 2: printf("%g", *(double*)elem_ptr); break;
-                case 3: printf("'%c'", *(char*)elem_ptr); break;
-                case 4: printf("%s", *(bool*)elem_ptr ? "true" : "false"); break;
-                case 5: {
-                    uint8_t q = *(uint8_t*)elem_ptr & 0x3;
-                    printf("%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-                    break;
-                }
-                case 6: printf("\"%s\"", *(char**)elem_ptr); break;
-                }
-
-                if (j < arr->sizes[i] - 1) printf(", ");
-            }
-            printf("]");
-        } else {
-            printf("ERROR");
-        }
-
-        if (i < arr->count - 1) printf(", ");
-    }
-    printf("]");
 }
 void* qc_jagged_array_get(qc_jagged_array* arr, int* indices, int num_indices) {
     if (num_indices == 0 || !arr) { return nullptr; }
@@ -970,217 +824,6 @@ char* qc_jagged_to_string(qc_jagged_array* arr) {
     *p = '\0';
 
     return result;
-}
-typedef struct {
-    void** keys;
-    void** values;
-    int size;
-    int capacity;
-    int key_type;
-    int value_type;
-} qc_map;
-
-qc_map* qc_create_map(int key_type, int value_type) {
-    qc_map* map = (qc_map*)malloc(sizeof(qc_map));
-    map->capacity = 4;
-    map->size = 0;
-    map->key_type = key_type;
-    map->value_type = value_type;
-    map->keys = (void**)malloc(map->capacity * sizeof(void*));
-    map->values = (void**)malloc(map->capacity * sizeof(void*));
-    return map;
-}
-bool qc_compare_keys(void* k1, void* k2, int type) {
-    if (!k1 || !k2) return false;
-
-    switch (type) {
-    case 0: return *(int*)k1 == *(int*)k2;
-    case 1: return *(float*)k1 == *(float*)k2;
-    case 2: return *(double*)k1 == *(double*)k2;
-    case 3: return *(char*)k1 == *(char*)k2;
-    case 4: return *(bool*)k1 == *(bool*)k2;
-    case 5: return *(uint8_t*)k1 == *(uint8_t*)k2;
-    case 6: return strcmp((char*)k1, (char*)k2) == 0;
-    default: return false;
-    }
-}
-void qc_map_set(qc_map* map, void* key, void* value) {
-    for (int i = 0; i < map->size; i++) {
-        if (qc_compare_keys(map->keys[i], key, map->key_type)) {
-            if (map->value_type <= 5) {
-                int size = qc_sizeof_type(map->value_type);
-                if (!map->values[i]) { map->values[i] = malloc(size); }
-                memcpy(map->values[i], value, size);
-            } else if (map->key_type == 6) {
-                char* str = (char*)key;
-                map->keys[map->size] = (void*)strdup(str);
-            } else {
-                map->values[i] = value;
-            }
-            return;
-        }
-    }
-
-    if (map->size >= map->capacity) {
-        map->capacity *= 2;
-        map->keys = (void**)realloc(map->keys, map->capacity * sizeof(void*));
-        map->values = (void**)realloc(map->values, map->capacity * sizeof(void*));
-    }
-    if (map->key_type <= 5) {
-        int size = qc_sizeof_type(map->key_type);
-        void* key_copy = malloc(size);
-        memcpy(key_copy, key, size);
-        map->keys[map->size] = key_copy;
-    } else if (map->key_type == 6) {
-        char* str = (char*)key;
-        map->keys[map->size] = (void*)strdup(str);
-    } else {
-        map->keys[map->size] = key;
-    }
-
-    if (map->value_type <= 5) {
-        int size = qc_sizeof_type(map->value_type);
-        void* val_copy = malloc(size);
-        memcpy(val_copy, value, size);
-        map->values[map->size] = val_copy;
-    } else if (map->value_type == 6) {
-        char* str = (char*)value;
-        map->values[map->size] = (void*)strdup(str);
-    } else {
-        map->values[map->size] = value;
-    }
-
-    map->size++;
-}
-
-void* qc_map_get(qc_map* map, void* key) {
-    for (int i = 0; i < map->size; i++) {
-        if (qc_compare_keys(map->keys[i], key, map->key_type)) { return map->values[i]; }
-    }
-    return nullptr;
-}
-void qc_print_map(qc_map* map) {
-    printf("{");
-    for (int i = 0; i < map->size; i++) {
-        switch (map->key_type) {
-        case 0: printf("%d", *(int*)map->keys[i]); break;
-        case 1: printf("%g", *(float*)map->keys[i]); break;
-        case 2: printf("%g", *(double*)map->keys[i]); break;
-        case 3: printf("'%c'", *(char*)map->keys[i]); break;
-        case 4: printf("%s", *(bool*)map->keys[i] ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)map->keys[i] & 0x3;
-            printf("%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-            break;
-        }
-        case 6: printf("\"%s\"", (char*)map->keys[i]); break;
-        }
-
-        printf(": ");
-
-        switch (map->value_type) {
-        case 0: printf("%d", *(int*)map->values[i]); break;
-        case 1: printf("%g", *(float*)map->values[i]); break;
-        case 2: printf("%g", *(double*)map->values[i]); break;
-        case 3: printf("'%c'", *(char*)map->values[i]); break;
-        case 4: printf("%s", *(bool*)map->values[i] ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)map->values[i] & 0x3;
-            printf("%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-            break;
-        }
-        case 6: printf("\"%s\"", (char*)map->values[i]); break;
-        }
-
-        if (i < map->size - 1) printf(", ");
-    }
-    printf("}");
-}
-
-char* qc_map_to_string(qc_map* map) {
-    int est_size = 256;
-    char* result = (char*)malloc(est_size);
-    char* p = result;
-    int remaining = est_size;
-
-    *p++ = '{';
-    remaining--;
-
-    for (int i = 0; i < map->size; i++) {
-        char buf[128];
-
-        switch (map->key_type) {
-        case 0: snprintf(buf, 128, "%d", *(int*)map->keys[i]); break;
-        case 1: snprintf(buf, 128, "%g", *(float*)map->keys[i]); break;
-        case 2: snprintf(buf, 128, "%g", *(double*)map->keys[i]); break;
-        case 3: snprintf(buf, 128, "'%c'", *(char*)map->keys[i]); break;
-        case 4: snprintf(buf, 128, "%s", *(bool*)map->keys[i] ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)map->keys[i] & 0x3;
-            snprintf(buf, 128, "%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-            break;
-        }
-        case 6: snprintf(buf, 128, "\"%s\"", (char*)map->keys[i]); break;
-        }
-
-        int len = strlen(buf);
-        if (remaining < len + 10) {
-            int offset = p - result;
-            est_size *= 2;
-            result = (char*)realloc(result, est_size);
-            p = result + offset;
-            remaining = est_size - offset;
-        }
-
-        strcpy(p, buf);
-        p += len;
-        remaining -= len;
-
-        *p++ = ':';
-        *p++ = ' ';
-        remaining -= 2;
-
-        switch (map->value_type) {
-        case 0: snprintf(buf, 128, "%d", *(int*)map->values[i]); break;
-        case 1: snprintf(buf, 128, "%g", *(float*)map->values[i]); break;
-        case 2: snprintf(buf, 128, "%g", *(double*)map->values[i]); break;
-        case 3: snprintf(buf, 128, "'%c'", *(char*)map->values[i]); break;
-        case 4: snprintf(buf, 128, "%s", *(bool*)map->values[i] ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)map->values[i] & 0x3;
-            snprintf(buf, 128, "%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-            break;
-        }
-        case 6: snprintf(buf, 128, "\"%s\"", (char*)map->values[i]); break;
-        }
-
-        len = strlen(buf);
-        if (remaining < len + 10) {
-            int offset = p - result;
-            est_size *= 2;
-            result = (char*)realloc(result, est_size);
-            p = result + offset;
-            remaining = est_size - offset;
-        }
-
-        strcpy(p, buf);
-        p += len;
-        remaining -= len;
-
-        if (i < map->size - 1) {
-            *p++ = ',';
-            *p++ = ' ';
-            remaining -= 2;
-        }
-    }
-
-    *p++ = '}';
-    *p = '\0';
-
-    return result;
-}
-int qc_map_size(qc_map* map) {
-    return map->size;
 }
 void* qc_fopen(const char* path, const char* mode) {
     FILE* f = fopen(path, mode);
