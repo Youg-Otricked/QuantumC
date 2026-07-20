@@ -1,6 +1,10 @@
-# QuantumC (C⁴)
+# QuantumC (C⁴/C^4)
 
 ### The 4th Evolution of C
+
+QuantumC (C⁴) is a general-purpose systems programming language.
+It is **not** a quantum computing language. It does not simulate quantum logic,
+compile to quantum circuits, or run on quantum hardware. QuantumC (C^4) is unrelated to the C99-to-OpenQASM compiler, QuantumC
 
 ```qc
 int main() {
@@ -8,8 +12,6 @@ int main() {
     return 0;
 }
 ```
-
-## **THIS IS NOT A QCL**. It does not simulate quantum logic. It does not run on a quantum computer. It is a normal programming language.
 
 Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
 Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).

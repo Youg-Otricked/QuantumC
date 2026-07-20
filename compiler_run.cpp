@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.20.0";
+const std::string ver = "x0.20.1";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -257,6 +257,8 @@ Examples:
             return 0;
         } else if (arg == "--no-runtime" || arg == "-nrt") {
             config.use_runtime = false;
+        } else if (arg == "-dump-tokens") {
+            config.dump_tokens = true;
         } else {
             filename = arg;
         }
@@ -429,6 +431,7 @@ Examples:
         spin_thread.join();
         bool has_fatal = false;
         bool has_warnings = false;
+        if (config.dump_tokens) return 0;
         if (!config.quiet_mode) { slow_print("=== Diagnostics ===\n", BOLD); }
         for (const auto& diag : result.errors) {
             std::string color;

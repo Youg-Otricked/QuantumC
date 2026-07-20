@@ -13474,8 +13474,33 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 }
             }
         }
-        Lexer lexer(cleaned_files[path], path);
-        Ler file_resp = lexer.make_tokens();
+        Ler file_resp;
+        try {
+            Lexer lexer(cleaned_files[path], path);
+            file_resp = lexer.make_tokens();
+            if (config.dump_tokens && file == path && file_resp.error != nullptr) {
+                std::cout << "\n##DUMP##" << '\n' << file_resp.error->pos.line << " " << file_resp.error->pos.column
+                    << " " << file_resp.error->pos.length << " " << file_resp.error->details << '\n' << "########" << '\n';
+                return;
+            }
+        } catch (IllegalCharError e) {
+            if (config.dump_tokens) {
+                std::cout << "\n##DUMP##" << '\n' << e.pos.line << " " << e.pos.column
+                    << " " << e.pos.length << " " << e.details << '\n' << "########" << '\n';
+                return;
+            } else {
+                throw e;
+            }
+        } 
+        if (config.dump_tokens && file == path) {
+            std::cout << "\n##DUMP##" << '\n';
+            for (const auto& tok : file_resp.Tkns) { 
+                std::cout << tok.pos.line << " " << tok.pos.column << " " << tok.pos.length <<
+                    " " << get_token_name(tok.type) << '\n';
+            }
+            std::cout << "########" << '\n';
+            return;
+        }
         Parser parser(file_resp.Tkns, visible_types);
         bool saved_no_main = no_main;
         no_main = ((path == file) ? no_main : true);
@@ -13487,15 +13512,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     };    
     try {
         process_file(file);
+        if (config.dump_tokens) {
+            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>(), nullptr}, ""};
+        }
     } catch (InvalidSyntaxError& e) {
         std::cout << '\n' << e.as_string() << '\n';
         return Mer{Aer{nullptr, nullptr}, resp, ""};
     }
     Aer ast = file_asts[file];
     if (config.print_tokens) {
-        std::cout << "=== TOKENS ===" << std::endl;
-        for (const auto& tok : resp.Tkns) { std::cout << "Type: " << get_token_name(tok.type) << " | Value: '" << tok.value << "'" << std::endl; }
-        std::cout << "==============" << std::endl << std::endl;
+        std::cout << "=== TOKENS ===" << '\n';
+        for (const auto& tok : resp.Tkns) { std::cout << "Type: " << get_token_name(tok.type) << " | Value: '" << tok.value << "'" << '\n'; }
+        std::cout << "==============" << '\n' << '\n';
     }
     if (ast.error) { return Mer{ast, resp, ""}; }
     if (config.print_ast) {
