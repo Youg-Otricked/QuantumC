@@ -107,8 +107,8 @@ Minor (Mi) and Patch (P) are always a single decimal digit (0-9). Once a minor v
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.0 = "Self-Hosted Runtime (Part 1)"
-Next Version: x0.20.1 = "Self-Hosted Runtime (Part 2)"
+Current Version: x0.20.1 = "Self-Hosted Runtime (Part 2)"
+Next Version: x0.20.2 = "Self-Hosted Runtime (Part 3)"
 
 # Current Version Highlights
 
