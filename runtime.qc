@@ -18,6 +18,23 @@ void __qc_release_notes() {
     )", "Added generic functions & methods, deprecated `auto` functions\n", "~{rax}~{rdi}~{rsi}~{rdx}");
 }
 ///////////////////
+// VARIADICS /////
+/////////////////
+struct qc_variadic {
+    void** items;
+    int count;
+    int current_index;
+};
+bool qc_variadic_is_empty(qc_variadic* variadic) {
+    return variadic->current_index >= variadic->count;
+}
+void* qc_variadic_next(qc_variadic* variadic) {
+    if (qc_variadic_is_empty(variadic)) { return nullptr; }
+    void* data = variadic->items[variadic->current_index];
+    variadic->current_index++;
+    return data;
+}
+///////////////////
 // Q LOGICAL /////
 /////////////////
 
@@ -84,4 +101,5 @@ int qc_powi_i32(int base, int exp) {
     }
     return result;
 }
+
 :extern

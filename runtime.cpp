@@ -856,11 +856,11 @@ typedef struct {
     void** items;
     int count;
     int current_index;
-} qc_variadic;
+} qc_variadic; // self hosted
 bool qc_variadic_is_empty(qc_variadic* variadic) {
-    return variadic->current_index >= variadic->count;
+    return variadic->current_index >= variadic->count; // self hosted
 }
-void* qc_variadic_next(qc_variadic* variadic) {
+void* qc_variadic_next(qc_variadic* variadic) { // self hosted
     if (qc_variadic_is_empty(variadic)) { return nullptr; }
     void* data = variadic->items[variadic->current_index];
     variadic->current_index++;

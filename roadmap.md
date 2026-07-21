@@ -73,7 +73,6 @@ typedef struct {
 ```
 - Constexpr
 - Debug
-- ~destructor
 - Void in () which means dont call with params or () and only for code block functions
 ```cpp
 void loop(void) code {

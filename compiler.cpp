@@ -5133,7 +5133,9 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     structTypes[mangled_struct_name]->setBody(fieldTypes);
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_struct_name);
-    generateStructReprFunction(mangled_struct_name, structInfo);
+    if (this->config.use_runtime) {
+        generateStructReprFunction(mangled_struct_name, structInfo);
+    }
     this->currentGenericTypes = oldGenericTypes;
     this->currentGenericTypeStrings = oldGenericTypeStrings;
     currentNonTypeGenericValues = oldNonTypeGenerics;
@@ -5628,7 +5630,9 @@ void LLVMCompiler::createUserTypes() {
             namespaceStack = oldNamespaceStack;
         }
     } 
-    generateStructReprFunctions();
+    if (this->config.use_runtime) {
+        generateStructReprFunctions();
+    }
 }
 ParamTypeInfo toTypeInfo(const Parameter& p) {
     ParamTypeInfo out;
@@ -13479,7 +13483,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             Lexer lexer(cleaned_files[path], path);
             file_resp = lexer.make_tokens();
             if (config.dump_tokens && file == path && file_resp.error != nullptr) {
-                std::cout << "\n##DUMP##" << '\n' << file_resp.error->pos.line << " " << file_resp.error->pos.column
+                std::cout << "\n##DUMP##" << '\n' << "ERROR: " << file_resp.error->pos.line << " " << file_resp.error->pos.column
                     << " " << file_resp.error->pos.length << " " << file_resp.error->details << '\n' << "########" << '\n';
                 return;
             }
@@ -13661,6 +13665,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     }
                 }
                 LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
+                comp.config = config;
                 std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLen, visVars,
                                                          visAlloc, visLamb, visSpec, visGlobals);
                 if (!errs.empty()) {

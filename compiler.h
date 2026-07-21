@@ -1201,6 +1201,7 @@ struct FunctionSignature {
 
 class LLVMCompiler {
   public:
+    RunConfig config;
     llvm::LLVMContext& context;
     llvm::Module* module;
     llvm::IRBuilder<>* builder;
