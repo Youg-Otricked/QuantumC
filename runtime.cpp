@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <unistd.h>
 extern "C" {
 const char* __qc_version() { // self hosted
     return "x0.18.3";
@@ -226,7 +227,7 @@ char* qc_string_concat(const char* a, const char* b) {
 bool qc_string_eq(const char* a, const char* b) {
     if (!a || !b) return 0;
     return strcmp(a, b) == 0 ? 1 : 0;
-}
+} // self hosted
 uint8_t qc_qand(uint8_t a, uint8_t b) { // self hosted
     if (a == 0 || a == 1 || b == 0 || b == 1) return 1;
     if (a == 2 && b == 2) return 2;
@@ -825,33 +826,30 @@ char* qc_jagged_to_string(qc_jagged_array* arr) {
 
     return result;
 }
-void* qc_fopen(const char* path, const char* mode) {
+int qc_open(const char* path, const char* mode) {
     FILE* f = fopen(path, mode);
-    return (void*)f;
-}
+    if (f == nullptr) return -1;
+    return fileno(f);
+}// self hosted
+void qc_close(int fd) {
+    close(fd);
+}// self hosted
 
-void qc_fclose(void* file) {
-    if (file) fclose((FILE*)file);
-}
-
-char* qc_fread(void* file) {
-    if (!file) return strdup("");
-
+char *qc_read(int fd) {
     char buffer[1024];
-    if (fgets(buffer, sizeof(buffer), (FILE*)file)) {
-        size_t len = strlen(buffer);
-        if (len > 0 && buffer[len - 1] == '\n') { buffer[len - 1] = '\0'; }
-        return strdup(buffer);
-    }
-    return strdup("");
-}
 
-void qc_fwrite(void* file, const char* data) {
-    if (file && data) {
-        fputs(data, (FILE*)file);
-        fputc('\n', (FILE*)file);
-    }
-}
+    ssize_t n = read(fd, buffer, sizeof(buffer) - 1);
+    if (n <= 0)
+        return strdup("");
+
+    buffer[n] = '\0';
+    return strdup(buffer);
+} // self hosted
+
+void qc_write(int fd, const char *data) {
+    if (data)
+        write(fd, data, strlen(data));
+} // self hosted
 typedef struct {
     void** items;
     int count;

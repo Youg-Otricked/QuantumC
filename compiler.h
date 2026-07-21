@@ -1528,6 +1528,9 @@ class LLVMCompiler {
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
                 if (type.ends_with("*") && strip) { type.pop_back(); }
             }
+            if ((*unaryOp)->op_tok.type == TokenType::SIZEOF) {
+                return "addr_t";
+            }
             return type;
         } else if (auto binOp = std::get_if<BinOpNode*>(&node)) {
             std::string leftType = getExpressionType((*binOp)->left_node);

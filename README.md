@@ -8,7 +8,7 @@ compile to quantum circuits, or run on quantum hardware. QuantumC (C^4) is unrel
 
 ```qc
 int main() {
-    qout("Hello, World!");
+    `qout("Hello, World!");
     return 0;
 }
 ```
@@ -107,8 +107,8 @@ Minor (Mi) and Patch (P) are always a single decimal digit (0-9). Once a minor v
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.1 = "Self-Hosted Runtime (Part 2)"
-Next Version: x0.20.2 = "Self-Hosted Runtime (Part 3)"
+Current Version: x0.20.2 = "Self-Hosted Runtime (Part 3)"
+Next Version: x0.20.3 = "Self-Hosted Runtime (Part 4)"
 
 # Current Version Highlights
 
@@ -123,7 +123,7 @@ Moderate
 └─ Runtime Selfhosting
 
 Minor
-└─ Self hosted 11/98 runtime functions.
+└─ Self hosted 17/96 runtime functions.
 
 Patch
 └─ N/A
@@ -139,6 +139,8 @@ These are deprecations in the past 3 moderate versions (`x0.17.* -> x0.20.*`)
 4. Removal of `namespace UnitTest` from the standard library (better version coming version `x1.X.X+`)
 5. Deprecation of `auto` params and returns to functions and methods
 6. Deprecated spread (`@`) in function calls
+7. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
+8. All intrinsics now start with `\``
 
 ## Feature Roadmap
 
@@ -219,9 +221,9 @@ Now Turing complete!
 ```cpp
 qbool qb = both;
 qif (qb && qtrue /* evaluates to both */) {
-    qout("True path");   // Executes!
+    `qout("True path");   // Executes!
 } qelse {
-    qout("False path");  // ALSO executes!
+    `qout("False path");  // ALSO executes!
 }
 ```
 
@@ -234,10 +236,10 @@ qif (qb && qtrue /* evaluates to both */) {
 
 ```cpp
 int main() {
-    int* ptr = malloc(sizeof "int");
+    int* ptr = `malloc(sizeof "int");
     *ptr = 42;
-    qout("%p", ptr); 
-    free(ptr);
+    `qout("%p", ptr); 
+    `free(ptr);
 }
 ```
 
@@ -376,7 +378,7 @@ int, string GetStatus() {
 }
 int main() {
     int code, string alias = GetStatus();
-    qout("%s", f"Code: {code}, AKA: {alias}\n");
+    `qout("%s", f"Code: {code}, AKA: {alias}\n");
     return 0;
 }
 ```
@@ -427,7 +429,7 @@ mov rdi, 1
 mov rsi, $0r ; argument 1 (Hello, World!) 
 mov rdx, $1r ; argument 2 (14)
 syscall
-)"/* your inline asm string */, "Hello, World", 14, "~{rax}~{rdi}~{rsi}~{rdx}" /* clobbers */);  
+)"/* your inline asm string */, "Hello, World", 14, "~{rax,rdi,rsi,rdx}" /* clobbers */);  
 ```
 You can also use AT&T ASM syntax by making sure the first 5 characters of your ASM string are 
 ```asm
@@ -482,8 +484,8 @@ QuantumC variadic arguments look like this:
 ```cpp
 int add_all(...args) {
     int res = 0;
-    while (!is_empty(args)) {
-        res += next(args, "int");
+    while (!`is_empty(args)) {
+        res += `next(args, "int");
     }
     return res;
 }
@@ -607,6 +609,8 @@ and may define the following recommended extra methods:
 bool _atStart() // Returns true if the itertor is currently at index 0
 T _prev() // Returns the element at current index -- and decrements current index
 void _moveTo(whateveryouwant idx) // sets index to idx
+MyIterator<T> _map(fn(T elem) -> T) // preforms a operation on every element
+MyClass<T> _collect() // returns the class that this iterator iterates
 ```
 
 Example:
@@ -618,7 +622,7 @@ class ArrayIterator<T> {
     ArrayIterator(T* data, int size, bool is_end) {
         this.data = data;
         this.size = size;
-        this.current_index = ternary(is_end, size - 1, 0);
+        this.current_index = `ternary(is_end, size - 1, 0);
     }
     bool _atEnd() {
         return this.size <= this.current_index;
@@ -660,7 +664,7 @@ class Array<T, int S = 0> {
         } else {
             this.size = S;
         }
-        this.data = malloc(sizeof "T" * this.size);
+        this.data = `malloc(sizeof "T" * this.size);
         for (int i = 0; i < this.size; i++) {
             this.data[i] = data[i];
         }
@@ -703,7 +707,7 @@ namespace Exported {
 int main() {
     Vector::Vec<int> my_vec = [1, 2, 3];
     my_vec.push(123);
-    qout("%i", my_vec[2]);
+    `qout("%i", my_vec[2]);
     return 0;
 }
 ```

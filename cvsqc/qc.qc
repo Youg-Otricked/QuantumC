@@ -16,7 +16,7 @@ void* variadic_next(variadic* v) {
     return data;
 }
 int main() {
-    variadic* v = malloc(sizeof "variadic");
+    variadic* v = `malloc(sizeof "variadic");
     v->items = nullptr;
     v->count = 1; 
     v->current_index = 0;
@@ -26,6 +26,6 @@ int main() {
     bool b = variadic_is_empty(v);
     xp = variadic_next(v);
     x = *xp;
-    free(v);
-    qout("%i, %p, %b", x, xp, b);
+    `free(v);
+    `qout("%i, %p, %b", x, xp, b);
 }

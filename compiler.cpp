@@ -6916,7 +6916,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                      "void pointers");
                         return nullptr;
                     }
-                    if (rType != "int") {
+                    if (!llvmTypeFor(rType)->isIntegerTy()) {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on "
                                                      "ptr lhs and "
                                                      "int rhs, got " +
@@ -8129,6 +8129,30 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (op != TokenType::EQ) {
                         llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
                         bool isFloat = fieldTy->isFloatingPointTy();
+                        if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
+                            if (!rhsVal->getType()->isIntegerTy()) {
+                                cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
+                                return nullptr;
+                            }
+                            llvm::Value *offset = rhsVal;
+                            if (op == TokenType::MINUS_EQ) {
+                                offset = builder->CreateNeg(offset, "neg_offset");
+                            }
+                            std::string baseType = resolvedFieldType;
+                            baseType.pop_back();
+                            llvm::Type *elementTy =
+                                resolvedFieldType == "string"
+                                    ? builder->getInt8Ty()
+                                    : llvmTypeFor(baseType);
+                            llvm::Value *newPtr = builder->CreateGEP(
+                                elementTy, 
+                                oldVal,
+                                offset,
+                                "ptr_add"
+                            );
+                            builder->CreateStore(newPtr, fieldPtr);
+                            return newPtr;
+                        }
                         switch (op) {
                         case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
                         case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
@@ -8164,11 +8188,46 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                 llvm::Value* rhsVal = emitExpr((*asn)->value);
                 TokenType op = (*asn)->op_tok.type;
-
+                std::string resolvedFieldType;
+                std::function<bool(const std::string&)> findFieldType = [&](const std::string& cname) -> bool {
+                    auto& ci = userTypes.at(baseTypeName(baseTypeName(cname)));
+                    if (!ci.baseClassName.empty() && findFieldType(ci.baseClassName)) return true;
+                    for (auto& field : ci.fields) {
+                        if (field.name == fieldName) {
+                            resolvedFieldType = field.type;
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                findFieldType(baseTypeName(structName));
                 if (op != TokenType::EQ) {
                     llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
                     bool isFloat = fieldTy->isFloatingPointTy();
-
+                    if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
+                        if (!rhsVal->getType()->isIntegerTy()) {
+                            cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
+                            return nullptr;
+                        }
+                        llvm::Value *offset = rhsVal;
+                        if (op == TokenType::MINUS_EQ) {
+                            offset = builder->CreateNeg(offset, "neg_offset");
+                        }
+                        std::string baseType = resolvedFieldType;
+                        baseType.pop_back();
+                        llvm::Type *elementTy =
+                            resolvedFieldType == "string"
+                                ? builder->getInt8Ty()
+                                : llvmTypeFor(baseType);
+                        llvm::Value *newPtr = builder->CreateGEP(
+                            elementTy, 
+                            oldVal,
+                            offset,
+                            "ptr_add"
+                        );
+                        builder->CreateStore(newPtr, fieldPtr);
+                        return newPtr;
+                    }
                     switch (op) {
                     case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
                     case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
@@ -8332,6 +8391,33 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
                         return nullptr;
                     }
+                } else if (srcTy->isIntegerTy() && destTy->isPointerTy()) {
+                    if ((*asn)->op_tok.type == TokenType::PLUS_EQ ||
+                         (*asn)->op_tok.type == TokenType::MINUS_EQ) {
+                        llvm::Value *offset = rhsVal;
+                        if ((*asn)->op_tok.type == TokenType::MINUS_EQ) {
+                            offset = builder->CreateNeg(offset, "neg_offset");
+                        }
+                        std::string ptrType = getExpressionType((*asn)->target);
+                        llvm::Type *elementTy;
+                        if (ptrType == "string") {
+                            elementTy = builder->getInt8Ty();
+                        } else {
+                            std::string baseType = ptrType;
+                            baseType.pop_back();
+                            elementTy = llvmTypeFor(baseType);
+                        }
+                        llvm::Value *newPtr = builder->CreateGEP(
+                            elementTy,
+                            oldVal,
+                            offset,
+                            "ptr_add"
+                        );
+                        builder->CreateStore(newPtr, alloc, resolveVolatileVar(name));
+                        return newPtr;
+                    }
+                    cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                    return nullptr;
                 }
             }
         } else {
@@ -8562,14 +8648,51 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if ((*unary)->op_tok.type == TokenType::INCREMENT || (*unary)->op_tok.type == TokenType::DECREMENT) {
+            bool isPostfix = (*unary)->is_postfix;
             llvm::Value* lhsVal = emitExpr((*unary)->node);
             llvm::Value* lhs = emitLValue((*unary)->node);
+            llvm::Type* type = lhsVal->getType();
+            std::string ptrTy = getExpressionType((*unary)->node);
+            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
+            llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, resolveVolatileVar(name), "inc_deref");
+            if (lhsVal->getType()->isPointerTy()) {
+                if (ptrTy == "string") {
+                    ptrTy = "char";
+                } else {
+                    ptrTy.pop_back();
+                }
+                llvm::Value* newVal;
+                llvm::Value* one = llvm::ConstantInt::get(
+                    llvm::Type::getInt64Ty(context),
+                    1
+                );
+                if ((*unary)->op_tok.type == TokenType::INCREMENT) {
+                    newVal = builder->CreateGEP(
+                        llvmTypeFor(ptrTy),
+                        oldVal,
+                        one,
+                        "ptr_inc"
+                    );
+                } else {
+                    llvm::Value* negOne = llvm::ConstantInt::get(
+                        llvm::Type::getInt64Ty(context),
+                        -1,
+                        true
+                    );
+                    newVal = builder->CreateGEP(
+                        llvmTypeFor(ptrTy),
+                        oldVal,
+                        negOne,
+                        "ptr_dec"
+                    );
+                }
+                builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
+                return isPostfix ? oldVal : newVal;
+            }
             if (!lhsVal->getType()->isIntegerTy()) {
                 cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like");
                 return nullptr;
-            }
-            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
-            llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, resolveVolatileVar(name), "inc_deref");
+            } 
             llvm::Value* one = llvm::ConstantInt::get(lhsVal->getType(), 1);
             llvm::Value* newVal;
             if ((*unary)->op_tok.type == TokenType::INCREMENT) {
@@ -8579,7 +8702,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
 
             builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
-            bool isPostfix = (*unary)->is_postfix;
             return isPostfix ? oldVal : newVal;
         }
         if ((*unary)->op_tok.type == TokenType::AMPERSAND) {
@@ -8856,47 +8978,47 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 return builder->CreateLoad(classTy, temp, resolvedName + "_inst");
             }
-            static const std::unordered_map<std::string, std::string> builtins = {{"time", "qc_time"},
-                                                                                  {"seed", "qc_seed"},
-                                                                                  {"random", "qc_random_float"},
-                                                                                  {"len", "qc_len"},
-                                                                                  {"to_lower", "qc_to_lower"},
-                                                                                  {"to_upper", "qc_to_upper"},
-                                                                                  {"substring", "qc_substring"},
-                                                                                  {"contains", "qc_contains"},
-                                                                                  {"startswith", "qc_startswith"},
-                                                                                  {"endswith", "qc_endswith"},
-                                                                                  {"trim", "qc_trim"},
-                                                                                  {"replace", "qc_replace"},
-                                                                                  {"to_int", "qc_to_int_from_string"},
-                                                                                  {"to_float", "qc_to_float_from_string"},
-                                                                                  {"to_double", "qc_to_double_from_string"},
-                                                                                  {"to_char", "qc_to_char_from_string"},
-                                                                                  {"to_bool", "qc_to_bool_from_int"},
-                                                                                  {"to_string", "qc_to_string_int"},
-                                                                                  {"qout", ""},
-                                                                                  {"typeof", ""},
-                                                                                  {"fopen", "qc_fopen"},
-                                                                                  {"fclose", "qc_fclose"},
-                                                                                  {"fread", "qc_fread"},
-                                                                                  {"fwrite", "qc_fwrite"},
-                                                                                  {"malloc", "qc_malloc"},
-                                                                                  {"calloc", "qc_calloc"},
-                                                                                  {"free", "qc_free"},
-                                                                                  {"realloc", "qc_realloc"},
-                                                                                  {"mapped_ptr", ""},
-                                                                                  {"ternary", ""},
-                                                                                  {"to_address", ""},
-                                                                                  {"inline", ""},
-                                                                                  {"flush", "qc_flush"},
-                                                                                  {"next", ""},
-                                                                                  {"is_empty", ""}};
+            static const std::unordered_map<std::string, std::string> builtins = {{"`time", "qc_time"},
+                                                                                  {"`seed", "qc_seed"},
+                                                                                  {"`random", "qc_random_float"},
+                                                                                  {"`len", "qc_len"},
+                                                                                  {"`to_lower", "qc_to_lower"},
+                                                                                  {"`to_upper", "qc_to_upper"},
+                                                                                  {"`substring", "qc_substring"},
+                                                                                  {"`contains", "qc_contains"},
+                                                                                  {"`startswith", "qc_startswith"},
+                                                                                  {"`endswith", "qc_endswith"},
+                                                                                  {"`trim", "qc_trim"},
+                                                                                  {"`replace", "qc_replace"},
+                                                                                  {"`to_int", "qc_to_int_from_string"},
+                                                                                  {"`to_float", "qc_to_float_from_string"},
+                                                                                  {"`to_double", "qc_to_double_from_string"},
+                                                                                  {"`to_char", "qc_to_char_from_string"},
+                                                                                  {"`to_bool", "qc_to_bool_from_int"},
+                                                                                  {"`to_string", "qc_to_string_int"},
+                                                                                  {"`qout", ""},
+                                                                                  {"`typeof", ""},
+                                                                                  {"`open", "qc_open"},
+                                                                                  {"`close", "qc_close"},
+                                                                                  {"`read", "qc_read"},
+                                                                                  {"`write", "qc_write"},
+                                                                                  {"`malloc", "qc_malloc"},
+                                                                                  {"`calloc", "qc_calloc"},
+                                                                                  {"`free", "qc_free"},
+                                                                                  {"`realloc", "qc_realloc"},
+                                                                                  {"`mapped_ptr", ""},
+                                                                                  {"`ternary", ""},
+                                                                                  {"`to_address", ""},
+                                                                                  {"`inline", ""},
+                                                                                  {"`flush", "qc_flush"},
+                                                                                  {"`next", ""},
+                                                                                  {"`is_empty", ""}};
             auto it = builtins.find(funcName);
 
             if (it != builtins.end()) {
                 std::string runtimeName = it->second;
 
-                if (funcName == "typeof" && !call.arg_nodes.empty()) {
+                if (funcName == "`typeof" && !call.arg_nodes.empty()) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
@@ -8972,64 +9094,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (auto structTy = llvm::dyn_cast<llvm::StructType>(argTy)) typeName = structTy->getName().str();
                     return builder->CreateGlobalString(typeName);
                 }
-                if (funcName == "fopen") {
-                    std::vector<llvm::Value*> args;
-                    for (auto& argNode : call.arg_nodes) {
-                        llvm::Value* arg = emitExpr(argNode);
-                        if (!arg) return nullptr;
-                        args.push_back(arg);
-                    }
-                    llvm::Function* fn = module->getFunction("qc_fopen");
-                    if (!fn) {
-                        auto* fnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0),
-                                                             {llvm::PointerType::get(context, 0), llvm::PointerType::get(context, 0)}, false);
-                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_fopen", module);
-                    }
-                    return builder->CreateCall(fn, args, "fopen_result");
-                }
-                if (funcName == "fclose") {
-                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
-                    if (!arg) return nullptr;
-                    llvm::Function* fn = module->getFunction("qc_fclose");
-                    if (!fn) {
-                        auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(), {llvm::PointerType::get(context, 0)}, false);
-                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_fclose", module);
-                    }
-                    builder->CreateCall(fn, {arg});
-                    return nullptr;
-                }
-                if (funcName == "fread") {
-                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
-                    if (!arg) return nullptr;
-                    llvm::Function* fn = module->getFunction("qc_fread");
-                    if (!fn) {
-                        auto* fnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {llvm::PointerType::get(context, 0)}, false);
-                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_fread", module);
-                    }
-                    return builder->CreateCall(fn, {arg}, "fread_result");
-                }
-                if (funcName == "fwrite") {
-                    std::vector<llvm::Value*> args;
-                    for (auto& argNode : call.arg_nodes) {
-                        llvm::Value* arg = emitExpr(argNode);
-                        if (!arg) return nullptr;
-                        args.push_back(arg);
-                    }
-                    llvm::Function* fn = module->getFunction("qc_fwrite");
-                    if (!fn) {
-                        auto* fnTy = llvm::FunctionType::get(builder->getVoidTy(),
-                                                             {llvm::PointerType::get(context, 0), llvm::PointerType::get(context, 0)}, false);
-                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_fwrite", module);
-                    }
-                    builder->CreateCall(fn, args);
-                    return nullptr;
-                }
-                if (funcName == "random" && !call.arg_nodes.empty()) {
+                if (funcName == "`random" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() == 1)
                         runtimeName = "qc_random_int";
                     else if (call.arg_nodes.size() == 2)
                         runtimeName = "qc_random_range";
-                } else if (funcName == "qout") { // Ṱ̵̺̙̙͔̯̣͓̼̈́͜h̶̳͖̝̰͍̮͆̅̊e̶̡̧̮͍̘̘͍̮͎͎̺̗̦͕̾͗͐̽͑̔̅́̑̌̕ ̶̥̮̪͙̎͛̐͑̔̉́̂̂̐́̽̔̔͂̃d̴̛̪̦̞́́̎͊̌̈̍̓̓̔̑͑̒͘͝e̶͎̤̠̞̞͖̊ṽ̴̡͖̫̩̣̳̖̞̯̪͇̰̆͑͐͐̀̿͐̍̑̕͘̕͝͝ͅͅͅí̵̜̬͍̖̒͑̎͗l̸̛͍̰̜̞̩̜̘͈̯̬̇̀̋̈͐̔̿̓̅͌̉̅͂̌͘͜͝ ̷̡̣̰͙̰̪͈̪̣̺̺̤̦̰͌̊̀̀̑͑̅̈́ş̶̛̳̟̫͇̠͉͍̺̣̲̬̻̰͍̙̋̂͗̕͠ͅę̸̹̹̈́͒̐̃̋̓͐̓͆̉̀̊̀̏̿͘é̷͖͎̹̉́̈́͠͠͝s̸̡̢̢̩͍̹̼͈͕̘̖͋̋̃̓͗͆͌̕͠ͅͅͅ ̴̛̮͉̣̈́̒͋͐̿̾̐̽̚ḩ̶̨̧̺͉̹̩̙̫͇̰̫̯̬͐́̑͜i̶̠͖̠̟̻̭̫̙̳̪͆̄̿̈́̾̊̈́̒͑͊̆̋̃̎̿̂͗ş̴̥̤̜̦̗͍̟̈́̽̑̏ ̶̡̛̫̥̝̰̣̟͇͔̤̱̯͉̱̩̋̈̈́͐̓̑̋̎͝͝ͅö̷̡̝̣́̎̎͝ẘ̶̢̡̨̡̭̞̯̘̦̟̳̮̫͎̑͂̇̀͆̋̐̃̒́̏̓͒̅͜͝͝n̵̳͎̣̬̪̝̩͒͊̓̾̓̄̃̂͗̉͆̒̋̚͜͜͝ ̴͔̫̂̏ͅͅį̷̡̤̼͈̗̦̣̘̮̠̣͎̬̰̍͗ṉ̸̨̯̱̦͕͐̉̀͌͑̀͐̽̕͜
+                } else if (funcName == "`qout") { // Ṱ̵̺̙̙͔̯̣͓̼̈́͜h̶̳͖̝̰͍̮͆̅̊e̶̡̧̮͍̘̘͍̮͎͎̺̗̦͕̾͗͐̽͑̔̅́̑̌̕ ̶̥̮̪͙̎͛̐͑̔̉́̂̂̐́̽̔̔͂̃d̴̛̪̦̞́́̎͊̌̈̍̓̓̔̑͑̒͘͝e̶͎̤̠̞̞͖̊ṽ̴̡͖̫̩̣̳̖̞̯̪͇̰̆͑͐͐̀̿͐̍̑̕͘̕͝͝ͅͅͅí̵̜̬͍̖̒͑̎͗l̸̛͍̰̜̞̩̜̘͈̯̬̇̀̋̈͐̔̿̓̅͌̉̅͂̌͘͜͝ ̷̡̣̰͙̰̪͈̪̣̺̺̤̦̰͌̊̀̀̑͑̅̈́ş̶̛̳̟̫͇̠͉͍̺̣̲̬̻̰͍̙̋̂͗̕͠ͅę̸̹̹̈́͒̐̃̋̓͐̓͆̉̀̊̀̏̿͘é̷͖͎̹̉́̈́͠͠͝s̸̡̢̢̩͍̹̼͈͕̘̖͋̋̃̓͗͆͌̕͠ͅͅͅ ̴̛̮͉̣̈́̒͋͐̿̾̐̽̚ḩ̶̨̧̺͉̹̩̙̫͇̰̫̯̬͐́̑͜i̶̠͖̠̟̻̭̫̙̳̪͆̄̿̈́̾̊̈́̒͑͊̆̋̃̎̿̂͗ş̴̥̤̜̦̗͍̟̈́̽̑̏ ̶̡̛̫̥̝̰̣̟͇͔̤̱̯͉̱̩̋̈̈́͐̓̑̋̎͝͝ͅö̷̡̝̣́̎̎͝ẘ̶̢̡̨̡̭̞̯̘̦̟̳̮̫͎̑͂̇̀͆̋̐̃̒́̏̓͒̅͜͝͝n̵̳͎̣̬̪̝̩͒͊̓̾̓̄̃̂͗̉͆̒̋̚͜͜͝ ̴͔̫̂̏ͅͅį̷̡̤̼͈̗̦̣̘̮̠̣͎̬̰̍͗ṉ̸̨̯̱̦͕͐̉̀͌͑̀͐̽̕͜
                                                  // ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
                     if (call.arg_nodes.empty()) {
                         cg_error((*varAccess)->var_name_tok.pos, "qout requires arguments: " + funcName);
@@ -9678,43 +9748,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     to_print = "";
                     return nullptr;
                 }
-                if (funcName == "to_string" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_string" && !call.arg_nodes.empty()) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
                     return convertToString(arg, argNode);
                 }
 
-                if (funcName == "to_int" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_int" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "int");
                 }
 
-                if (funcName == "to_float" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_float" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "float");
                 }
 
-                if (funcName == "to_double" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_double" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "double");
                 }
 
-                if (funcName == "to_bool" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_bool" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "bool");
                 }
 
-                if (funcName == "to_char" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_char" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "char");
                 }
-                if (funcName == "mapped_ptr" && !call.arg_nodes.empty()) {
+                if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isIntegerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer: " + funcName);
@@ -9723,7 +9793,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (!(val->getType()->isIntegerTy(getPtrSize()))) {
                         cg_error((*varAccess)->var_name_tok.pos,
                                  "arg 1 must be a integer the size of a pointer (" + std::to_string(getPtrSize()) + ") (addr_t or " +
-                                     (getPtrSize() == 32 ? "int" : "long long") + "), got a " + std::to_string(val->getType()->getIntegerBitWidth()) +
+                                     (getPtrSize() == 32 ? "int" : "long int") + ", got a " + std::to_string(val->getType()->getIntegerBitWidth()) +
                                      " bit integer (" +
                                      ((val->getType()->getIntegerBitWidth() == 32)
                                           ? "int"
@@ -9733,7 +9803,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return builder->CreateIntToPtr(val, builder->getPtrTy());
                 }
-                if (funcName == "to_address" && !call.arg_nodes.empty()) {
+                if (funcName == "`to_address" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isPointerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a pointer: " + funcName);
@@ -9741,7 +9811,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return builder->CreatePtrToInt(val, builder->getIntNTy(getPtrSize()), "addr");
                 }
-                if (funcName == "ternary" && !call.arg_nodes.empty()) {
+                if (funcName == "`ternary" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() != 3) {
                         cg_error((*varAccess)->var_name_tok.pos, "must have exactly 3 args: " + funcName);
                         return nullptr;
@@ -9758,7 +9828,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
                     return nullptr;
                 }
-                if (funcName == "inline" && !call.arg_nodes.empty()) {
+                if (funcName == "`inline" && !call.arg_nodes.empty()) {
                     StringNode* data = std::get_if<StringNode>(&call.arg_nodes.front());
                     if (data == nullptr) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a compile-time string: " + funcName);
@@ -9848,19 +9918,53 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string clobber_string = clobber_string_node->tok.value;
                     std::string current_clobber = "";
                     std::string current_reg = "";
-                    for (char c : clobber_string) {
-                        if (c == '~') {
-                            if (!current_clobber.empty()) { clobbers.push_back(current_clobber); }
-                            current_clobber = "~";
-                            current_reg = "";
-                        } else {
-                            current_clobber += c;
+                    size_t i = 0;
+                    while (i < clobber_string.size()) {
+                        if (clobber_string[i] != '~') {
+                            i++;
+                            continue;
                         }
-                        if (c != '~' && c != '{' && c != '}') current_reg += c;
-                        if (c == '}' && (current_reg == "rsp" || current_reg == "esp" || current_reg == "rbp" || current_reg == "ebp")) {
-                            cg_error((*varAccess)->var_name_tok.pos, current_reg + " is the stack pointer. You cannot clobber the stack pointer "
-                                                                          "because the compiler relies on it to track local variables "
-                                                                          "and function returns; modifying it guarantees a runtime crash.");
+                        i++;
+                        while (i < clobber_string.size() && isspace(clobber_string[i]))
+                            i++;
+                        if (i >= clobber_string.size() || clobber_string[i] != '{') {
+                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected '{'");
+                            return nullptr;
+                        }
+                        i++;
+                        while (i < clobber_string.size()) {
+                            while (i < clobber_string.size() && isspace(clobber_string[i])) {
+                                i++;
+                            }
+                            std::string reg;
+                            while (i < clobber_string.size() &&
+                                   clobber_string[i] != ',' &&
+                                   clobber_string[i] != '}') {
+                                if (!isspace(clobber_string[i]))
+                                    reg += clobber_string[i];
+                                i++;
+                            }
+                            if (!reg.empty()) {
+                                if (reg == "rsp" || reg == "esp" || reg == "rbp" || reg == "ebp") {
+                                    cg_error((*varAccess)->var_name_tok.pos, reg + " is the stack pointer. You cannot clobber the stack pointer "
+                                                                                  "because the compiler relies on it to track local variables "
+                                                                                  "and function returns; modifying it guarantees a runtime crash.");
+                                    return nullptr;
+                                }
+                                clobbers.push_back("~{" + reg + "}");
+                            }
+                            while (i < clobber_string.size() && isspace(clobber_string[i])) {
+                                i++;
+                            }
+                            if (i < clobber_string.size() && clobber_string[i] == ',') {
+                                i++;
+                                continue;
+                            }
+                            if (i < clobber_string.size() && clobber_string[i] == '}') {
+                                i++;
+                                break;
+                            }
+                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected ',' or '}'");
                             return nullptr;
                         }
                     }
@@ -9989,7 +10093,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         return result;
                     }
                 }
-                if (funcName == "next" && !call.arg_nodes.empty()) {
+                if (funcName == "`next" && !call.arg_nodes.empty()) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.front())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
@@ -10036,7 +10140,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return nullptr;
                 }
-                if (funcName == "is_empty" && !call.arg_nodes.empty()) {
+                if (funcName == "`is_empty" && !call.arg_nodes.empty()) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.back())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
@@ -10200,13 +10304,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (ptrTy == "void*") {
                 cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
                 return nullptr;
-            }
-            std::string valueTy = getExpressionType(arrAcc->indices[0]);
-            if (valueTy != "int") {
+            } 
+            llvm::Value* value = emitExpr(arrAcc->indices[0]);
+            if (!value->getType()->isIntegerTy()) {
                 cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
                 return nullptr;
             }
-            llvm::Value* value = emitExpr(arrAcc->indices[0]);
             if (ptrTy == "string") {
                 ptrTy = "char";
             } else {
@@ -13890,7 +13993,7 @@ Token Lexer::make_number() {
 Token Lexer::make_identifier() {
     std::string id = "";
     Position start_pos = this->pos.copy();
-    while (this->current_char != '\0' && (isalnum(this->current_char) || this->current_char == '_')) {
+    while (this->current_char != '\0' && (isalnum(this->current_char) || this->current_char == '_' || this->current_char == '`')) {
         id += this->current_char;
         this->advance();
     }
@@ -14181,7 +14284,7 @@ Ler Lexer::make_tokens() {
             this->advance();
             tokens.push_back(this->make_raw_string());
             continue;
-        } else if (isCharInSet(this->current_char, LETTERS + "_")) {
+        } else if (isCharInSet(this->current_char, LETTERS + "_`")) {
             tokens.push_back(this->make_identifier());
         } else if (this->current_char == '"') {
             tokens.push_back(this->make_string());

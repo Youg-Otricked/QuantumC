@@ -2,7 +2,7 @@
 // Bro why u readin this do i need to make my docs beter?
 
 int main() {
-    qout("Quantum C Standerd Lib. Don't run this file. include from it\n");
+    `qout("Quantum C Standerd Lib. Don't run this file. include from it\n");
     return 0;
 }
 namespace Exported {
@@ -37,21 +37,21 @@ namespace AdvQBool {
             this.FalseLevel = 100 - other;
         }
         bool operator&&(AlTypes other) {
-            if (typeof(other) == "AdvQBool::AQB") {
+            if (`typeof(other) == "AdvQBool::AQB") {
                 return this._eval() && other._eval();
             } else {
                 return this._eval() && other;
             }
         }
         bool operator||(AlTypes other) {
-            if (typeof(other) == "AdvQBool::AQB") {
+            if (`typeof(other) == "AdvQBool::AQB") {
                 return this._eval() || other._eval();
             } else {
                 return this._eval() || other;
             }
         }
         bool operator^(AlTypes other) {
-            if (typeof(other) == "AdvQBool::AQB") {
+            if (`typeof(other) == "AdvQBool::AQB") {
                 return this._eval() ^ other._eval();
             } else {
                 return this._eval() ^ other;
@@ -61,7 +61,7 @@ namespace AdvQBool {
             return !this._eval();
         }
         bool _eval() {
-            if (random(0, 100) < this.FalseLevel) {
+            if (`random(0, 100) < this.FalseLevel) {
                 return false;
             } else {
                 return true;
@@ -81,7 +81,7 @@ namespace Array {
             It(T* data, int size, bool is_end) {
                 this.data = data;
                 this.size = size;
-                this.current_index = ternary(is_end, size, 0);
+                this.current_index = `ternary(is_end, size, 0);
             }
             bool _atEnd() {
                 return this.size <= this.current_index;
@@ -124,7 +124,7 @@ namespace Array {
             } else {
                 this.size = S;
             }
-            this.data = malloc(sizeof "T" * this.size);
+            this.data = `malloc(sizeof "T" * this.size);
             for (int i = 0; i < this.size; i++) {
                 this.data[i] = data[i];
             }
@@ -139,7 +139,7 @@ namespace Array {
             return Iterator::It<T>(this.data, this.size, true);
         }
         void _destroy() {
-            free(this.data);
+            `free(this.data);
             this.data = nullptr;
             this.size = -1;
         }
@@ -163,7 +163,7 @@ namespace Vector {
             It(T* data, int size, bool is_end) {
                 this.data = data;
                 this.size = size;
-                this.current_index = ternary(is_end, size, 0);
+                this.current_index = `ternary(is_end, size, 0);
             }
             bool _atEnd() {
                 return this.size <= this.current_index;
@@ -204,14 +204,14 @@ namespace Vector {
         }
         void reserve(int cap) {
             if (cap == 0) {
-                free(this.data);                
+                `free(this.data);                
                 this.data = nullptr;
                 this.capacity = 0;
                 this.size = 0;
                 return;
             }
 
-            T* new_data = realloc(this.data, sizeof "T" * cap);
+            T* new_data = `realloc(this.data, sizeof "T" * cap);
             if (new_data == nullptr) {
                 return;
             }
@@ -223,7 +223,7 @@ namespace Vector {
         }
         void push(T value) {
             if (this.capacity <= this.size) {
-                this.reserve(ternary(this.capacity == 0, 1, this.capacity * 2));
+                this.reserve(`ternary(this.capacity == 0, 1, this.capacity * 2));
                 if (this.data == nullptr) return;
             }
             this.data[this.size] = value;
@@ -243,7 +243,7 @@ namespace Vector {
         void operator[]=(T* data, int length) {
             this.capacity = length;
             this.size = length;
-            this.data = malloc(sizeof "T" * this.capacity);
+            this.data = `malloc(sizeof "T" * this.capacity);
             for (int i = 0; i < this.size; i++) {
                 this.data[i] = data[i];
             }
@@ -258,7 +258,7 @@ namespace Vector {
             return Iterator::It<T>(this.data, this.size, true);
         }
         void _destroy() {
-            free(this.data);
+            `free(this.data);
             this.data = nullptr;
             this.size = -1;
             this.capacity = -1;
@@ -358,7 +358,7 @@ namespace List {
             return this.tail->data;
         }
         void pushFront(T value) {
-            Node<T>* node = malloc(sizeof "Node<T>");
+            Node<T>* node = `malloc(sizeof "Node<T>");
             node = Node<T>(value);
 
             node.next = this.head;
@@ -371,7 +371,7 @@ namespace List {
             this.size++;
         }
         void pushBack(T value) {
-            Node<T>* node = malloc(sizeof "Node<T>");
+            Node<T>* node = `malloc(sizeof "Node<T>");
             node = Node<T>(value);
             node.prev = this.tail;
             if (this.tail != nullptr) {
@@ -393,7 +393,7 @@ namespace List {
             } else {
                 this.tail = nullptr;
             }
-            free(old);
+            `free(old);
             this.size--;
         }
         void popBack() {
@@ -407,21 +407,21 @@ namespace List {
             } else {
                 this.head = nullptr;
             }
-            free(old);
+            `free(old);
             this.size--;
         }
         void clear() {
             Node<T>* current = this.head;
             while (current != nullptr) {
                 Node<T>* next = current.next;
-                free(current);
+                `free(current);
                 current = next;
             }
             this.head = nullptr;
             this.tail = nullptr;
             this.size = 0;
         }
-        bool contains(T value) {
+        bool `contains(T value) {
             Node<T>* current = this.head;
             while (current != nullptr) {
                 if (current.data == value) {
@@ -497,7 +497,7 @@ namespace Utils {
         volatile long int rem_nsec = 0;
         while (true) {
             volatile long int result = 0;
-            inline(R"(
+            `inline(R"(
                 mov rax, 230
                 mov rdi, 1
                 mov rsi, 0
@@ -540,18 +540,18 @@ namespace Math {
         return a;
     }
     Number sqrt(Number val) {
-        return to_double(val) #^ 0.5;
+        return `to_double(val) #^ 0.5;
     }
     Number root(Number val, Number power) {
-        double base = to_double(val);
-        double exp  = 1.0 / to_double(power);
+        double base = `to_double(val);
+        double exp  = 1.0 / `to_double(power);
         return base #^ exp;
     }
     type Floating = float | double;
     int ceil(Floating a) {
-        double d = to_double(a);
-        int i = to_int(d);
-        if (d == to_double(i)) {
+        double d = `to_double(a);
+        int i = `to_int(d);
+        if (d == `to_double(i)) {
             return i;
         } else if (d > 0) {
             return i + 1;
@@ -560,12 +560,12 @@ namespace Math {
         }
     }
     int floor(Floating a) {
-        double d = to_double(a);
-        int i = to_int(d);
+        double d = `to_double(a);
+        int i = `to_int(d);
         if (d >= 0) {
             return i;
         } else {
-            if (d == to_double(i)) {
+            if (d == `to_double(i)) {
                 return i;
             } else {
                 return i - 1;
@@ -613,7 +613,7 @@ namespace Math {
         return result;
     }
     double tan(double x) {
-        return ternary(sin(x) == 0.0 || cos(x) == 0.0, 0.0, sin(x) / cos(x));
+        return `ternary(sin(x) == 0.0 || cos(x) == 0.0, 0.0, sin(x) / cos(x));
     }
     double log(double x) {
         if (x <= 0) {
@@ -636,7 +636,7 @@ namespace Math {
         double term = y;
         
         for (int i = 1; i <= 20; i++) {
-            result += term / to_double(i);
+            result += term / `to_double(i);
             term *= -y;
         }
         
@@ -645,8 +645,8 @@ namespace Math {
 }
 namespace OSInterop {
     void system(string command) {
-        flush();
-        inline(R"(
+        `flush();
+        `inline(R"(
         mov rdi, $0r
         call system
         )", command, "~{rdi}");

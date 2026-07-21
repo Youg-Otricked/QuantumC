@@ -7,7 +7,7 @@ namespace ImImportant {
     }
     class C {
         C() {
-            qout("%i", ImUnimportant::add(123, 321));
+            `qout("%i", ImUnimportant::add(123, 321));
         }
     }
 }
