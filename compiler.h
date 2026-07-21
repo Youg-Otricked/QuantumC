@@ -1083,8 +1083,12 @@ class Parser {
             int depth = 1;
             while (depth > 0) {
                 if (this->current_tok.type == TokenType::EOFT) break;
-                if (this->current_tok.type == TokenType::LESS)
+                if (this->current_tok.type == TokenType::LESS) {
                     depth++;
+                    if (depth > 128) {
+                        throw new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + type.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos);
+                    }
+                }
                 else if (this->current_tok.type == TokenType::MORE) {
                     depth--;
                     if (depth == 0) {
@@ -3248,7 +3252,7 @@ class LLVMCompiler {
         std::string savedName = name;
         std::vector<std::string> params;
         for (std::string param : genericParamsFromName(savedName)) {
-            params.push_back(resolveTypeName(param));
+            params.push_back(resolveTypeName(param, false));
         }
         if (!params.empty()) savedName = buildMangledName(baseTypeName(name), params);
         name = baseTypeName(name);

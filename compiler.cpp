@@ -1805,8 +1805,13 @@ Prs Parser::atom() {
                             res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.type == TokenType::LESS)
+                        if (this->current_tok.type == TokenType::LESS) {
                             depth++;
+                            if (depth > 128) {
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                return res.to_prs();
+                            }
+                        }
                         else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {
@@ -1878,8 +1883,13 @@ Prs Parser::atom() {
                             res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.type == TokenType::LESS)
+                        if (this->current_tok.type == TokenType::LESS) {
                             depth++;
+                            if (depth > 128) {
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                return res.to_prs();
+                            }
+                        }
                         else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {
@@ -1984,8 +1994,13 @@ Prs Parser::atom() {
                                 res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
                                 return res.to_prs();
                             }
-                            if (this->current_tok.type == TokenType::LESS)
+                            if (this->current_tok.type == TokenType::LESS) {
                                 depth++;
+                                if (depth > 128) {
+                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                    return res.to_prs();
+                                }
+                            }
                             else if (this->current_tok.type == TokenType::MORE) {
                                 depth--;
                                 if (depth == 0) {
@@ -2057,8 +2072,13 @@ Prs Parser::atom() {
                                 res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
                                 return res.to_prs();
                             }
-                            if (this->current_tok.type == TokenType::LESS)
+                            if (this->current_tok.type == TokenType::LESS) {
                                 depth++;
+                                if (depth > 128) {
+                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                    return res.to_prs();
+                                }
+                            }
                             else if (this->current_tok.type == TokenType::MORE) {
                                 depth--;
                                 if (depth == 0) {
@@ -2158,8 +2178,13 @@ Prs Parser::atom() {
                             res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.type == TokenType::LESS)
+                        if (this->current_tok.type == TokenType::LESS) {
                             depth++;
+                            if (depth > 128) {
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + property_name.value.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
+                                return res.to_prs();
+                            }
+                        }
                         else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {

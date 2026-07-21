@@ -104,17 +104,18 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 TOP PRIORITY:
 1. Self host the runtime.
 2. Error system + diagnostics overhaul
-3. Try/Catch.
-4. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
-5. Token/ident/type/keyword/usertype direct type (parser refactor)
-6. Empty arrays.
-7. Codeblocks.
-8. Concepts
-9. Modifier (x1.0.0)
-10. Variadics on generics
-11. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-12. Other stuff + Variadic Generics
-13. Metadata
+3. -L, -A
+4. Try/Catch.
+5. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
+6. Token/ident/type/keyword/usertype direct type (parser refactor)
+7. Empty arrays.
+8. Codeblocks.
+9. Concepts
+10. Modifier (x1.0.0)
+11. Variadics on generics
+12. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+13. Other stuff + Variadic Generics
+14. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -136,7 +137,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-14. Preproccessers
+15. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -145,5 +146,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-15. User-Defined metadata
-16. User-Defined macro _functions_ (the only good thing in rust)
+16. User-Defined metadata
+17. User-Defined macro _functions_ (the only good thing in rust)
