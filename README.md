@@ -102,12 +102,12 @@ Development toward future critical versions may begin before the current
 critical version is complete. Multiple critical generations may therefore
 be in development simultaneously.
 
-Minor (Mi) and Patch (P) are always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
+Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.2 = "Self-Hosted Runtime (Part 3)"
+Current Version: x0.20.211 = "Self-Hosted Runtime (Part 3)"
 Next Version: x0.20.3 = "Self-Hosted Runtime (Part 4)"
 
 # Current Version Highlights
@@ -126,7 +126,7 @@ Minor
 └─ Self hosted 17/96 runtime functions.
 
 Patch
-└─ N/A
+└─ Fixed nested generics
 ```
 
 # Recent Deprecations / Breaking Changes

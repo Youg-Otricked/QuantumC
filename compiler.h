@@ -1085,9 +1085,6 @@ class Parser {
                 if (this->current_tok.type == TokenType::EOFT) break;
                 if (this->current_tok.type == TokenType::LESS) {
                     depth++;
-                    if (depth > 128) {
-                        throw new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + type.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos);
-                    }
                 }
                 else if (this->current_tok.type == TokenType::MORE) {
                     depth--;
