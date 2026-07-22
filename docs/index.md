@@ -32,15 +32,9 @@ int main() {
 # **THIS IS NOT A QCL (Quantum Computation Language)**
 
 ### Pages:
-[Features](./desc.md)
-
 [Getting started](./getStart.md)
 
-[Changelog/Features-checklist](./change.md)
-
-[Basics](./BasicSyntax.md)
-
-[Collection types](./CollectionTypes.md)
+[Basics](./BasicSyntax.md)i
 
 [Control flow](./ControlFlow.md)
 
@@ -68,6 +62,21 @@ int main() {
 
 [Multi File](./include.md)
 
+[Conventions](./conventions.md)
+
+[Variadics](./variadics.md)
+
+[C Interop](./cinterop.md)
+
+[Inline ASM](./asm.md)
+
+[Manual Memory Managment](./MMM.md)
+
+[Generics](./generics.md)
+
+[Iterators](./iterators.md)
+
+[Custom Runtimes](./runtimes.md)
 
 ## 'Philosophy'
 
@@ -91,10 +100,34 @@ Quantum C favors clarity over convenience, and explicitness over brevity.
 `
 ## Versioning
 
-Quantum C  uses a feature-based versioning scheme.
+QuantumC uses the following versioning scheme:
+`cMa.Mo.MiP`
+Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
+For the version
+`x1.2.34`
+`c` = `x`
+`Ma` = `1`
+`Mo` = `2`
+`Mi` = `3`
+`P` = `4`
 
-- Minor versions indicate new language features
-- Patch versions indicate bug fixes and documentation changes
+Critical versions represent the largest generational milestones in QuantumC's development.
+
+v = Interpreter
+x = Compiler (Current)
+f = Feature-complete compiler
+s = Self-hosted compiler
+
+Critical versions are intentionally rare and denote architectural milestones,
+not language features.
+
+Development toward future critical versions may begin before the current
+critical version is complete. Multiple critical generations may therefore
+be in development simultaneously.
+
+Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
+
+Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 
 ### Legacy Versions
 

@@ -19,7 +19,7 @@ void add(int a, int b) {
 int main() {
     int x = 21;
     add(x, 2); // Passes a copy of x and 2 to the function
-    qout("%i", x); // X is unchanged! Prints 21
+    `qout("%i", x); // X is unchanged! Prints 21
 }
 > 21
 ```
@@ -32,7 +32,7 @@ void add(int& a, int b) {
 int main() {
     int x = 21;
     add(x, 2); // Passes the actual variable x and 2 to the function
-    qout("%i", x); // X is edited by the pass-by-reference Prints 23
+    `qout("%i", x); // X is edited by the pass-by-reference Prints 23
 }
 > 23
 ```
@@ -95,7 +95,7 @@ int* p = &x; // & is the address of operator, and gets a pointer to the address 
 ```
 You can dereference pointers to get their value
 ```cpp
-qout("%i", *p); // 123
+`qout("%i", *p); // 123
 ```
 However, you can also do addition, subtraction, and indicing on pointers!
 Arrays can be _decayed_ to pointers, which means they lose there length becomes unknown, but can be used as a pointer. To make an array a pointer, you can take the address of the first element.
@@ -107,5 +107,147 @@ int* p = &x;
 int* p2 = p - 1; 
 p2[0] = 99;
 ```
+Most of the time arrays do array automaticaly though.
 In this example, it is dangerous because p is a _stack_ pointer. P points to x, and their is a liklyhood that x y and z are near eachother so that area of the stack is initialized.
 The line `int* p2 = p - 1;` subtracts 4 bytes from the position of p (becuase int is 4 bytes), and store it at p2. p2[0] is the equivelent of *p2, and p2[1] is equivelant to *(p2 + 4)
+
+## How does one store an address?
+
+Sometimes we have an address as a number. We can store it with the `addr_t` type.
+```qc
+addr_t x = 0xdeadbeefDEADBEEF
+```
+
+Allowed number formats:
+
+Octal
+```
+0o76543210
+```
+Hex
+```
+Oxfedcba9876543210
+```
+Binary
+```
+0b10
+```
+Decimal
+```
+9876543210a // must end in a, just like how long must end in l and short must end in s and float must end in f
+```
+
+## Converting Pointers To Addresses (and vis-verca)
+
+QuantumC has simple helpers for that.
+```
+long int y = 9l;
+long int* x = &y;
+addr_t ptr_addr = `to_address(x);
+long int* ptr_from_addr = `mapped_ptr(addr_t);
+```
+
+## The Heap
+
+While the stack is cool and allows us to have easy pointers we all need the heap.
+The heap is just like C in QuantumC.
+```
+void* `malloc(addr_t sizeInBytes)
+```
+The full cstdlib mem group (realloc calloc free) is also available.
+
+To get the size of a type in bytes, you use the `sizeof` helper.
+
+```
+sizeof "int"; // a stringified type, returns 4 (size of the "int" type)
+int x = 0;
+sizeof x; // a non-constant non-string, returns 4 (the size of x's type)
+int* p = `malloc(sizeof "int");
+*p = 42;
+
+`free(p);
+p = nullptr; // recommended
+```
+
+`nullptr` is the null pointer. Internally it has the address value 0, but it does not point to valid memory. Its what you assign to invalid pointers.
+
+## Stack VS Heap
+
+| Stack               | Heap               |
+| ------------------- | ------------------ |
+| Automatic           | Manual             |
+| Fast                | Slower             |
+| Freed automatically | Lives until `free` |
+
+
+## Refs VS Ptrs
+
+| References            | Pointers                    |
+| --------------------- | --------------------------- |
+| Must be initialized	| Can be null                 |
+| Cannot be reseated	| Can point elsewhere         |
+| No Pointer Arithmetic | Pointer Arithmetic allowed  |
+| Implicit dereference  | Explicit *                  |
+
+## Why heap?
+
+Dangling Pointers.
+
+Dangling Pointers are when you return a pointer that is no longer pointing to a valid value.
+```qc
+int *addPtr(int a, int b) {
+    int res = a + b;
+    int *resP = &res;
+    return resP; // Dangling pointer: res is deleted when the function exits and the stack pops.
+}
+int main() {
+    int *x = addPtr(1, 3);
+    *x;
+    // Undefined behavior.
+    // Often crashes with a segmentation fault.
+}
+```
+
+Freeing when you don't know if you should free it / it has already been freed is also dangerous
+```qc
+int *x = `malloc(sizeof "X");
+`free(x);
+`free(x); // UB / SIGSEGV Segmentation Fault (Core Dumped)
+```
+
+However not freeing causes somthing called "leaked memory" which means that the memory is never freed and cannot be used because it has been allocated and cannot/has not been freed.
+```qc
+void doSmnth() {
+    int *x = `malloc (sizeof "X");
+    ...
+    return; // MEMORY LEAK. X was allocated and never freed and now the program has lost that memory.
+}
+```
+
+Because of this, classes should have a `_destroy` method, which `free`s all heap-allocated memory of the class. Note that `_destory` is _not_ responsible for cleaning up heap-objects _you_ create in that class. 
+Eg if we have a generic class:
+```qc
+class C<T> {
+    T *data;
+    C() {
+        this.data = `malloc(sizeof "T");
+    }
+    void _destroy() {
+        `free(this.data);
+    }
+}
+int main() {
+    C<int*> x = C();
+    x.data = `malloc(sizeof "int");
+    x._destroy(); // MEMORY LEAK and not C's fault. C only knows it owns the storage for T. It has no idea that T itself is another pointer requiring cleanup.
+    // You should do:
+    // `free(*x.data);
+    // x._destroy();
+}
+```
+Ownership (who should free) is simple.
+Ownership Rules:
+- If you allocate it, you free it.
+- If you return it, the caller frees it.
+- If your class owns it, free it in `_destory`.
+- If your class merely stores someone else's pointer, don't free it.

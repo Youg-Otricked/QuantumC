@@ -45,9 +45,9 @@ int main() {
     Vector2 b = Vector2(12, -33);
     a.x = 123;
     a.y = 321;
-    qout("%t", a);
-    qout(f"{a}, {b}");
-    qout("%t, %t\n", a, b);
+    `qout("%t", a);
+    `qout(f"{a}, {b}");
+    `qout("%t, %t\n", a, b);
     a += b;
 }
 ```

@@ -17,7 +17,7 @@ Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://lea
 Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
 **More Powerful Than Explosives™**/j
-C⁴ combines the performance of C++, the ergonomics of Rust, and the cleanliness of Zig—without the 20 `#include` statements.
+C⁴ combines explicitness and simplicity to produce readable code, improving both DX and UX. Code should still make sense next week, even to the person who wrote it.
 
 ---
 
@@ -107,7 +107,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.211 = "Self-Hosted Runtime (Part 3)"
+Current Version: x0.20.22 = "Self-Hosted Runtime (Part 3)"
 Next Version: x0.20.3 = "Self-Hosted Runtime (Part 4)"
 
 # Current Version Highlights
@@ -126,7 +126,7 @@ Minor
 └─ Self hosted 17/96 runtime functions.
 
 Patch
-└─ Fixed nested generics
+└─ LOTS of docs.
 ```
 
 # Recent Deprecations / Breaking Changes
@@ -303,10 +303,10 @@ QuantumC has rather unique naming conventions:
 | **Private Methods**                    | `camel_Snake_Case`     | Function casing, more underscores.                                                                                           |
 | **Namespaces**                         | `PascalCase`           | Same as user types.                                                                                                          |
 | **Namespaces Not Meant For Inclusion** | `Pascal_Snake_Case`    | Unique casing style, more underscores, you have to be trying to include this.                                                |
-| **Global Scope Functions**             | `camel_Snake_Case`     | Unique casing style, more underscores, similarity to private methods is intentional, because global scope cannot be included.   |
+| **Global Scope Functions**             | `camel_Snake_Case`     | Unique casing style, more underscores, similarity to private methods is intentional, because global scope cannot be included.|
 | **Methods Used By Compiler**           | `_camelCase`           | Different from everything else. (these methods are iterators and stuff. Methods you define and compiler uses)                | 
 | **Compiler Reserved**                  | `_qc_, __qc_ and qc_`  | Unique, hard to use accidently                                                                                               |
-
+| **Compiler Intrinsics**                | \` + `snake_case`      | Unique, impossible to use accidently                                                                                         |
 
 Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace (not a strict rule, just a ideal, no need to follow), and namespaces should fit the following rules:
 
@@ -326,9 +326,10 @@ namespace Array {
     }
 }
 ```
-All *'s in pointer types stick to the type other than the last, E.G.
+Pointer asterisks bind to the type rather than the variable. The final * belongs to the declarator, unless its a function return type. Then its all on the type.
 ```
 int** *x;
+int* ptr_add(int *p) ...
 ```
 Files are `kebab-case` (optional, sometimes I dont follow this)
 QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.

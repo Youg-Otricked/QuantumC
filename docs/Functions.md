@@ -39,7 +39,7 @@ Couple of clarifications:
 You can also have no arguments, or no return type. If you want no return type, then you actually write the type `void`. EG
 ```cpp
 void print_name() {
-    qout("Name");
+    `qout("Name");
 }
 ```
 You can run the code in functions by typing the functions name followed by parenthesis and the values you want to pass to the function, so in the case of the add function a bit above, to add 2 and 2 you would call:

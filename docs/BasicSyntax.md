@@ -6,9 +6,8 @@
 
 ### Math
 
-**Note that ?= means any number of quesiton marks charecter logic operator equals so ?= means += or -=...**
+**Note that by ?= i mean any operator equals so ?= means += or -=...**
 In QC there are various binary math operators. Examples are:
-
 
 |Operator|Usage |Effect        |
 |--------|------|--------------|
@@ -69,11 +68,11 @@ int main() {
 
 # Console Output
 
-The main way to output to the console in Quantum C is `qout`.
+The main way to output to the console in Quantum C is `\`qout`.
 
 Example:
 ```cpp
-qout("Hello, World\n");
+`qout("Hello, World\n");
 ```
 
 ## Now, you can write to console the imortal words "Hello, Linus Torvalds" (you though i was gonna say `Hello, World!` didnt you)

@@ -6,7 +6,7 @@
 
 
 ## Namespaces
-Namespaces are another important feature in Quantum C. Namespaces are a collection of **_Variables_ and _Functions_** **ONLY**. Computation outside functions in a namespace is strictly _prohibited_.
+Namespaces are another important feature in QuantumC. Namespaces are a collection of **_Variables_ and _Functions_** **ONLY**. Computation outside functions in a namespace is strictly _prohibited_.
 You make a namespace with this syntax:
 ```cpp
 namespace NamespaceName {

@@ -205,9 +205,6 @@ int qc_powi_i32(int base, int exp) {
     }
     return result;
 }
-void qc_print_ptr(void* p) {
-    printf("%p\n", p);
-}
 char* qc_string_concat(const char* a, const char* b) {
     if (!a) a = "";
     if (!b) b = "";
@@ -386,19 +383,6 @@ void qc_print_string(const char* s) {
     if (!s) s = "";
     fputs(s, stdout);
 }
-
-void qc_print_int(int x) {
-    printf("%d", x);
-}
-
-void qc_print_double(double x) {
-    printf("%g", x);
-}
-
-void qc_print_char(char c) {
-    putchar(static_cast<unsigned char>(c));
-}
-
 int qc_time() {
     return (int)time(NULL);
 }
@@ -475,9 +459,6 @@ int qc_endswith(const char* str, const char* suffix) {
     if (suf_len > str_len) return 0;
     return strcmp(str + str_len - suf_len, suffix) == 0 ? 1 : 0;
 }
-void qc_print_float(float x) {
-    printf("%g", x);
-}
 bool qc_to_bool_from_string(const char* str) {
     if (!str) return false;
     return strcmp(str, "true") == 0 || strcmp(str, "1") == 0;
@@ -500,9 +481,6 @@ char* qc_qin() {
     fflush(stdin);
     if (result == 1) { return strdup(buffer); }
     return strdup("");
-}
-void qc_print_bool(bool b) {
-    printf("%s", b ? "true" : "false");
 }
 char* qc_trim(const char* str) {
     if (!str) return nullptr;

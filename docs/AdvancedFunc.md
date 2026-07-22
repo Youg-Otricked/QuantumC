@@ -8,7 +8,7 @@ There are 3 more important function features. Default arguments, multi returns, 
 Default arguments use this syntax.
 ```cpp
 void greet(string name = "World") {
-    qout("Hello, %s\n", name);
+    `qout("Hello, %s\n", name);
 }
 ```
 Now, if you call the function with syntax

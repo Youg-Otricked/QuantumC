@@ -1,30 +1,38 @@
-<link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+# Getting Started
 
-# Getting started
-[Back to home](./index.md)
+## Installing
 
-## Step 1: install the binarys or compile.
-1. [ ] Either install the code from or download the code AND binarys from [Here](https://github.com/Youg-Otricked/QuantumC)
-2. [ ] If compiling move on, otherwise, skip.
-3. [ ] Run the following commands: 
-```bash
-# Linux OR mac
+Choose one method:
 
-# Move into the cloned repo
-cd QuantumC-master
+- [Using prebuilt binaries](#using-prebuilt-binaries)
+- [Building from source](#building-from-source)
 
-# Compile
-./install.sh # This compiles the code from source, and moves the stdlib.qc file to the dir for it.
+## Using prebuilt binaries
 
-# Run the version
-qc -v
-
-# Check flags with 
-qc -h
+1. Download the [Package And Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager/releases/latest). (Webi install coming soon)
+2. Setup
+```sh
+./qcm setup // adds binary to path, makes .qc directory, .qcm directory, and adds .qc/bin to path
 ```
+3. Install latest qc version.
+```sh
+qcm tooling install latest
+```
+4. Verify:
 
 ```bash
-# Windows
-# honetsly i have no clue.
+qc -sv
 ```
-# You`re done and have installed Quantum C!
+
+## Building from source
+
+```sh
+git clone https://github.com/Youg-Otricked/QuantumC
+cd QuantumC
+./install.sh
+qc -sv
+```
+
+## Windows
+
+Windows support is currently limited. Use WSL or build manually from source. I dont have the commands because I dont use windows.

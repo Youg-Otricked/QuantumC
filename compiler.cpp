@@ -13935,6 +13935,7 @@ Token Lexer::make_number() {
     bool is_long = false;
     bool is_short = false;
     bool is_hex = false;
+    bool is_addrt = false;
     if (this->current_char == '0') {
         switch (this->text[this->pos.index + 1]) {
         case 'x':
@@ -13979,7 +13980,7 @@ Token Lexer::make_number() {
         size_t val = std::stoull(num, nullptr, 2);
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".fls")) {
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsa")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
                     this->advance();
@@ -14000,6 +14001,10 @@ Token Lexer::make_number() {
                 is_short = true;
                 this->advance();
                 break;
+            } else if (this->current_char == 'a') {
+                is_addrt = true;
+                this->advance();
+                break;
             } else {
                 num += this->current_char;
                 this->advance();
@@ -14011,6 +14016,7 @@ Token Lexer::make_number() {
         if (is_long) return Token(TokenType::LONG_DOUBLE, num, start_pos);
         return Token(TokenType::DOUBLE, num, start_pos);
     }
+    if (is_addrt) return Token(TokenType::ADDR_T, num, start_pos);
     if (is_long) return Token(TokenType::LONG_INT, num, start_pos);
     if (is_short) return Token(TokenType::SHORT_INT, num, start_pos);
     return Token(TokenType::INT, num, start_pos);
