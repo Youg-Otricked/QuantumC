@@ -1328,7 +1328,7 @@ Prs Parser::for_stmt() {
         if (this->current_tok.type == TokenType::KEYWORD &&
             (this->current_tok.value == "const" || this->current_tok.value == "int" || this->current_tok.value == "float" ||
              this->current_tok.value == "double" || this->current_tok.value == "bool" || this->current_tok.value == "qbool" ||
-             this->current_tok.value == "string" || this->current_tok.value == "char")) {
+             this->current_tok.value == "string" || this->current_tok.value == "char" || this->current_tok.value == "addr_t")) {
 
             bool is_const = false;
             Token tok = current_tok;
@@ -4964,7 +4964,6 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         auto oldThis = currentThis;
         auto oldClassName = currentClassName;
         auto oldFunction = currentFunction;
-        auto oldLocals = locals;
         enterScope();
         currentThis = fn->getArg(0);
         volatileVars["this"] = false;
@@ -5031,7 +5030,6 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         currentThis = oldThis;
         currentClassName = oldClassName;
         currentFunction = oldFunction;
-        locals = oldLocals;
         exitScope();
     }
     namespaceStack = oldNamespaceStack;
@@ -6935,7 +6933,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
 
-                if (lType.ends_with("*") || lType == "@nullptr") {
+                if (lType.ends_with("*") || lType == "@nullptr" || lType == "string" && rType != "string") {
                     if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
                                                      "void pointers");
@@ -6948,7 +6946,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                          lType + " and " + rType);
                         return nullptr;
                     }
-                    lType.pop_back();
+                    if (lType == "string") lType = "char";
+                    else lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
                 } else {
                     if (lType != rType) {
@@ -7244,10 +7243,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::MORE:
         case TokenType::LESS_EQ:
         case TokenType::MORE_EQ: {
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
-                return nullptr;
-            }
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
                 return nullptr;
@@ -7452,6 +7447,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         std::string saved_qc_type = qcType;
         qcType = resolveTypeName(qcType);
+        std::cout << "Resolved " << saved_qc_type << " to " << qcType << '\n';
         if (genericClasses.count(qcType) && genericClasses[qcType]) {
             std::string savedest_qc_type = saved_qc_type;
             std::string inner = saved_qc_type.substr(saved_qc_type.find('<') + 1, saved_qc_type.size() - saved_qc_type.find('<') - 2);
@@ -7994,6 +7990,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             locals[fullName] = alloc;
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
+            std::cout << "Set " << fullName << " to " << qcType << '\n';
         } else {
             if (auto* existingLocal = llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
                 llvm::Type* existingTy = existingLocal->getAllocatedType();
@@ -8634,6 +8631,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if ((*unary)->op_tok.type == TokenType::NOT) {
             if (operand->getType() == builder->getInt1Ty()) {
                 return builder->CreateNot(operand, "not");
+            } else if (operand->getType()->isPointerTy()) {
+                llvm::Value* NullPtr = llvm::ConstantPointerNull::get(
+                    llvm::cast<llvm::PointerType>(operand->getType())
+                );
+                return builder->CreateICmpEQ(operand, NullPtr, "isnull");
             } else {
                 cg_error((*unary)->op_tok.pos, "! requires bool operand");
                 return nullptr;
@@ -8738,7 +8740,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
             llvm::Value* val = emitExpr((*unary)->node);
             std::string type = getExpressionType((*unary)->node);
-            if (!type.ends_with("*")) {
+            if (!type.ends_with("*") && type != "string") {
                 cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
                 return nullptr;
             }
@@ -8746,7 +8748,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*unary)->op_tok.pos, "you canot dereference void*");
                 return nullptr;
             }
-            std::string baseType = type.substr(0, type.size() - 1);
+            std::string baseType = type == "string" ? "char" : type.substr(0, type.size() - 1);
             if (classTypes.count(baseType)) { return val; }
             return builder->CreateLoad(llvmTypeFor(baseType), val, resolveVolatileVar(name), "deref");
         }
@@ -10529,8 +10531,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             auto runtimeIt = runtimeArraySizes.find(baseName);
             if (runtimeIt != runtimeArraySizes.end()) { return builder->CreateLoad(builder->getInt32Ty(), runtimeIt->second, "runtime_len"); }
-            auto it = locals.find(baseName);
-            if (it != locals.end()) {
+            if (hasLocal(baseName)) {
                 llvm::Type* allocTy = getPointeeType(baseName);
                 if (allocTy && allocTy->isArrayTy()) { return builder->getInt32(allocTy->getArrayNumElements()); }
             }
@@ -11558,10 +11559,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
     auto* entryBB = llvm::BasicBlock::Create(context, "entry", func);
     builder->SetInsertPoint(entryBB);
-
     auto* oldFunction = currentFunction;
-    auto oldLocals = locals;
-
     currentFunction = func;
     unsigned idx = 0;
     for (auto& arg : func->args()) {
@@ -11639,7 +11637,6 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
 
     currentFunction = oldFunction;
-    locals = oldLocals;
     functions[name] = func;
     lambdaTypes = savedLambdaTypes;
     exitScope();
@@ -12044,7 +12041,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::BasicBlock* nextBB = elifBlocks.empty() ? (elseBB ? elseBB : mergeBB) : elifBlocks[0].first;
         builder->CreateCondBr(cond, thenBB, nextBB);
         builder->SetInsertPoint(thenBB);
+        enterScope();
         for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
+        exitScope();
         if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         for (size_t i = 0; i < elifBlocks.size(); i++) {
             builder->SetInsertPoint(elifBlocks[i].first);
@@ -12054,12 +12053,16 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->CreateCondBr(elifCond, elifBlocks[i].second, nextElifBB);
 
             builder->SetInsertPoint(elifBlocks[i].second);
+            enterScope();
             for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
+            exitScope();
             if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         }
         if (elseBB) {
             builder->SetInsertPoint(elseBB);
+            enterScope();
             for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
+            exitScope();    
             if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         }
         exitScope();
@@ -12632,12 +12635,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 std::string name = varAcc->var_name_tok.value;
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
-                    auto it = locals.find(name);
-                    if (it == locals.end()) {
+                    if (!hasLocal(name)) {
                         cg_error(Position(), "Unknown jagged array: " + name);
                         return;
                     }
-
+                    auto it = findLocal(name);
                     llvm::Value* jaggedPtr = builder->CreateLoad(llvm::PointerType::get(context, 0), it->second, "jagged_ptr");
                     llvm::ArrayType* indicesArrTy = llvm::ArrayType::get(builder->getInt32Ty(), arrAcc->indices.size());
                     llvm::AllocaInst* indicesAlloc = createEntryAlloca("indices_arr", indicesArrTy);
@@ -13100,7 +13102,6 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
             auto oldThis = currentThis;
             auto oldClassName = currentClassName;
             auto oldFunction = currentFunction;
-            auto oldLocals = locals;
             enterScope();
             currentThis = fn->getArg(0);
             varTypes["this"] = className;
@@ -13168,7 +13169,6 @@ std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_
             currentThis = oldThis;
             currentClassName = oldClassName;
             currentFunction = oldFunction;
-            locals = oldLocals;
             exitScope();
         }
         namespaceStack = oldNamespaceStack;

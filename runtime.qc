@@ -77,42 +77,6 @@ bool qc_qor_collapse(int a, int b) {
     return (a & 0b10) || (b & 0b10);
 }
 ///////////////////
-// STRING ////////
-/////////////////
-
-int qc_len(char* str) {
-    int i = 0;
-    while (str[i] != '\0') {
-        ++i;
-    }
-    return i;
-}
-bool qc_string_eq(string a, string b) {
-    if (a == nullptr || b == nullptr)
-        return a == b;
-    addr_t i = 0;
-    while (a[i] != '\0' && b[i] != '\0') {
-        if (a[i] != b[i])
-            return false;
-        i++;
-    }
-    return a[i] == b[i];
-}
-///////////////////
-// INTEGER ///////
-/////////////////
-
-int qc_powi_i32(int base, int exp) {
-    if (exp < 0) return 0;
-    int result = 1;
-    while (exp > 0) {
-        if (exp & 1) result *= base;
-        base *= base;
-        exp = exp |> 1;
-    }
-    return result;
-}
-///////////////////
 // TEMP MEM STUF /
 /////////////////
 struct AllocBlock {
@@ -191,6 +155,232 @@ void *__qc_memcpy(void *dst, void *src, addr_t size) {
     }
     return dst;
 }
+///////////////////
+// STRING ////////
+/////////////////
+
+int qc_len(char* str) {
+    int i = 0;
+    while (str[i] != '\0') {
+        ++i;
+    }
+    return i;
+}
+bool qc_string_eq(string a, string b) {
+    if (a == nullptr || b == nullptr)
+        return a == b;
+    addr_t i = 0;
+    while (a[i] != '\0' && b[i] != '\0') {
+        if (a[i] != b[i])
+            return false;
+        i++;
+    }
+    return a[i] == b[i];
+}
+
+bool qc_contains(string str, string sub) {
+    if (*sub == '\0') {
+        return true;
+    }
+    for (int i = 0; str[i] != '\0'; i++) {
+        int j = 0;
+        while (str[i + j] == sub[j]) {
+            j++;
+            if (sub[j] == '\0') {
+                return true;
+            }
+            if (str[i + j] == '\0') {
+                break;
+            }
+        }
+    }
+    return false;
+}
+string qc_to_lower(string str) {
+    if (!str) return nullptr;
+    addr_t len = `len(str);
+    string result = __qc_malloc(len + 1);
+    if (!result) return nullptr;
+    for (addr_t i = 0; i < len; i++) {
+        char c = str[i];
+        if (c >= 'A' && c <= 'Z') {
+            result[i] = (c + 32);
+        } else {
+            result[i] = c;
+        }
+    }
+    result[len] = '\0';
+    return result;
+}
+
+string qc_to_upper(string str) {
+    if (!str) return nullptr;
+    addr_t len = `len(str);
+    string result = __qc_malloc(len + 1);
+    if (!result) return nullptr;
+    for (addr_t i = 0; i < len; i++) {
+        char c = str[i];
+        if (c >= 'a' && c <= 'z') {
+            result[i] = (c - 32);
+        } else {
+            result[i] = c;
+        }
+    }
+    result[len] = '\0';
+    return result;
+}
+string qc_substring(string str, int start, int length) {
+    if (!str) return nullptr;
+    int len = `len(str);
+    if (start < 0 || start >= len || length <= 0) {
+        string empty = __qc_malloc(1);
+        empty[0] = '\0';
+        return empty;
+    }
+    if (start + length > len) { length = len - start; }
+    string result = __qc_malloc(length + 1);
+    if (!result) return nullptr;
+    __qc_memcpy(result, str + start, length);
+    result[length] = '\0';
+    return result;
+}
+bool qc_startswith(string str, string prefix) {
+    if (!str || !prefix) return false;
+    addr_t i = 0;
+    while (prefix[i] != '\0') {
+        if (str[i] == '\0' || str[i] != prefix[i]) {
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+bool qc_endswith(string str, string suffix) {
+    if (!str || !suffix) return false;
+    addr_t str_len = `len(str);
+    addr_t suf_len = `len(suffix);
+    if (suf_len > str_len) return false;
+    addr_t start_idx = str_len - suf_len;
+    for (addr_t i = 0; i < suf_len; i++) {
+        if (str[start_idx + i] != suffix[i]) {
+            return false;
+        }
+    }
+    return false;
+}
+
+bool __qc_is_space(char c) {
+    return (c == ' ' || c == '\t' || c == '\r' || c == '\n');
+}
+
+string qc_trim(string str) {
+    if (!str) return nullptr;
+    addr_t start = 0;
+    while (str[start] != '\0' && __qc_is_space(str[start])) {
+        start++;
+    }
+    if (str[start] == '\0') {
+        string empty = __qc_malloc(1);
+        if (!empty) return nullptr;
+        empty[0] = '\0';
+        return empty;
+    }
+    addr_t end = `len(str) - 1;
+    while (end > start && __qc_is_space(str[end])) {
+        end--;
+    }
+    addr_t len = end - start + 1;
+    string result = __qc_malloc(len + 1);
+    if (!result) return nullptr;
+    for (addr_t i = 0; i < len; i++) {
+        result[i] = str[start + i];
+    }
+    result[len] = '\0';
+    return result;
+}
+
+string qc_replace(string str, string find, string replace) {
+    if (!str || !find || !replace) return nullptr;
+    addr_t str_len = `len(str);
+    addr_t find_len = `len(find);
+    addr_t replace_len = `len(replace);
+    if (find_len == 0) {
+        string dup = __qc_malloc(str_len + 1);
+        if (!dup) return nullptr;
+        for (addr_t i = 0a; i <= str_len; i++) dup[i] = str[i];
+        return dup;
+    }
+    int count = 0;
+    for (addr_t i = 0a; i <= str_len - find_len; ) {
+        int match = 1;
+        for (addr_t j = 0a; j < find_len; j++) {
+            if (str[i + j] != find[j]) {
+                match = 0;
+                break;
+            }
+        }
+        if (match) {
+            count++;
+            i += find_len;
+        } else {
+            i++;
+        }
+    }
+    if (count == 0) {
+        string dup = __qc_malloc(str_len + 1);
+        if (!dup) return nullptr;
+        for (addr_t i = 0a; i <= str_len; i++) dup[i] = str[i];
+        return dup;
+    }
+    addr_t result_len = str_len + (count * replace_len) - (count * find_len);
+    string result = __qc_malloc(result_len + 1);
+    if (!result) return nullptr;
+    addr_t src_idx = 0;
+    addr_t dst_idx = 0;
+    while (src_idx < str_len) {
+        int match = 0;
+        if (src_idx <= str_len - find_len) {
+            match = 1;
+            for (addr_t j = 0a; j < find_len; j++) {
+                if (str[src_idx + j] != find[j]) {
+                    match = 0;
+                    break;
+                }
+            }
+        }
+        if (match) {
+            for (addr_t j = 0a; j < replace_len; j++) {
+                result[dst_idx] = replace[j];
+                dst_idx++;
+            }
+            src_idx += find_len;
+        } else {
+            result[dst_idx] = str[src_idx];
+            dst_idx++;
+            src_idx++;
+        }
+    }
+    result[dst_idx] = '\0';
+    return result;
+}
+
+///////////////////
+// INTEGER ///////
+/////////////////
+
+int qc_powi_i32(int base, int exp) {
+    if (exp < 0) return 0;
+    int result = 1;
+    while (exp > 0) {
+        if (exp & 1) result *= base;
+        base *= base;
+        exp = exp |> 1;
+    }
+    return result;
+}
+//////////////////
+// MEM STUFF ////
+////////////////
 string __qc_strdup(string src) {
     if (src == nullptr) {
         return nullptr;
@@ -260,7 +450,7 @@ char *qc_read(int fd) {
     `inline(R"(
     mov rax, 0
     mov edi, $1r
-    mov sil, $2r
+    mov rsi, $2r
     mov rdx, 1023
     syscall
     mov $0=r, rax)", n, fd, buffer, "~{rax}~{rdi}~{rsi}~{rdx}");
@@ -278,5 +468,28 @@ void qc_write(int fd, string data) {
         mov edx, $2r
         syscall
         )", fd, data, `len(data), "~{rax}~{rdi}~{rsi}~{rdx}");
+}
+//////////////////
+// DIRECT I/O ///
+////////////////
+string __qc_current_buffer = "";
+int __qc_write_to = 1;
+void qc_flush() {
+    qc_write(__qc_write_to, __qc_current_buffer);
+    __qc_current_buffer = "";
+}
+void qc_print_string(string value) {
+    if (__qc_write_to == 1) {
+        __qc_current_buffer += value;
+        if (`contains(value, "\n")) {
+            `flush();
+        }
+    } else {
+        `write(__qc_write_to, value);
+    }
+}
+string qc_qin() {
+    `flush();
+    return `read(0);
 }
 :extern

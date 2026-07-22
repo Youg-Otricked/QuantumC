@@ -25,7 +25,7 @@ If you get a undefined function error starting in `qc_`, its most likely a unall
 
 However, you may think "Why would anybody do that?". The answe is simple. _Custom runtimes_.
 
-The runtime is just 94 functions and 2 structs. Its really simple to make your own. Reference the following table to see what functions you need to make per feature.
+The runtime is just 90 functions and 2 structs. Its really simple to make your own. Reference the following table to see what functions you need to make per feature.
 1. String Concatenation
     - `string qc_string_concat(string a, string b)`
 2. Power on ints

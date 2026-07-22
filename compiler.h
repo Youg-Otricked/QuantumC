@@ -1442,6 +1442,7 @@ class LLVMCompiler {
     std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
     std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
+    std::vector<std::unordered_map<std::string, llvm::AllocaInst*>> localsStack;
     std::vector<std::unordered_map<std::string, bool>> volatileVarsStack;
     std::unordered_map<std::string, llvm::AllocaInst*> runtimeArraySizes;
     std::unordered_map<std::string, llvm::FunctionType*> lambdaTypes;
@@ -1463,6 +1464,7 @@ class LLVMCompiler {
         return bb->getModule()->getDataLayout().getPointerSizeInBits();
     }
 #define hasVarType(name) foundInStack(varTypesStack, name)
+#define hasLocal(name) foundInStack(localsStack, name)
 #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
 #define hasArrayLength(name) foundInStack(arrayLengthsStack, name)
 #define hasJaggedArray(name) foundInStack(jaggedArraysStack, name)
@@ -1470,15 +1472,18 @@ class LLVMCompiler {
 #define volatileVars (volatileVarsStack.back())
 #define arrayLengths (arrayLengthsStack.back())
 #define maps (mapsStack.back())
+#define locals (localsStack.back())
 #define jaggedArrays (jaggedArraysStack.back())
 #define varTypes (varTypesStack.back())
 #define arrayTypeStrings (arrayTypeStringsStack.back())
+#define findLocal(name) findInStack(localsStack, name)
 #define findVolatileVar(name) findInStack(volatileVarsStack, name)
 #define findArrayLength(name) findInStack(arrayLengthsStack, name)
 #define findVarType(name) findInStack(varTypesStack, name)
 #define findJaggedArray(name) findInStack(jaggedArraysStack, name)
 #define findArrayType(name) findInStack(arrayTypeStringsStack, name)
     void enterScope() {
+        localsStack.push_back({});
         jaggedArraysStack.push_back({});
         arrayTypeStringsStack.push_back({});
         arrayLengthsStack.push_back({});
@@ -1488,6 +1493,7 @@ class LLVMCompiler {
     }
 
     void exitScope() {
+        localsStack.pop_back();
         volatileVarsStack.pop_back();
         jaggedArraysStack.pop_back();
         arrayTypeStringsStack.pop_back();
@@ -1548,6 +1554,9 @@ class LLVMCompiler {
             case TokenType::INT: return "int";
             case TokenType::FLOAT: return "float";
             case TokenType::DOUBLE: return "double";
+            case TokenType::LONG_DOUBLE: return "long double";
+            case TokenType::LONG_INT: return "long int";
+            case TokenType::SHORT_INT: return "short int";
             case TokenType::ADDR_T: return "addr_t";
             default: break;
             }
@@ -1565,7 +1574,6 @@ class LLVMCompiler {
                 return substituteGenerics(t);
             }
             if (hasArrayType(varName)) { return substituteGenerics(findArrayType(varName)->second) + "[]"; }
-            if (auto* var = getVarAddress(varName)) { return getTypeName(var->getType()); }
         } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
             std::string baseType = getExpressionType((*arrAcc)->base);
             if (baseType.ends_with("*")) {
@@ -1858,17 +1866,6 @@ class LLVMCompiler {
             if (inner[i] == ',' && depth == 0) { return {inner.substr(0, i), inner.substr(i + 1)}; }
         }
         return {inner, ""};
-    }
-    std::string getTypeName(llvm::Type* ty) {
-        if (ty->isIntegerTy(32)) return "int";
-        if (ty->isIntegerTy(16)) return "short";
-        if (ty->isIntegerTy(64)) return "long";
-        if (ty->isFloatTy()) return "float";
-        if (ty->isDoubleTy()) return "double";
-        if (ty->isPointerTy()) { return "ptr"; }
-        if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) { return structTy->getName().str(); }
-
-        return "unknown";
     }
     llvm::Value* emitPrimitiveConversion(llvm::Value* arg, const std::string& target) {
         if (!arg) return nullptr;
@@ -2674,7 +2671,6 @@ class LLVMCompiler {
     llvm::Function* generateSpecializedMethod(const std::string& className, size_t methodIdx, const std::string& specializedName) {
         llvm::Function* savedFunction = currentFunction;
         llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
-        auto savedLocals = locals;
         auto savedGlobals = globals;
         auto savedThis = currentThis;
         auto savedClassName = currentClassName;
@@ -2841,7 +2837,6 @@ class LLVMCompiler {
         exitScope();
         namespaceStack = savedNamespaceStack;
         currentFunction = savedFunction;
-        locals = savedLocals;
         globals = savedGlobals;
         this->currentGenericTypes = oldGenericTypes;
         currentGenericTypeStrings = oldGenericTypeStrings;
@@ -2857,7 +2852,6 @@ class LLVMCompiler {
     llvm::Function* generateSpecializedFunction(FuncDefNode* funcDef, std::string specializedName) {
         llvm::Function* savedFunction = currentFunction;
         llvm::BasicBlock* savedBlock = builder->GetInsertBlock();
-        auto savedLocals = locals;
         auto savedGlobals = globals;
         auto savedNamespaceStack = namespaceStack;
         auto oldGenericTypes = this->currentGenericTypes;
@@ -3047,7 +3041,6 @@ class LLVMCompiler {
         exitScope();
         namespaceStack = savedNamespaceStack;
         currentFunction = savedFunction;
-        locals = savedLocals;
         globals = savedGlobals;
         this->currentGenericTypes = oldGenericTypes;
         currentGenericTypeStrings = oldGenericTypeStrings;
@@ -3176,21 +3169,26 @@ class LLVMCompiler {
         builder->CreateRet(result);
         if (savedBB) { builder->SetInsertPoint(savedBB); }
     }
-    llvm::StructType* genericiseOrFindClass(std::string baseName) {
-        if (genericClasses[baseTypeName(baseName)]) {
-            if (classTypes.count(baseName)) return classTypes[baseName];
-            llvm::StructType* classTy = generateGenericClass(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
-                                                             genericParamsFromName(baseName));
-            if (classTy == nullptr) {
-                cg_error(Position(), "Failed to create specialized version of class " + baseTypeName(baseName));
+    llvm::StructType* genericiseOrFindClass(const std::string& baseName) {
+        const auto base = baseTypeName(baseName);
+        if (genericClasses.contains(base) && genericClasses.at(base)) {
+            if (auto it = classTypes.find(baseName); it != classTypes.end()) {
+                return it->second;
+            }
+            auto userIt = userTypes.find(base);
+            if (userIt == userTypes.end()) {
                 return nullptr;
             }
-            return classTy;
+            return generateGenericClass(base, userIt->second,
+                                        genericParamsFromName(baseName));
         }
-        return classTypes[baseName];
+        if (auto it = classTypes.find(baseName); it != classTypes.end()) {
+            return it->second;
+        }
+        return nullptr;
     }
     llvm::StructType* genericiseOrFindStruct(std::string baseName) {
-        if (genericStructs[baseTypeName(baseName)]) {
+        if (genericStructs.contains(baseTypeName(baseName)) && genericStructs[baseTypeName(baseName)]) {
             if (structTypes.count(baseName)) return structTypes[baseName];
             llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
                                                              genericParamsFromName(baseName));
@@ -3200,10 +3198,10 @@ class LLVMCompiler {
             }
             return structTy;
         }
-        return structTypes[baseName];
+        return structTypes.contains(baseName) ? structTypes[baseName] : nullptr;
     }
     UserTypeInfo genericiseOrFindUnion(std::string baseName) {
-        if (genericUnions[baseTypeName(baseName)]) {
+        if (genericUnions.contains(baseTypeName(baseName)) && genericUnions[baseTypeName(baseName)]) {
             if (unionTypes.count(baseName)) return substitutedUnions[baseName];
             UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
                                                              genericParamsFromName(baseName));
@@ -3213,7 +3211,7 @@ class LLVMCompiler {
             }
             return unionInfo;
         }
-        return userTypes[baseTypeName(baseName)];
+        return userTypes.contains(baseTypeName(baseName)) ? userTypes[baseTypeName(baseName)] : UserTypeInfo{};
     }
     std::string genericiseOrFindAlias(std::string baseName) {
         if (genericAliases.count(baseTypeName(baseName)) && genericAliases[baseTypeName(baseName)]) {
@@ -3231,7 +3229,7 @@ class LLVMCompiler {
     }
     std::string resolveTypeName(std::string name, bool strip = true) {
         if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
-            name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double") {
+            name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double" || name == "addr_t") {
             return name;
         }
         std::string suffix;
@@ -3305,7 +3303,6 @@ class LLVMCompiler {
         if (name.find("::") != std::string::npos) {
             auto git = globals.find(name);
             if (git != globals.end()) return git->second;
-            return nullptr;
         }
         std::string current = getCurrentNamespace();
         while (true) {
@@ -3325,7 +3322,6 @@ class LLVMCompiler {
         if (name.find("::") != std::string::npos) {
             auto it = lambdaTypes.find(name);
             if (it != lambdaTypes.end()) return it->second;
-            return nullptr;
         }
         std::string current = getCurrentNamespace();
         while (true) {
@@ -3343,29 +3339,26 @@ class LLVMCompiler {
     }
     llvm::Value* resolveVariable(const std::string& name) {
         if (name.find("::") != std::string::npos) {
-            if (locals.count(name)) return locals[name];
+            if (hasLocal(name)) return findLocal(name)->second;
             if (globals.count(name)) return globals[name];
-            return nullptr;
         }
         std::string current = getCurrentNamespace();
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
-            auto it = locals.find(fullName);
-            if (it != locals.end()) { return it->second; }
+            if (hasLocal(fullName)) return findLocal(fullName)->second;
             auto git = globals.find(fullName);
             if (git != globals.end()) { return git->second; }
             if (current.empty()) break;
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
         }
-        if (locals.count(name)) return locals[name];
+        if (hasLocal(name)) return findLocal(name)->second;
         if (globals.count(name)) return globals[name];
         return nullptr;
     }
     std::string resolveVarType(const std::string& name) {
         if (name.find("::") != std::string::npos) {
             if (hasVarType(name)) return findVarType(name)->second;
-            return "";
         }
         std::string current = getCurrentNamespace();
         while (true) {
@@ -3570,7 +3563,6 @@ class LLVMCompiler {
     llvm::Type* llvmTypeFor(std::string qcType);
     std::string lambdaName();
     std::string mangleName(const FuncDefNode& fn);
-    std::unordered_map<std::string, llvm::AllocaInst*> locals;
     std::unordered_map<std::string, llvm::Function*> functions;
     llvm::Function* currentFunction = nullptr;
     llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);

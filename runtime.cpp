@@ -414,8 +414,7 @@ char* qc_to_lower(const char* str) {
     for (size_t i = 0; i < len; i++) { result[i] = tolower((unsigned char)str[i]); }
     result[len] = '\0';
     return result;
-}
-
+} // self hosted
 char* qc_to_upper(const char* str) {
     if (!str) return nullptr;
     size_t len = strlen(str);
@@ -424,7 +423,7 @@ char* qc_to_upper(const char* str) {
     for (size_t i = 0; i < len; i++) { result[i] = toupper((unsigned char)str[i]); }
     result[len] = '\0';
     return result;
-}
+} // self hosted
 
 char* qc_substring(const char* str, int start, int length) {
     if (!str) return nullptr;
@@ -440,17 +439,17 @@ char* qc_substring(const char* str, int start, int length) {
     memcpy(result, str + start, length);
     result[length] = '\0';
     return result;
-}
+} // self hosted
 
 int qc_contains(const char* str, const char* substr) {
     if (!str || !substr) return 0;
     return strstr(str, substr) != nullptr ? 1 : 0;
-}
+} // self hosted
 
 int qc_startswith(const char* str, const char* prefix) {
     if (!str || !prefix) return 0;
     return strncmp(str, prefix, strlen(prefix)) == 0 ? 1 : 0;
-}
+} // self hosted
 
 int qc_endswith(const char* str, const char* suffix) {
     if (!str || !suffix) return 0;
@@ -458,7 +457,7 @@ int qc_endswith(const char* str, const char* suffix) {
     size_t suf_len = strlen(suffix);
     if (suf_len > str_len) return 0;
     return strcmp(str + str_len - suf_len, suffix) == 0 ? 1 : 0;
-}
+}// self hosted
 bool qc_to_bool_from_string(const char* str) {
     if (!str) return false;
     return strcmp(str, "true") == 0 || strcmp(str, "1") == 0;
@@ -502,7 +501,7 @@ char* qc_trim(const char* str) {
     memcpy(result, str, len);
     result[len] = '\0';
     return result;
-}
+} // self hosted
 
 char* qc_replace(const char* str, const char* find, const char* replace) {
     if (!str || !find || !replace) return nullptr;
@@ -546,7 +545,7 @@ char* qc_replace(const char* str, const char* find, const char* replace) {
     *dst = '\0';
 
     return result;
-}
+} // self hosted
 
 int qc_to_int_from_string(const char* str) {
     return str ? atoi(str) : 0;

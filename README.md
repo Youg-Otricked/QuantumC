@@ -107,7 +107,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.22 = "Self-Hosted Runtime (Part 3)"
+Current Version: x0.20.23 = "Self-Hosted Runtime (Part 3)"
 Next Version: x0.20.3 = "Self-Hosted Runtime (Part 4)"
 
 # Current Version Highlights
@@ -123,10 +123,10 @@ Moderate
 └─ Runtime Selfhosting
 
 Minor
-└─ Self hosted 17/96 runtime functions.
+└─ Self hosted 30/92 runtime functions.
 
 Patch
-└─ LOTS of docs.
+└─ Fixed weird bugs with locals
 ```
 
 # Recent Deprecations / Breaking Changes
