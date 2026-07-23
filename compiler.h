@@ -885,18 +885,14 @@ class Parser {
     std::string qualify_name(const std::string& name);
     bool is_known_type(std::string name) {
         std::string base = base_type_name(name);
-        if (base.ends_with("&")) {
-            base.pop_back();
-        }
+        if (base.ends_with("&")) { base.pop_back(); }
         while (base.ends_with("*")) base.pop_back();
         while (base.ends_with("[]")) {
             base.pop_back();
             base.pop_back();
-        } 
+        }
         for (GenericType ty : current_generics) {
-            if (ty.name == base) {
-                return true;
-            }
+            if (ty.name == base) { return true; }
         }
         if (user_types.count(base_type_name(base))) return true;
         std::string ns;
@@ -909,19 +905,15 @@ class Parser {
     }
     std::string get_known_type(std::string name) {
         std::string base = base_type_name(name);
-        if (base.ends_with("&")) {
-            base.pop_back();
-        }
+        if (base.ends_with("&")) { base.pop_back(); }
         while (base.ends_with("*")) base.pop_back();
         while (base.ends_with("[]")) {
             name.pop_back();
             base.pop_back();
-        } 
-        if (user_types.count(base)) return base;   
+        }
+        if (user_types.count(base)) return base;
         for (GenericType ty : current_generics) {
-            if (ty.name == base) {
-                return base;
-            }
+            if (ty.name == base) { return base; }
         }
         std::string ns;
         for (int i = (int)namespaceStack.size() - 1; i >= 0; --i) {
@@ -960,9 +952,7 @@ class Parser {
     UserTypeInfo* find_type(std::string name) {
         if (is_known_type(base_type_name(name))) {
             for (GenericType ty : current_generics) {
-                if (ty.name == base_type_name(get_known_type(name))) {
-                 return nullptr;
-                }
+                if (ty.name == base_type_name(get_known_type(name))) { return nullptr; }
             }
             return &user_types[base_type_name(get_known_type(name))];
         }
@@ -1027,7 +1017,8 @@ class Parser {
     Prs try_catch_expr();
     Prs array_literal();
     Prs call(AnyNode node_to_call);
-    Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false, bool is_volatile = false);
+    Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false,
+                       bool is_volatile = false);
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
@@ -1085,8 +1076,7 @@ class Parser {
                 if (this->current_tok.type == TokenType::EOFT) break;
                 if (this->current_tok.type == TokenType::LESS) {
                     depth++;
-                }
-                else if (this->current_tok.type == TokenType::MORE) {
+                } else if (this->current_tok.type == TokenType::MORE) {
                     depth--;
                     if (depth == 0) {
                         this->advance();
@@ -1217,7 +1207,8 @@ class LLVMCompiler {
         int depth = 0;
         size_t end = angle;
         for (size_t i = angle; i < mangled.size(); i++) {
-            if (mangled[i] == '<') depth++;
+            if (mangled[i] == '<')
+                depth++;
             else if (mangled[i] == '>') {
                 depth--;
                 if (depth == 0) {
@@ -1233,16 +1224,13 @@ class LLVMCompiler {
     void createUserTypes();
     llvm::Value* convertToString(llvm::Value* val, AnyNode& expr);
     LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& userTys, llvm::Module* mod, llvm::LLVMContext& ctx, bool is_main = false);
-    std::vector<CTError> compile(StatementsNode* root, std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
-                                 std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs,
-                                 std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
-                                 std::unordered_map<std::string, std::string> visibleArrayTypeStrings,
-                                 std::unordered_map<std::string, int> visibleArrayLengths,
-                                 std::unordered_map<std::string, std::string> visibleVarTypes,
-                                 std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
-                                 std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes,
-                                 std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
-                                 std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals);
+    std::vector<CTError> compile(
+        StatementsNode* root, std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
+        std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs, std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
+        std::unordered_map<std::string, std::string> visibleArrayTypeStrings, std::unordered_map<std::string, int> visibleArrayLengths,
+        std::unordered_map<std::string, std::string> visibleVarTypes, std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
+        std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes, std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
+        std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals);
     bool is_main;
     void cg_warn(const Position& pos, const std::string& msg);
     void cg_error(const Position& pos, const std::string& msg);
@@ -1282,12 +1270,10 @@ class LLVMCompiler {
     std::string getMethodReturnTypeName(const std::string& typeName, const std::string& methodName) {
         auto it = userTypes.find(baseTypeName(typeName));
         if (it == userTypes.end()) return "";
-        
+
         for (auto& method : it->second.classMethods) {
             if (method.name_tok.value == methodName) {
-                if (!method.return_types.empty()) {
-                    return method.return_types[0].value;
-                }
+                if (!method.return_types.empty()) { return method.return_types[0].value; }
             }
         }
         return "";
@@ -1368,28 +1354,18 @@ class LLVMCompiler {
         size_t suffix_start = anglePos;
         if (anglePos == std::string::npos) {
             size_t modifierPos = typeStr.find_first_of("*&[");
-            std::string base = modifierPos == std::string::npos
-                                   ? typeStr
-                                   : typeStr.substr(0, modifierPos);
-            std::string suffix = modifierPos == std::string::npos
-                                   ? ""
-                                   : typeStr.substr(modifierPos);
+            std::string base = modifierPos == std::string::npos ? typeStr : typeStr.substr(0, modifierPos);
+            std::string suffix = modifierPos == std::string::npos ? "" : typeStr.substr(modifierPos);
             base.erase(0, base.find_first_not_of(" "));
             base.erase(base.find_last_not_of(" ") + 1);
             auto typeIt = currentGenericTypeStrings.find(base);
-            if (typeIt != currentGenericTypeStrings.end()) {
-                base = typeIt->second;
-            }
+            if (typeIt != currentGenericTypeStrings.end()) { base = typeIt->second; }
             auto nonTypeIt = currentNonTypeGenericValues.find(base);
-            if (nonTypeIt != currentNonTypeGenericValues.end()) {
-                base = nonTypeIt->second.name;
-            }
+            if (nonTypeIt != currentNonTypeGenericValues.end()) { base = nonTypeIt->second.name; }
             for (size_t i = 0; i < suffix.size();) {
                 if (suffix[i] == '[') {
                     size_t end = suffix.find(']', i);
-                    if (end == std::string::npos) {
-                        break;
-                    }
+                    if (end == std::string::npos) { break; }
                     std::string size = suffix.substr(i + 1, end - i - 1);
                     std::string newSize = substituteGenerics(size);
                     suffix.replace(i + 1, end - i - 1, newSize);
@@ -1399,7 +1375,7 @@ class LLVMCompiler {
                 }
             }
             return base + suffix;
-        }    
+        }
         std::string baseName = typeStr.substr(0, anglePos);
         std::string inner = typeStr.substr(anglePos + 1, typeStr.rfind('>') - anglePos - 1);
         std::string suffix = typeStr.substr(typeStr.rfind('>') + 1); // catches trailing * & etc
@@ -1458,9 +1434,7 @@ class LLVMCompiler {
     }
     unsigned getPtrSize() {
         llvm::BasicBlock* bb = builder->GetInsertBlock();
-        if (!bb || !bb->getParent()) {
-            return 64;
-        }
+        if (!bb || !bb->getParent()) { return 64; }
         return bb->getModule()->getDataLayout().getPointerSizeInBits();
     }
 #define hasVarType(name) foundInStack(varTypesStack, name)
@@ -1535,9 +1509,7 @@ class LLVMCompiler {
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
                 if (type.ends_with("*") && strip) { type.pop_back(); }
             }
-            if ((*unaryOp)->op_tok.type == TokenType::SIZEOF) {
-                return "addr_t";
-            }
+            if ((*unaryOp)->op_tok.type == TokenType::SIZEOF) { return "addr_t"; }
             return type;
         } else if (auto binOp = std::get_if<BinOpNode*>(&node)) {
             std::string leftType = getExpressionType((*binOp)->left_node);
@@ -1568,8 +1540,8 @@ class LLVMCompiler {
             return "qbool";
         } else if (auto varAcc = std::get_if<VarAccessNode*>(&node)) {
             std::string varName = (*varAcc)->var_name_tok.value;
-            if (!resolveVarType(varName).empty()) {
-                std::string t = resolveVarType(varName);
+            if (!this->resolveVarType(varName).empty()) {
+                std::string t = this->resolveVarType(varName);
                 if (t.ends_with("&") && strip) t.pop_back();
                 return substituteGenerics(t);
             }
@@ -1699,8 +1671,7 @@ class LLVMCompiler {
     }
     bool returnsRef(unsigned index = 0) {
         auto* md = currentFunction->getMetadata("qc.return_types");
-        if (!md || index >= md->getNumOperands())
-            return false;
+        if (!md || index >= md->getNumOperands()) return false;
 
         auto* s = llvm::dyn_cast<llvm::MDString>(md->getOperand(index));
         return s && s->getString().ends_with("&");
@@ -1878,58 +1849,82 @@ class LLVMCompiler {
             retTy = builder->getInt32Ty();
             if (ty->isPointerTy())
                 fnName = "qc_to_int_from_string";
-            else if (ty->isFloatTy())
-                fnName = "qc_to_int_from_float";
-            else if (ty->isDoubleTy())
-                fnName = "qc_to_int_from_double";
-            else if (ty->isIntegerTy(1))
-                fnName = "qc_to_int_from_bool";
-            else if (ty->isIntegerTy(8))
-                fnName = "qc_to_int_from_char";
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToSI(arg, retTy);
+            else if (ty->isIntegerTy(64))
+                return builder->CreateTrunc(arg, retTy);
             else if (ty->isIntegerTy(32))
                 return arg;
+            else if (ty->isIntegerTy())
+                return builder->CreateSExt(arg, retTy);
+        } else if (target == "short int") {
+            retTy = builder->getInt16Ty();
+            if (ty->isPointerTy())
+                fnName = "qc_to_short_int_from_string";
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToSI(arg, retTy);
+            else if (ty->isIntegerTy(64) || ty->isIntegerTy(32))
+                return builder->CreateTrunc(arg, retTy);
+            else if (ty->isIntegerTy(16))
+                return arg;
+            else if (ty->isIntegerTy())
+                return builder->CreateSExt(arg, retTy);
+        } else if (target == "long int") {
+            retTy = builder->getInt64Ty();
+            if (ty->isPointerTy())
+                fnName = "qc_to_int_from_string";
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToSI(arg, retTy);
+            else if (ty->isIntegerTy(64))
+                return arg;
+            else if (ty->isIntegerTy())
+                return builder->CreateSExt(arg, retTy);
         } else if (target == "float") {
             retTy = builder->getFloatTy();
             if (ty->isPointerTy())
                 fnName = "qc_to_float_from_string";
-            else if (ty->isIntegerTy(32))
-                fnName = "qc_to_float_from_int";
+            else if (ty->isIntegerTy())
+                return builder->CreateSIToFP(arg, retTy);
             else if (ty->isDoubleTy())
-                fnName = "qc_to_float_from_double";
-            else if (ty->isIntegerTy(1))
-                fnName = "qc_to_float_from_bool";
+                return builder->CreateFPTrunc(arg, retTy); 
             else if (ty->isFloatTy())
                 return arg;
         } else if (target == "double") {
             retTy = builder->getDoubleTy();
             if (ty->isPointerTy())
                 fnName = "qc_to_double_from_string";
-            else if (ty->isIntegerTy(32))
-                fnName = "qc_to_double_from_int";
+            else if (ty->isIntegerTy())
+                return builder->CreateSIToFP(arg, retTy);
             else if (ty->isFloatTy())
-                fnName = "qc_to_double_from_float";
-            else if (ty->isIntegerTy(1))
-                fnName = "qc_to_double_from_bool";
+                return builder->CreateFPExt(arg, retTy);
             else if (ty->isDoubleTy())
                 return arg;
         } else if (target == "bool") {
             retTy = builder->getInt1Ty();
-            if (ty->isIntegerTy(32))
-                fnName = "qc_to_bool_from_int";
-            else if (ty->isFloatTy())
-                fnName = "qc_to_bool_from_float";
-            else if (ty->isDoubleTy())
-                fnName = "qc_to_bool_from_double";
-            else if (ty->isIntegerTy(1))
+            if (ty->isIntegerTy(1))
                 return arg;
+            else if (ty->isIntegerTy())
+                return builder->CreateICmpNE(arg, llvm::ConstantInt::get(ty, 0));
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFCmpONE(arg, llvm::ConstantFP::get(ty, 0.0));
+            else if (ty->isPointerTy())
+                fnName = "qc_to_bool_from_string";
         } else if (target == "char") {
             retTy = builder->getInt8Ty();
             if (ty->isPointerTy())
                 fnName = "qc_to_char_from_string";
             else if (ty->isIntegerTy(32))
-                fnName = "qc_to_char_from_int";
+                return builder->CreateTrunc(arg, retTy);
             else if (ty->isIntegerTy(8))
                 return arg;
+        } else if (target == "addr_t") {
+            retTy = builder->getIntNTy(getPtrSize());    
+            if (ty->isPointerTy())
+                fnName = "qc_to_addr_t_from_string";
+            else if (ty->isIntegerTy())
+                return builder->CreateZExtOrTrunc(arg, retTy);
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToUI(arg, retTy);
         }
 
         if (fnName.empty() || !retTy) {
@@ -1977,6 +1972,12 @@ class LLVMCompiler {
                 resultTy = builder->getInt1Ty();
             else if (target == "char")
                 resultTy = builder->getInt8Ty();
+            else if (target == "addr_t" || target == "long int")
+                resultTy = builder->getIntNTy(getPtrSize());
+            else if (target == "short int")
+                resultTy = builder->getInt16Ty();
+            else if (target == "qbool")
+                resultTy = builder->getIntNTy(2);
             else {
                 cg_error(Position(), "Unknown conversion target: " + target);
                 return nullptr;
@@ -2035,6 +2036,12 @@ class LLVMCompiler {
                 resultTy = builder->getInt1Ty();
             else if (target == "char")
                 resultTy = builder->getInt8Ty();
+            else if (target == "addr_t" || target == "long int")
+                resultTy = builder->getIntNTy(getPtrSize());
+            else if (target == "short int")
+                resultTy = builder->getInt16Ty();
+            else if (target == "qbool")
+                resultTy = builder->getIntNTy(2);
             else {
                 cg_error(Position(), "Unknown conversion target: " + target);
                 return nullptr;
@@ -2277,9 +2284,7 @@ class LLVMCompiler {
 
         while (!currentClass.empty()) {
             auto it = userTypes.find(baseTypeName(currentClass));
-            if (it == userTypes.end()) {
-                return {"", "public"};
-            }
+            if (it == userTypes.end()) { return {"", "public"}; }
 
             auto& classInfo = it->second;
             for (auto& field : classInfo.classFields) {
@@ -2329,9 +2334,10 @@ class LLVMCompiler {
     }
     std::unordered_map<std::string, std::unordered_map<std::string, llvm::Function*>> genericisedMethods;
     llvm::Value* tryHandleSpecialized(const std::string& className, const std::string& methodName, MethodCallNode* node, llvm::Value* thisPtr) {
-        if (auto methodIt = std::find_if(userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(), [&](ClassMethodInfo method) {
-            return method.name_tok.value == baseTypeName(methodName) && !method.generics.empty();
-        }); methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
+        if (auto methodIt = std::find_if(
+                userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(),
+                [&](ClassMethodInfo method) { return method.name_tok.value == baseTypeName(methodName) && !method.generics.empty(); });
+            methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
             auto genericParams = genericParamsFromName(className);
             auto oldGenericTypes = this->currentGenericTypes;
             auto oldGenericTypeStrings = currentGenericTypeStrings;
@@ -2365,8 +2371,8 @@ class LLVMCompiler {
                                 return nullptr;
                             }
                         } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                            static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
-                                                                                         "long int", "char",   "bool",  "qbool",  "string"};
+                            static const std::unordered_set<std::string> native_types = {
+                                "int", "double", "float", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
                             auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                             if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                                 if (generic.constraint == "usertype") {
@@ -2384,7 +2390,8 @@ class LLVMCompiler {
                             if (generic.negated) {
                                 for (std::string subconstraint : generic.subconstraints) {
                                     if (value == subconstraint) {
-                                        cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                                        cg_error(Position(),
+                                                 "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                         return nullptr;
                                     }
                                 }
@@ -2417,7 +2424,8 @@ class LLVMCompiler {
             }
             size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
             if (genericisedMethods[fixMangling(className)][fixMangling(methodName)] == nullptr) {
-                genericisedMethods[fixMangling(className)][fixMangling(methodName)] = generateSpecializedMethod(fixMangling(className), methodIdx, fixMangling(methodName));
+                genericisedMethods[fixMangling(className)][fixMangling(methodName)] = generateSpecializedMethod(fixMangling(className), methodIdx,
+                                                                                                                fixMangling(methodName));
             }
             llvm::Function* fn = genericisedMethods[fixMangling(className)][fixMangling(methodName)];
             auto& info = userTypes[baseTypeName(className)].classMethods[methodIdx];
@@ -2434,14 +2442,12 @@ class LLVMCompiler {
             }
             this->currentGenericTypes = oldGenericTypes;
             currentGenericTypeStrings = oldGenericTypeStrings;
-            currentNonTypeGenericValues = oldNonTypeGenerics;  
+            currentNonTypeGenericValues = oldNonTypeGenerics;
             return emitMethodCall(fn, thisPtr, args, methodName);
         }
         return nullptr;
     }
-    std::string fixMangling(std::string type) {
-        return buildMangledName(baseTypeName(type), genericParamsFromName(type));
-    }
+    std::string fixMangling(std::string type) { return buildMangledName(baseTypeName(type), genericParamsFromName(type)); }
     std::vector<llvm::Value*> reconcileArgs(llvm::Function* func, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args) {
         std::vector<llvm::Value*> reconciled = {thisPtr};
         auto* funcTy = func->getFunctionType();
@@ -2618,7 +2624,7 @@ class LLVMCompiler {
         return nullptr;
     }
     llvm::Value* emitVirtualOrDirectCall(const std::string& ty, const std::string& methodName, llvm::Value* payload,
-                                     const std::vector<llvm::Value*>& args) {
+                                         const std::vector<llvm::Value*>& args) {
         llvm::Function* method = findMethodOverload(ty, methodName, args);
         if (!method) return nullptr;
         ClassMethodInfo* info = nullptr;
@@ -2637,9 +2643,7 @@ class LLVMCompiler {
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
             std::string mangledName = ty + "_" + methodName;
             if (info && classMethods[ty][methodName].size() > 1) {
-                for (auto& param : info->params) {
-                    mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
-                }
+                for (auto& param : info->params) { mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
             }
             auto indexIt = slotIt->second.find(mangledName);
             if (indexIt != slotIt->second.end()) {
@@ -2726,7 +2730,8 @@ class LLVMCompiler {
                     if (generic.negated) {
                         for (std::string subconstraint : generic.subconstraints) {
                             if (value == subconstraint) {
-                                cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                                cg_error(Position(),
+                                         "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                 return nullptr;
                             }
                         }
@@ -2744,7 +2749,7 @@ class LLVMCompiler {
                 currentGenericTypes[generic.name] = llvmTypeFor(value);
                 currentGenericTypeStrings[generic.name] = value;
             } else if (generic.isNonType) {
-                GenericType generic =  method.generics[i];
+                GenericType generic = method.generics[i];
                 if (genericParams.size() <= i) {
                     if (generic.defaultValue.empty()) {
                         cg_error(Position(), "Too few generic params for class " + method.name_tok.value);
@@ -2763,9 +2768,7 @@ class LLVMCompiler {
         std::vector<llvm::Type*> paramTypes;
         paramTypes.push_back(llvm::PointerType::get(context, 0));
         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
-        for (auto* paramTy : baseFuncTy->params()) {
-            paramTypes.push_back(paramTy);
-        }
+        for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
         size_t paramIdx = 0;
@@ -2794,29 +2797,12 @@ class LLVMCompiler {
         }
         for (int i = 1; i < fnTy->getNumParams(); i++) {
             if (method.params[i - 1].type.value.starts_with("out ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::WriteOnly
-                );
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );
+                fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             } else if (method.params[i - 1].type.value.starts_with("inout ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );        
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             }
-            if (method.params[i - 1].type.value.ends_with("restrict")) {
-                fn->addParamAttr(i, llvm::Attribute::NoAlias);
-            }
+            if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
         currentFunction = fn;
         currentClassName = className;
@@ -2840,7 +2826,7 @@ class LLVMCompiler {
         globals = savedGlobals;
         this->currentGenericTypes = oldGenericTypes;
         currentGenericTypeStrings = oldGenericTypeStrings;
-        currentNonTypeGenericValues = oldNonTypeGenerics;  
+        currentNonTypeGenericValues = oldNonTypeGenerics;
         if (savedBlock) { builder->SetInsertPoint(savedBlock); }
         return fn;
     }
@@ -2856,7 +2842,7 @@ class LLVMCompiler {
         auto savedNamespaceStack = namespaceStack;
         auto oldGenericTypes = this->currentGenericTypes;
         auto oldGenericTypeStrings = currentGenericTypeStrings;
-        auto oldNonTypeGenerics = currentNonTypeGenericValues; 
+        auto oldNonTypeGenerics = currentNonTypeGenericValues;
         auto genericParams = genericParamsFromName(specializedName);
         for (int i = 0; i < funcDef->generics.size(); i++) {
             GenericType generic = funcDef->generics[i];
@@ -2904,7 +2890,8 @@ class LLVMCompiler {
                     if (generic.negated) {
                         for (std::string subconstraint : generic.subconstraints) {
                             if (value == subconstraint) {
-                                cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                                cg_error(Position(),
+                                         "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                 return nullptr;
                             }
                         }
@@ -2949,29 +2936,12 @@ class LLVMCompiler {
             auto it = funcDef->params.begin();
             std::advance(it, i);
             if (it->type.value.starts_with("out ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::WriteOnly
-                );
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );
+                fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             } else if (it->type.value.starts_with("inout ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );        
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             }
-            if (it->type.value.ends_with("restrict")) {
-                fn->addParamAttr(i, llvm::Attribute::NoAlias);
-            }
+            if (it->type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
 
         currentFunction = fn;
@@ -2998,16 +2968,17 @@ class LLVMCompiler {
                         pos = t.find("[]", pos + 2);
                     }
                     if (dims > 0) {
-                        cg_warn(Position(), "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
-                                                size_t pos = 0;
-                                                while ((pos = str.find("[]", pos)) != std::string::npos) {
-                                                    str.replace(pos, 2, "*");
-                                                    pos += 1;
-                                                }
-                                                return str;
-                                            }(t)) +
-                                                ". Please consider changing the type of this parameter to that type instead, and if you need the length "
-                                                "property (which won't exist on pointers), add an additional length parameter.");
+                        cg_warn(Position(),
+                                "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                                    size_t pos = 0;
+                                    while ((pos = str.find("[]", pos)) != std::string::npos) {
+                                        str.replace(pos, 2, "*");
+                                        pos += 1;
+                                    }
+                                    return str;
+                                }(t)) +
+                                    ". Please consider changing the type of this parameter to that type instead, and if you need the length "
+                                    "property (which won't exist on pointers), add an additional length parameter.");
                     }
                     if (dims > 1) {
                         std::string base = t.substr(0, t.find("[]"));
@@ -3044,7 +3015,7 @@ class LLVMCompiler {
         globals = savedGlobals;
         this->currentGenericTypes = oldGenericTypes;
         currentGenericTypeStrings = oldGenericTypeStrings;
-        currentNonTypeGenericValues = oldNonTypeGenerics;  
+        currentNonTypeGenericValues = oldNonTypeGenerics;
         if (savedBlock) { builder->SetInsertPoint(savedBlock); }
         return fn;
     }
@@ -3172,26 +3143,19 @@ class LLVMCompiler {
     llvm::StructType* genericiseOrFindClass(const std::string& baseName) {
         const auto base = baseTypeName(baseName);
         if (genericClasses.contains(base) && genericClasses.at(base)) {
-            if (auto it = classTypes.find(baseName); it != classTypes.end()) {
-                return it->second;
-            }
+            if (auto it = classTypes.find(baseName); it != classTypes.end()) { return it->second; }
             auto userIt = userTypes.find(base);
-            if (userIt == userTypes.end()) {
-                return nullptr;
-            }
-            return generateGenericClass(base, userIt->second,
-                                        genericParamsFromName(baseName));
+            if (userIt == userTypes.end()) { return nullptr; }
+            return generateGenericClass(base, userIt->second, genericParamsFromName(baseName));
         }
-        if (auto it = classTypes.find(baseName); it != classTypes.end()) {
-            return it->second;
-        }
+        if (auto it = classTypes.find(baseName); it != classTypes.end()) { return it->second; }
         return nullptr;
     }
     llvm::StructType* genericiseOrFindStruct(std::string baseName) {
         if (genericStructs.contains(baseTypeName(baseName)) && genericStructs[baseTypeName(baseName)]) {
             if (structTypes.count(baseName)) return structTypes[baseName];
             llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
-                                                             genericParamsFromName(baseName));
+                                                               genericParamsFromName(baseName));
             if (structTy == nullptr) {
                 cg_error(Position(), "Failed to create specialized version of struct " + baseTypeName(baseName));
                 return nullptr;
@@ -3203,8 +3167,7 @@ class LLVMCompiler {
     UserTypeInfo genericiseOrFindUnion(std::string baseName) {
         if (genericUnions.contains(baseTypeName(baseName)) && genericUnions[baseTypeName(baseName)]) {
             if (unionTypes.count(baseName)) return substitutedUnions[baseName];
-            UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
-                                                             genericParamsFromName(baseName));
+            UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (static_cast<int>(unionInfo.kind) == 0) {
                 cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
                 return {};
@@ -3216,8 +3179,7 @@ class LLVMCompiler {
     std::string genericiseOrFindAlias(std::string baseName) {
         if (genericAliases.count(baseTypeName(baseName)) && genericAliases[baseTypeName(baseName)]) {
             if (typeAliases.count(baseName)) return resolveTypeName(typeAliases[baseName]);
-            std::string newAlias = generateGenericAlias(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
-                                                            genericParamsFromName(baseName));
+            std::string newAlias = generateGenericAlias(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (newAlias == "") {
                 cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
                 return "";
@@ -3246,9 +3208,7 @@ class LLVMCompiler {
         name = genericiseOrFindAlias(name);
         std::string savedName = name;
         std::vector<std::string> params;
-        for (std::string param : genericParamsFromName(savedName)) {
-            params.push_back(resolveTypeName(param, false));
-        }
+        for (std::string param : genericParamsFromName(savedName)) { params.push_back(resolveTypeName(param, false)); }
         if (!params.empty()) savedName = buildMangledName(baseTypeName(name), params);
         name = baseTypeName(name);
 

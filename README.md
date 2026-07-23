@@ -107,8 +107,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.23 = "Self-Hosted Runtime (Part 3)"
-Next Version: x0.20.3 = "Self-Hosted Runtime (Part 4)"
+Current Version: x0.20.231 = "Self-Hosted Runtime (Part 4)"
+Next Version: x0.20.4 = "Self-Hosted Runtime (Part 5)"
 
 # Current Version Highlights
 
@@ -123,7 +123,7 @@ Moderate
 └─ Runtime Selfhosting
 
 Minor
-└─ Self hosted 30/92 runtime functions.
+└─ Self hosted 39/78 runtime functions.
 
 Patch
 └─ Fixed weird bugs with locals
@@ -346,7 +346,7 @@ namespace Network {
         }
     }
 }
-namespace API_Keys_In_Plain_Text { // Intentionally formatted as a non-inclusion namespace.
+namespace Not_Embezzeling { // Intentionally formatted as a non-inclusion namespace.
     // Sure, you may not want to type all of that. That means your users absolutely don't.
     ..
 }
@@ -355,8 +355,8 @@ namespace API_Keys_In_Plain_Text { // Intentionally formatted as a non-inclusion
 
 QuantumC follows 4 core rules:
 
-- Forced Cleanliness: Your code should and must be readable. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
-- Your Memory, Your Problem: QuantumC does not stop you from doing something cool or implementing your dangerous ideas. QuantumC also doesn't stop you from making dangerous mistakes. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
+- Forced Cleanliness: QuantumC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
+- Your Memory, Your Problem: QuantumC does not prevent dangerous code. It expects the programmer to understand the consequences. If you want, you can write a segfault handler with a segfault in it. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
 - No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
 
@@ -451,15 +451,15 @@ volatile void infinite_time() {
 }
 ```
 2. `restrict`
-Restrict tells the compiler that this pointer can be aggressivly optimized and that no other pointers overlap this memory location.
-```
-void doSomePointer(int *restrict ptr) {
-    // This is the violation: 'other' now points to the exact same memory.
-    // Accessing or modifying the data through 'other' breaks the restrict "contract".
-    int *other = ptr;     
-    *other = 10; // UNDEFINED BEHAVIOR!
+
+`restrict` tells the compiler that this pointer is the exclusive access path to the referenced memory. Other unrelated pointers must not access the same memory in a way that violates the restrict contract. This allows more aggressive optimization.
+
+Example:
+```qc
+void doSomePointer(int *restrict ptr, int *other) {
+    *ptr = 10;
+    *other = 20; // Undefined behavior if other points to the same memory as ptr
 }
-```
 3. `out`
 Out tells the compiler that this paramater is write-only, and this memory address will not be copied. It also only exists for optimization purposes.
 ```

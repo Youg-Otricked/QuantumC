@@ -29,6 +29,9 @@ void* qc_realloc(void* ptr, size_t size) {
 void* qc_calloc(size_t num, size_t size) {
     return calloc(num, size);
 }
+void qc_flush() {
+    fflush(NULL);
+}
 char* qc_fmt_int(intptr_t v, int width, int precision, bool zero_pad) {
     char fmt[32];
     if (precision >= 0) {
@@ -47,9 +50,6 @@ char* qc_fmt_int(intptr_t v, int width, int precision, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, v);
     return out;
-}
-void qc_flush() {
-    fflush(NULL);
 }
 char* qc_fmt_unsigned_int(size_t v, bool zero_pad) {
     char fmt[32];
@@ -204,7 +204,7 @@ int qc_powi_i32(int base, int exp) {
         exp >>= 1;
     }
     return result;
-}
+} // self hosted
 char* qc_string_concat(const char* a, const char* b) {
     if (!a) a = "";
     if (!b) b = "";
@@ -220,7 +220,7 @@ char* qc_string_concat(const char* a, const char* b) {
     result[len_a + len_b] = '\0';
 
     return result;
-}
+} // self hosted
 bool qc_string_eq(const char* a, const char* b) {
     if (!a || !b) return 0;
     return strcmp(a, b) == 0 ? 1 : 0;
@@ -233,7 +233,7 @@ uint8_t qc_qand(uint8_t a, uint8_t b) { // self hosted
     return 3;
 }
 
-uint8_t qc_qor(uint8_t a, uint8_t b) { // self hosted 
+uint8_t qc_qor(uint8_t a, uint8_t b) { // self hosted
     if (a == 0 && b == 0) return 0;
     if (a == 0 && b == 1) return 1;
     if (a == 0 && b == 2) return 2;
@@ -252,7 +252,7 @@ uint8_t qc_qxor(uint8_t a, uint8_t b) { // self hosted
     return 3;
 }
 
-uint8_t qc_qnot(uint8_t a) { // self hosted 
+uint8_t qc_qnot(uint8_t a) { // self hosted
     return 3 - a;
 }
 
@@ -299,43 +299,6 @@ char* qc_to_string_short_int(short x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
-int qc_to_int_from_float(float x) {
-    return (int)x;
-}
-int qc_to_int_from_double(double x) {
-    return (int)x;
-}
-int qc_to_int_from_char(char c) {
-    return (int)c;
-}
-
-float qc_to_float_from_double(double x) {
-    return (float)x;
-}
-float qc_to_float_from_bool(bool b) {
-    return b ? 1.0f : 0.0f;
-}
-
-double qc_to_double_from_float(float x) {
-    return (double)x;
-}
-double qc_to_double_from_bool(bool b) {
-    return b ? 1.0 : 0.0;
-}
-
-bool qc_to_bool_from_int(int x) {
-    return x != 0;
-}
-bool qc_to_bool_from_float(float x) {
-    return x != 0.0f;
-}
-bool qc_to_bool_from_double(double x) {
-    return x != 0.0;
-}
-
-char qc_to_char_from_int(int x) {
-    return (char)x;
 }
 char* qc_to_string_double(double x) {
     char buf[64];
@@ -457,7 +420,7 @@ int qc_endswith(const char* str, const char* suffix) {
     size_t suf_len = strlen(suffix);
     if (suf_len > str_len) return 0;
     return strcmp(str + str_len - suf_len, suffix) == 0 ? 1 : 0;
-}// self hosted
+} // self hosted
 bool qc_to_bool_from_string(const char* str) {
     if (!str) return false;
     return strcmp(str, "true") == 0 || strcmp(str, "1") == 0;
@@ -570,18 +533,6 @@ double qc_to_double_from_string(const char* str) {
 
 char qc_to_char_from_string(const char* str) {
     return (str && str[0]) ? str[0] : '\0';
-}
-
-int qc_to_int_from_bool(bool b) {
-    return b ? 1 : 0;
-}
-
-float qc_to_float_from_int(int x) {
-    return (float)x;
-}
-
-double qc_to_double_from_int(int x) {
-    return (double)x;
 }
 int qc_sizeof_type(int elem_type) {
     switch (elem_type) {
@@ -807,25 +758,23 @@ int qc_open(const char* path, const char* mode) {
     FILE* f = fopen(path, mode);
     if (f == nullptr) return -1;
     return fileno(f);
-}// self hosted
+} // self hosted
 void qc_close(int fd) {
     close(fd);
-}// self hosted
+} // self hosted
 
-char *qc_read(int fd) {
+char* qc_read(int fd) {
     char buffer[1024];
 
     ssize_t n = read(fd, buffer, sizeof(buffer) - 1);
-    if (n <= 0)
-        return strdup("");
+    if (n <= 0) return strdup("");
 
     buffer[n] = '\0';
     return strdup(buffer);
 } // self hosted
 
-void qc_write(int fd, const char *data) {
-    if (data)
-        write(fd, data, strlen(data));
+void qc_write(int fd, const char* data) {
+    if (data) write(fd, data, strlen(data));
 } // self hosted
 typedef struct {
     void** items;

@@ -46,13 +46,13 @@
 #include <llvm/Passes/PassPlugin.h>
 #endif
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/ModRef.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
-#include <llvm/Support/ModRef.h>
 #endif
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
@@ -1640,8 +1640,8 @@ Prs Parser::atom() {
         return this->qin_expr();
     }
 
-    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T || tok.type == TokenType::LONG_INT
-        || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE) {
+    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T ||
+        tok.type == TokenType::LONG_INT || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE) {
         this->advance();
         return res.success(NumberNode(tok));
     } else if (tok.type == TokenType::STRING) {
@@ -1699,9 +1699,10 @@ Prs Parser::atom() {
             }
             bool next_comma = false;
             bool just_incremented = true;
-            while (depth > 0) { 
+            while (depth > 0) {
                 if (next_comma) {
-                    if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS && this->current_tok.type != TokenType::MORE) {
+                    if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                        this->current_tok.type != TokenType::MORE) {
                         this->index = oldId;
                         name = oldName;
                         this->current_tok = this->tokens[this->index];
@@ -1716,9 +1717,10 @@ Prs Parser::atom() {
                     }
                 }
                 if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                        TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT,
-                        TokenType::SHORT_INT, TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE
-                    }).contains(this->current_tok.type))) {
+                                                     TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                     TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                     TokenType::LESS, TokenType::MORE})
+                          .contains(this->current_tok.type))) {
                     this->index = oldId;
                     name = oldName;
                     this->current_tok = this->tokens[this->index];
@@ -1738,11 +1740,14 @@ Prs Parser::atom() {
                     just_incremented = true;
                     depth++;
                     if (depth > 128) {
-                        res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                        res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                               name.substr(0, 120) + "..." +
+                                                               "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                               "compiler is not a Matryoshka doll. It has feelings too.",
+                                                           pos));
                         return res.to_prs();
                     }
-                }
-                else if (this->current_tok.type == TokenType::MORE) {
+                } else if (this->current_tok.type == TokenType::MORE) {
                     depth--;
                     if (depth == 0) {
                         this->advance();
@@ -1808,11 +1813,14 @@ Prs Parser::atom() {
                         if (this->current_tok.type == TokenType::LESS) {
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                       name.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
+                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   pos));
                                 return res.to_prs();
                             }
-                        }
-                        else if (this->current_tok.type == TokenType::MORE) {
+                        } else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {
                                 this->advance();
@@ -1886,11 +1894,14 @@ Prs Parser::atom() {
                         if (this->current_tok.type == TokenType::LESS) {
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                       name.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
+                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   pos));
                                 return res.to_prs();
                             }
-                        }
-                        else if (this->current_tok.type == TokenType::MORE) {
+                        } else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {
                                 this->advance();
@@ -1997,11 +2008,15 @@ Prs Parser::atom() {
                             if (this->current_tok.type == TokenType::LESS) {
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                    res.failure(
+                                        new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                   name.substr(0, 120) + "..." +
+                                                                   "\n\nNote: We opened the box and there was another box. And another. Please stop. "
+                                                                   "The compiler is not a Matryoshka doll. It has feelings too.",
+                                                               pos));
                                     return res.to_prs();
                                 }
-                            }
-                            else if (this->current_tok.type == TokenType::MORE) {
+                            } else if (this->current_tok.type == TokenType::MORE) {
                                 depth--;
                                 if (depth == 0) {
                                     this->advance();
@@ -2075,11 +2090,15 @@ Prs Parser::atom() {
                             if (this->current_tok.type == TokenType::LESS) {
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", pos));
+                                    res.failure(
+                                        new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                   name.substr(0, 120) + "..." +
+                                                                   "\n\nNote: We opened the box and there was another box. And another. Please stop. "
+                                                                   "The compiler is not a Matryoshka doll. It has feelings too.",
+                                                               pos));
                                     return res.to_prs();
                                 }
-                            }
-                            else if (this->current_tok.type == TokenType::MORE) {
+                            } else if (this->current_tok.type == TokenType::MORE) {
                                 depth--;
                                 if (depth == 0) {
                                     this->advance();
@@ -2181,11 +2200,14 @@ Prs Parser::atom() {
                         if (this->current_tok.type == TokenType::LESS) {
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + property_name.value.substr(0, 120) + "..." + "\n\nNote: We opened the box and there was another box. And another. Please stop. The compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                       property_name.value.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
+                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   this->current_tok.pos));
                                 return res.to_prs();
                             }
-                        }
-                        else if (this->current_tok.type == TokenType::MORE) {
+                        } else if (this->current_tok.type == TokenType::MORE) {
                             depth--;
                             if (depth == 0) {
                                 this->advance();
@@ -2747,7 +2769,8 @@ Parameter Parser::parse_parameter(bool type_only = false) {
     }
     return p;
 }
-Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep, bool is_volatile) {
+Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep,
+                           bool is_volatile) {
     ParseResult res;
     std::vector<GenericType> old_generics = this->current_generics;
     if (keep) {
@@ -2797,8 +2820,8 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
             std::list<Parameter> params_list((params.begin()), (params.end()));
             std::vector<AnyNode> body;
             body.emplace_back(std::monostate{});
-            return res.success(
-                new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern, this->in_foreign, generics));
+            return res.success(new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern,
+                                               this->in_foreign, generics));
         }
         res.failure(new InvalidSyntaxError("QC-S003: Expected '{' to start function body", this->current_tok.pos));
         return res.to_prs();
@@ -2840,7 +2863,8 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     this->advance();
     std::list<Parameter> params_list((params.begin()), (params.end()));
     this->current_generics = old_generics;
-    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics, is_volatile));
+    return res.success(
+        new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics, is_volatile));
 }
 Prs Parser::statement() {
     ParseResult res;
@@ -3070,7 +3094,8 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
                     } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -3265,7 +3290,8 @@ Prs Parser::statement() {
                         GenericType curr;
                         if (this->current_tok.type != TokenType::IDENTIFIER) {
                             if (this->current_tok.type == TokenType::KEYWORD &&
-                                std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                                std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                                    .contains(this->current_tok.value)) {
                                 curr.isNonType = true;
                                 curr.nonTypeKind = this->current_tok.value;
                             } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -3278,8 +3304,8 @@ Prs Parser::statement() {
                                 curr.isNonType = true;
                                 curr.nonTypeKind = prev + " " + this->current_tok.value;
                             } else {
-                                res.failure(
-                                    new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
+                                                                   this->current_tok.pos));
                                 return res.to_prs();
                             }
                             this->advance();
@@ -3291,11 +3317,12 @@ Prs Parser::statement() {
                             if (this->current_tok.type != TokenType::COLON) {
                                 if (this->current_tok.type == TokenType::IDENTIFIER &&
                                     (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                     this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                     this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
+                                     this->current_tok.value == "pointer")) {
                                     curr.constraint = this->current_tok.value;
                                 } else {
-                                    res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
-                                                                       this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError(
+                                        "Expected : or usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                                 this->advance();
@@ -3478,7 +3505,8 @@ Prs Parser::statement() {
                     GenericType curr;
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         if (this->current_tok.type == TokenType::KEYWORD &&
-                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                                .contains(this->current_tok.value)) {
                             curr.isNonType = true;
                             curr.nonTypeKind = this->current_tok.value;
                         } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -3491,8 +3519,8 @@ Prs Parser::statement() {
                             curr.isNonType = true;
                             curr.nonTypeKind = prev + " " + this->current_tok.value;
                         } else {
-                            res.failure(
-                                new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
+                                                               this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -3504,7 +3532,8 @@ Prs Parser::statement() {
                         if (this->current_tok.type != TokenType::COLON) {
                             if (this->current_tok.type == TokenType::IDENTIFIER &&
                                 (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
+                                 this->current_tok.value == "pointer")) {
                                 curr.constraint = this->current_tok.value;
                             } else {
                                 res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
@@ -3593,7 +3622,10 @@ Prs Parser::statement() {
             while (this->current_tok.type == TokenType::LBRACKET) {
                 this->advance();
                 field_type += "[";
-                if (this->current_tok.type != TokenType::RBRACKET) { field_type += this->current_tok.value; this->advance();}
+                if (this->current_tok.type != TokenType::RBRACKET) {
+                    field_type += this->current_tok.value;
+                    this->advance();
+                }
                 if (this->current_tok.type != TokenType::RBRACKET) {
                     res.failure(new InvalidSyntaxError("QC-S061: Expected ']' after '[' in array", this->current_tok.pos));
                     return res.to_prs();
@@ -3711,7 +3743,8 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
                     } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -3871,7 +3904,8 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
                     } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -4117,10 +4151,11 @@ Prs Parser::statement() {
                 std::string base = *maybe_qualified;
                 size_t lc = base.rfind("::");
                 if (lc != std::string::npos) base = base.substr(lc + 2);
-                is_type = (find_type(base) != nullptr || find_type(*maybe_qualified) != nullptr || is_known_type(base) || is_known_type(*maybe_qualified));
+                is_type = (find_type(base) != nullptr || find_type(*maybe_qualified) != nullptr || is_known_type(base) ||
+                           is_known_type(*maybe_qualified));
             }
             if (!is_type) {
-                if (!maybe_qualified.has_value())  this->parseTypeString();
+                if (!maybe_qualified.has_value()) this->parseTypeString();
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
                     this->parseTypeString();
@@ -4196,7 +4231,8 @@ Prs Parser::statement() {
                     GenericType curr;
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         if (this->current_tok.type == TokenType::KEYWORD &&
-                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                                .contains(this->current_tok.value)) {
                             curr.isNonType = true;
                             curr.nonTypeKind = this->current_tok.value;
                         } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -4209,8 +4245,8 @@ Prs Parser::statement() {
                             curr.isNonType = true;
                             curr.nonTypeKind = prev + " " + this->current_tok.value;
                         } else {
-                            res.failure(
-                                new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
+                                                               this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -4222,7 +4258,8 @@ Prs Parser::statement() {
                         if (this->current_tok.type != TokenType::COLON) {
                             if (this->current_tok.type == TokenType::IDENTIFIER &&
                                 (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
+                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
+                                 this->current_tok.value == "pointer")) {
                                 curr.constraint = this->current_tok.value;
                             } else {
                                 res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
@@ -4334,7 +4371,8 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"}).contains(this->current_tok.value)) {
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
                     } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
@@ -4410,9 +4448,7 @@ Prs Parser::statement() {
             if (res.error) return res.to_prs();
             return res.success(func_def);
         }
-        if (is_volatile) {
-            type_tok.value = "volatile " + type_tok.value;
-        }
+        if (is_volatile) { type_tok.value = "volatile " + type_tok.value; }
         if (this->current_tok.type == TokenType::COMMA) {
             std::vector<Token> var_names = {name_tok};
             std::vector<Token> var_types = {type_tok};
@@ -4670,9 +4706,14 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (classTypes.find(type) != classTypes.end() || genericClasses.find(baseTypeName(type)) != genericClasses.end()) {
         return genericiseOrFindClass(resolveTypeName(qcType, false));
     }
-    if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) { return genericiseOrFindStruct(type); }
+    if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) {
+        return genericiseOrFindStruct(type);
+    }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
-    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericStructs.end()) { genericiseOrFindUnion(type); return unionTypes[type]; }
+    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericStructs.end()) {
+        genericiseOrFindUnion(type);
+        return unionTypes[type];
+    }
     if (type == "function" || type == "fn" || type.starts_with("fn (") || type.starts_with("fn(")) { return builder->getPtrTy(); }
     if (type == "void") return builder->getVoidTy();
     return nullptr;
@@ -4819,8 +4860,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 } else {
                     for (auto& [gname, gval] : genericSubs) {
                         size_t pos;
-                        while ((pos = resolvedType.find(gname)) != std::string::npos)
-                            resolvedType.replace(pos, gname.size(), gval);
+                        while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
                     }
                 }
                 fieldTypes.push_back(llvmTypeFor(resolvedType));
@@ -4847,42 +4887,30 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     std::vector<llvm::Constant*> vtableFuncs;
     std::vector<std::string> slotOrder;
     std::unordered_map<std::string, int> nameCounts;
-    for (auto& method : classInfo.classMethods) {
-        nameCounts[method.name_tok.value]++;
-    }
+    for (auto& method : classInfo.classMethods) { nameCounts[method.name_tok.value]++; }
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
         if (method.is_constructor && classInfo.is_abstract_class) {
             cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
             continue;
         }
-        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) != genericMethodIndices[baseTypeName(className)].end()) {
+        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) !=
+            genericMethodIndices[baseTypeName(className)].end()) {
             continue;
         }
         std::string methodName = mangled_class_name + "_" + method.name_tok.value;
         if (nameCounts[method.name_tok.value] > 1) {
-            for (auto& param : method.params) {
-                methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
-            }
+            for (auto& param : method.params) { methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
         }
         std::vector<llvm::Type*> paramTypes;
         paramTypes.push_back(llvm::PointerType::get(context, 0));
         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
-        for (auto* paramTy : baseFuncTy->params()) {
-            paramTypes.push_back(paramTy);
-        }
+        for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
         llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
         llvm::SmallVector<llvm::Metadata*, 4> retTypes;
-        for (auto& ret : method.return_types) {
-            retTypes.push_back(
-                llvm::MDString::get(context, ret.value)
-            );
-        }
-        fn->setMetadata(
-            "qc.return_types",
-            llvm::MDNode::get(context, retTypes)
-        );
+        for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
+        fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
         if (method.is_volatile) {
             fn->addFnAttr(llvm::Attribute::NoInline);
             fn->addFnAttr(llvm::Attribute::OptimizeNone);
@@ -4890,29 +4918,12 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         }
         for (int i = 1; i < fnTy->getNumParams(); i++) {
             if (method.params[i - 1].type.value.starts_with("out ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::WriteOnly
-                );
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );
+                fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             } else if (method.params[i - 1].type.value.starts_with("inout ")) {
-                fn->addParamAttr(
-                    i,
-                    llvm::Attribute::getWithCaptureInfo(
-                        context,
-                        llvm::CaptureInfo::none()
-                    )
-                );        
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
             }
-            if (method.params[i - 1].type.value.ends_with("restrict")) {
-                fn->addParamAttr(i, llvm::Attribute::NoAlias);
-            }
+            if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
         classMethods[mangled_class_name][method.name_tok.value].push_back(fn);
         vtableFuncs.push_back(fn);
@@ -4925,7 +4936,8 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     vtables[mangled_class_name] = vtable;
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
-        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) != genericMethodIndices[baseTypeName(className)].end()) {
+        if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) !=
+            genericMethodIndices[baseTypeName(className)].end()) {
             continue;
         }
         llvm::Function* fn = nullptr;
@@ -5156,9 +5168,7 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     structTypes[mangled_struct_name]->setBody(fieldTypes);
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_struct_name);
-    if (this->config.use_runtime) {
-        generateStructReprFunction(mangled_struct_name, structInfo);
-    }
+    if (this->config.use_runtime) { generateStructReprFunction(mangled_struct_name, structInfo); }
     this->currentGenericTypes = oldGenericTypes;
     this->currentGenericTypeStrings = oldGenericTypeStrings;
     currentNonTypeGenericValues = oldNonTypeGenerics;
@@ -5277,11 +5287,13 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
     genericisedInfo.kind = UserTypeKind::Union;
     for (UnionMember member : unionInfo.members) {
         if (currentNonTypeGenericValues.count(member.type)) {
-            member.type = std::find_if(unionInfo.generics.begin(), unionInfo.generics.end(), [&](const auto& p) { return p.name == member.type; })->nonTypeKind + ":" + currentNonTypeGenericValues[member.type].name;
+            member.type = std::find_if(unionInfo.generics.begin(), unionInfo.generics.end(), [&](const auto& p) { return p.name == member.type; })
+                              ->nonTypeKind +
+                          ":" + currentNonTypeGenericValues[member.type].name;
         }
         genericisedInfo.members.push_back({substituteGenerics(resolveTypeName(substituteGenerics(member.type)))});
     }
-    substitutedUnions[mangled_union_name] = genericisedInfo; 
+    substitutedUnions[mangled_union_name] = genericisedInfo;
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_union_name);
     this->currentGenericTypes = oldGenericTypes;
@@ -5493,8 +5505,7 @@ void LLVMCompiler::createUserTypes() {
                         } else {
                             for (auto& [gname, gval] : genericSubs) {
                                 size_t pos;
-                                while ((pos = resolvedType.find(gname)) != std::string::npos)
-                                    resolvedType.replace(pos, gname.size(), gval);
+                                while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
                             }
                         }
                         fieldTypes.push_back(llvmTypeFor(resolvedType));
@@ -5509,7 +5520,10 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Union) {
-            if (!info.generics.empty()) { genericUnions[mapKey] = true; continue; } 
+            if (!info.generics.empty()) {
+                genericUnions[mapKey] = true;
+                continue;
+            }
             genericUnions[mapKey] = false;
             std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
             llvm::StructType* unionTy = getOrCreateStructType(fields, mapKey);
@@ -5517,7 +5531,14 @@ void LLVMCompiler::createUserTypes() {
         }
     }
     for (auto& [mapKey, info] : userTypes) {
-        if (info.kind == UserTypeKind::Alias) { if (!info.generics.empty()) { genericAliases[mapKey] = true; continue; } genericAliases[mapKey] = false; typeAliases[mapKey] = info.aliasTarget; }
+        if (info.kind == UserTypeKind::Alias) {
+            if (!info.generics.empty()) {
+                genericAliases[mapKey] = true;
+                continue;
+            }
+            genericAliases[mapKey] = false;
+            typeAliases[mapKey] = info.aliasTarget;
+        }
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind != UserTypeKind::Class) continue;
@@ -5551,77 +5572,48 @@ void LLVMCompiler::createUserTypes() {
         std::vector<llvm::Constant*> vtableFuncs;
         std::vector<std::string> slotOrder;
         std::unordered_map<std::string, int> nameCounts;
-        for (auto& method : info.classMethods) {
-            nameCounts[method.name_tok.value]++;
-        }
+        for (auto& method : info.classMethods) { nameCounts[method.name_tok.value]++; }
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
             if (method.is_constructor && info.is_abstract_class) {
                 cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
                 continue;
             }
-            if (std::find(genericMethodIndices[mapKey].begin(), genericMethodIndices[mapKey].end(), methodIdx) != genericMethodIndices[mapKey].end()) {
+            if (std::find(genericMethodIndices[mapKey].begin(), genericMethodIndices[mapKey].end(), methodIdx) !=
+                genericMethodIndices[mapKey].end()) {
                 continue;
             }
             std::string methodName = mapKey + "_" + method.name_tok.value;
             if (nameCounts[method.name_tok.value] > 1) {
-                for (auto& param : method.params) {
-                    methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
-                }
+                for (auto& param : method.params) { methodName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
             }
             std::vector<llvm::Type*> paramTypes;
             paramTypes.push_back(llvm::PointerType::get(context, 0));
             llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
-            for (auto* paramTy : baseFuncTy->params()) {
-                paramTypes.push_back(paramTy);
-            }
+            for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
             llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
             llvm::SmallVector<llvm::Metadata*, 4> retTypes;
-            for (auto& ret : method.return_types) {
-                retTypes.push_back(
-                    llvm::MDString::get(context, ret.value)
-                );
-            }
+            for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
             if (method.is_volatile) {
                 fn->addFnAttr(llvm::Attribute::NoInline);
                 fn->addFnAttr(llvm::Attribute::OptimizeNone);
                 fn->addFnAttr("noipa");
             }
-            fn->setMetadata(
-                "qc.return_types",
-                llvm::MDNode::get(context, retTypes)
-            );
+            fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
             for (int i = 1; i < fnTy->getNumParams(); i++) {
                 if (method.params[i - 1].type.value.starts_with("out ")) {
-                    fn->addParamAttr(
-                        i,
-                        llvm::Attribute::WriteOnly
-                    );
-                    fn->addParamAttr(
-                        i,
-                        llvm::Attribute::getWithCaptureInfo(
-                            context,
-                            llvm::CaptureInfo::none()
-                        )
-                    );
+                    fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                    fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
                 } else if (method.params[i - 1].type.value.starts_with("inout ")) {
-                    fn->addParamAttr(
-                        i,
-                        llvm::Attribute::getWithCaptureInfo(
-                            context,
-                            llvm::CaptureInfo::none()
-                        )
-                    );        
+                    fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
                 }
-                if (method.params[i - 1].type.value.ends_with("restrict")) {
-                    fn->addParamAttr(i, llvm::Attribute::NoAlias);
-                }
+                if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
             }
             classMethods[mapKey][method.name_tok.value].push_back(fn);
             vtableFuncs.push_back(fn);
             slotOrder.push_back(methodName);
-        }  
+        }
         for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mapKey][slotOrder[i]] = i; }
         auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
         auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
@@ -5652,10 +5644,8 @@ void LLVMCompiler::createUserTypes() {
             structTypes[mapKey]->setBody(fieldTypes);
             namespaceStack = oldNamespaceStack;
         }
-    } 
-    if (this->config.use_runtime) {
-        generateStructReprFunctions();
     }
+    if (this->config.use_runtime) { generateStructReprFunctions(); }
 }
 ParamTypeInfo toTypeInfo(const Parameter& p) {
     ParamTypeInfo out;
@@ -5694,15 +5684,13 @@ llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>
                 while (toType.starts_with("out ") || toType.starts_with("inout ")) {
                     toType = toType.substr(toType.find(" "), toType.length() - toType.find(" "));
                 }
-                if (toType.ends_with("restrict")) {
-                    toType = toType.substr(0, toType.length() - 8);
-                }
+                if (toType.ends_with("restrict")) { toType = toType.substr(0, toType.length() - 8); }
                 paramTypes.push_back(llvmTypeFor(toType));
             }
         }
     }
     if (returnTypes.empty()) {
-        llvm::FunctionType* funcTy = llvm::FunctionType::get(builder->getVoidTy(), paramTypes, is_c_varargs); 
+        llvm::FunctionType* funcTy = llvm::FunctionType::get(builder->getVoidTy(), paramTypes, is_c_varargs);
         return funcTy;
     }
 
@@ -6445,7 +6433,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if ((*bin)->is_f) {
-            std::function<llvm::Value*(llvm::Value*, AnyNode&, const Position&)> toString = [&](llvm::Value* v, AnyNode& node, const Position& pos) -> llvm::Value* {   
+            std::function<llvm::Value*(llvm::Value*, AnyNode&, const Position&)> toString = [&](llvm::Value* v, AnyNode& node,
+                                                                                                const Position& pos) -> llvm::Value* {
                 v = derefIfReference(v, node);
                 if (!v) return nullptr;
                 llvm::Type* ty = v->getType();
@@ -6892,7 +6881,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 rty = lty;
                 isCharOperation = true;
             }
-
         }
         if (lty != rty) {
             if (lty->isFloatTy() && rty->isDoubleTy()) {
@@ -6946,8 +6934,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                          lType + " and " + rType);
                         return nullptr;
                     }
-                    if (lType == "string") lType = "char";
-                    else lType.pop_back();
+                    if (lType == "string")
+                        lType = "char";
+                    else
+                        lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
                 } else {
                     if (lType != rType) {
@@ -6975,8 +6965,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
-            return isFloatTy ? builder->CreateFAdd(L, R, "fadd") : isCharOperation ? builder->CreateTrunc(builder->CreateAdd(L, R, "add"), builder->getInt8Ty(), "trunc_char")
-                                                                                  : builder->CreateAdd(L, R, "add");
+            return isFloatTy         ? builder->CreateFAdd(L, R, "fadd")
+                   : isCharOperation ? builder->CreateTrunc(builder->CreateAdd(L, R, "add"), builder->getInt8Ty(), "trunc_char")
+                                     : builder->CreateAdd(L, R, "add");
         case TokenType::MINUS:
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
@@ -7024,9 +7015,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
                 return nullptr;
             }
-            return isFloatTy ? builder->CreateFSub(L, R, "fsub") : isCharOperation ? 
-                                                                        builder->CreateTrunc(builder->CreateSub(L, R, "sub"), builder->getInt8Ty(), "trunc_char")
-                                                                        : builder->CreateSub(L, R, "sub");
+            return isFloatTy         ? builder->CreateFSub(L, R, "fsub")
+                   : isCharOperation ? builder->CreateTrunc(builder->CreateSub(L, R, "sub"), builder->getInt8Ty(), "trunc_char")
+                                     : builder->CreateSub(L, R, "sub");
         case TokenType::MUL:
             if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
@@ -7447,7 +7438,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         std::string saved_qc_type = qcType;
         qcType = resolveTypeName(qcType);
-        std::cout << "Resolved " << saved_qc_type << " to " << qcType << '\n';
         if (genericClasses.count(qcType) && genericClasses[qcType]) {
             std::string savedest_qc_type = saved_qc_type;
             std::string inner = saved_qc_type.substr(saved_qc_type.find('<') + 1, saved_qc_type.size() - saved_qc_type.find('<') - 2);
@@ -7512,7 +7502,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                 }
                 if (!handled) {
-                    llvm::Value *rhs = emitExpr((*va)->value_node);
+                    llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
                         cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
@@ -7542,9 +7532,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
                     builder->CreateStore(vtableIt->second, vptrField);
                 }
-                return nullptr; 
+                return nullptr;
             } else {
-                llvm::Value *rhs = emitExpr((*va)->value_node);
+                llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
                 llvm::Function* opMethod = findMethodOverload(buildMangledName(qcType, genericParams), "operator=", {rhs});
                 std::string mangledName = buildMangledName(qcType, genericParams);
@@ -7638,11 +7628,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string fieldName;
                     if (auto key = std::get_if<VarAccessNode*>(&keyNode)) {
                         fieldName = (*key)->var_name_tok.value;
-                    } 
-                    else if (auto key = std::get_if<StringNode>(&keyNode)) {
+                    } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
-                    }
-                    else {
+                    } else {
                         cg_error((*mapLit)->pos, "Struct field name must be an identifier");
                         return nullptr;
                     }
@@ -7654,31 +7642,22 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                     }
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos,
-                            "Unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "Unknown field '" + fieldName + "' in struct " + qcType);
                         return nullptr;
                     }
                     llvm::Value* fieldValue = emitExpr(valueNode);
-                    if (!fieldValue)
-                        return nullptr;
-                    structVal = builder->CreateInsertValue(
-                        structVal,
-                        fieldValue,
-                        fieldIndex
-                    );
+                    if (!fieldValue) return nullptr;
+                    structVal = builder->CreateInsertValue(structVal, fieldValue, fieldIndex);
                 }
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
                 builder->CreateStore(structVal, structAlloc, isVolatile);
-                std::string fullName =
-                    getCurrentNamespace().empty()
-                    ? name
-                    : getCurrentNamespace() + "::" + name;
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = buildMangledName(qcType, genericParams);
-                volatileVars[fullName] = isVolatile;                
+                volatileVars[fullName] = isVolatile;
                 return nullptr;
             }
-            return nullptr;        
+            return nullptr;
         }
         if (genericUnions.count(qcType) && genericUnions[qcType]) {
             UserTypeInfo info = genericiseOrFindUnion(saved_qc_type);
@@ -7768,11 +7747,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     if (auto key = std::get_if<VarAccessNode*>(&keyNode)) {
                         fieldName = (*key)->var_name_tok.value;
-                    } 
-                    else if (auto key = std::get_if<StringNode>(&keyNode)) {
+                    } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
-                    }
-                    else {
+                    } else {
                         cg_error((*mapLit)->pos, "Struct field name must be an identifier");
                         return nullptr;
                     }
@@ -7787,30 +7764,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
 
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos,
-                            "Unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "Unknown field '" + fieldName + "' in struct " + qcType);
                         return nullptr;
                     }
 
                     llvm::Value* fieldValue = emitExpr(valueNode);
 
-                    if (!fieldValue)
-                        return nullptr;
+                    if (!fieldValue) return nullptr;
 
-                    structVal = builder->CreateInsertValue(
-                        structVal,
-                        fieldValue,
-                        fieldIndex
-                    );
+                    structVal = builder->CreateInsertValue(structVal, fieldValue, fieldIndex);
                 }
 
                 llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
                 builder->CreateStore(structVal, structAlloc, isVolatile);
 
-                std::string fullName =
-                    getCurrentNamespace().empty()
-                    ? name
-                    : getCurrentNamespace() + "::" + name;
+                std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
 
                 locals[fullName] = structAlloc;
                 varTypes[fullName] = qcType;
@@ -7859,7 +7827,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                 }
                 if (!handled) {
-                    llvm::Value *rhs = emitExpr((*va)->value_node);
+                    llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
                         cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
@@ -7888,9 +7856,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
                     builder->CreateStore(vtableIt->second, vptrField);
                 }
-                return nullptr; 
+                return nullptr;
             } else {
-                llvm::Value *rhs = emitExpr((*va)->value_node);
+                llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
                 if (rhs->getType() != classTy) {
                     cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
@@ -7965,7 +7933,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             arrayTypeStrings[name] = baseType;
         }
         llvm::AllocaInst* alloc = nullptr;
-        if ((*va)->type_tok.value == "function" || (*va)->type_tok.value.starts_with("fn(") || (*va)->type_tok.value.starts_with("fn (") || (*va)->type_tok.value == "auto" && std::holds_alternative<FuncDefNode*>((*va)->value_node)) {
+        if ((*va)->type_tok.value == "function" || (*va)->type_tok.value.starts_with("fn(") || (*va)->type_tok.value.starts_with("fn (") ||
+            (*va)->type_tok.value == "auto" && std::holds_alternative<FuncDefNode*>((*va)->value_node)) {
             auto fnPtr = std::get<FuncDefNode*>((*va)->value_node);
             llvm::Function* f = emitFuncDef(*fnPtr);
             name = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
@@ -7990,7 +7959,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             locals[fullName] = alloc;
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
-            std::cout << "Set " << fullName << " to " << qcType << '\n';
         } else {
             if (auto* existingLocal = llvm::dyn_cast<llvm::AllocaInst>(existingAlloc)) {
                 llvm::Type* existingTy = existingLocal->getAllocatedType();
@@ -8100,7 +8068,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return llvm::ConstantFP::get(ty, std::stod(entry.name));
             } else if (entry.nonTypeKind == "string") {
                 return builder->CreateGlobalString(entry.name);
-            }         
+            }
         }
         llvm::Value* alloc = getVarAddress(name);
         if (alloc) {
@@ -8156,22 +8124,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
                                 return nullptr;
                             }
-                            llvm::Value *offset = rhsVal;
-                            if (op == TokenType::MINUS_EQ) {
-                                offset = builder->CreateNeg(offset, "neg_offset");
-                            }
+                            llvm::Value* offset = rhsVal;
+                            if (op == TokenType::MINUS_EQ) { offset = builder->CreateNeg(offset, "neg_offset"); }
                             std::string baseType = resolvedFieldType;
                             baseType.pop_back();
-                            llvm::Type *elementTy =
-                                resolvedFieldType == "string"
-                                    ? builder->getInt8Ty()
-                                    : llvmTypeFor(baseType);
-                            llvm::Value *newPtr = builder->CreateGEP(
-                                elementTy, 
-                                oldVal,
-                                offset,
-                                "ptr_add"
-                            );
+                            llvm::Type* elementTy = resolvedFieldType == "string" ? builder->getInt8Ty() : llvmTypeFor(baseType);
+                            llvm::Value* newPtr = builder->CreateGEP(elementTy, oldVal, offset, "ptr_add");
                             builder->CreateStore(newPtr, fieldPtr);
                             return newPtr;
                         }
@@ -8231,22 +8189,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
                             return nullptr;
                         }
-                        llvm::Value *offset = rhsVal;
-                        if (op == TokenType::MINUS_EQ) {
-                            offset = builder->CreateNeg(offset, "neg_offset");
-                        }
+                        llvm::Value* offset = rhsVal;
+                        if (op == TokenType::MINUS_EQ) { offset = builder->CreateNeg(offset, "neg_offset"); }
                         std::string baseType = resolvedFieldType;
                         baseType.pop_back();
-                        llvm::Type *elementTy =
-                            resolvedFieldType == "string"
-                                ? builder->getInt8Ty()
-                                : llvmTypeFor(baseType);
-                        llvm::Value *newPtr = builder->CreateGEP(
-                            elementTy, 
-                            oldVal,
-                            offset,
-                            "ptr_add"
-                        );
+                        llvm::Type* elementTy = resolvedFieldType == "string" ? builder->getInt8Ty() : llvmTypeFor(baseType);
+                        llvm::Value* newPtr = builder->CreateGEP(elementTy, oldVal, offset, "ptr_add");
                         builder->CreateStore(newPtr, fieldPtr);
                         return newPtr;
                     }
@@ -8271,9 +8219,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             return nullptr;
         }
         std::string name = "";
-        if (auto acc = std::get_if<VarAccessNode*>(&((*asn)->target)))  {
-            name = (*acc)->var_name_tok.value;
-        }
+        if (auto acc = std::get_if<VarAccessNode*>(&((*asn)->target))) { name = (*acc)->var_name_tok.value; }
         std::string lhsTypeStr = getExpressionType((*asn)->target);
         llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
@@ -8290,9 +8236,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 int tag = findUnionVariantTag(unionName, (*asn)->value, rhs);
 
-                if (tag == -1) {
-                   continue; 
-                }
+                if (tag == -1) { continue; }
                 auto member = genericiseOrFindUnion(unionName).members[tag];
                 bool isLiteral = member.type.find(':') != std::string::npos;
 
@@ -8414,14 +8358,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         return nullptr;
                     }
                 } else if (srcTy->isIntegerTy() && destTy->isPointerTy()) {
-                    if ((*asn)->op_tok.type == TokenType::PLUS_EQ ||
-                         (*asn)->op_tok.type == TokenType::MINUS_EQ) {
-                        llvm::Value *offset = rhsVal;
-                        if ((*asn)->op_tok.type == TokenType::MINUS_EQ) {
-                            offset = builder->CreateNeg(offset, "neg_offset");
-                        }
+                    if ((*asn)->op_tok.type == TokenType::PLUS_EQ || (*asn)->op_tok.type == TokenType::MINUS_EQ) {
+                        llvm::Value* offset = rhsVal;
+                        if ((*asn)->op_tok.type == TokenType::MINUS_EQ) { offset = builder->CreateNeg(offset, "neg_offset"); }
                         std::string ptrType = getExpressionType((*asn)->target);
-                        llvm::Type *elementTy;
+                        llvm::Type* elementTy;
                         if (ptrType == "string") {
                             elementTy = builder->getInt8Ty();
                         } else {
@@ -8429,12 +8370,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             baseType.pop_back();
                             elementTy = llvmTypeFor(baseType);
                         }
-                        llvm::Value *newPtr = builder->CreateGEP(
-                            elementTy,
-                            oldVal,
-                            offset,
-                            "ptr_add"
-                        );
+                        llvm::Value* newPtr = builder->CreateGEP(elementTy, oldVal, offset, "ptr_add");
                         builder->CreateStore(newPtr, alloc, resolveVolatileVar(name));
                         return newPtr;
                     }
@@ -8632,9 +8568,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (operand->getType() == builder->getInt1Ty()) {
                 return builder->CreateNot(operand, "not");
             } else if (operand->getType()->isPointerTy()) {
-                llvm::Value* NullPtr = llvm::ConstantPointerNull::get(
-                    llvm::cast<llvm::PointerType>(operand->getType())
-                );
+                llvm::Value* NullPtr = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(operand->getType()));
                 return builder->CreateICmpEQ(operand, NullPtr, "isnull");
             } else {
                 cg_error((*unary)->op_tok.pos, "! requires bool operand");
@@ -8680,7 +8614,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* lhs = emitLValue((*unary)->node);
             llvm::Type* type = lhsVal->getType();
             std::string ptrTy = getExpressionType((*unary)->node);
-            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
+            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value
+                                                                            : "";
             llvm::Value* oldVal = builder->CreateLoad(lhsVal->getType(), lhs, resolveVolatileVar(name), "inc_deref");
             if (lhsVal->getType()->isPointerTy()) {
                 if (ptrTy == "string") {
@@ -8689,29 +8624,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     ptrTy.pop_back();
                 }
                 llvm::Value* newVal;
-                llvm::Value* one = llvm::ConstantInt::get(
-                    llvm::Type::getInt64Ty(context),
-                    1
-                );
+                llvm::Value* one = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 1);
                 if ((*unary)->op_tok.type == TokenType::INCREMENT) {
-                    newVal = builder->CreateGEP(
-                        llvmTypeFor(ptrTy),
-                        oldVal,
-                        one,
-                        "ptr_inc"
-                    );
+                    newVal = builder->CreateGEP(llvmTypeFor(ptrTy), oldVal, one, "ptr_inc");
                 } else {
-                    llvm::Value* negOne = llvm::ConstantInt::get(
-                        llvm::Type::getInt64Ty(context),
-                        -1,
-                        true
-                    );
-                    newVal = builder->CreateGEP(
-                        llvmTypeFor(ptrTy),
-                        oldVal,
-                        negOne,
-                        "ptr_dec"
-                    );
+                    llvm::Value* negOne = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), -1, true);
+                    newVal = builder->CreateGEP(llvmTypeFor(ptrTy), oldVal, negOne, "ptr_dec");
                 }
                 builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
                 return isPostfix ? oldVal : newVal;
@@ -8719,7 +8637,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (!lhsVal->getType()->isIntegerTy()) {
                 cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like");
                 return nullptr;
-            } 
+            }
             llvm::Value* one = llvm::ConstantInt::get(lhsVal->getType(), 1);
             llvm::Value* newVal;
             if ((*unary)->op_tok.type == TokenType::INCREMENT) {
@@ -8737,7 +8655,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             return emitLValue((*unary)->node);
         }
         if ((*unary)->op_tok.type == TokenType::MUL) {
-            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value : "";
+            std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value
+                                                                            : "";
             llvm::Value* val = emitExpr((*unary)->node);
             std::string type = getExpressionType((*unary)->node);
             if (!type.ends_with("*") && type != "string") {
@@ -9023,6 +8942,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                                   {"`to_char", "qc_to_char_from_string"},
                                                                                   {"`to_bool", "qc_to_bool_from_int"},
                                                                                   {"`to_string", "qc_to_string_int"},
+                                                                                  {"`to_addr_t", "qc_to_addr_t_from_string"},
+                                                                                  {"`to_qbool", "qc_to_qbool_from_string"},
+                                                                                  {"`to_long_int", "qc_to_long_int_from_string"},
+                                                                                  {"`to_short_int", "qc_to_short_int_from_string"},
                                                                                   {"`qout", ""},
                                                                                   {"`typeof", ""},
                                                                                   {"`open", "qc_open"},
@@ -9127,7 +9050,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     else if (call.arg_nodes.size() == 2)
                         runtimeName = "qc_random_range";
                 } else if (funcName == "`qout") { // Ṱ̵̺̙̙͔̯̣͓̼̈́͜h̶̳͖̝̰͍̮͆̅̊e̶̡̧̮͍̘̘͍̮͎͎̺̗̦͕̾͗͐̽͑̔̅́̑̌̕ ̶̥̮̪͙̎͛̐͑̔̉́̂̂̐́̽̔̔͂̃d̴̛̪̦̞́́̎͊̌̈̍̓̓̔̑͑̒͘͝e̶͎̤̠̞̞͖̊ṽ̴̡͖̫̩̣̳̖̞̯̪͇̰̆͑͐͐̀̿͐̍̑̕͘̕͝͝ͅͅͅí̵̜̬͍̖̒͑̎͗l̸̛͍̰̜̞̩̜̘͈̯̬̇̀̋̈͐̔̿̓̅͌̉̅͂̌͘͜͝ ̷̡̣̰͙̰̪͈̪̣̺̺̤̦̰͌̊̀̀̑͑̅̈́ş̶̛̳̟̫͇̠͉͍̺̣̲̬̻̰͍̙̋̂͗̕͠ͅę̸̹̹̈́͒̐̃̋̓͐̓͆̉̀̊̀̏̿͘é̷͖͎̹̉́̈́͠͠͝s̸̡̢̢̩͍̹̼͈͕̘̖͋̋̃̓͗͆͌̕͠ͅͅͅ ̴̛̮͉̣̈́̒͋͐̿̾̐̽̚ḩ̶̨̧̺͉̹̩̙̫͇̰̫̯̬͐́̑͜i̶̠͖̠̟̻̭̫̙̳̪͆̄̿̈́̾̊̈́̒͑͊̆̋̃̎̿̂͗ş̴̥̤̜̦̗͍̟̈́̽̑̏ ̶̡̛̫̥̝̰̣̟͇͔̤̱̯͉̱̩̋̈̈́͐̓̑̋̎͝͝ͅö̷̡̝̣́̎̎͝ẘ̶̢̡̨̡̭̞̯̘̦̟̳̮̫͎̑͂̇̀͆̋̐̃̒́̏̓͒̅͜͝͝n̵̳͎̣̬̪̝̩͒͊̓̾̓̄̃̂͗̉͆̒̋̚͜͜͝ ̴͔̫̂̏ͅͅį̷̡̤̼͈̗̦̣̘̮̠̣͎̬̰̍͗ṉ̸̨̯̱̦͕͐̉̀͌͑̀͐̽̕͜
-                                                 // ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
+                                                  // ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
                     if (call.arg_nodes.empty()) {
                         cg_error((*varAccess)->var_name_tok.pos, "qout requires arguments: " + funcName);
                         return nullptr;
@@ -9781,7 +9704,23 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (!arg) return nullptr;
                     return convertToString(arg, argNode);
                 }
-
+                if (funcName == "`to_long_int" && !call.arg_nodes.empty()) {
+                    AnyNode& argNode = call.arg_nodes.front();
+                    llvm::Value* arg = emitExpr(argNode);
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "long int");
+                }
+                if (funcName == "`to_short_int" && !call.arg_nodes.empty()) {
+                    AnyNode& argNode = call.arg_nodes.front();
+                    llvm::Value* arg = emitExpr(argNode);
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "short int");
+                }
+                if (funcName == "`to_qbool" && !call.arg_nodes.empty()) {
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "qbool");
+                }
                 if (funcName == "`to_int" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
@@ -9810,6 +9749,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "char");
+                }
+                if (funcName == "`to_addr_t" && !call.arg_nodes.empty()) {
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "addr_t");
                 }
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
@@ -9952,37 +9896,29 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             continue;
                         }
                         i++;
-                        while (i < clobber_string.size() && isspace(clobber_string[i]))
-                            i++;
+                        while (i < clobber_string.size() && isspace(clobber_string[i])) i++;
                         if (i >= clobber_string.size() || clobber_string[i] != '{') {
                             cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected '{'");
                             return nullptr;
                         }
                         i++;
                         while (i < clobber_string.size()) {
-                            while (i < clobber_string.size() && isspace(clobber_string[i])) {
-                                i++;
-                            }
+                            while (i < clobber_string.size() && isspace(clobber_string[i])) { i++; }
                             std::string reg;
-                            while (i < clobber_string.size() &&
-                                   clobber_string[i] != ',' &&
-                                   clobber_string[i] != '}') {
-                                if (!isspace(clobber_string[i]))
-                                    reg += clobber_string[i];
+                            while (i < clobber_string.size() && clobber_string[i] != ',' && clobber_string[i] != '}') {
+                                if (!isspace(clobber_string[i])) reg += clobber_string[i];
                                 i++;
                             }
                             if (!reg.empty()) {
                                 if (reg == "rsp" || reg == "esp" || reg == "rbp" || reg == "ebp") {
                                     cg_error((*varAccess)->var_name_tok.pos, reg + " is the stack pointer. You cannot clobber the stack pointer "
-                                                                                  "because the compiler relies on it to track local variables "
-                                                                                  "and function returns; modifying it guarantees a runtime crash.");
+                                                                                   "because the compiler relies on it to track local variables "
+                                                                                   "and function returns; modifying it guarantees a runtime crash.");
                                     return nullptr;
                                 }
                                 clobbers.push_back("~{" + reg + "}");
                             }
-                            while (i < clobber_string.size() && isspace(clobber_string[i])) {
-                                i++;
-                            }
+                            while (i < clobber_string.size() && isspace(clobber_string[i])) { i++; }
                             if (i < clobber_string.size() && clobber_string[i] == ',') {
                                 i++;
                                 continue;
@@ -10331,7 +10267,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (ptrTy == "void*") {
                 cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
                 return nullptr;
-            } 
+            }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
             if (!value->getType()->isIntegerTy()) {
                 cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
@@ -10987,9 +10923,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
             std::string mangledName = targetClass + "_" + methodName;
             if (info && classMethods[targetClass][methodName].size() > 1) {
-                for (auto& param : info->params) {
-                    mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value);
-                }
+                for (auto& param : info->params) { mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
             }
             auto indexIt = slotIt->second.find(mangledName);
             if (indexIt != slotIt->second.end()) {
@@ -11039,7 +10973,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 builder->CreateStore(valueVal, fieldPtr);
                 return builder->getInt32(0);
             }
-        }       
+        }
         PropertyAccessNode tempProp((*fieldAssign)->base, Token(), (*fieldAssign)->field_name);
         llvm::Value* fieldPtr = emitPropertyAddress(tempProp);
         AnyNode tempVariant = new PropertyAccessNode(tempProp);
@@ -11511,47 +11445,23 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
 
     auto* func = llvm::Function::Create(fTy, linkage, name, module);
     llvm::SmallVector<llvm::Metadata*, 4> retTypes;
-    for (auto& ret : fn.return_types) {
-        retTypes.push_back(
-            llvm::MDString::get(context, ret.value)
-        );
-    }
-    func->setMetadata(
-        "qc.return_types",
-        llvm::MDNode::get(context, retTypes)
-    ); 
+    for (auto& ret : fn.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
+    func->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
     if (fn.is_volatile) {
         func->addFnAttr(llvm::Attribute::NoInline);
-        func->addFnAttr(llvm::Attribute::OptimizeNone); 
+        func->addFnAttr(llvm::Attribute::OptimizeNone);
         func->addFnAttr("noipa");
     }
     for (int i = 0; i < fTy->getNumParams(); i++) {
         auto it = fn.params.begin();
         std::advance(it, i);
         if (it->type.value.starts_with("out ")) {
-            func->addParamAttr(
-                i,
-                llvm::Attribute::WriteOnly
-            );
-            func->addParamAttr(
-                i,
-                llvm::Attribute::getWithCaptureInfo(
-                    context,
-                    llvm::CaptureInfo::none()
-                )
-            );
+            func->addParamAttr(i, llvm::Attribute::WriteOnly);
+            func->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
         } else if (it->type.value.starts_with("inout ")) {
-            func->addParamAttr(
-                i,
-                llvm::Attribute::getWithCaptureInfo(
-                    context,
-                    llvm::CaptureInfo::none()
-                )
-            );        
+            func->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
         }
-        if (it->type.value.ends_with("restrict")) {
-            func->addParamAttr(i, llvm::Attribute::NoAlias);
-        }
+        if (it->type.value.ends_with("restrict")) { func->addParamAttr(i, llvm::Attribute::NoAlias); }
     }
     if (fn.is_foreign) return func;
     enterScope();
@@ -11733,9 +11643,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     val = builder->CreateBitCast(typedPtr, destTy);
                 }
             }
-            if (this->returnsRef(i)) {
-                val = this->emitLValue(mret->values[i]);
-            }
+            if (this->returnsRef(i)) { val = this->emitLValue(mret->values[i]); }
             if (!val) { val = emitExpr(mret->values[i]); }
             if (!val) return;
             llvm::Type* srcTy = val->getType();
@@ -11857,9 +11765,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
         llvm::Value* v = nullptr;
         llvm::Type* destTy = currentFunction->getReturnType();
-        if (this->returnsRef()) {
-            v = this->emitLValue((*ret)->value);
-        } 
+        if (this->returnsRef()) { v = this->emitLValue((*ret)->value); }
         if (!v) { v = emitExpr((*ret)->value); }
 
         if (!v) {
@@ -12062,7 +11968,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->SetInsertPoint(elseBB);
             enterScope();
             for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
-            exitScope();    
+            exitScope();
             if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         }
         exitScope();
@@ -12766,10 +12672,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 }
             }
             beginOverload = findMethodOverload(collTypeName, "_begin", {});
-            bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;  
+            bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;
             collVal = isIterator ? emitLValue(foreach->collection) : emitExpr(foreach->collection);
         } else {
-            collVal = userTypes.find(baseTypeName(getExpressionType(foreach->collection))) == userTypes.end() ? emitExpr(foreach->collection) : emitLValue(foreach->collection);
+            collVal = userTypes.find(baseTypeName(getExpressionType(foreach->collection))) == userTypes.end() ? emitExpr(foreach->collection)
+                                                                                                              : emitLValue(foreach->collection);
             if (userTypes.find(baseTypeName(getExpressionType(foreach->collection))) != userTypes.end()) {
                 if (userTypes[baseTypeName(getExpressionType(foreach->collection))].kind == UserTypeKind::Class) {
                     collTypeName = getExpressionType(foreach->collection);
@@ -12783,7 +12690,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
         }
         beginOverload = findMethodOverload(collTypeName, "_begin", {});
-        bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;  
+        bool isIterator = !isArray && !collTypeName.empty() && beginOverload != nullptr;
         llvm::AllocaInst* iterObjAlloc = nullptr;
         std::string iterTypeName = "";
         llvm::Type* iterLLVMTy = nullptr;
@@ -12805,15 +12712,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 }
 
                 namespaceStack.push_back(info.namespace_path.substr(start));
-            }   
+            }
             iterTypeName = resolveTypeName(getMethodReturnTypeName(collTypeName, "_begin"), false);
             auto concreteParams = genericParamsFromName(collTypeName);
             for (size_t i = 0; i < baseInfo->second.generics.size() && i < concreteParams.size(); i++) {
                 std::string gname = baseInfo->second.generics[i].name;
                 std::string gval = concreteParams[i];
                 size_t pos;
-                while ((pos = iterTypeName.find(gname)) != std::string::npos)
-                    iterTypeName.replace(pos, gname.size(), gval);
+                while ((pos = iterTypeName.find(gname)) != std::string::npos) iterTypeName.replace(pos, gname.size(), gval);
             }
             iterLLVMTy = llvmTypeFor(iterTypeName);
             iterObjAlloc = createEntryAlloca("__iter_" + elemName, iterLLVMTy);
@@ -12843,9 +12749,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         } else if (isIterator) {
             llvm::Function* atEndFn = findMethodOverload(iterTypeName, "_atEnd", {});
             llvm::Value* atEnd = emitMethodCall(atEndFn, iterObjAlloc, {}, "_atEnd");
-            builder->CreateCondBr(atEnd, endBB, bodyBB);        
+            builder->CreateCondBr(atEnd, endBB, bodyBB);
         }
-        
+
         builder->SetInsertPoint(bodyBB);
         llvm::Value* elemVal = nullptr;
         if (isArray && arrayAlloc) {
@@ -12920,16 +12826,13 @@ std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
     }
     return {false, 0};
 }
-std::vector<CTError> LLVMCompiler::compile(StatementsNode* root, std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
-                                           std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs,
-                                           std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
-                                           std::unordered_map<std::string, std::string> visibleArrayTypeStrings,
-                                           std::unordered_map<std::string, int> visibleArrayLengths,
-                                           std::unordered_map<std::string, std::string> visibleVarTypes,
-                                           std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
-                                           std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes,
-                                           std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
-                                           std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals) {
+std::vector<CTError> LLVMCompiler::compile(
+    StatementsNode* root, std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
+    std::unordered_map<std::string, FuncDefNode*> visibleFunctionDefs, std::unordered_map<std::string, std::pair<int, int>> visibleJaggedArrays,
+    std::unordered_map<std::string, std::string> visibleArrayTypeStrings, std::unordered_map<std::string, int> visibleArrayLengths,
+    std::unordered_map<std::string, std::string> visibleVarTypes, std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
+    std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes, std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
+    std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals) {
     this->functionSignatures = visibleFunctionSignatures;
     this->functionDefs = visibleFunctionDefs;
     this->globals = visibleGlobals;
@@ -13594,9 +13497,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 worklist.pop_back();
                 if (file_namespace_deps.count(dep_path) && file_namespace_deps[dep_path].count(ns)) {
                     for (const std::string& needed_ns : file_namespace_deps[dep_path][ns]) {
-                        if (widened_ns.insert(needed_ns).second) {
-                            worklist.push_back(needed_ns);
-                        }
+                        if (widened_ns.insert(needed_ns).second) { worklist.push_back(needed_ns); }
                     }
                 }
             }
@@ -13611,24 +13512,26 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             Lexer lexer(cleaned_files[path], path);
             file_resp = lexer.make_tokens();
             if (config.dump_tokens && file == path && file_resp.error != nullptr) {
-                std::cout << "\n##DUMP##" << '\n' << "ERROR: " << file_resp.error->pos.line << " " << file_resp.error->pos.column
-                    << " " << file_resp.error->pos.length << " " << file_resp.error->details << '\n' << "########" << '\n';
+                std::cout << "\n##DUMP##" << '\n'
+                          << "ERROR: " << file_resp.error->pos.line << " " << file_resp.error->pos.column << " " << file_resp.error->pos.length << " "
+                          << file_resp.error->details << '\n'
+                          << "########" << '\n';
                 return;
             }
         } catch (IllegalCharError e) {
             if (config.dump_tokens) {
-                std::cout << "\n##DUMP##" << '\n' << e.pos.line << " " << e.pos.column
-                    << " " << e.pos.length << " " << e.details << '\n' << "########" << '\n';
+                std::cout << "\n##DUMP##" << '\n'
+                          << e.pos.line << " " << e.pos.column << " " << e.pos.length << " " << e.details << '\n'
+                          << "########" << '\n';
                 return;
             } else {
                 throw e;
             }
-        } 
+        }
         if (config.dump_tokens && file == path) {
             std::cout << "\n##DUMP##" << '\n';
-            for (const auto& tok : file_resp.Tkns) { 
-                std::cout << tok.pos.line << " " << tok.pos.column << " " << tok.pos.length <<
-                    " " << get_token_name(tok.type) << '\n';
+            for (const auto& tok : file_resp.Tkns) {
+                std::cout << tok.pos.line << " " << tok.pos.column << " " << tok.pos.length << " " << get_token_name(tok.type) << '\n';
             }
             std::cout << "########" << '\n';
             return;
@@ -13641,12 +13544,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         type_registry[path] = ast.user_types;
         file_asts[path] = ast;
         if (path == file) { resp = file_resp; }
-    };    
+    };
     try {
         process_file(file);
-        if (config.dump_tokens) {
-            return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>(), nullptr}, ""};
-        }
+        if (config.dump_tokens) { return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>(), nullptr}, ""}; }
     } catch (InvalidSyntaxError& e) {
         std::cout << '\n' << e.as_string() << '\n';
         return Mer{Aer{nullptr, nullptr}, resp, ""};
@@ -13812,9 +13713,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 db_globals[filepath] = comp.globals;
             }
             for (Diagnostic& diagnostic : diagnostics) {
-                if (diagnostic.level != "Warning") {
-                    return Mer{ast, resp, "Program exited with code: 1", diagnostics};
-                }
+                if (diagnostic.level != "Warning") { return Mer{ast, resp, "Program exited with code: 1", diagnostics}; }
             }
             std::string base_name = config.output_file.empty() ? "out" : removeExtension(config.output_file);
             size_t last_slash = base_name.find_last_of("/\\");
@@ -13839,7 +13738,9 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             if (config.use_runtime) {
                 for (llvm::Function& F : master_module->functions()) {
-                    if (F.getName().starts_with("qc_") || F.getName().starts_with("__qc_") || F.getName().starts_with("_qc_")) { F.setLinkage(llvm::GlobalValue::InternalLinkage); }
+                    if (F.getName().starts_with("qc_") || F.getName().starts_with("__qc_") || F.getName().starts_with("_qc_")) {
+                        F.setLinkage(llvm::GlobalValue::InternalLinkage);
+                    }
                 }
             }
 #ifndef __EMSCRIPTEN__
@@ -14033,7 +13934,7 @@ Token Lexer::make_identifier() {
         id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || id == "const" || id == "default" || id == "class" || id == "struct" ||
         id == "enum" || id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || id == "foreach" || id == "do" ||
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
-        id == "function" || id == "namespace" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" || 
+        id == "function" || id == "namespace" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" ||
         id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
@@ -14064,17 +13965,13 @@ Token Lexer::make_string() {
             case '"': str += '"'; break;
             case 'x': {
                 this->advance();
-                if (!std::isxdigit(this->current_char)) {
-                    throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos);
-                }
+                if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
                 std::string hex = "";
                 while (std::isxdigit(this->current_char) && hex.size() < 2) {
                     hex += this->current_char;
                     this->advance();
                 }
-                if (hex.size() != 2) {
-                    throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos);
-                }
+                if (hex.size() != 2) { throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos); }
 
                 str += static_cast<char>(std::stoi(hex, nullptr, 16));
 
@@ -14110,23 +14007,21 @@ Token Lexer::make_char() {
         this->advance();
         switch (this->current_char) {
         case '0': val = std::string(1, '\0'); break;
-        case 'a': val = std::string(1, '\a'); break; 
+        case 'a': val = std::string(1, '\a'); break;
         case 'b': val = std::string(1, '\b'); break;
         case 't': val = std::string(1, '\t'); break;
         case 'n': val = std::string(1, '\n'); break;
         case 'v': val = std::string(1, '\v'); break;
         case 'f': val = std::string(1, '\f'); break;
         case 'r': val = std::string(1, '\r'); break;
-        case '\\': val = std::string(1, '\\'); break; 
+        case '\\': val = std::string(1, '\\'); break;
         case '\'': val = std::string(1, '\''); break;
         case '"': val = std::string(1, '"'); break;
         case 'x': {
             this->advance();
             std::string hex = "";
             for (int i = 0; i < 2; i++) {
-                if (!std::isxdigit(this->current_char)) {
-                    throw IllegalCharError("QC-IC01: Invalid hex escape", this->pos);
-                }
+                if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC01: Invalid hex escape", this->pos); }
                 hex += this->current_char;
                 this->advance();
             }
@@ -14134,9 +14029,7 @@ Token Lexer::make_char() {
             val = std::string(1, static_cast<char>(byte));
             break;
         }
-        default:
-            val = std::string(1, this->current_char);
-            break;
+        default: val = std::string(1, this->current_char); break;
         }
         this->advance();
     } else {
@@ -14173,17 +14066,13 @@ Token Lexer::make_fstring() {
             case '"': current += '"'; break;
             case 'x': {
                 this->advance();
-                if (!std::isxdigit(this->current_char)) {
-                    throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos);
-                }
+                if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
                 std::string hex = "";
                 while (std::isxdigit(this->current_char) && hex.size() < 2) {
                     hex += this->current_char;
                     this->advance();
                 }
-                if (hex.size() != 2) {
-                    throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos);
-                }
+                if (hex.size() != 2) { throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos); }
 
                 current += static_cast<char>(std::stoi(hex, nullptr, 16));
 

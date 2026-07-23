@@ -11,7 +11,7 @@ That is incorrect. Not only does the runtime only link libc and a file of 96 sma
 By passing the `-nrt` or `--no-runtime` flag to the compiler, you can tell the compiler not to link the runtime `.ll`. This will disable
 
 1. String Concatenation
-2. All intrinsics other than `` `ternary ``, `` `to_address``, `` `mapped_ptr``, `` `inline ``, and `` `typeof ``
+2. All intrinsics other than `` `ternary ``, `` `to_address``, `` `mapped_ptr``, `` `inline ``, conversions from numeric to numeric types, and `` `typeof ``
 3. String equality
 4. All qbool operations
 5. Struct printing
@@ -110,17 +110,6 @@ void qc_free(void* ptr) {
 void* qc_realloc(void* ptr, addr_t size) {
 void* qc_calloc(addr_t num, addr_t size) {
 void qc_flush() {
-int qc_to_int_from_float(float x) {
-int qc_to_int_from_double(double x) {
-int qc_to_int_from_char(char c) {
-float qc_to_float_from_double(double x) {
-float qc_to_float_from_bool(bool b) {
-double qc_to_double_from_float(float x) {
-double qc_to_double_from_bool(bool b) {
-bool qc_to_bool_from_int(int x) {
-bool qc_to_bool_from_float(float x) {
-bool qc_to_bool_from_double(double x) {
-char qc_to_char_from_int(int x) {
 int qc_time() {
 void qc_seed(int seed) {
 float qc_random_float() {
@@ -144,9 +133,6 @@ addr_t qc_to_addr_t_from_string(string str) {
 float qc_to_float_from_string(string str) {
 double qc_to_double_from_string(string str) {
 char qc_to_char_from_string(string str) {
-int qc_to_int_from_bool(bool b) {
-float qc_to_float_from_int(int x) {
-double qc_to_double_from_int(int x) {
 int qc_open(string path, string mode) {
 void qc_close(int fd) {
 void qc_write(int fd, string data) {
