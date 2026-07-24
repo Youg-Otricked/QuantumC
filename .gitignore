@@ -35,4 +35,5 @@ qc
 *.ll
 review/*
 core.*
-
+.*.dot
+*.dot
