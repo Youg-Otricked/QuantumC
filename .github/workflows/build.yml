@@ -59,7 +59,7 @@ jobs:
       
       - name: Build (Linux)
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release .
+          cmake -DCMAKE_BUILD_TYPE=Release . -S -DCXX_RUNTIME=ON
           cmake --build . -j$(nproc)
           mv qc qc-linux
 
@@ -85,7 +85,7 @@ jobs:
         run: clang -S -emit-llvm -O0 -I$(brew --prefix libffi)/include -o runtime.ll runtime.cpp
       - name: Build (macOS)
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR .
+          cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR -S -DCXX_RUNTIME=ON .
           cmake --build . -j$(sysctl -n hw.logicalcpu)
           mv qc qc-macos
 
@@ -141,7 +141,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/llvm/llvm-project.git
           cd llvm-project
-          emcmake cmake -S llvm -B build -G Ninja \
+          emcmake cmake -S -DCXX_RUNTIME=ON -S llvm -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
             -DLLVM_TARGETS_TO_BUILD="WebAssembly" \

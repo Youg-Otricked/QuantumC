@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_to_int_from_string' function" {
+	label="CFG for 'qc_to_int_from_string' function";
+
+	Node0x562fc79af5d0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  %str2 = load ptr, ptr %str1, align 8\l  %calltmp = call i64 @qc_to_long_int_from_string(ptr %str2)\l  %0 = trunc i64 %calltmp to i32\l  ret i32 %0\l}"];
+}

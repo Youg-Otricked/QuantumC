@@ -1,0 +1,22 @@
+digraph "CFG for 'qc_substring' function" {
+	label="CFG for 'qc_substring' function";
+
+	Node0x562fc788c0b0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %result = alloca ptr, align 8\l  %empty = alloca ptr, align 8\l  %len = alloca i32, align 4\l  %length3 = alloca i32, align 4\l  %start2 = alloca i32, align 4\l  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  store i32 %start, ptr %start2, align 4\l  store i32 %length, ptr %length3, align 4\l  %str4 = load ptr, ptr %str1, align 8\l  %isnull = icmp eq ptr %str4, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc788c0b0:s0 -> Node0x562fc788b790;
+	Node0x562fc788c0b0:s1 -> Node0x562fc788e360;
+	Node0x562fc788b790 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
+	Node0x562fc788e360 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{ifcont:\l|  %str5 = load ptr, ptr %str1, align 8\l  %builtin_call = call i64 @qc_len(ptr %str5)\l  %trunc = trunc i64 %builtin_call to i32\l  store i32 %trunc, ptr %len, align 4\l  %start6 = load i32, ptr %start2, align 4\l  %icmplt = icmp slt i32 %start6, 0\l  %start7 = load i32, ptr %start2, align 4\l  %len8 = load i32, ptr %len, align 4\l  %icmpge = icmp sge i32 %start7, %len8\l  %or = or i1 %icmplt, %icmpge\l  %length9 = load i32, ptr %length3, align 4\l  %icmple = icmp sle i32 %length9, 0\l  %or10 = or i1 %or, %icmple\l  br i1 %or10, label %then11, label %ifcont12\l|{<s0>T|<s1>F}}"];
+	Node0x562fc788e360:s0 -> Node0x562fc788e3e0;
+	Node0x562fc788e360:s1 -> Node0x562fc788ee30;
+	Node0x562fc788e3e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then11:\l|  %builtin_call13 = call ptr @qc_malloc(i32 1)\l  store ptr %builtin_call13, ptr %empty, align 8\l  %arr_ptr = load ptr, ptr %empty, align 8\l  %arr_elem_ptr = getelementptr i8, ptr %arr_ptr, i32 0\l  store i8 0, ptr %arr_elem_ptr, align 1\l  %empty14 = load ptr, ptr %empty, align 8\l  ret ptr %empty14\l}"];
+	Node0x562fc788ee30 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{ifcont12:\l|  %start15 = load i32, ptr %start2, align 4\l  %length16 = load i32, ptr %length3, align 4\l  %add = add i32 %start15, %length16\l  %len17 = load i32, ptr %len, align 4\l  %icmpgt = icmp sgt i32 %add, %len17\l  br i1 %icmpgt, label %then18, label %ifcont19\l|{<s0>T|<s1>F}}"];
+	Node0x562fc788ee30:s0 -> Node0x562fc788eec0;
+	Node0x562fc788ee30:s1 -> Node0x562fc788f820;
+	Node0x562fc788eec0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ca3b3770" fontname="Courier",label="{then18:\l|  %assign_lhs_val = load i32, ptr %length3, align 4\l  %len20 = load i32, ptr %len, align 4\l  %start21 = load i32, ptr %start2, align 4\l  %sub = sub i32 %len20, %start21\l  store i32 %sub, ptr %length3, align 4\l  br label %ifcont19\l}"];
+	Node0x562fc788eec0 -> Node0x562fc788f820;
+	Node0x562fc788f820 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{ifcont19:\l|  %length22 = load i32, ptr %length3, align 4\l  %add23 = add i32 %length22, 1\l  %builtin_call24 = call ptr @qc_malloc(i32 %add23)\l  store ptr %builtin_call24, ptr %result, align 8\l  %result25 = load ptr, ptr %result, align 8\l  %isnull26 = icmp eq ptr %result25, null\l  br i1 %isnull26, label %then27, label %ifcont28\l|{<s0>T|<s1>F}}"];
+	Node0x562fc788f820:s0 -> Node0x562fc788f8b0;
+	Node0x562fc788f820:s1 -> Node0x562fc7890840;
+	Node0x562fc788f8b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cc403a70" fontname="Courier",label="{then27:\l|  ret ptr null\l}"];
+	Node0x562fc7890840 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{ifcont28:\l|  %result29 = load ptr, ptr %result, align 8\l  %str30 = load ptr, ptr %str1, align 8\l  %start31 = load i32, ptr %start2, align 4\l  %ptr_arith_plus = getelementptr i8, ptr %str30, i32 %start31\l  %length32 = load i32, ptr %length3, align 4\l  %calltmp = call ptr @__qc_memcpy(ptr %result29, ptr %ptr_arith_plus, i32\l... %length32)\l  %length33 = load i32, ptr %length3, align 4\l  %arr_ptr34 = load ptr, ptr %result, align 8\l  %arr_elem_ptr35 = getelementptr i8, ptr %arr_ptr34, i32 %length33\l  store i8 0, ptr %arr_elem_ptr35, align 1\l  %result36 = load ptr, ptr %result, align 8\l  ret ptr %result36\l}"];
+}

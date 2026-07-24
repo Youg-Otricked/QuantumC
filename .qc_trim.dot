@@ -1,0 +1,44 @@
+digraph "CFG for 'qc_trim' function" {
+	label="CFG for 'qc_trim' function";
+
+	Node0x562fc7895e80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d24b4070" fontname="Courier",label="{entry:\l|  %i = alloca i64, align 8\l  %result = alloca ptr, align 8\l  %len = alloca i64, align 8\l  %end = alloca i64, align 8\l  %empty = alloca ptr, align 8\l  %start = alloca i64, align 8\l  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  %str2 = load ptr, ptr %str1, align 8\l  %isnull = icmp eq ptr %str2, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7895e80:s0 -> Node0x562fc78955b0;
+	Node0x562fc7895e80:s1 -> Node0x562fc7898020;
+	Node0x562fc78955b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
+	Node0x562fc7898020 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont:\l|  store i64 0, ptr %start, align 8\l  br label %while.cond\l}"];
+	Node0x562fc7898020 -> Node0x562fc7898240;
+	Node0x562fc7898240 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond:\l|  %start3 = load i64, ptr %start, align 8\l  %str4 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr = getelementptr i8, ptr %str4, i64 %start3\l  %ptr_arr_val = load i8, ptr %ptr_arr_addr, align 1\l  %icmpne = icmp ne i8 %ptr_arr_val, 0\l  %start5 = load i64, ptr %start, align 8\l  %str6 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr7 = getelementptr i8, ptr %str6, i64 %start5\l  %ptr_arr_val8 = load i8, ptr %ptr_arr_addr7, align 1\l  %calltmp = call i1 @__qc_is_space(i8 %ptr_arr_val8)\l  %and = and i1 %icmpne, %calltmp\l  br i1 %and, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7898240:s0 -> Node0x562fc7896100;
+	Node0x562fc7898240:s1 -> Node0x562fc7898d80;
+	Node0x562fc7896100 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body:\l|  %start9 = load i64, ptr %start, align 8\l  %start10 = load i64, ptr %start, align 8\l  %inc_deref = load i64, ptr %start, align 8\l  %inc = add i64 %inc_deref, 1\l  store i64 %inc, ptr %start, align 8\l  br label %while.cond\l}"];
+	Node0x562fc7896100 -> Node0x562fc7898240;
+	Node0x562fc7898d80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end:\l|  %start11 = load i64, ptr %start, align 8\l  %str12 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr13 = getelementptr i8, ptr %str12, i64 %start11\l  %ptr_arr_val14 = load i8, ptr %ptr_arr_addr13, align 1\l  %icmpeq = icmp eq i8 %ptr_arr_val14, 0\l  br i1 %icmpeq, label %then15, label %ifcont16\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7898d80:s0 -> Node0x562fc7898e10;
+	Node0x562fc7898d80:s1 -> Node0x562fc7899660;
+	Node0x562fc7898e10 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#de614d70" fontname="Courier",label="{then15:\l|  %builtin_call = call ptr @qc_malloc(i32 1)\l  store ptr %builtin_call, ptr %empty, align 8\l  %empty17 = load ptr, ptr %empty, align 8\l  %isnull18 = icmp eq ptr %empty17, null\l  br i1 %isnull18, label %then19, label %ifcont20\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7898e10:s0 -> Node0x562fc7898d20;
+	Node0x562fc7898e10:s1 -> Node0x562fc7899ba0;
+	Node0x562fc7899660 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d8564670" fontname="Courier",label="{ifcont16:\l|  %str22 = load ptr, ptr %str1, align 8\l  %builtin_call23 = call i64 @qc_len(ptr %str22)\l  %sub = sub i64 %builtin_call23, 1\l  store i64 %sub, ptr %end, align 8\l  br label %while.cond24\l}"];
+	Node0x562fc7899660 -> Node0x562fc78996f0;
+	Node0x562fc7898d20 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#e36c5570" fontname="Courier",label="{then19:\l|  ret ptr null\l}"];
+	Node0x562fc7899ba0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#e1675170" fontname="Courier",label="{ifcont20:\l|  %arr_ptr = load ptr, ptr %empty, align 8\l  %arr_elem_ptr = getelementptr i8, ptr %arr_ptr, i32 0\l  store i8 0, ptr %arr_elem_ptr, align 1\l  %empty21 = load ptr, ptr %empty, align 8\l  ret ptr %empty21\l}"];
+	Node0x562fc78996f0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{while.cond24:\l|  %end27 = load i64, ptr %end, align 8\l  %start28 = load i64, ptr %start, align 8\l  %icmpgt = icmp sgt i64 %end27, %start28\l  %end29 = load i64, ptr %end, align 8\l  %str30 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr31 = getelementptr i8, ptr %str30, i64 %end29\l  %ptr_arr_val32 = load i8, ptr %ptr_arr_addr31, align 1\l  %calltmp33 = call i1 @__qc_is_space(i8 %ptr_arr_val32)\l  %and34 = and i1 %icmpgt, %calltmp33\l  br i1 %and34, label %while.body25, label %while.end26\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78996f0:s0 -> Node0x562fc789a080;
+	Node0x562fc78996f0:s1 -> Node0x562fc7899b40;
+	Node0x562fc789a080 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{while.body25:\l|  %end35 = load i64, ptr %end, align 8\l  %end36 = load i64, ptr %end, align 8\l  %inc_deref37 = load i64, ptr %end, align 8\l  %dec = sub i64 %inc_deref37, 1\l  store i64 %dec, ptr %end, align 8\l  br label %while.cond24\l}"];
+	Node0x562fc789a080 -> Node0x562fc78996f0;
+	Node0x562fc7899b40 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d8564670" fontname="Courier",label="{while.end26:\l|  %end38 = load i64, ptr %end, align 8\l  %start39 = load i64, ptr %start, align 8\l  %sub40 = sub i64 %end38, %start39\l  %add = add i64 %sub40, 1\l  store i64 %add, ptr %len, align 8\l  %len41 = load i64, ptr %len, align 8\l  %add42 = add i64 %len41, 1\l  %builtin_call43 = call ptr @qc_malloc(i64 %add42)\l  store ptr %builtin_call43, ptr %result, align 8\l  %result44 = load ptr, ptr %result, align 8\l  %isnull45 = icmp eq ptr %result44, null\l  br i1 %isnull45, label %then46, label %ifcont47\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7899b40:s0 -> Node0x562fc789b1e0;
+	Node0x562fc7899b40:s1 -> Node0x562fc789be80;
+	Node0x562fc789b1e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#e1675170" fontname="Courier",label="{then46:\l|  ret ptr null\l}"];
+	Node0x562fc789be80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#de614d70" fontname="Courier",label="{ifcont47:\l|  store i64 0, ptr %i, align 8\l  br label %for.cond\l}"];
+	Node0x562fc789be80 -> Node0x562fc789bf10;
+	Node0x562fc789bf10 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{for.cond:\l|  %i48 = load i64, ptr %i, align 8\l  %len49 = load i64, ptr %len, align 8\l  %icmplt = icmp slt i64 %i48, %len49\l  br i1 %icmplt, label %for.body, label %for.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc789bf10:s0 -> Node0x562fc7899c30;
+	Node0x562fc789bf10:s1 -> Node0x562fc789c450;
+	Node0x562fc7899c30 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{for.body:\l|  %i50 = load i64, ptr %i, align 8\l  %start51 = load i64, ptr %start, align 8\l  %i52 = load i64, ptr %i, align 8\l  %add53 = add i64 %start51, %i52\l  %str54 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr55 = getelementptr i8, ptr %str54, i64 %add53\l  %ptr_arr_val56 = load i8, ptr %ptr_arr_addr55, align 1\l  %arr_ptr57 = load ptr, ptr %result, align 8\l  %arr_elem_ptr58 = getelementptr i8, ptr %arr_ptr57, i64 %i50\l  store i8 %ptr_arr_val56, ptr %arr_elem_ptr58, align 1\l  br label %for.inc\l}"];
+	Node0x562fc7899c30 -> Node0x562fc789c3f0;
+	Node0x562fc789c3f0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{for.inc:\l|  %i59 = load i64, ptr %i, align 8\l  %i60 = load i64, ptr %i, align 8\l  %inc_deref61 = load i64, ptr %i, align 8\l  %inc62 = add i64 %inc_deref61, 1\l  store i64 %inc62, ptr %i, align 8\l  br label %for.cond\l}"];
+	Node0x562fc789c3f0 -> Node0x562fc789bf10;
+	Node0x562fc789c450 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#de614d70" fontname="Courier",label="{for.end:\l|  %len63 = load i64, ptr %len, align 8\l  %arr_ptr64 = load ptr, ptr %result, align 8\l  %arr_elem_ptr65 = getelementptr i8, ptr %arr_ptr64, i64 %len63\l  store i8 0, ptr %arr_elem_ptr65, align 1\l  %result66 = load ptr, ptr %result, align 8\l  ret ptr %result66\l}"];
+}

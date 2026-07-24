@@ -1,0 +1,10 @@
+digraph "CFG for 'qc_write' function" {
+	label="CFG for 'qc_write' function";
+
+	Node0x562fc78b2180 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %data2 = alloca ptr, align 8\l  %fd1 = alloca i32, align 4\l  store i32 %fd, ptr %fd1, align 4\l  store ptr %data, ptr %data2, align 8\l  %data3 = load ptr, ptr %data2, align 8\l  %ptr_truthy = icmp ne ptr %data3, null\l  br i1 %ptr_truthy, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78b2180:s0 -> Node0x562fc7928ed0;
+	Node0x562fc78b2180:s1 -> Node0x562fc7929360;
+	Node0x562fc7928ed0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{then:\l|  %fd4 = load i32, ptr %fd1, align 4\l  %data5 = load ptr, ptr %data2, align 8\l  %data6 = load ptr, ptr %data2, align 8\l  %builtin_call = call i64 @qc_len(ptr %data6)\l  call void asm sideeffect inteldialect \"\\0A        mov rax, 1\\0A        mov\l... edi, $0\\0A        mov rsi, $1\\0A        mov edx, $2\\0A        syscall\\0A     \l...   \", \"r,r,r,~\{rax\},~\{rdi\},~\{rsi\},~\{rdx\}\"(i32 %fd4, ptr %data5, i64\l... %builtin_call)\l  br label %ifcont\l}"];
+	Node0x562fc7928ed0 -> Node0x562fc7929360;
+	Node0x562fc7929360 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont:\l|  ret void\l}"];
+}

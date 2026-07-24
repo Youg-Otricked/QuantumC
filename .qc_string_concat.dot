@@ -1,0 +1,19 @@
+digraph "CFG for 'qc_string_concat' function" {
+	label="CFG for 'qc_string_concat' function";
+
+	Node0x562fc78454e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %result = alloca ptr, align 8\l  %len_b = alloca i64, align 8\l  %len_a = alloca i64, align 8\l  %b2 = alloca ptr, align 8\l  %a1 = alloca ptr, align 8\l  store ptr %a, ptr %a1, align 8\l  store ptr %b, ptr %b2, align 8\l  %a3 = load ptr, ptr %a1, align 8\l  %isnull = icmp eq ptr %a3, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78454e0:s0 -> Node0x562fc7844d70;
+	Node0x562fc78454e0:s1 -> Node0x562fc78475e0;
+	Node0x562fc7844d70 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then:\l|  %assign_lhs_val = load ptr, ptr %a1, align 8\l  store ptr @.str.19, ptr %a1, align 8\l  br label %ifcont\l}"];
+	Node0x562fc7844d70 -> Node0x562fc78475e0;
+	Node0x562fc78475e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont:\l|  %b4 = load ptr, ptr %b2, align 8\l  %isnull5 = icmp eq ptr %b4, null\l  br i1 %isnull5, label %then6, label %ifcont7\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78475e0:s0 -> Node0x562fc7847660;
+	Node0x562fc78475e0:s1 -> Node0x562fc7847a70;
+	Node0x562fc7847660 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then6:\l|  %assign_lhs_val8 = load ptr, ptr %b2, align 8\l  store ptr @.str.20, ptr %b2, align 8\l  br label %ifcont7\l}"];
+	Node0x562fc7847660 -> Node0x562fc7847a70;
+	Node0x562fc7847a70 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont7:\l|  %a9 = load ptr, ptr %a1, align 8\l  %builtin_call = call i64 @qc_len(ptr %a9)\l  store i64 %builtin_call, ptr %len_a, align 8\l  %b10 = load ptr, ptr %b2, align 8\l  %builtin_call11 = call i64 @qc_len(ptr %b10)\l  store i64 %builtin_call11, ptr %len_b, align 8\l  %len_a12 = load i64, ptr %len_a, align 8\l  %len_b13 = load i64, ptr %len_b, align 8\l  %add = add i64 %len_a12, %len_b13\l  %add14 = add i64 %add, 1\l  %builtin_call15 = call ptr @qc_malloc(i64 %add14)\l  store ptr %builtin_call15, ptr %result, align 8\l  %result16 = load ptr, ptr %result, align 8\l  %isnull17 = icmp eq ptr %result16, null\l  br i1 %isnull17, label %then18, label %ifcont19\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7847a70:s0 -> Node0x562fc7847af0;
+	Node0x562fc7847a70:s1 -> Node0x562fc7848870;
+	Node0x562fc7847af0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then18:\l|  ret ptr null\l}"];
+	Node0x562fc7848870 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{ifcont19:\l|  %result20 = load ptr, ptr %result, align 8\l  %a21 = load ptr, ptr %a1, align 8\l  %len_a22 = load i64, ptr %len_a, align 8\l  %calltmp = call ptr @__qc_memcpy(ptr %result20, ptr %a21, i64 %len_a22)\l  %result23 = load ptr, ptr %result, align 8\l  %len_a24 = load i64, ptr %len_a, align 8\l  %ptr_arith_plus = getelementptr i8, ptr %result23, i64 %len_a24\l  %b25 = load ptr, ptr %b2, align 8\l  %len_b26 = load i64, ptr %len_b, align 8\l  %calltmp27 = call ptr @__qc_memcpy(ptr %ptr_arith_plus, ptr %b25, i64\l... %len_b26)\l  %len_a28 = load i64, ptr %len_a, align 8\l  %len_b29 = load i64, ptr %len_b, align 8\l  %add30 = add i64 %len_a28, %len_b29\l  %arr_ptr = load ptr, ptr %result, align 8\l  %arr_elem_ptr = getelementptr i8, ptr %arr_ptr, i64 %add30\l  store i8 0, ptr %arr_elem_ptr, align 1\l  %result31 = load ptr, ptr %result, align 8\l  ret ptr %result31\l}"];
+}

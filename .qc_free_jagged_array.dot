@@ -1,0 +1,30 @@
+digraph "CFG for 'qc_free_jagged_array' function" {
+	label="CFG for 'qc_free_jagged_array' function";
+
+	Node0x562fc79c7380 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d24b4070" fontname="Courier",label="{entry:\l|  %i14 = alloca i32, align 4\l  %i = alloca i32, align 4\l  %arr1 = alloca ptr, align 8\l  store ptr %arr, ptr %arr1, align 8\l  %arr2 = load ptr, ptr %arr1, align 8\l  %arr3 = load ptr, ptr %arr1, align 8\l  %deref = load %qc_jagged_array, ptr %arr3, align 8\l  %depth = extractvalue %qc_jagged_array %deref, 4\l  %icmpgt = icmp sgt i32 %depth, 0\l  br i1 %icmpgt, label %then, label %else\l|{<s0>T|<s1>F}}"];
+	Node0x562fc79c7380:s0 -> Node0x562fc79c7290;
+	Node0x562fc79c7380:s1 -> Node0x562fc79c70b0;
+	Node0x562fc79c7290 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{then:\l|  store i32 0, ptr %i, align 4\l  br label %for.cond\l}"];
+	Node0x562fc79c7290 -> Node0x562fc79c71a0;
+	Node0x562fc79c7650 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d24b4070" fontname="Courier",label="{ifcont:\l|  %arr36 = load ptr, ptr %arr1, align 8\l  %arr37 = load ptr, ptr %arr1, align 8\l  %deref38 = load %qc_jagged_array, ptr %arr37, align 8\l  %data39 = extractvalue %qc_jagged_array %deref38, 0\l  call void @qc_free(ptr %data39)\l  %arr40 = load ptr, ptr %arr1, align 8\l  %arr41 = load ptr, ptr %arr1, align 8\l  %deref42 = load %qc_jagged_array, ptr %arr41, align 8\l  %sizes = extractvalue %qc_jagged_array %deref42, 1\l  call void @qc_free(ptr %sizes)\l  %arr43 = load ptr, ptr %arr1, align 8\l  call void @qc_free(ptr %arr43)\l  ret void\l}"];
+	Node0x562fc79c70b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{else:\l|  store i32 0, ptr %i14, align 4\l  br label %for.cond15\l}"];
+	Node0x562fc79c70b0 -> Node0x562fc79c77a0;
+	Node0x562fc79c71a0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.cond:\l|  %i4 = load i32, ptr %i, align 4\l  %arr5 = load ptr, ptr %arr1, align 8\l  %arr6 = load ptr, ptr %arr1, align 8\l  %deref7 = load %qc_jagged_array, ptr %arr6, align 8\l  %count = extractvalue %qc_jagged_array %deref7, 2\l  %icmplt = icmp slt i32 %i4, %count\l  br i1 %icmplt, label %for.body, label %for.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc79c71a0:s0 -> Node0x562fc79c6fc0;
+	Node0x562fc79c71a0:s1 -> Node0x562fc79cd3a0;
+	Node0x562fc79c6fc0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.body:\l|  %i8 = load i32, ptr %i, align 4\l  %arr9 = load ptr, ptr %arr1, align 8\l  %arr10 = load ptr, ptr %arr1, align 8\l  %deref11 = load %qc_jagged_array, ptr %arr10, align 8\l  %data = extractvalue %qc_jagged_array %deref11, 0\l  %ptr_arr_addr = getelementptr ptr, ptr %data, i32 %i8\l  %ptr_arr_val = load ptr, ptr %ptr_arr_addr, align 8\l  call void @qc_free_jagged_array(ptr %ptr_arr_val)\l  br label %for.inc\l}"];
+	Node0x562fc79c6fc0 -> Node0x562fc79cd340;
+	Node0x562fc79cd340 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.inc:\l|  %i12 = load i32, ptr %i, align 4\l  %i13 = load i32, ptr %i, align 4\l  %inc_deref = load i32, ptr %i, align 4\l  %inc = add i32 %inc_deref, 1\l  store i32 %inc, ptr %i, align 4\l  br label %for.cond\l}"];
+	Node0x562fc79cd340 -> Node0x562fc79c71a0;
+	Node0x562fc79cd3a0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{for.end:\l|  br label %ifcont\l}"];
+	Node0x562fc79cd3a0 -> Node0x562fc79c7650;
+	Node0x562fc79c77a0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{for.cond15:\l|  %i19 = load i32, ptr %i14, align 4\l  %arr20 = load ptr, ptr %arr1, align 8\l  %arr21 = load ptr, ptr %arr1, align 8\l  %deref22 = load %qc_jagged_array, ptr %arr21, align 8\l  %count23 = extractvalue %qc_jagged_array %deref22, 2\l  %icmplt24 = icmp slt i32 %i19, %count23\l  br i1 %icmplt24, label %for.body16, label %for.end18\l|{<s0>T|<s1>F}}"];
+	Node0x562fc79c77a0:s0 -> Node0x562fc79cc190;
+	Node0x562fc79c77a0:s1 -> Node0x562fc79cdb50;
+	Node0x562fc79cc190 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{for.body16:\l|  %i25 = load i32, ptr %i14, align 4\l  %arr26 = load ptr, ptr %arr1, align 8\l  %arr27 = load ptr, ptr %arr1, align 8\l  %deref28 = load %qc_jagged_array, ptr %arr27, align 8\l  %data29 = extractvalue %qc_jagged_array %deref28, 0\l  %ptr_arr_addr30 = getelementptr ptr, ptr %data29, i32 %i25\l  %ptr_arr_val31 = load ptr, ptr %ptr_arr_addr30, align 8\l  call void @qc_free(ptr %ptr_arr_val31)\l  br label %for.inc17\l}"];
+	Node0x562fc79cc190 -> Node0x562fc79cd420;
+	Node0x562fc79cd420 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{for.inc17:\l|  %i32 = load i32, ptr %i14, align 4\l  %i33 = load i32, ptr %i14, align 4\l  %inc_deref34 = load i32, ptr %i14, align 4\l  %inc35 = add i32 %inc_deref34, 1\l  store i32 %inc35, ptr %i14, align 4\l  br label %for.cond15\l}"];
+	Node0x562fc79cd420 -> Node0x562fc79c77a0;
+	Node0x562fc79cdb50 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{for.end18:\l|  br label %ifcont\l}"];
+	Node0x562fc79cdb50 -> Node0x562fc79c7650;
+}

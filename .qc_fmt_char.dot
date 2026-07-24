@@ -1,0 +1,19 @@
+digraph "CFG for 'qc_fmt_char' function" {
+	label="CFG for 'qc_fmt_char' function";
+
+	Node0x562fc7987c70 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{entry:\l|  %stringified = alloca ptr, align 8\l  %zero_pad3 = alloca i1, align 1\l  %width2 = alloca i32, align 4\l  %v1 = alloca i8, align 1\l  store i8 %v, ptr %v1, align 1\l  store i32 %width, ptr %width2, align 4\l  store i1 %zero_pad, ptr %zero_pad3, align 1\l  %v4 = load i8, ptr %v1, align 1\l  %to_str = call ptr @qc_to_string_char(i8 %v4)\l  store ptr %to_str, ptr %stringified, align 8\l  br label %while.cond\l}"];
+	Node0x562fc7987c70 -> Node0x562fc7987b80;
+	Node0x562fc7987b80 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond:\l|  %stringified5 = load ptr, ptr %stringified, align 8\l  %builtin_call = call i64 @qc_len(ptr %stringified5)\l  %width6 = load i32, ptr %width2, align 4\l  %promote_int = sext i32 %width6 to i64\l  %icmplt = icmp slt i64 %builtin_call, %promote_int\l  br i1 %icmplt, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7987b80:s0 -> Node0x562fc79879a0;
+	Node0x562fc7987b80:s1 -> Node0x562fc7989870;
+	Node0x562fc79879a0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body:\l|  %zero_pad7 = load i1, ptr %zero_pad3, align 1\l  br i1 %zero_pad7, label %then, label %else\l|{<s0>T|<s1>F}}"];
+	Node0x562fc79879a0:s0 -> Node0x562fc7988120;
+	Node0x562fc79879a0:s1 -> Node0x562fc7989b40;
+	Node0x562fc7989870 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end:\l|  %stringified12 = load ptr, ptr %stringified, align 8\l  ret ptr %stringified12\l}"];
+	Node0x562fc7988120 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{then:\l|  %assign_lhs_val = load ptr, ptr %stringified, align 8\l  %stringified8 = load ptr, ptr %stringified, align 8\l  %str_concat = call ptr @qc_string_concat(ptr @.str.65, ptr %stringified8)\l  store ptr %str_concat, ptr %stringified, align 8\l  br label %ifcont\l}"];
+	Node0x562fc7988120 -> Node0x562fc7989ae0;
+	Node0x562fc7989ae0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont:\l|  br label %while.cond\l}"];
+	Node0x562fc7989ae0 -> Node0x562fc7987b80;
+	Node0x562fc7989b40 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{else:\l|  %assign_lhs_val9 = load ptr, ptr %stringified, align 8\l  %stringified10 = load ptr, ptr %stringified, align 8\l  %str_concat11 = call ptr @qc_string_concat(ptr @.str.66, ptr %stringified10)\l  store ptr %str_concat11, ptr %stringified, align 8\l  br label %ifcont\l}"];
+	Node0x562fc7989b40 -> Node0x562fc7989ae0;
+}

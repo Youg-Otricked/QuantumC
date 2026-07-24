@@ -33,7 +33,7 @@ $<num>[=]<r|m|i|g>
 Where:
 
 - `num` is the operand number.
-- `=` marks the operand as an output.
+- `=` marks the operand as an output. (only for `r` and `m`)
 - `r` places the operand in a register.
 - `m` places the operand in memory.
 - `i` requires an immediate integer constant.

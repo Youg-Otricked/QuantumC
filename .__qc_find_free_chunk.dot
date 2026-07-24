@@ -1,0 +1,16 @@
+digraph "CFG for '__qc_find_free_chunk' function" {
+	label="CFG for '__qc_find_free_chunk' function";
+
+	Node0x562fc78327d0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{entry:\l|  %current = alloca ptr, align 8\l  %size1 = alloca i64, align 8\l  store i64 %size, ptr %size1, align 8\l  %__qc_heap = load %__qc_malloc_state, ptr @__qc_heap, align 8\l  %free_list = extractvalue %__qc_malloc_state %__qc_heap, 1\l  store ptr %free_list, ptr %current, align 8\l  br label %while.cond\l}"];
+	Node0x562fc78327d0 -> Node0x562fc7834590;
+	Node0x562fc7834590 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond:\l|  %current2 = load ptr, ptr %current, align 8\l  %ptr_ne = icmp ne ptr %current2, null\l  br i1 %ptr_ne, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7834590:s0 -> Node0x562fc78349e0;
+	Node0x562fc7834590:s1 -> Node0x562fc7834ca0;
+	Node0x562fc78349e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body:\l|  %current3 = load ptr, ptr %current, align 8\l  %current4 = load ptr, ptr %current, align 8\l  %deref = load %__qc_malloc_chunk, ptr %current4, align 8\l  %free = extractvalue %__qc_malloc_chunk %deref, 1\l  %current5 = load ptr, ptr %current, align 8\l  %current6 = load ptr, ptr %current, align 8\l  %deref7 = load %__qc_malloc_chunk, ptr %current6, align 8\l  %size8 = extractvalue %__qc_malloc_chunk %deref7, 0\l  %size9 = load i64, ptr %size1, align 8\l  %icmpge = icmp sge i64 %size8, %size9\l  %and = and i1 %free, %icmpge\l  br i1 %and, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78349e0:s0 -> Node0x562fc7834c40;
+	Node0x562fc78349e0:s1 -> Node0x562fc78357c0;
+	Node0x562fc7834ca0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end:\l|  ret ptr undef\l}"];
+	Node0x562fc7834c40 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{then:\l|  %current10 = load ptr, ptr %current, align 8\l  ret ptr %current10\l}"];
+	Node0x562fc78357c0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont:\l|  %assign_lhs_val = load ptr, ptr %current, align 8\l  %current11 = load ptr, ptr %current, align 8\l  %current12 = load ptr, ptr %current, align 8\l  %deref13 = load %__qc_malloc_chunk, ptr %current12, align 8\l  %next_free = extractvalue %__qc_malloc_chunk %deref13, 5\l  store ptr %next_free, ptr %current, align 8\l  br label %while.cond\l}"];
+	Node0x562fc78357c0 -> Node0x562fc7834590;
+}

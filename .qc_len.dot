@@ -1,0 +1,12 @@
+digraph "CFG for 'qc_len' function" {
+	label="CFG for 'qc_len' function";
+
+	Node0x562fc786fc70 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{entry:\l|  %i = alloca i64, align 8\l  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  store i64 0, ptr %i, align 8\l  br label %while.cond\l}"];
+	Node0x562fc786fc70 -> Node0x562fc786fb80;
+	Node0x562fc786fb80 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond:\l|  %i2 = load i64, ptr %i, align 8\l  %str3 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr = getelementptr i8, ptr %str3, i64 %i2\l  %ptr_arr_val = load i8, ptr %ptr_arr_addr, align 1\l  %icmpne = icmp ne i8 %ptr_arr_val, 0\l  br i1 %icmpne, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc786fb80:s0 -> Node0x562fc7872fa0;
+	Node0x562fc786fb80:s1 -> Node0x562fc78743c0;
+	Node0x562fc7872fa0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body:\l|  %i4 = load i64, ptr %i, align 8\l  %i5 = load i64, ptr %i, align 8\l  %inc_deref = load i64, ptr %i, align 8\l  %inc = add i64 %inc_deref, 1\l  store i64 %inc, ptr %i, align 8\l  br label %while.cond\l}"];
+	Node0x562fc7872fa0 -> Node0x562fc786fb80;
+	Node0x562fc78743c0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end:\l|  %i6 = load i64, ptr %i, align 8\l  ret i64 %i6\l}"];
+}

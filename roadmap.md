@@ -92,6 +92,7 @@ void loop(void) code {
 - const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
 - Actually decent error messages and errors (probbalt a lot of work)
+- Combinational bitwise operators
 - Scoping blocks ({ })
 __qc_commit_hash() — exact git commit the compiler/runtime was built from, invaluable for bug reports since version numbers alone often don't pin down exactly which state of the code produced a binary
 __qc_build_date() — timestamp of the build
@@ -102,7 +103,7 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - byte (u8) type
 - nibble (u4) type
 TOP PRIORITY:
-1. Self host the runtime.
+1. `byte`, `nibble`, combinational bitwise
 2. Error system + diagnostics overhaul
 3. -L, -A
 4. Try/Catch.

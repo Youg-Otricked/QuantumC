@@ -19,19 +19,19 @@ void __qc_release_notes() { // self hosted
 }
 void* qc_malloc(size_t size) {
     return malloc(size);
-}
+} // self hosted
 void qc_free(void* ptr) {
     free(ptr);
-}
+} // self hosted
 void* qc_realloc(void* ptr, size_t size) {
     return realloc(ptr, size);
-}
+} // self hosted
 void* qc_calloc(size_t num, size_t size) {
     return calloc(num, size);
-}
+} // self hosted
 void qc_flush() {
     fflush(NULL);
-}
+} // self hosted
 char* qc_fmt_int(intptr_t v, int width, int precision, bool zero_pad) {
     char fmt[32];
     if (precision >= 0) {
@@ -50,7 +50,7 @@ char* qc_fmt_int(intptr_t v, int width, int precision, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, v);
     return out;
-}
+} // self hosted
 char* qc_fmt_unsigned_int(size_t v, bool zero_pad) {
     char fmt[32];
     if (zero_pad) {
@@ -64,7 +64,7 @@ char* qc_fmt_unsigned_int(size_t v, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, (uintptr_t)v);
     return out;
-}
+} // self hosted
 
 char* qc_fmt_float(double v, int width, int precision, bool zero_pad) {
     char fmt[32];
@@ -87,11 +87,11 @@ char* qc_fmt_float(double v, int width, int precision, bool zero_pad) {
     if (!out) return NULL;
     snprintf(out, (size_t)len + 1, fmt, v);
     return out;
-}
+} // self hosted
 
 char* qc_fmt_double(double v, int width, int precision, bool zero_pad) {
     return qc_fmt_float(v, width, precision, zero_pad);
-}
+} // self hosted
 char* qc_fmt_scientific(double v, int width, int precision, bool zero_pad) {
     char fmt[32];
     if (precision >= 0) {
@@ -113,7 +113,7 @@ char* qc_fmt_scientific(double v, int width, int precision, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, v);
     return out;
-}
+} // self hosted
 char* qc_fmt_char(char c, int width, bool zero_pad) {
     char fmt[16];
     if (width > 0) {
@@ -127,7 +127,7 @@ char* qc_fmt_char(char c, int width, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, c);
     return out;
-}
+} // self hosted
 
 char* qc_fmt_string(const char* s, int width, bool zero_pad) {
     if (!s) s = "";
@@ -143,7 +143,7 @@ char* qc_fmt_string(const char* s, int width, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, s);
     return out;
-}
+} // self hosted
 
 char* qc_fmt_hex(intptr_t v, int width, bool zero_pad) {
     char fmt[32];
@@ -156,7 +156,7 @@ char* qc_fmt_hex(intptr_t v, int width, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, v);
     return out;
-}
+} // self hosted
 char* qc_fmt_octal(intptr_t v, int width, bool zero_pad) {
     char fmt[32];
     if (width > 0)
@@ -168,11 +168,11 @@ char* qc_fmt_octal(intptr_t v, int width, bool zero_pad) {
     if (!out) return nullptr;
     snprintf(out, len + 1, fmt, v);
     return out;
-}
+} // self hosted
 char* qc_fmt_bool(bool v, int width, bool zero_pad) {
     const char* s = v ? "true" : "false";
     return qc_fmt_string(s, width, zero_pad);
-}
+} // self hosted
 
 char* qc_fmt_qbool(uint8_t q, int width, bool zero_pad) {
     const char* s;
@@ -183,7 +183,7 @@ char* qc_fmt_qbool(uint8_t q, int width, bool zero_pad) {
     default: s = "both"; break;
     }
     return qc_fmt_string(s, width, zero_pad);
-}
+} // self hosted
 
 char* qc_fmt_ptr(void* p, int width, bool zero_pad) {
     char buf[64];
@@ -194,7 +194,7 @@ char* qc_fmt_ptr(void* p, int width, bool zero_pad) {
     else
         snprintf(buf, sizeof(buf), "%p", p);
     return strdup(buf);
-}
+} // self hosted
 int qc_powi_i32(int base, int exp) {
     if (exp < 0) return 0;
     int result = 1;
@@ -271,7 +271,7 @@ char* qc_to_string_int(int x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
+} // self hosted
 
 char* qc_to_string_float(float x) {
     char buf[64];
@@ -281,7 +281,7 @@ char* qc_to_string_float(float x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
+} // self hosted
 char* qc_to_string_long_int(intptr_t x) {
     char buf[32];
     int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);
@@ -290,7 +290,7 @@ char* qc_to_string_long_int(intptr_t x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
+} // self hosted
 char* qc_to_string_short_int(short x) {
     char buf[64];
     int n = snprintf(buf, sizeof(buf), "%hd", x);
@@ -299,7 +299,7 @@ char* qc_to_string_short_int(short x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
+} // self hosted
 char* qc_to_string_double(double x) {
     char buf[64];
     int n = snprintf(buf, sizeof(buf), "%g", x);
@@ -308,7 +308,7 @@ char* qc_to_string_double(double x) {
     if (!out) return nullptr;
     memcpy(out, buf, n + 1);
     return out;
-}
+} // self hosted
 
 char* qc_to_string_bool(bool b) {
     const char* s = b ? "true" : "false";
@@ -317,7 +317,7 @@ char* qc_to_string_bool(bool b) {
     if (!out) return nullptr;
     memcpy(out, s, len + 1);
     return out;
-}
+} // self hosted
 char* qc_to_string_qbool(uint8_t q) {
     const char* s;
     switch (q & 0x3) {
@@ -332,7 +332,7 @@ char* qc_to_string_qbool(uint8_t q) {
     if (!out) return nullptr;
     memcpy(out, s, len + 1);
     return out;
-}
+} // self hosted
 
 char* qc_to_string_char(char c) {
     char* out = (char*)malloc(2);
@@ -340,31 +340,28 @@ char* qc_to_string_char(char c) {
     out[0] = c;
     out[1] = '\0';
     return out;
-}
+} // self hosted
 
 void qc_print_string(const char* s) {
     if (!s) s = "";
     fputs(s, stdout);
-}
+} // self hosted
 int qc_time() {
     return (int)time(NULL);
-}
+} // self hosted
 
 void qc_seed(int seed) {
     srand(seed);
-}
-
-float qc_random_float() {
-    return (float)rand() / (float)RAND_MAX;
-}
-
+} // self hosted
 int qc_random_int(int max) {
     return rand() % max;
-}
-
+} // self hosted
+float qc_random_float() {
+    return (float)rand() / (float)RAND_MAX;
+} // self hosted
 int qc_random_range(int min, int max) {
     return min + (rand() % (max - min));
-}
+} // self hosted
 int qc_len(const char* str) { // self hosted
     return strlen(str);
 }
@@ -443,7 +440,7 @@ char* qc_qin() {
     fflush(stdin);
     if (result == 1) { return strdup(buffer); }
     return strdup("");
-}
+} // self hosted
 char* qc_trim(const char* str) {
     if (!str) return nullptr;
 
@@ -512,28 +509,28 @@ char* qc_replace(const char* str, const char* find, const char* replace) {
 
 int qc_to_int_from_string(const char* str) {
     return str ? atoi(str) : 0;
-}
+} // self hosted
 short qc_to_short_int_from_string(const char* str) {
     long val = str ? strtol(str, nullptr, 10) : 0;
     return static_cast<short>(val);
-}
+} // self hosted
 intptr_t qc_to_long_int_from_string(const char* str) {
     return str ? strtoll(str, nullptr, 10) : 0;
-}
+} // self hosted
 size_t qc_to_addr_t_from_string(const char* str) {
     return str ? static_cast<size_t>(strtoull(str, nullptr, 10)) : 0;
-}
+} // self hosted
 float qc_to_float_from_string(const char* str) {
     return str ? (float)atof(str) : 0.0f;
-}
+} // self hosted
 
 double qc_to_double_from_string(const char* str) {
     return str ? atof(str) : 0.0;
-}
+} // self hosted
 
 char qc_to_char_from_string(const char* str) {
     return (str && str[0]) ? str[0] : '\0';
-}
+} // self hosted
 int qc_sizeof_type(int elem_type) {
     switch (elem_type) {
     case 0: return sizeof(int);
@@ -546,64 +543,13 @@ int qc_sizeof_type(int elem_type) {
     default: return 4;
     }
 }
-char* qc_array_to_string_recursive(void* arr, int elem_type, int ndims, int* dims) {
-    if (ndims == 0) {
-        char buf[256];
-        switch (elem_type) {
-        case 0: snprintf(buf, sizeof(buf), "%d", *(int*)arr); break;
-        case 1: snprintf(buf, sizeof(buf), "%g", *(float*)arr); break;
-        case 2: snprintf(buf, sizeof(buf), "%g", *(double*)arr); break;
-        case 3: snprintf(buf, sizeof(buf), "'%c'", *(char*)arr); break;
-        case 4: snprintf(buf, sizeof(buf), "%s", *(bool*)arr ? "true" : "false"); break;
-        case 5: {
-            uint8_t q = *(uint8_t*)arr & 0x3;
-            const char* s = (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both";
-            snprintf(buf, sizeof(buf), "%s", s);
-            break;
-        }
-        case 6: snprintf(buf, sizeof(buf), "\"%s\"", *(char**)arr); break;
-        }
-        char* result = (char*)malloc(strlen(buf) + 1);
-        strcpy(result, buf);
-        return result;
-    }
-    int total_len = 2;
-    int elem_size = qc_sizeof_type(elem_type);
-    for (int i = 1; i < ndims; i++) { elem_size *= dims[i]; }
-
-    char** parts = (char**)malloc(dims[0] * sizeof(char*));
-    for (int i = 0; i < dims[0]; i++) {
-        void* elem_ptr = (char*)arr + (i * elem_size);
-        parts[i] = qc_array_to_string_recursive(elem_ptr, elem_type, ndims - 1, dims + 1);
-        total_len += strlen(parts[i]);
-        if (i < dims[0] - 1) total_len += 2;
-    }
-
-    char* result = (char*)malloc(total_len + 1);
-    char* p = result;
-    *p++ = '[';
-    for (int i = 0; i < dims[0]; i++) {
-        strcpy(p, parts[i]);
-        p += strlen(parts[i]);
-        free(parts[i]);
-        if (i < dims[0] - 1) {
-            *p++ = ',';
-            *p++ = ' ';
-        }
-    }
-    *p++ = ']';
-    *p = '\0';
-    free(parts);
-
-    return result;
-}
 struct qc_jagged_array {
     void** data;
     int* sizes;
     int count;
     int elem_type;
     int depth;
-};
+}; // self hosted
 
 qc_jagged_array* qc_create_jagged_array(int count, int elem_type, int depth) {
     qc_jagged_array* arr = (qc_jagged_array*)malloc(sizeof(qc_jagged_array));
@@ -613,12 +559,12 @@ qc_jagged_array* qc_create_jagged_array(int count, int elem_type, int depth) {
     arr->elem_type = elem_type;
     arr->depth = depth;
     return arr;
-}
+} // self hosted
 
 void qc_set_jagged_element(qc_jagged_array* arr, int idx, void* elem, int size) {
     arr->data[idx] = elem;
     arr->sizes[idx] = size;
-}
+} // self hosted
 void qc_free_jagged_array(qc_jagged_array* arr) {
     if (arr->depth > 0) {
         for (int i = 0; i < arr->count; i++) { qc_free_jagged_array((qc_jagged_array*)arr->data[i]); }
@@ -628,7 +574,7 @@ void qc_free_jagged_array(qc_jagged_array* arr) {
     free(arr->data);
     free(arr->sizes);
     free(arr);
-}
+} // self hosted
 void* qc_jagged_array_get(qc_jagged_array* arr, int* indices, int num_indices) {
     if (num_indices == 0 || !arr) { return nullptr; }
 
@@ -660,100 +606,17 @@ void* qc_jagged_array_get(qc_jagged_array* arr, int* indices, int num_indices) {
 
         return qc_jagged_array_get(sub, indices + 1, num_indices - 1);
     }
-}
+} // self hosted
 void* qc_create_leaf_row(int size, int elem_type) {
     int elem_size = qc_sizeof_type(elem_type);
     int total = size * elem_size;
     void* row = malloc(total);
     return row;
-}
+} // self hosted
 void qc_set_leaf_element(void* row, int idx, void* value, int elem_type) {
     void* dest = (char*)row + (idx * qc_sizeof_type(elem_type));
     memcpy(dest, value, qc_sizeof_type(elem_type));
-}
-void qc_stringify_jagged_helper(qc_jagged_array* arr, char** p, int* remaining, int* est_size, char** result) {
-    **p = '[';
-    (*p)++;
-    (*remaining)--;
-
-    for (int i = 0; i < arr->count; i++) {
-        if (arr->depth > 0) {
-            qc_stringify_jagged_helper((qc_jagged_array*)arr->data[i], p, remaining, est_size, result);
-        } else {
-            **p = '[';
-            (*p)++;
-            (*remaining)--;
-            void* row = arr->data[i];
-
-            for (int j = 0; j < arr->sizes[i]; j++) {
-                void* elem_ptr = (char*)row + (j * qc_sizeof_type(arr->elem_type));
-
-                char buf[64];
-                switch (arr->elem_type) {
-                case 0: snprintf(buf, 64, "%d", *(int*)elem_ptr); break;
-                case 1: snprintf(buf, 64, "%g", *(float*)elem_ptr); break;
-                case 2: snprintf(buf, 64, "%g", *(double*)elem_ptr); break;
-                case 3: snprintf(buf, 64, "'%c'", *(char*)elem_ptr); break;
-                case 4: snprintf(buf, 64, "%s", *(bool*)elem_ptr ? "true" : "false"); break;
-                case 5: {
-                    uint8_t q = *(uint8_t*)elem_ptr & 0x3;
-                    snprintf(buf, 64, "%s", (q == 0) ? "none" : (q == 1) ? "qfalse" : (q == 2) ? "qtrue" : "both");
-                    break;
-                }
-                case 6: snprintf(buf, 64, "\"%s\"", *(char**)elem_ptr); break;
-                }
-
-                int len = strlen(buf);
-                if (*remaining < len + 10) {
-                    int offset = *p - *result;
-                    *est_size *= 2;
-                    *result = (char*)realloc(*result, *est_size);
-                    *p = *result + offset;
-                    *remaining = *est_size - offset;
-                }
-
-                strcpy(*p, buf);
-                *p += len;
-                *remaining -= len;
-
-                if (j < arr->sizes[i] - 1) {
-                    **p = ',';
-                    (*p)++;
-                    **p = ' ';
-                    (*p)++;
-                    *remaining -= 2;
-                }
-            }
-            **p = ']';
-            (*p)++;
-            (*remaining)--;
-        }
-
-        if (i < arr->count - 1) {
-            **p = ',';
-            (*p)++;
-            **p = ' ';
-            (*p)++;
-            *remaining -= 2;
-        }
-    }
-
-    **p = ']';
-    (*p)++;
-    (*remaining)--;
-}
-
-char* qc_jagged_to_string(qc_jagged_array* arr) {
-    int est_size = 1024;
-    char* result = (char*)malloc(est_size);
-    char* p = result;
-    int remaining = est_size;
-
-    qc_stringify_jagged_helper(arr, &p, &remaining, &est_size, &result);
-    *p = '\0';
-
-    return result;
-}
+} // self hosted
 int qc_open(const char* path, const char* mode) {
     FILE* f = fopen(path, mode);
     if (f == nullptr) return -1;

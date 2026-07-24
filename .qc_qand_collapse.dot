@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_qand_collapse' function" {
+	label="CFG for 'qc_qand_collapse' function";
+
+	Node0x562fc7824ac0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %b2 = alloca i32, align 4\l  %a1 = alloca i32, align 4\l  store i32 %a, ptr %a1, align 4\l  store i32 %b, ptr %b2, align 4\l  %a3 = load i32, ptr %a1, align 4\l  %promote_int = sext i32 %a3 to i64\l  %andtmp = and i64 %promote_int, 2\l  %b4 = load i32, ptr %b2, align 4\l  %promote_int5 = sext i32 %b4 to i64\l  %andtmp6 = and i64 %promote_int5, 2\l  %int_truthy = icmp ne i64 %andtmp, 0\l  %int_truthy7 = icmp ne i64 %andtmp6, 0\l  %and = and i1 %int_truthy, %int_truthy7\l  ret i1 %and\l}"];
+}

@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_fmt_double' function" {
+	label="CFG for 'qc_fmt_double' function";
+
+	Node0x562fc797cc30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %zero_pad4 = alloca i1, align 1\l  %precision3 = alloca i32, align 4\l  %width2 = alloca i32, align 4\l  %v1 = alloca double, align 8\l  store double %v, ptr %v1, align 8\l  store i32 %width, ptr %width2, align 4\l  store i32 %precision, ptr %precision3, align 4\l  store i1 %zero_pad, ptr %zero_pad4, align 1\l  %v5 = load double, ptr %v1, align 8\l  %width6 = load i32, ptr %width2, align 4\l  %precision7 = load i32, ptr %precision3, align 4\l  %zero_pad8 = load i1, ptr %zero_pad4, align 1\l  %calltmp = call ptr @qc_fmt_float(double %v5, i32 %width6, i32 %precision7,\l... i1 %zero_pad8)\l  ret ptr %calltmp\l}"];
+}

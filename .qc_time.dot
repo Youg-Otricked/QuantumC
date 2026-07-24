@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_time' function" {
+	label="CFG for 'qc_time' function";
+
+	Node0x562fc799d570 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %timespec = alloca %__qc_timespec, align 8\l  store %__qc_timespec zeroinitializer, ptr %timespec, align 8\l  call void asm sideeffect inteldialect \"\\0A    mov rax, 228\\0A    mov rdi,\l... 0\\0A    lea rsi, $0\\0A    syscall   \\0A    \",\l... \"=m,~\{rax\},~\{rdi\},~\{rsi\},~\{rcx\},~\{r11\},~\{memory\}\"()\l  %asm_output = load ptr, ptr %timespec, align 8\l  %timespec1 = load %__qc_timespec, ptr %timespec, align 8\l  %tv_sec = extractvalue %__qc_timespec %timespec1, 0\l  ret i64 %tv_sec\l}"];
+}

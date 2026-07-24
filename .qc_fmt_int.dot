@@ -1,0 +1,41 @@
+digraph "CFG for 'qc_fmt_int' function" {
+	label="CFG for 'qc_fmt_int' function";
+
+	Node0x562fc796b020 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{entry:\l|  %target_width = alloca i32, align 4\l  %stringified = alloca ptr, align 8\l  %is_negative = alloca i1, align 1\l  %zero_pad4 = alloca i1, align 1\l  %precision3 = alloca i32, align 4\l  %width2 = alloca i32, align 4\l  %v1 = alloca i64, align 8\l  store i64 %v, ptr %v1, align 8\l  store i32 %width, ptr %width2, align 4\l  store i32 %precision, ptr %precision3, align 4\l  store i1 %zero_pad, ptr %zero_pad4, align 1\l  store i1 false, ptr %is_negative, align 1\l  %v5 = load i64, ptr %v1, align 8\l  %icmplt = icmp slt i64 %v5, 0\l  br i1 %icmplt, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796b020:s0 -> Node0x562fc796ad50;
+	Node0x562fc796b020:s1 -> Node0x562fc796ae40;
+	Node0x562fc796ad50 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#de614d70" fontname="Courier",label="{then:\l|  %assign_lhs_val = load i1, ptr %is_negative, align 1\l  store i1 true, ptr %is_negative, align 1\l  %assign_lhs_val6 = load i64, ptr %v1, align 8\l  %v7 = load i64, ptr %v1, align 8\l  %neg = sub i64 0, %v7\l  store i64 %neg, ptr %v1, align 8\l  br label %ifcont\l}"];
+	Node0x562fc796ad50 -> Node0x562fc796ae40;
+	Node0x562fc796ae40 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont:\l|  %v8 = load i64, ptr %v1, align 8\l  %to_str = call ptr @qc_to_string_long_int(i64 %v8)\l  store ptr %to_str, ptr %stringified, align 8\l  br label %while.cond\l}"];
+	Node0x562fc796ae40 -> Node0x562fc796e730;
+	Node0x562fc796e730 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond:\l|  %stringified9 = load ptr, ptr %stringified, align 8\l  %builtin_call = call i64 @qc_len(ptr %stringified9)\l  %precision10 = load i32, ptr %precision3, align 4\l  %promote_int = sext i32 %precision10 to i64\l  %icmplt11 = icmp slt i64 %builtin_call, %promote_int\l  br i1 %icmplt11, label %while.body, label %while.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796e730:s0 -> Node0x562fc796af30;
+	Node0x562fc796e730:s1 -> Node0x562fc796f720;
+	Node0x562fc796af30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body:\l|  %assign_lhs_val12 = load ptr, ptr %stringified, align 8\l  %stringified13 = load ptr, ptr %stringified, align 8\l  %str_concat = call ptr @qc_string_concat(ptr @.str.40, ptr %stringified13)\l  store ptr %str_concat, ptr %stringified, align 8\l  br label %while.cond\l}"];
+	Node0x562fc796af30 -> Node0x562fc796e730;
+	Node0x562fc796f720 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end:\l|  %width14 = load i32, ptr %width2, align 4\l  store i32 %width14, ptr %target_width, align 4\l  %is_negative15 = load i1, ptr %is_negative, align 1\l  br i1 %is_negative15, label %then16, label %ifcont17\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796f720:s0 -> Node0x562fc796f7b0;
+	Node0x562fc796f720:s1 -> Node0x562fc796feb0;
+	Node0x562fc796f7b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{then16:\l|  %assign_lhs_val18 = load i32, ptr %target_width, align 4\l  %width19 = load i32, ptr %width2, align 4\l  %sub = sub i32 %width19, 1\l  store i32 %sub, ptr %target_width, align 4\l  br label %ifcont17\l}"];
+	Node0x562fc796f7b0 -> Node0x562fc796feb0;
+	Node0x562fc796feb0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont17:\l|  br label %while.cond20\l}"];
+	Node0x562fc796feb0 -> Node0x562fc796ff10;
+	Node0x562fc796ff10 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.cond20:\l|  %stringified23 = load ptr, ptr %stringified, align 8\l  %builtin_call24 = call i64 @qc_len(ptr %stringified23)\l  %target_width25 = load i32, ptr %target_width, align 4\l  %promote_int26 = sext i32 %target_width25 to i64\l  %icmplt27 = icmp slt i64 %builtin_call24, %promote_int26\l  br i1 %icmplt27, label %while.body21, label %while.end22\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796ff10:s0 -> Node0x562fc796f6c0;
+	Node0x562fc796ff10:s1 -> Node0x562fc7970840;
+	Node0x562fc796f6c0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{while.body21:\l|  %zero_pad28 = load i1, ptr %zero_pad4, align 1\l  br i1 %zero_pad28, label %then29, label %else\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796f6c0:s0 -> Node0x562fc79707e0;
+	Node0x562fc796f6c0:s1 -> Node0x562fc7971130;
+	Node0x562fc7970840 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{while.end22:\l|  %is_negative37 = load i1, ptr %is_negative, align 1\l  br i1 %is_negative37, label %then38, label %ifcont39\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7970840:s0 -> Node0x562fc79708d0;
+	Node0x562fc7970840:s1 -> Node0x562fc79713f0;
+	Node0x562fc79707e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{then29:\l|  %assign_lhs_val31 = load ptr, ptr %stringified, align 8\l  %stringified32 = load ptr, ptr %stringified, align 8\l  %str_concat33 = call ptr @qc_string_concat(ptr @.str.41, ptr %stringified32)\l  store ptr %str_concat33, ptr %stringified, align 8\l  br label %ifcont30\l}"];
+	Node0x562fc79707e0 -> Node0x562fc79710d0;
+	Node0x562fc79710d0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont30:\l|  br label %while.cond20\l}"];
+	Node0x562fc79710d0 -> Node0x562fc796ff10;
+	Node0x562fc7971130 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{else:\l|  %assign_lhs_val34 = load ptr, ptr %stringified, align 8\l  %stringified35 = load ptr, ptr %stringified, align 8\l  %str_concat36 = call ptr @qc_string_concat(ptr @.str.42, ptr %stringified35)\l  store ptr %str_concat36, ptr %stringified, align 8\l  br label %ifcont30\l}"];
+	Node0x562fc7971130 -> Node0x562fc79710d0;
+	Node0x562fc79708d0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{then38:\l|  %assign_lhs_val40 = load ptr, ptr %stringified, align 8\l  %stringified41 = load ptr, ptr %stringified, align 8\l  %str_concat42 = call ptr @qc_string_concat(ptr @.str.43, ptr %stringified41)\l  store ptr %str_concat42, ptr %stringified, align 8\l  br label %ifcont39\l}"];
+	Node0x562fc79708d0 -> Node0x562fc79713f0;
+	Node0x562fc79713f0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont39:\l|  %stringified43 = load ptr, ptr %stringified, align 8\l  ret ptr %stringified43\l}"];
+}

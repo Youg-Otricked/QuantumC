@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_create_leaf_row' function" {
+	label="CFG for 'qc_create_leaf_row' function";
+
+	Node0x562fc79d35d0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %row = alloca ptr, align 8\l  %total = alloca i32, align 4\l  %elem_size = alloca i32, align 4\l  %elem_type2 = alloca i32, align 4\l  %size1 = alloca i32, align 4\l  store i32 %size, ptr %size1, align 4\l  store i32 %elem_type, ptr %elem_type2, align 4\l  %elem_type3 = load i32, ptr %elem_type2, align 4\l  %calltmp = call i64 @qc_sizeof_type(i32 %elem_type3)\l  %trunc = trunc i64 %calltmp to i32\l  store i32 %trunc, ptr %elem_size, align 4\l  %size4 = load i32, ptr %size1, align 4\l  %elem_size5 = load i32, ptr %elem_size, align 4\l  %mul = mul i32 %size4, %elem_size5\l  store i32 %mul, ptr %total, align 4\l  %total6 = load i32, ptr %total, align 4\l  %builtin_call = call ptr @qc_malloc(i32 %total6)\l  store ptr %builtin_call, ptr %row, align 8\l  %row7 = load ptr, ptr %row, align 8\l  ret ptr %row7\l}"];
+}

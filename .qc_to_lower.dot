@@ -1,0 +1,29 @@
+digraph "CFG for 'qc_to_lower' function" {
+	label="CFG for 'qc_to_lower' function";
+
+	Node0x562fc78866b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{entry:\l|  %c = alloca i8, align 1\l  %i = alloca i64, align 8\l  %result = alloca ptr, align 8\l  %len = alloca i64, align 8\l  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  %str2 = load ptr, ptr %str1, align 8\l  %isnull = icmp eq ptr %str2, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78866b0:s0 -> Node0x562fc7885eb0;
+	Node0x562fc78866b0:s1 -> Node0x562fc7886ff0;
+	Node0x562fc7885eb0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
+	Node0x562fc7886ff0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d24b4070" fontname="Courier",label="{ifcont:\l|  %str3 = load ptr, ptr %str1, align 8\l  %builtin_call = call i64 @qc_len(ptr %str3)\l  store i64 %builtin_call, ptr %len, align 8\l  %len4 = load i64, ptr %len, align 8\l  %add = add i64 %len4, 1\l  %builtin_call5 = call ptr @qc_malloc(i64 %add)\l  store ptr %builtin_call5, ptr %result, align 8\l  %result6 = load ptr, ptr %result, align 8\l  %isnull7 = icmp eq ptr %result6, null\l  br i1 %isnull7, label %then8, label %ifcont9\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7886ff0:s0 -> Node0x562fc7887070;
+	Node0x562fc7886ff0:s1 -> Node0x562fc78878d0;
+	Node0x562fc7887070 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{then8:\l|  ret ptr null\l}"];
+	Node0x562fc78878d0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont9:\l|  store i64 0, ptr %i, align 8\l  br label %for.cond\l}"];
+	Node0x562fc78878d0 -> Node0x562fc7887950;
+	Node0x562fc7887950 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.cond:\l|  %i10 = load i64, ptr %i, align 8\l  %len11 = load i64, ptr %len, align 8\l  %icmplt = icmp slt i64 %i10, %len11\l  br i1 %icmplt, label %for.body, label %for.end\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7887950:s0 -> Node0x562fc7886f90;
+	Node0x562fc7887950:s1 -> Node0x562fc7887e90;
+	Node0x562fc7886f90 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.body:\l|  %i12 = load i64, ptr %i, align 8\l  %str13 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr = getelementptr i8, ptr %str13, i64 %i12\l  %ptr_arr_val = load i8, ptr %ptr_arr_addr, align 1\l  store i8 %ptr_arr_val, ptr %c, align 1\l  %c14 = load i8, ptr %c, align 1\l  %icmpge = icmp sge i8 %c14, 65\l  %c15 = load i8, ptr %c, align 1\l  %icmple = icmp sle i8 %c15, 90\l  %and = and i1 %icmpge, %icmple\l  br i1 %and, label %then16, label %else\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7886f90:s0 -> Node0x562fc7887e30;
+	Node0x562fc7886f90:s1 -> Node0x562fc78887b0;
+	Node0x562fc7888940 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{for.inc:\l|  %i25 = load i64, ptr %i, align 8\l  %i26 = load i64, ptr %i, align 8\l  %inc_deref = load i64, ptr %i, align 8\l  %inc = add i64 %inc_deref, 1\l  store i64 %inc, ptr %i, align 8\l  br label %for.cond\l}"];
+	Node0x562fc7888940 -> Node0x562fc7887950;
+	Node0x562fc7887e90 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{for.end:\l|  %len27 = load i64, ptr %len, align 8\l  %arr_ptr28 = load ptr, ptr %result, align 8\l  %arr_elem_ptr29 = getelementptr i8, ptr %arr_ptr28, i64 %len27\l  store i8 0, ptr %arr_elem_ptr29, align 1\l  %result30 = load ptr, ptr %result, align 8\l  ret ptr %result30\l}"];
+	Node0x562fc7887e30 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{then16:\l|  %i18 = load i64, ptr %i, align 8\l  %c19 = load i8, ptr %c, align 1\l  %char_promote = sext i8 %c19 to i32\l  %add20 = add i32 %char_promote, 32\l  %arr_ptr = load ptr, ptr %result, align 8\l  %arr_elem_ptr = getelementptr i32, ptr %arr_ptr, i64 %i18\l  store i32 %add20, ptr %arr_elem_ptr, align 4\l  br label %ifcont17\l}"];
+	Node0x562fc7887e30 -> Node0x562fc7888750;
+	Node0x562fc7888750 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{ifcont17:\l|  br label %for.inc\l}"];
+	Node0x562fc7888750 -> Node0x562fc7888940;
+	Node0x562fc78887b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{else:\l|  %i21 = load i64, ptr %i, align 8\l  %c22 = load i8, ptr %c, align 1\l  %arr_ptr23 = load ptr, ptr %result, align 8\l  %arr_elem_ptr24 = getelementptr i8, ptr %arr_ptr23, i64 %i21\l  store i8 %c22, ptr %arr_elem_ptr24, align 1\l  br label %ifcont17\l}"];
+	Node0x562fc78887b0 -> Node0x562fc7888750;
+}

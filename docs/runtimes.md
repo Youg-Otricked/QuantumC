@@ -20,6 +20,7 @@ By passing the `-nrt` or `--no-runtime` flag to the compiler, you can tell the c
 8. f strings
 9. qin (input)
 10. Power (`#^`) operator on integers
+11. Basically everything needing `qc_malloc` (Certain union features, runtime arrays...)
 
 If you get a undefined function error starting in `qc_`, its most likely a unallowed feature.
 
@@ -67,7 +68,6 @@ The runtime is just 90 functions and 2 structs. Its really simple to make your o
     - `void* qc_jagged_array_get(qc_jagged_array *arr, int *indices, int num_indices)`
     - `void* qc_create_leaf_row(int size, int elem_type)`
     - `void qc_set_leaf_element(void *row, int idx, void *value, int elem_type)`
-    - `string qc_jagged_to_string(qc_jagged_array *arr)`
 7. qin
     - `string qc_qin()`
     - all of the stringify helpers below.
@@ -99,7 +99,6 @@ string qc_to_string_double(double x)
 string qc_to_string_bool(bool b)
 string qc_to_string_qbool(int q)
 string qc_to_string_char(char c)
-string qc_array_to_string_recursive(void *arr, int elem_type, int ndims, int *dims) (optional, only used by fstring)
 ```
     - `void qc_print_string(string s)`
 10. The Rest of the intrinsics:

@@ -1,0 +1,33 @@
+digraph "CFG for 'qc_qor' function" {
+	label="CFG for 'qc_qor' function";
+
+	Node0x562fc781c550 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %b2 = alloca i32, align 4\l  %a1 = alloca i32, align 4\l  store i32 %a, ptr %a1, align 4\l  store i32 %b, ptr %b2, align 4\l  %a3 = load i32, ptr %a1, align 4\l  %icmpeq = icmp eq i32 %a3, 0\l  %b4 = load i32, ptr %b2, align 4\l  %icmpeq5 = icmp eq i32 %b4, 0\l  %and = and i1 %icmpeq, %icmpeq5\l  br i1 %and, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc781c550:s0 -> Node0x562fc781edd0;
+	Node0x562fc781c550:s1 -> Node0x562fc781f480;
+	Node0x562fc781edd0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{then:\l|  ret i32 0\l}"];
+	Node0x562fc781f480 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{ifcont:\l|  %a6 = load i32, ptr %a1, align 4\l  %icmpeq7 = icmp eq i32 %a6, 0\l  %b8 = load i32, ptr %b2, align 4\l  %icmpeq9 = icmp eq i32 %b8, 1\l  %and10 = and i1 %icmpeq7, %icmpeq9\l  br i1 %and10, label %then11, label %ifcont12\l|{<s0>T|<s1>F}}"];
+	Node0x562fc781f480:s0 -> Node0x562fc781f500;
+	Node0x562fc781f480:s1 -> Node0x562fc781f9f0;
+	Node0x562fc781f500 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{then11:\l|  ret i32 1\l}"];
+	Node0x562fc781f9f0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{ifcont12:\l|  %a13 = load i32, ptr %a1, align 4\l  %icmpeq14 = icmp eq i32 %a13, 0\l  %b15 = load i32, ptr %b2, align 4\l  %icmpeq16 = icmp eq i32 %b15, 2\l  %and17 = and i1 %icmpeq14, %icmpeq16\l  br i1 %and17, label %then18, label %ifcont19\l|{<s0>T|<s1>F}}"];
+	Node0x562fc781f9f0:s0 -> Node0x562fc781fa80;
+	Node0x562fc781f9f0:s1 -> Node0x562fc78202b0;
+	Node0x562fc781fa80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ca3b3770" fontname="Courier",label="{then18:\l|  ret i32 2\l}"];
+	Node0x562fc78202b0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ca3b3770" fontname="Courier",label="{ifcont19:\l|  %a20 = load i32, ptr %a1, align 4\l  %icmpeq21 = icmp eq i32 %a20, 1\l  %b22 = load i32, ptr %b2, align 4\l  %icmpeq23 = icmp eq i32 %b22, 0\l  %and24 = and i1 %icmpeq21, %icmpeq23\l  br i1 %and24, label %then25, label %ifcont26\l|{<s0>T|<s1>F}}"];
+	Node0x562fc78202b0:s0 -> Node0x562fc7820340;
+	Node0x562fc78202b0:s1 -> Node0x562fc7820850;
+	Node0x562fc7820340 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{then25:\l|  ret i32 1\l}"];
+	Node0x562fc7820850 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{ifcont26:\l|  %a27 = load i32, ptr %a1, align 4\l  %icmpeq28 = icmp eq i32 %a27, 1\l  %b29 = load i32, ptr %b2, align 4\l  %icmpeq30 = icmp eq i32 %b29, 1\l  %and31 = and i1 %icmpeq28, %icmpeq30\l  br i1 %and31, label %then32, label %ifcont33\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7820850:s0 -> Node0x562fc78208e0;
+	Node0x562fc7820850:s1 -> Node0x562fc7820df0;
+	Node0x562fc78208e0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{then32:\l|  ret i32 1\l}"];
+	Node0x562fc7820df0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d6524470" fontname="Courier",label="{ifcont33:\l|  %a34 = load i32, ptr %a1, align 4\l  %icmpeq35 = icmp eq i32 %a34, 2\l  %b36 = load i32, ptr %b2, align 4\l  %icmpeq37 = icmp eq i32 %b36, 0\l  %and38 = and i1 %icmpeq35, %icmpeq37\l  br i1 %and38, label %then39, label %ifcont40\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7820df0:s0 -> Node0x562fc7820e80;
+	Node0x562fc7820df0:s1 -> Node0x562fc7821390;
+	Node0x562fc7820e80 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{then39:\l|  ret i32 2\l}"];
+	Node0x562fc7821390 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#dc5d4a70" fontname="Courier",label="{ifcont40:\l|  %a41 = load i32, ptr %a1, align 4\l  %icmpeq42 = icmp eq i32 %a41, 2\l  %b43 = load i32, ptr %b2, align 4\l  %icmpeq44 = icmp eq i32 %b43, 2\l  %and45 = and i1 %icmpeq42, %icmpeq44\l  br i1 %and45, label %then46, label %ifcont47\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7821390:s0 -> Node0x562fc7821420;
+	Node0x562fc7821390:s1 -> Node0x562fc7821f50;
+	Node0x562fc7821420 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#e1675170" fontname="Courier",label="{then46:\l|  ret i32 2\l}"];
+	Node0x562fc7821f50 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#e1675170" fontname="Courier",label="{ifcont47:\l|  ret i32 3\l}"];
+}

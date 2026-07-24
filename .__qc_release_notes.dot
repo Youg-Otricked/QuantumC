@@ -1,0 +1,5 @@
+digraph "CFG for '__qc_release_notes' function" {
+	label="CFG for '__qc_release_notes' function";
+
+	Node0x562fc7817e30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  call void asm sideeffect inteldialect \"\\0A    mov rax, 1\\0A    mov rdi,\l... 1\\0A    mov rsi, $0\\0A    mov rdx, 62\\0A    \",\l... \"r,~\{rax\},~\{rdi\},~\{rsi\},~\{rdx\}\"(ptr @.str.1)\l  ret void\l}"];
+}

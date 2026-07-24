@@ -4671,6 +4671,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     std::string type = resolveTypeName(qcType, false);
     type = resolveTypeName(type, false);
     if (type == "...") { return builder->getPtrTy(); }
+    if (type.ends_with("[]")) { return llvm::PointerType::get(context, 0); }
     if (type.ends_with("]")) {
         size_t open = type.rfind('[');
         if (open == std::string::npos) {
@@ -4689,7 +4690,6 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
         llvm::Type* elemTy = llvmTypeFor(elementType);
         return llvm::ArrayType::get(elemTy, count);
     }
-    if (type.ends_with("[]")) { return llvm::PointerType::get(context, 0); }
     if (type.ends_with("&") || type.ends_with("*")) { return builder->getPtrTy(); }
     if (type == "int") return builder->getInt32Ty();
     if (type == "short int") return builder->getInt16Ty();
@@ -5973,8 +5973,41 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         llvm::Value* L = emitExpr((*bin)->left_node);
+        if (!L) return nullptr;
+        if (op == TokenType::AND || op == TokenType::OR) {
+            L = toTruthiness(L, Position("", "", 0, 0, 0));
+            if (L) {
+                llvm::BasicBlock* lhsBB = builder->GetInsertBlock();
+                llvm::BasicBlock* rhsBB = llvm::BasicBlock::Create(context, op == TokenType::AND ? "and.rhs" : "or.rhs", currentFunction);
+                llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, op == TokenType::AND ? "and.end" : "or.end", currentFunction);
+                if (op == TokenType::AND) {
+                    builder->CreateCondBr(L, rhsBB, endBB);
+                } else {
+                    builder->CreateCondBr(L, endBB, rhsBB);
+                }
+                builder->SetInsertPoint(rhsBB);
+                llvm::Value* R = emitExpr((*bin)->right_node);
+                if (R) {
+                    R = toTruthiness(R, Position("", "", 0, 0, 0));
+                    if (R) {
+                        llvm::BasicBlock* rhsEndBB = builder->GetInsertBlock();
+                        builder->CreateBr(endBB);
+                        builder->SetInsertPoint(endBB);
+                        llvm::PHINode* result = builder->CreatePHI(builder->getInt1Ty(), 2, op == TokenType::AND ? "and" : "or");
+                        if (op == TokenType::AND) {
+                            result->addIncoming(builder->getFalse(), lhsBB);
+                            result->addIncoming(R, rhsEndBB);
+                        } else {
+                            result->addIncoming(builder->getTrue(), lhsBB);
+                            result->addIncoming(R, rhsEndBB);
+                        }
+                        return result;
+                    }
+                }
+            }
+        }
         llvm::Value* R = emitExpr((*bin)->right_node);
-        if (!L || !R) return nullptr;
+        if (!R) return nullptr;
         llvm::Type* lty = L->getType();
         llvm::Type* rty = R->getType();
         if (lty->isPointerTy()) {
@@ -6511,58 +6544,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return builder->CreateCall(fn, {v}, "fstr_qbool");
                 }
-
-                if (ty->isArrayTy()) {
-                    std::vector<uint64_t> dimensions;
-                    llvm::Type* checkTy = ty;
-                    while (checkTy->isArrayTy()) {
-                        dimensions.push_back(checkTy->getArrayNumElements());
-                        checkTy = checkTy->getArrayElementType();
-                    }
-                    int elemTypeCode = -1;
-                    if (checkTy->isIntegerTy(32))
-                        elemTypeCode = 0;
-                    else if (checkTy->isIntegerTy(64))
-                        elemTypeCode = 0;
-                    else if (checkTy->isIntegerTy(16))
-                        elemTypeCode = 0;
-                    else if (checkTy->isFloatTy())
-                        elemTypeCode = 1;
-                    else if (checkTy->isDoubleTy())
-                        elemTypeCode = 2;
-                    else if (checkTy->isIntegerTy(8))
-                        elemTypeCode = 3;
-                    else if (checkTy->isIntegerTy(1))
-                        elemTypeCode = 4;
-                    else if (checkTy->isIntegerTy(2))
-                        elemTypeCode = 5;
-                    else if (checkTy->isPointerTy())
-                        elemTypeCode = 6;
-
-                    llvm::ArrayType* dimsArrTy = llvm::ArrayType::get(builder->getInt32Ty(), dimensions.size());
-                    llvm::AllocaInst* dimsAlloc = createEntryAlloca("fstr_dims", dimsArrTy);
-
-                    for (size_t i = 0; i < dimensions.size(); i++) {
-                        std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
-                        llvm::Value* dimPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, indices);
-                        builder->CreateStore(builder->getInt32(dimensions[i]), dimPtr);
-                    }
-                    llvm::Value* arrPtr = builder->CreateBitCast(v, llvm::PointerType::get(context, 0));
-
-                    std::vector<llvm::Value*> dimsIndices = {builder->getInt32(0), builder->getInt32(0)};
-                    llvm::Value* dimsPtr = builder->CreateInBoundsGEP(dimsArrTy, dimsAlloc, dimsIndices);
-
-                    auto* fn = module->getFunction("qc_array_to_string_recursive");
-                    if (!fn) {
-                        auto* voidPtrTy = llvm::PointerType::get(context, 0);
-                        auto* intPtrTy = llvm::PointerType::get(context, 0);
-                        auto* fnTy = llvm::FunctionType::get(voidPtrTy, {voidPtrTy, builder->getInt32Ty(), builder->getInt32Ty(), intPtrTy}, false);
-                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_array_to_string_recursive", module);
-                    }
-
-                    return builder->CreateCall(fn, {arrPtr, builder->getInt32(elemTypeCode), builder->getInt32(dimensions.size()), dimsPtr},
-                                               "fstr_array");
-                }
                 if (auto structTy = llvm::dyn_cast<llvm::StructType>(ty)) {
                     if (structTy->hasName()) {
                         std::string className = structTy->getName().str();
@@ -6869,15 +6850,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         bool isCharOperation = false;
         if ((lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) && (op == TokenType::PLUS || op == TokenType::MINUS)) {
-            if (lty == builder->getInt8Ty() && rty != builder->getInt8Ty()) {
+            bool lIsChar = lty == builder->getInt8Ty();
+            bool rIsChar = rty == builder->getInt8Ty();
+            if (lIsChar && rIsChar) {
+                L = builder->CreateSExt(L, builder->getInt32Ty(), "char_promote");
+                R = builder->CreateSExt(R, builder->getInt32Ty(), "char_promote");
+                lty = builder->getInt32Ty();
+                rty = builder->getInt32Ty();
+            } else if (lIsChar) {
                 L = builder->CreateSExt(L, rty, "char_promote");
                 lty = rty;
                 isCharOperation = true;
-            } else if (rty == builder->getInt8Ty() && lty != builder->getInt8Ty()) {
+            } else if (rIsChar) {
                 R = builder->CreateSExt(R, lty, "char_promote");
-                auto tmp = L;
-                L = R;
-                R = tmp;
                 rty = lty;
                 isCharOperation = true;
             }
@@ -6913,19 +6898,29 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         bool isFloatTy = lty->isFloatingPointTy();
         switch ((*bin)->op_tok.type) {
         case TokenType::PLUS:
-            if (lty->isIntegerTy(8) && !isCharOperation) {
-                cg_error((*bin)->op_tok.pos, "Cannot add 2 chars together");
-                return nullptr;
-            }
-            if (lty->isPointerTy() || rty->isPointerTy()) {
+            if (lty->isPointerTy() || rty->isPointerTy() || lty->isArrayTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
 
-                if (lType.ends_with("*") || lType == "@nullptr" || lType == "string" && rType != "string") {
+                if ((lType == "string" || lType == "char*") && (rType == "string" || rType == "char*")) {
+                    llvm::Function* concatFn = module->getFunction("qc_string_concat");
+                    if (!concatFn) {
+                        llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
+                        std::vector<llvm::Type*> argTypes = {i8PtrTy, i8PtrTy};
+                        llvm::FunctionType* fnTy = llvm::FunctionType::get(i8PtrTy, argTypes, false);
+                        concatFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_string_concat", module);
+                    }
+                    return builder->CreateCall(concatFn, {L, R}, "str_concat");
+                } else if (lType.ends_with("*") || lType == "@nullptr" || lType == "string" && rType != "string" || lType.ends_with("]")) {
                     if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
                                                      "void pointers");
                         return nullptr;
+                    }
+                    if (lType.ends_with("]")) {
+                        L = decayArrayToPointer(L);
+                        size_t start_pos = lType.rfind("[");
+                        if (start_pos != std::string::npos) { lType.replace(start_pos, lType.size() - start_pos, "*"); }
                     }
                     if (!llvmTypeFor(rType)->isIntegerTy()) {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on "
@@ -6939,19 +6934,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     else
                         lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
-                } else {
-                    if (lType != rType) {
-                        cg_error((*bin)->op_tok.pos, "You can only add string with string, got " + lType + " and " + rType);
-                        return nullptr;
-                    }
-                    llvm::Function* concatFn = module->getFunction("qc_string_concat");
-                    if (!concatFn) {
-                        llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
-                        std::vector<llvm::Type*> argTypes = {i8PtrTy, i8PtrTy};
-                        llvm::FunctionType* fnTy = llvm::FunctionType::get(i8PtrTy, argTypes, false);
-                        concatFn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_string_concat", module);
-                    }
-                    return builder->CreateCall(concatFn, {L, R}, "str_concat");
                 }
                 cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on types " + lType + " + " + " rType");
                 return nullptr;
@@ -6969,11 +6951,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                    : isCharOperation ? builder->CreateTrunc(builder->CreateAdd(L, R, "add"), builder->getInt8Ty(), "trunc_char")
                                      : builder->CreateAdd(L, R, "add");
         case TokenType::MINUS:
-            if (lty->isPointerTy() || rty->isPointerTy()) {
+            if (lty->isPointerTy() || rty->isPointerTy() || lty->isArrayTy() || rty->isArrayTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
 
-                if ((lType.ends_with("*") || lType == "@nullptr") && (rType.ends_with("*") || rType == "@nullptr")) {
+                if ((lType.ends_with("]") || lType.ends_with("*") || lType == "@nullptr") &&
+                    (rType.ends_with("]") || rType.ends_with("*") || rType == "@nullptr")) {
                     if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
                                                      "void pointers");
@@ -6984,7 +6967,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                      "void pointers");
                         return nullptr;
                     }
-                    if (lType != rType) {
+                    if (remove_last_ptr(lType) != remove_last_ptr(rType)) {
                         cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on "
                                                      "the same lhs "
                                                      "and rhs type, got " +
@@ -6993,6 +6976,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     std::string baseType = (lType == "@nullptr") ? rType : lType;
                     if (baseType == "@nullptr") { return builder->getInt32(0); }
+                    if (baseType.ends_with("]")) {
+                        auto pos = baseType.rfind("[");
+                        if (pos != std::string::npos) baseType.erase(pos);
+                        baseType += "*";
+                    }
                     baseType.pop_back();
                     llvm::Value* diff = builder->CreatePtrDiff(llvmTypeFor(baseType), L, R, "ptr_diff");
                     return builder->CreateTrunc(diff, builder->getInt32Ty());
@@ -7234,6 +7222,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::MORE:
         case TokenType::LESS_EQ:
         case TokenType::MORE_EQ: {
+            bool isFloatTy = false;
             if (lty->isPointerTy() || rty->isPointerTy()) {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
                 return nullptr;
@@ -7245,9 +7234,22 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error((*bin)->op_tok.pos, "Cannot use comparison operators on bool/qbool");
                     return nullptr;
                 }
-                bool isFloatTy = false;
+                if (lBits < rBits) {
+                    L = builder->CreateSExt(L, R->getType());
+                    lty = L->getType();
+                } else if (rBits < lBits) {
+                    R = builder->CreateSExt(R, L->getType());
+                    rty = R->getType();
+                }
             } else if (lty->isFloatingPointTy() && rty->isFloatingPointTy()) {
-                bool isFloatTy = true;
+                isFloatTy = true;
+                if (lty->isFloatTy() && rty->isDoubleTy()) {
+                    L = builder->CreateFPExt(L, rty);
+                    lty = rty;
+                } else if (lty->isDoubleTy() && rty->isFloatTy()) {
+                    R = builder->CreateFPExt(R, lty);
+                    rty = lty;
+                }
             } else {
                 cg_error((*bin)->op_tok.pos, "Cannot compare non-numeric types with <, >, <=, >=");
                 return nullptr;
@@ -7700,7 +7702,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
-                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                llvm::Value* structVal = llvm::Constant::getNullValue(structTy);
                 auto& structInfo = userTypeIt->second;
                 for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
                     std::string fieldType = structInfo.fields[i].type;
@@ -7710,7 +7712,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
                         if (auto nestedArrLit = std::get_if<ArrayLiteralNode*>(&(*arrLit)->elements[i])) {
                             llvm::StructType* nestedStructTy = genericiseOrFindStruct(fieldType);
-                            llvm::Value* nestedStruct = llvm::UndefValue::get(nestedStructTy);
+                            llvm::Value* nestedStruct = llvm::Constant::getNullValue(nestedStructTy);
                             for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
                                 llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
                                 if (!fieldVal) return nullptr;
@@ -7728,11 +7730,22 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     structVal = builder->CreateInsertValue(structVal, val, i);
                 }
-                llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc, isVolatile);
+                llvm::Value* structAlloc = getVarAddress(name);
+                if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
+                    auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
+                    if (!constant) {
+                        cg_error((*va)->var_name_tok.pos, "Global struct initializer must be constant");
+                        return nullptr;
+                    }
+                    gv->setInitializer(constant);
+                    return nullptr;
+                } else {
+                    if (!structAlloc) structAlloc = createEntryAlloca(name, structTy);
 
+                    builder->CreateStore(structVal, structAlloc, isVolatile);
+                }
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-                locals[fullName] = structAlloc;
+                locals[fullName] = llvm::cast<llvm::AllocaInst>(structAlloc);
                 varTypes[fullName] = qcType;
                 volatileVars[fullName] = isVolatile;
                 return nullptr;
@@ -7775,12 +7788,23 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     structVal = builder->CreateInsertValue(structVal, fieldValue, fieldIndex);
                 }
 
-                llvm::AllocaInst* structAlloc = createEntryAlloca(name, structTy);
-                builder->CreateStore(structVal, structAlloc, isVolatile);
+                llvm::Value* structAlloc = getVarAddress(name);
+                if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
+                    auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
+                    if (!constant) {
+                        cg_error((*va)->var_name_tok.pos, "Global struct initializer must be constant");
+                        return nullptr;
+                    }
+                    gv->setInitializer(constant);
+                    return nullptr;
+                } else {
+                    if (!structAlloc) structAlloc = createEntryAlloca(name, structTy);
 
+                    builder->CreateStore(structVal, structAlloc, isVolatile);
+                }
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
 
-                locals[fullName] = structAlloc;
+                locals[fullName] = llvm::cast<llvm::AllocaInst>(structAlloc);
                 varTypes[fullName] = qcType;
                 volatileVars[fullName] = isVolatile;
                 return nullptr;
@@ -7874,18 +7898,32 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Union) {
             llvm::StructType* unionTy = unionTypes[qcType];
-            llvm::AllocaInst* unionAlloc = createEntryAlloca(name, unionTy);
+            llvm::Value* unionAlloc = getVarAddress(name);
+            if (!unionAlloc) unionAlloc = createEntryAlloca(name, unionTy);
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
+            auto storeUnion = [&](llvm::Value* value) {
+                if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(unionAlloc)) {
+                    auto* constant = llvm::dyn_cast<llvm::Constant>(value);
+                    if (!constant) {
+                        cg_error((*va)->var_name_tok.pos, "Global union initializer must be constant");
+                        return false;
+                    }
+                    gv->setInitializer(constant);
+                    return false;
+                } else {
+                    builder->CreateStore(value, unionAlloc, isVolatile);
+                }
+                return true;
+            };
             if (rhs->getType() == unionTy) {
-                builder->CreateStore(rhs, unionAlloc, isVolatile);
+                if (!storeUnion(rhs)) return nullptr;
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-                locals[fullName] = unionAlloc;
+                locals[fullName] = llvm::cast<llvm::AllocaInst>(unionAlloc);
                 volatileVars[fullName] = isVolatile;
                 return nullptr;
             }
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
-
             if (tag == -1) {
                 cg_error((*va)->var_name_tok.pos, "Value does not match any variant of union " + qcType);
                 return nullptr;
@@ -7894,35 +7932,41 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             bool isLiteral = member.type.find(':') != std::string::npos;
             llvm::Type* rhsTy = rhs->getType();
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
-
             llvm::Type* memberTy = llvmTypeFor(baseType);
-
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
                 cg_error((*va)->var_name_tok.pos, "Union literal variant type mismatch");
                 return nullptr;
             }
             llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
             unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
-
             llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
-
-            builder->CreateStore(unionVal, unionAlloc, isVolatile);
+            if (!storeUnion(unionVal)) return nullptr;
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-            locals[fullName] = unionAlloc;
+            locals[fullName] = llvm::cast<llvm::AllocaInst>(unionAlloc);
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
             return nullptr;
         }
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Enum) {
             llvm::StructType* enumTy = enumTypes[qcType];
-            llvm::AllocaInst* enumAlloc = createEntryAlloca(name, enumTy);
-
+            llvm::Value* enumAlloc = getVarAddress(name);
+            if (!enumAlloc) enumAlloc = createEntryAlloca(name, enumTy);
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
-            builder->CreateStore(rhs, enumAlloc, isVolatile);
+            if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(enumAlloc)) {
+                auto* constant = llvm::dyn_cast<llvm::Constant>(rhs);
+                if (!constant) {
+                    cg_error((*va)->var_name_tok.pos, "Global enum initializer must be constant");
+                    return nullptr;
+                }
+                gv->setInitializer(constant);
+                return nullptr;
+            } else {
+                builder->CreateStore(rhs, enumAlloc, isVolatile);
+            }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-            locals[fullName] = enumAlloc;
+            locals[fullName] = llvm::cast<llvm::AllocaInst>(enumAlloc);
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
             return nullptr;
@@ -8028,6 +8072,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 auto* arr_alloca = builder->CreateAlloca(srcTy);
                 builder->CreateStore(rhs, arr_alloca);
                 rhs = builder->CreateGEP(srcTy, arr_alloca, {builder->getInt32(0), builder->getInt32(0)});
+            } else if (srcTy->isArrayTy() && destTy->isArrayTy()) {
+                auto* srcArrTy = llvm::cast<llvm::ArrayType>(srcTy);
+                auto* destArrTy = llvm::cast<llvm::ArrayType>(destTy);
+                if (llvm::isa<llvm::ConstantArray>(rhs) || llvm::isa<llvm::ConstantAggregateZero>(rhs)) {
+                    auto* tmp = createEntryAlloca("src_array_tmp", srcArrTy);
+                    builder->CreateStore(rhs, tmp);
+                    rhs = tmp;
+                }
+                llvm::Type* srcElemTy = srcArrTy->getElementType();
+                llvm::Type* destElemTy = destArrTy->getElementType();
+                uint64_t srcLen = srcArrTy->getNumElements();
+                uint64_t destLen = destArrTy->getNumElements();
+                if (srcElemTy != destElemTy) {
+                    cg_error((*va)->var_name_tok.pos, "Array element type mismatch in assignment");
+                    return nullptr;
+                }
+                if (srcLen > destLen) {
+                    cg_error((*va)->var_name_tok.pos, "Source array is larger than destination array");
+                    return nullptr;
+                }
+                llvm::AllocaInst* newArr = createEntryAlloca("array_copy", destArrTy);
+                for (uint64_t i = 0; i < srcLen; i++) {
+                    llvm::Value* srcPtr = builder->CreateGEP(srcArrTy, rhs, {builder->getInt32(0), builder->getInt32(i)}, "src_elem_ptr");
+
+                    llvm::Value* destPtr = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(i)}, "dest_elem_ptr");
+
+                    llvm::Value* val = builder->CreateLoad(srcElemTy, srcPtr, "src_elem");
+
+                    builder->CreateStore(val, destPtr);
+                }
+                llvm::Constant* zero = llvm::Constant::getNullValue(destElemTy);
+                for (uint64_t i = srcLen; i < destLen; i++) {
+                    llvm::Value* destPtr = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(i)}, "dest_zero_ptr");
+
+                    builder->CreateStore(zero, destPtr);
+                }
+                rhs = newArr;
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
                 cg_error((*va)->var_name_tok.pos, "Cannot assign double to float in compiled mode");
                 return nullptr;
@@ -8119,6 +8200,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (op != TokenType::EQ) {
                         llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
                         bool isFloat = fieldTy->isFloatingPointTy();
+                        if (op == TokenType::PLUS_EQ && (resolvedFieldType == "char*" || resolvedFieldType == "string") &&
+                            std::unordered_set<std::string>({"string", "char*"}).contains(getExpressionType((*asn)->value))) {
+                            llvm::Value* concatedString = callStringConcat(oldVal, rhsVal);
+                            builder->CreateStore(concatedString, fieldPtr);
+                            return concatedString;
+                        }
                         if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
                             if (!rhsVal->getType()->isIntegerTy()) {
                                 cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
@@ -8184,6 +8271,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (op != TokenType::EQ) {
                     llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
                     bool isFloat = fieldTy->isFloatingPointTy();
+                    if (op == TokenType::PLUS_EQ && (resolvedFieldType == "char*" || resolvedFieldType == "string") &&
+                        std::unordered_set<std::string>({"string", "char*"}).contains(getExpressionType((*asn)->value))) {
+                        llvm::Value* concatedString = callStringConcat(oldVal, rhsVal);
+                        builder->CreateStore(concatedString, fieldPtr);
+                        return concatedString;
+                    }
                     if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
                         if (!rhsVal->getType()->isIntegerTy()) {
                             cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
@@ -8431,7 +8524,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         llvm::Value* newVal = nullptr;
         bool isFloatTy = destTy->isFloatingPointTy();
-
+        if ((*asn)->op_tok.type == TokenType::PLUS_EQ && (lhsTypeStr == "char*" || lhsTypeStr == "string") &&
+            std::unordered_set<std::string>({"string", "char*"}).contains(rhsType)) {
+            llvm::Value* concatedString = callStringConcat(oldVal, rhsVal);
+            builder->CreateStore(concatedString, alloc, resolveVolatileVar(name));
+            return concatedString;
+        }
         switch ((*asn)->op_tok.type) {
         case TokenType::EQ: newVal = rhsVal; break;
         case TokenType::PLUS_EQ: newVal = isFloatTy ? builder->CreateFAdd(oldVal, rhsVal, "fadd") : builder->CreateAdd(oldVal, rhsVal, "add"); break;
@@ -8649,17 +8747,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
             return isPostfix ? oldVal : newVal;
         }
-        if ((*unary)->op_tok.type == TokenType::AMPERSAND) {
-            auto* varPtr = *(std::get_if<VarAccessNode*>(&(*unary)->node));
-            std::string name = varPtr ? varPtr->var_name_tok.value : "";
-            return emitLValue((*unary)->node);
-        }
+        if ((*unary)->op_tok.type == TokenType::AMPERSAND) { return emitLValue((*unary)->node); }
         if ((*unary)->op_tok.type == TokenType::MUL) {
             std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value
                                                                             : "";
             llvm::Value* val = emitExpr((*unary)->node);
             std::string type = getExpressionType((*unary)->node);
-            if (!type.ends_with("*") && type != "string") {
+            if (!type.ends_with("*") && !type.ends_with("[]") && type != "string") {
                 cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
                 return nullptr;
             }
@@ -8667,6 +8761,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*unary)->op_tok.pos, "you canot dereference void*");
                 return nullptr;
             }
+            if (type.ends_with("]")) type.pop_back();
             std::string baseType = type == "string" ? "char" : type.substr(0, type.size() - 1);
             if (classTypes.count(baseType)) { return val; }
             return builder->CreateLoad(llvmTypeFor(baseType), val, resolveVolatileVar(name), "deref");
@@ -8699,10 +8794,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Type* retTy = currentFunction->getReturnType();
             if (retTy->isPointerTy()) {
                 llvm::Type* elemType = builder->getInt32Ty();
-                llvm::Function* mallocFn = module->getFunction("malloc");
+                llvm::Function* mallocFn = module->getFunction("qc_malloc");
                 if (!mallocFn) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {builder->getIntNTy(getPtrSize())}, false);
-                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
                 }
                 llvm::Value* size = builder->getInt64(0);
                 llvm::Value* ptr = builder->CreateCall(mallocFn, {size}, "empty_arr");
@@ -8926,7 +9021,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             static const std::unordered_map<std::string, std::string> builtins = {{"`time", "qc_time"},
                                                                                   {"`seed", "qc_seed"},
-                                                                                  {"`random", "qc_random_float"},
+                                                                                  {"`random", "qc_random_int"},
                                                                                   {"`len", "qc_len"},
                                                                                   {"`to_lower", "qc_to_lower"},
                                                                                   {"`to_upper", "qc_to_upper"},
@@ -9836,6 +9931,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             i++;
                             AsmOp op;
                             op.isOutput = false;
+                            op.isRW = false;
                             try {
                                 if (i >= asm_text.size() || !std::isdigit(asm_text[i])) {
                                     cg_error((*varAccess)->var_name_tok.pos, "expected number after $: " + funcName);
@@ -9859,6 +9955,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (i < asm_text.size() && asm_text[i] == '=') {
                                 op.isOutput = true;
                                 i++;
+                            } else if (i < asm_text.size() && asm_text[i] == '+') {
+                                op.isRW = true;
+                                i++;
                             }
                             if (i >= asm_text.size()) {
                                 cg_error((*varAccess)->var_name_tok.pos, "expected operand kind after asm "
@@ -9872,7 +9971,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 return nullptr;
                             }
                             op.kind = kind;
-                            if (op.isOutput) {
+                            if (op.isOutput || op.isRW) {
                                 outputs++;
                                 output_ops.push_back(op);
                             } else {
@@ -9969,9 +10068,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     std::vector<llvm::Type*> input_types;
                     std::vector<llvm::Value*> input_values;
-
+                    std::vector<llvm::Value*> output_ptrs;
                     std::vector<llvm::Type*> output_types;
-                    std::vector<llvm::Value*> output_targets;
                     for (auto& [idx, op] : unique_inputs) {
                         int arg_pos = idx + 1;
                         if (arg_pos >= call.arg_nodes.size() - 1) {
@@ -9979,50 +10077,43 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return nullptr;
                         }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
-                        auto& arg_node = *it;
-                        llvm::Value* val = emitExpr(arg_node);
-                        if (val == nullptr) { return nullptr; }
+                        llvm::Value* val = emitExpr(*it);
+                        if (!val) return nullptr;
                         input_values.push_back(val);
                         input_types.push_back(val->getType());
                     }
                     for (auto& [idx, op] : unique_outputs) {
                         int arg_pos = idx + 1;
-                        if (arg_pos >= call.arg_nodes.size() - 1) {
-                            cg_error((*varAccess)->var_name_tok.pos, "asm output index out of range");
-                            return nullptr;
-                        }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
-                        auto& arg_node = *it;
-                        auto* out_var = safe_get<VarAccessNode>(arg_node);
-                        if (out_var == nullptr) {
-                            cg_error((*varAccess)->var_name_tok.pos, "asm outputs must be variables");
-                            return nullptr;
+                        llvm::Value* out_ptr = emitLValue(*it);
+                        if (!out_ptr) return nullptr;
+                        if (op.kind == 'm') {
+                            input_values.push_back(out_ptr);
+                            input_types.push_back(out_ptr->getType());
                         }
-
-                        llvm::Value* out_ptr = resolveVariable(out_var->var_name_tok.value);
-                        if (out_ptr == nullptr) {
-                            cg_error((*varAccess)->var_name_tok.pos, "unknown output variable: " + out_var->var_name_tok.value);
-                            return nullptr;
+                        if (op.kind == 'r') {
+                            auto type = getExpressionType(*it);
+                            output_types.push_back(llvmTypeFor(type));
+                            output_ptrs.push_back(out_ptr);
                         }
-                        llvm::Type* out_ty = llvmTypeFor(resolveVarType(out_var->var_name_tok.value));
-                        output_targets.push_back(out_ptr);
-                        output_types.push_back(out_ty);
                     }
-                    llvm::Type* ret_ty = nullptr;
-                    if (output_types.empty()) {
-                        ret_ty = builder->getVoidTy();
-                    } else if (output_types.size() == 1) {
-                        ret_ty = output_types[0];
-                    } else {
-                        ret_ty = llvm::StructType::get(context, output_types);
+                    llvm::Type* return_ty = builder->getVoidTy();
+                    if (output_types.size() == 1) {
+                        return_ty = output_types[0];
+                    } else if (output_types.size() > 1) {
+                        return_ty = llvm::StructType::get(context, output_types);
                     }
-                    llvm::FunctionType* fn_ty = llvm::FunctionType::get(ret_ty, input_types, false);
-                    std::string constraints = "";
+                    llvm::FunctionType* fn_ty = llvm::FunctionType::get(return_ty, input_types, false);  
+                    std::string constraints;
                     bool first = true;
                     for (auto& [idx, op] : unique_outputs) {
                         if (!first) constraints += ",";
-                        constraints += "=";
-                        constraints += op.kind;
+                        if (op.kind == 'm') {
+                            constraints += (op.isRW ? "+*m" : "=*m");
+                        } else {
+                            constraints += (op.isRW ? "+" : "=");
+                            constraints += op.kind;
+                        }
                         first = false;
                     }
                     for (auto& [idx, op] : unique_inputs) {
@@ -10041,20 +10132,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else {
                         asm_fn = llvm::InlineAsm::get(fn_ty, finalized, constraints, true, false, llvm::InlineAsm::AD_Intel);
                     }
-
-                    llvm::Value* result = builder->CreateCall(fn_ty, asm_fn, input_values);
-                    if (output_targets.empty()) {
-                        return result;
-                    } else if (output_targets.size() == 1) {
-                        builder->CreateStore(result, output_targets[0]);
-                        return result;
-                    } else {
-                        for (unsigned i = 0; i < output_targets.size(); i++) {
-                            llvm::Value* field = builder->CreateExtractValue(result, {i});
-                            builder->CreateStore(field, output_targets[i]);
-                        }
-                        return result;
+                    llvm::Value* asm_result = builder->CreateCall(fn_ty, asm_fn, input_values);
+                    if (output_types.empty()) { return nullptr; }
+                    if (output_types.size() == 1) {
+                        builder->CreateStore(asm_result, output_ptrs[0]);
+                        return asm_result;
                     }
+                    for (unsigned i = 0; i < output_types.size(); ++i) {
+                        llvm::Value* value = builder->CreateExtractValue(asm_result, {i}, "asm_output");
+                        builder->CreateStore(value, output_ptrs[i]);
+                    }
+                    return asm_result;
                 }
                 if (funcName == "`next" && !call.arg_nodes.empty()) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.front())) {
@@ -11023,10 +11111,10 @@ llvm::Value* LLVMCompiler::storeAndGetPointer(llvm::Value* val) {
 
     if (ty->isPointerTy()) { return builder->CreateBitCast(val, llvm::PointerType::get(context, 0)); }
 
-    llvm::Function* mallocFn = module->getFunction("malloc");
+    llvm::Function* mallocFn = module->getFunction("qc_malloc");
     if (!mallocFn) {
         llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())}, false);
-        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
     }
 
     const llvm::DataLayout& DL = module->getDataLayout();
@@ -11172,20 +11260,16 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
                     return nullptr;
                 }
             }
-            if (hasJaggedArray(varName)) {
-                llvm::Function* fn = module->getFunction("qc_jagged_to_string");
-                if (!fn) {
-                    llvm::FunctionType* ty = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {llvm::PointerType::get(context, 0)}, false);
-                    fn = llvm::Function::Create(ty, llvm::Function::InternalLinkage, "qc_jagged_to_string", module);
-                }
-                return builder->CreateCall(fn, {val}, "jagged_str");
-            }
         }
         return val;
     }
     std::string fnName;
     if (ty->isIntegerTy(32))
         fnName = "qc_to_string_int";
+    else if (ty->isIntegerTy(64))
+        fnName = "qc_to_string_long_int";
+    else if (ty->isIntegerTy(16))
+        fnName = "qc_to_string_short_int";
     else if (ty->isFloatTy())
         fnName = "qc_to_string_float";
     else if (ty->isDoubleTy())
@@ -11387,10 +11471,10 @@ llvm::Value* LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& element
         cg_error(Position(), "Cannot determine element type for runtime array");
         return nullptr;
     }
-    llvm::Function* mallocFn = module->getFunction("malloc");
+    llvm::Function* mallocFn = module->getFunction("qc_malloc");
     if (!mallocFn) {
         llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())}, false);
-        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
     }
 
     const llvm::DataLayout& DL = module->getDataLayout();
@@ -11629,10 +11713,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     llvm::Type* iTy = builder->getIntNTy(getPtrSize());
                     llvm::Value* size = llvm::ConstantInt::get(iTy, module->getDataLayout().getTypeAllocSize(arrayType));
 
-                    llvm::Function* mallocFn = module->getFunction("malloc");
+                    llvm::Function* mallocFn = module->getFunction("qc_malloc");
                     if (!mallocFn) {
                         llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {iTy}, false);
-                        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+                        mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
                     }
 
                     llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
@@ -11783,10 +11867,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::ArrayType* arrayType = llvm::cast<llvm::ArrayType>(srcTy);
                 llvm::Type* iTy = builder->getIntNTy(getPtrSize());
                 llvm::Value* size = llvm::ConstantInt::get(iTy, module->getDataLayout().getTypeAllocSize(arrayType));
-                llvm::Function* mallocFn = module->getFunction("malloc");
+                llvm::Function* mallocFn = module->getFunction("qc_malloc");
                 if (!mallocFn) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {iTy}, false);
-                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
                 }
 
                 llvm::Value* heapPtr = builder->CreateCall(mallocFn, {size});
@@ -12433,11 +12517,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
             llvm::AllocaInst* alloc;
             if (useHeap) {
-                llvm::Function* mallocFn = module->getFunction("malloc");
+                llvm::Function* mallocFn = module->getFunction("qc_malloc");
                 if (!mallocFn) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {builder->getIntNTy(getPtrSize())},
                                                                            false);
-                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "malloc", module);
+                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
                 }
 
                 const llvm::DataLayout& DL = module->getDataLayout();
@@ -12842,6 +12926,7 @@ std::vector<CTError> LLVMCompiler::compile(
     this->arrayLengthsStack = {visibleArrayLengths};
     this->runtimeArraySizes = visibleRuntimeArraySizes;
     this->lambdaTypes = visibleLambdaTypes;
+    this->localsStack = {{}};
     for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class) continue;
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
@@ -13860,28 +13945,83 @@ Token Lexer::make_number() {
         }
     }
     if (is_hex) {
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + "abcdefABCDEF")) {
+        int passed = 0;
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + "abcdefABCDEF'")) {
+            if (passed == 2 && this->current_char == '\'') {
+                passed = 0;
+                this->advance();
+            } else if (this->current_char == '\'') {
+                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 2 chars on hex numbers", start_pos);
+            }
             num += this->current_char;
             this->advance();
+            passed++;
         }
         size_t val = std::stoull(num, nullptr, 16);
+        if (this->current_char == 'l') {
+            this->advance();
+            return Token(TokenType::LONG_INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 'i') {
+            this->advance();
+            return Token(TokenType::INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 's') {
+            this->advance();
+            return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
-        while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 8) {
+        int passed = 0;
+        while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 8) || this->current_char == '\'')) {
+            if (passed == 3 && this->current_char == '\'') {
+                passed = 0;
+                this->advance();
+            } else if (this->current_char == '\'') {
+                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 3 chars on octal numbers", start_pos);
+            }
             num += this->current_char;
             this->advance();
+            passed++;
         }
         size_t val = std::stoull(num, nullptr, 8);
+        if (this->current_char == 'l') {
+            this->advance();
+            return Token(TokenType::LONG_INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 'i') {
+            this->advance();
+            return Token(TokenType::INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 's') {
+            this->advance();
+            return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
-        while (this->current_char != '\0' && std::isdigit(this->current_char) && this->current_char - '0' < 2) {
+        int passed = 0;
+        while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 2) || this->current_char == '\'')) {
+            if (passed == 4 && this->current_char == '\'') {
+                passed = 0;
+                this->advance();
+            } else if (this->current_char == '\'') {
+                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 4 chars on binary numbers", start_pos);
+            }
             num += this->current_char;
             this->advance();
+            passed++;
         }
         size_t val = std::stoull(num, nullptr, 2);
+        if (this->current_char == 'l') {
+            this->advance();
+            return Token(TokenType::LONG_INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 'i') {
+            this->advance();
+            return Token(TokenType::INT, std::to_string(val), start_pos);
+        } else if (this->current_char == 's') {
+            this->advance();
+            return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsa")) {
+        int passed = 0;
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsa'")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
                     this->advance();
@@ -13907,8 +14047,15 @@ Token Lexer::make_number() {
                 this->advance();
                 break;
             } else {
+                if (passed == 3 && this->current_char == '\'') {
+                    passed = 0;
+                    this->advance();
+                } else if (this->current_char == '\'') {
+                    throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 3 chars on decimal numbers", start_pos);
+                }
                 num += this->current_char;
                 this->advance();
+                passed++;
             }
         }
     }

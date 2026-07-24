@@ -1,0 +1,21 @@
+digraph "CFG for 'qc_qxor' function" {
+	label="CFG for 'qc_qxor' function";
+
+	Node0x562fc781f420 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %b2 = alloca i32, align 4\l  %a1 = alloca i32, align 4\l  store i32 %a, ptr %a1, align 4\l  store i32 %b, ptr %b2, align 4\l  %a3 = load i32, ptr %a1, align 4\l  %icmple = icmp sle i32 %a3, 1\l  %b4 = load i32, ptr %b2, align 4\l  %icmple5 = icmp sle i32 %b4, 1\l  %and = and i1 %icmple, %icmple5\l  br i1 %and, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc781f420:s0 -> Node0x562fc7822370;
+	Node0x562fc781f420:s1 -> Node0x562fc7822a20;
+	Node0x562fc7822370 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{then:\l|  ret i32 0\l}"];
+	Node0x562fc7822a20 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#be242e70" fontname="Courier",label="{ifcont:\l|  %a6 = load i32, ptr %a1, align 4\l  %icmple7 = icmp sle i32 %a6, 1\l  %b8 = load i32, ptr %b2, align 4\l  %icmpge = icmp sge i32 %b8, 2\l  %and9 = and i1 %icmple7, %icmpge\l  br i1 %and9, label %then10, label %ifcont11\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7822a20:s0 -> Node0x562fc7822aa0;
+	Node0x562fc7822a20:s1 -> Node0x562fc7822f90;
+	Node0x562fc7822aa0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{then10:\l|  ret i32 3\l}"];
+	Node0x562fc7822f90 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{ifcont11:\l|  %a12 = load i32, ptr %a1, align 4\l  %icmpge13 = icmp sge i32 %a12, 2\l  %b14 = load i32, ptr %b2, align 4\l  %icmple15 = icmp sle i32 %b14, 1\l  %and16 = and i1 %icmpge13, %icmple15\l  br i1 %and16, label %then17, label %ifcont18\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7822f90:s0 -> Node0x562fc7823020;
+	Node0x562fc7822f90:s1 -> Node0x562fc7823530;
+	Node0x562fc7823020 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ca3b3770" fontname="Courier",label="{then17:\l|  ret i32 3\l}"];
+	Node0x562fc7823530 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#ca3b3770" fontname="Courier",label="{ifcont18:\l|  %a19 = load i32, ptr %a1, align 4\l  %icmpeq = icmp eq i32 %a19, 2\l  %b20 = load i32, ptr %b2, align 4\l  %icmpeq21 = icmp eq i32 %b20, 2\l  %and22 = and i1 %icmpeq, %icmpeq21\l  br i1 %and22, label %then23, label %ifcont24\l|{<s0>T|<s1>F}}"];
+	Node0x562fc7823530:s0 -> Node0x562fc78235c0;
+	Node0x562fc7823530:s1 -> Node0x562fc7823ac0;
+	Node0x562fc78235c0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{then23:\l|  ret i32 1\l}"];
+	Node0x562fc7823ac0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#d0473d70" fontname="Courier",label="{ifcont24:\l|  ret i32 3\l}"];
+}

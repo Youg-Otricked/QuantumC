@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_random_float' function" {
+	label="CFG for 'qc_random_float' function";
+
+	Node0x562fc79a3e30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %calltmp = call i64 @__qc_randnext()\l  %ashrtmp = ashr i64 %calltmp, 40\l  %0 = sitofp i64 %ashrtmp to float\l  %fdiv = fdiv float %0, 0x4170000000000000\l  ret float %fdiv\l}"];
+}

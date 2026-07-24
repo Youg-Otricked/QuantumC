@@ -1,0 +1,9 @@
+digraph "CFG for 'qc_to_string_char' function" {
+	label="CFG for 'qc_to_string_char' function";
+
+	Node0x562fc796bc30 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %output = alloca ptr, align 8\l  %c1 = alloca i8, align 1\l  store i8 %c, ptr %c1, align 1\l  %builtin_call = call ptr @qc_malloc(i32 2)\l  store ptr %builtin_call, ptr %output, align 8\l  %output2 = load ptr, ptr %output, align 8\l  %isnull = icmp eq ptr %output2, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796bc30:s0 -> Node0x562fc796bb50;
+	Node0x562fc796bc30:s1 -> Node0x562fc796b2b0;
+	Node0x562fc796bb50 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
+	Node0x562fc796b2b0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{ifcont:\l|  %c3 = load i8, ptr %c1, align 1\l  %arr_ptr = load ptr, ptr %output, align 8\l  %arr_elem_ptr = getelementptr i8, ptr %arr_ptr, i32 0\l  store i8 %c3, ptr %arr_elem_ptr, align 1\l  %arr_ptr4 = load ptr, ptr %output, align 8\l  %arr_elem_ptr5 = getelementptr i8, ptr %arr_ptr4, i32 1\l  store i8 0, ptr %arr_elem_ptr5, align 1\l  %output6 = load ptr, ptr %output, align 8\l  ret ptr %output6\l}"];
+}

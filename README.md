@@ -107,8 +107,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.20.231 = "Self-Hosted Runtime (Part 4)"
-Next Version: x0.20.4 = "Self-Hosted Runtime (Part 5)"
+Current Version: x0.20.4 = "Self-Hosted Runtime (Part 5)"
+Next Version: x0.21.0 = "Add combinational bitwise operations, `byte` and `nibble` primitives (u8 u4)"
 
 # Current Version Highlights
 
@@ -123,24 +123,23 @@ Moderate
 └─ Runtime Selfhosting
 
 Minor
-└─ Self hosted 39/78 runtime functions.
+└─ Self hosted 76/76 runtime functions.
 
 Patch
-└─ Fixed weird bugs with locals
+└─ N/A
 ```
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.17.* -> x0.20.*`)
+These are deprecations in the past 3 moderate versions (`x0.18.* -> x0.20.*`)
 
-1. Power operator changed to `#^`
-2. Deletion of interpreter
-3. Removal of built-in `list` and `map` collection types
-4. Removal of `namespace UnitTest` from the standard library (better version coming version `x1.X.X+`)
-5. Deprecation of `auto` params and returns to functions and methods
-6. Deprecated spread (`@`) in function calls
-7. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
-8. All intrinsics now start with `\``
+1. Deletion of interpreter
+2. Removal of built-in `list` and `map` collection types
+3. Removal of `namespace UnitTest` from the standard library (better version coming version `x1.X.X+`)
+4. Deprecation of `auto` params and returns to functions and methods
+5. Deprecated spread (`@`) in function calls
+6. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
+7. All intrinsics now start with `\``
 
 ## Feature Roadmap
 
@@ -720,7 +719,9 @@ Benchmarks are currently unreliable and show significant fluctuations between ru
 
 ## Known Limitations
 
+&& and || do not shortcircut on unions.
 Volatile does not exist on structs or class fields, and does not work on property accesses. In general, volatile is not 100%.
+
 ## Standard Library Namespaces:
 
 ```

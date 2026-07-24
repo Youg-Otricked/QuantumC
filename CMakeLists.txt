@@ -10,16 +10,33 @@ if(LLVM_VERSION_MAJOR LESS 21)
     message(FATAL_ERROR "LLVM 21+ required, found ${LLVM_VERSION_MAJOR}")
 endif()
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
+option(CXX_RUNTIME "Build runtime.ll from runtime.cpp instead of runtime.qc" OFF)
+if(CXX_RUNTIME)
 set(COMPILER_FOR_RUNTIME "clang++")
 if(EMSCRIPTEN)
     set(COMPILER_FOR_RUNTIME "em++")
 endif()
+else()
+    find_program(QC_EXECUTABLE NAMES qc REQUIRED)
+    message(STATUS "Using QC runtime compiler: ${QC_EXECUTABLE}")
+endif()
+if(CXX_RUNTIME)
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
     COMMAND ${COMPILER_FOR_RUNTIME} ${RUNTIME_TARGET_FLAGS} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
     VERBATIM
 )
+else()
+add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
+    COMMAND "${QC_EXECUTABLE}" -co -nrt -O3
+            "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
+            -o "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
+    VERBATIM
+)
+endif()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
     COMMAND ${CMAKE_COMMAND}

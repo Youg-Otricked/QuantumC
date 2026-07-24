@@ -1,0 +1,25 @@
+digraph "CFG for 'qc_to_string_qbool' function" {
+	label="CFG for 'qc_to_string_qbool' function";
+
+	Node0x562fc7969b50 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %output = alloca ptr, align 8\l  %len = alloca i64, align 8\l  %s = alloca ptr, align 8\l  %q1 = alloca i2, align 1\l  store i2 %q, ptr %q1, align 1\l  store ptr @.str.34, ptr %s, align 8\l  %q2 = load i2, ptr %q1, align 1\l  %0 = sext i2 %q2 to i32\l  %andtmp = and i32 %0, 3\l  switch i32 %andtmp, label %switch.case6 [\l    i32 0, label %switch.case\l    i32 1, label %switch.case3\l    i32 2, label %switch.case4\l    i32 3, label %switch.case5\l  ]\l|{<s0>def|<s1>0|<s2>1|<s3>2|<s4>3}}"];
+	Node0x562fc7969b50:s0 -> Node0x562fc7967ca0;
+	Node0x562fc7969b50:s1 -> Node0x562fc796adb0;
+	Node0x562fc7969b50:s2 -> Node0x562fc796aea0;
+	Node0x562fc7969b50:s3 -> Node0x562fc796af90;
+	Node0x562fc7969b50:s4 -> Node0x562fc796b080;
+	Node0x562fc796b370 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{switch.end:\l|  %s11 = load ptr, ptr %s, align 8\l  %builtin_call = call i64 @qc_len(ptr %s11)\l  store i64 %builtin_call, ptr %len, align 8\l  %len12 = load i64, ptr %len, align 8\l  %add = add i64 %len12, 1\l  %builtin_call13 = call ptr @qc_malloc(i64 %add)\l  store ptr %builtin_call13, ptr %output, align 8\l  %output14 = load ptr, ptr %output, align 8\l  %isnull = icmp eq ptr %output14, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
+	Node0x562fc796b370:s0 -> Node0x562fc796b400;
+	Node0x562fc796b370:s1 -> Node0x562fc796bbb0;
+	Node0x562fc796adb0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{switch.case:\l|  %assign_lhs_val = load ptr, ptr %s, align 8\l  store ptr @.str.35, ptr %s, align 8\l  br label %switch.end\l}"];
+	Node0x562fc796adb0 -> Node0x562fc796b370;
+	Node0x562fc796aea0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{switch.case3:\l|  %assign_lhs_val7 = load ptr, ptr %s, align 8\l  store ptr @.str.36, ptr %s, align 8\l  br label %switch.end\l}"];
+	Node0x562fc796aea0 -> Node0x562fc796b370;
+	Node0x562fc796af90 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{switch.case4:\l|  %assign_lhs_val8 = load ptr, ptr %s, align 8\l  store ptr @.str.37, ptr %s, align 8\l  br label %switch.end\l}"];
+	Node0x562fc796af90 -> Node0x562fc796b370;
+	Node0x562fc796b080 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{switch.case5:\l|  %assign_lhs_val9 = load ptr, ptr %s, align 8\l  store ptr @.str.38, ptr %s, align 8\l  br label %switch.end\l}"];
+	Node0x562fc796b080 -> Node0x562fc796b370;
+	Node0x562fc7967ca0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c5333470" fontname="Courier",label="{switch.case6:\l|  %assign_lhs_val10 = load ptr, ptr %s, align 8\l  store ptr @.str.39, ptr %s, align 8\l  br label %switch.end\l}"];
+	Node0x562fc7967ca0 -> Node0x562fc796b370;
+	Node0x562fc796b400 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
+	Node0x562fc796bbb0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{ifcont:\l|  %output15 = load ptr, ptr %output, align 8\l  %s16 = load ptr, ptr %s, align 8\l  %len17 = load i64, ptr %len, align 8\l  %add18 = add i64 %len17, 1\l  %calltmp = call ptr @__qc_memcpy(ptr %output15, ptr %s16, i64 %add18)\l  %output19 = load ptr, ptr %output, align 8\l  ret ptr %output19\l}"];
+}

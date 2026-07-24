@@ -1181,6 +1181,7 @@ struct RunConfig {
 ////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef ENABLE_LLVM
 struct AsmOp {
+    bool isRW;
     bool isOutput;
     int index;
     char kind;
@@ -1612,6 +1613,52 @@ class LLVMCompiler {
         } else if (auto callNode = std::get_if<CallNode*>(&node)) {
             if (auto varAcc = std::get_if<VarAccessNode*>(&(*callNode)->node_to_call)) {
                 std::string funcName = (*varAcc)->var_name_tok.value;
+                if (funcName == "`is_empty" || funcName == "`to_bool") return "bool";
+                if (funcName == "`inline" || funcName == "`qout") return "void";
+                if (funcName == "`time") return "addr_t";
+                if (funcName == "`seed") return "void";
+                if (funcName == "`random") {
+                    if ((*callNode)->arg_nodes.size() > 1) { return "double"; }
+                    return "int";
+                }
+                if (funcName == "`len") return "addr_t";
+                if (funcName == "`to_lower" || funcName == "`to_upper" || funcName == "`substring" || funcName == "`trim" || funcName == "`replace" ||
+                    funcName == "`read" || funcName == "`to_string")
+                    return "string";
+                if (funcName == "`contains" || funcName == "`startswith" || funcName == "`endswith") return "bool";
+                if (funcName == "`to_int") return "int";
+                if (funcName == "`to_float") return "float";
+                if (funcName == "`to_double") return "double";
+                if (funcName == "`to_char") return "char";
+                if (funcName == "`to_addr_t" || funcName == "`to_address") return "addr_t";
+                if (funcName == "`to_qbool") return "qbool";
+                if (funcName == "`to_long_int") return "long int";
+                if (funcName == "`to_short_int") return "short int";
+                if (funcName == "`open") return "int";
+                if (funcName == "`close" || funcName == "`write" || funcName == "`free" || funcName == "`flush") return "void";
+                if (funcName == "`malloc" || funcName == "`calloc" || funcName == "`realloc" || funcName == "`mapped_ptr") return "void*";
+
+                if (funcName == "`typeof") { return "string"; }
+                if (funcName == "`ternary") {
+                    if ((*callNode)->arg_nodes.size() < 3) {
+                        cg_error(Position(), "Too few args to ternary");
+                        return "unknown";
+                    }
+                    return getExpressionType(*std::next((*callNode)->arg_nodes.begin()));
+                }
+                if (funcName == "`next") {
+                    if ((*callNode)->arg_nodes.size() < 2) {
+                        cg_error(Position(), "Too few args to `next");
+                        return "unknown";
+                    }
+                    auto node = *std::next((*callNode)->arg_nodes.begin());
+                    if (auto str = std::get_if<StringNode>(&node)) {
+                        return resolveTypeName(substituteGenerics(str->tok.value), false);
+                    } else {
+                        cg_error(Position(), "Arg 2 to `next is a comptime string");
+                        return "unknown";
+                    }
+                }
                 if (functionDefs.contains(funcName)) {
                     auto* def = functionDefs[funcName];
                     if (!def->return_types.empty()) {
@@ -1886,7 +1933,7 @@ class LLVMCompiler {
             else if (ty->isIntegerTy())
                 return builder->CreateSIToFP(arg, retTy);
             else if (ty->isDoubleTy())
-                return builder->CreateFPTrunc(arg, retTy); 
+                return builder->CreateFPTrunc(arg, retTy);
             else if (ty->isFloatTy())
                 return arg;
         } else if (target == "double") {
@@ -1918,7 +1965,7 @@ class LLVMCompiler {
             else if (ty->isIntegerTy(8))
                 return arg;
         } else if (target == "addr_t") {
-            retTy = builder->getIntNTy(getPtrSize());    
+            retTy = builder->getIntNTy(getPtrSize());
             if (ty->isPointerTy())
                 fnName = "qc_to_addr_t_from_string";
             else if (ty->isIntegerTy())
@@ -2152,7 +2199,32 @@ class LLVMCompiler {
                 break;
             }
         }
-
+        if (v->getType()->isArrayTy() && paramTy->isPointerTy()) {
+            v = decayArrayToPointer(v);
+            if (!v) return nullptr;
+        }
+        if (srcTy->isIntegerTy() && paramTy->isIntegerTy()) {
+            unsigned srcBits = srcTy->getIntegerBitWidth();
+            unsigned dstBits = paramTy->getIntegerBitWidth();
+            if (srcBits < dstBits) {
+                v = builder->CreateSExt(v, paramTy, "arg_sext");
+            } else if (srcBits > dstBits) {
+                v = builder->CreateTrunc(v, paramTy, "arg_trunc");
+            }
+            return v;
+        }
+        if (srcTy->isFloatTy() && paramTy->isDoubleTy()) {
+            return builder->CreateFPExt(v, paramTy, "arg_fpext");
+        }
+        if (srcTy->isDoubleTy() && paramTy->isFloatTy()) {
+            return builder->CreateFPTrunc(v, paramTy, "arg_fptrunc");
+        }
+        if (srcTy->isIntegerTy() && paramTy->isFloatingPointTy()) {
+            return builder->CreateSIToFP(v, paramTy, "arg_sitofp");
+        }
+        if (srcTy->isFloatingPointTy() && paramTy->isIntegerTy()) {
+            return builder->CreateFPToSI(v, paramTy, "arg_fptosi");
+        }
         return v;
     }
     std::vector<llvm::Value*> emitAdaptedArgs(const std::list<AnyNode>& argNodes, llvm::FunctionType* fnTy,
@@ -2833,6 +2905,16 @@ class LLVMCompiler {
     std::string strip_decorations(std::string old) {
         old = old.substr(0, old.find("&"));
         old = old.substr(0, old.find("*"));
+        old = old.substr(0, old.find("["));
+        return old;
+    }
+    std::string remove_last_ptr(std::string old) {
+        if (old.ends_with("*")) {
+            old.pop_back();
+        } else if (old.ends_with("]")) {
+            size_t pos = old.rfind("[");
+            if (pos != std::string::npos) { old.erase(pos); }
+        }
         return old;
     }
     llvm::Function* generateSpecializedFunction(FuncDefNode* funcDef, std::string specializedName) {

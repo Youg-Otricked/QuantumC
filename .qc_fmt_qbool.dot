@@ -1,0 +1,5 @@
+digraph "CFG for 'qc_fmt_qbool' function" {
+	label="CFG for 'qc_fmt_qbool' function";
+
+	Node0x562fc7997060 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %zero_pad3 = alloca i1, align 1\l  %width2 = alloca i32, align 4\l  %q1 = alloca i2, align 1\l  store i2 %q, ptr %q1, align 1\l  store i32 %width, ptr %width2, align 4\l  store i1 %zero_pad, ptr %zero_pad3, align 1\l  %q4 = load i2, ptr %q1, align 1\l  %to_str = call ptr @qc_to_string_qbool(i2 %q4)\l  ret ptr %to_str\l}"];
+}

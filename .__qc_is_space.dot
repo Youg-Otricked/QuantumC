@@ -1,0 +1,5 @@
+digraph "CFG for '__qc_is_space' function" {
+	label="CFG for '__qc_is_space' function";
+
+	Node0x562fc7895f70 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %c1 = alloca i8, align 1\l  store i8 %c, ptr %c1, align 1\l  %c2 = load i8, ptr %c1, align 1\l  %icmpeq = icmp eq i8 %c2, 32\l  %c3 = load i8, ptr %c1, align 1\l  %icmpeq4 = icmp eq i8 %c3, 9\l  %or = or i1 %icmpeq, %icmpeq4\l  %c5 = load i8, ptr %c1, align 1\l  %icmpeq6 = icmp eq i8 %c5, 13\l  %or7 = or i1 %or, %icmpeq6\l  %c8 = load i8, ptr %c1, align 1\l  %icmpeq9 = icmp eq i8 %c8, 10\l  %or10 = or i1 %or7, %icmpeq9\l  ret i1 %or10\l}"];
+}
