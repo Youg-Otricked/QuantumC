@@ -1,5 +1,0 @@
-digraph "CFG for 'qc_flush' function" {
-	label="CFG for 'qc_flush' function";
-
-	Node0x562fc79293e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %__qc_write_to = load i32, ptr @__qc_write_to, align 4\l  %__qc_current_buffer = load ptr, ptr @__qc_current_buffer, align 8\l  call void @qc_write(i32 %__qc_write_to, ptr %__qc_current_buffer)\l  %assign_lhs_val = load ptr, ptr @__qc_current_buffer, align 8\l  store ptr @.str.30, ptr @__qc_current_buffer, align 8\l  ret void\l}"];
-}

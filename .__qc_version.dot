@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_version' function" {
-	label="CFG for '__qc_version' function";
-
-	Node0x562fc77e3fa0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  ret ptr @.str\l}"];
-}

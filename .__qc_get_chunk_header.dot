@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_get_chunk_header' function" {
-	label="CFG for '__qc_get_chunk_header' function";
-
-	Node0x562fc783b980 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %ptr1 = alloca ptr, align 8\l  store ptr %ptr, ptr %ptr1, align 8\l  %ptr2 = load ptr, ptr %ptr1, align 8\l  %addr = ptrtoint ptr %ptr2 to i64\l  %sub = sub i64 %addr, 56\l  %0 = inttoptr i64 %sub to ptr\l  ret ptr %0\l}"];
-}

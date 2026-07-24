@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_get_previous_physical_chunk' function" {
-	label="CFG for '__qc_get_previous_physical_chunk' function";
-
-	Node0x562fc783dab0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %chunk1 = alloca ptr, align 8\l  store ptr %chunk, ptr %chunk1, align 8\l  %chunk2 = load ptr, ptr %chunk1, align 8\l  %chunk3 = load ptr, ptr %chunk1, align 8\l  %deref = load %__qc_malloc_chunk, ptr %chunk3, align 8\l  %prev_phys = extractvalue %__qc_malloc_chunk %deref, 2\l  ret ptr %prev_phys\l}"];
-}

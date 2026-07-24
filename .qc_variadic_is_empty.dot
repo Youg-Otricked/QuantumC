@@ -1,5 +1,0 @@
-digraph "CFG for 'qc_variadic_is_empty' function" {
-	label="CFG for 'qc_variadic_is_empty' function";
-
-	Node0x562fc78182f0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %variadic1 = alloca ptr, align 8\l  store ptr %variadic, ptr %variadic1, align 8\l  %variadic2 = load ptr, ptr %variadic1, align 8\l  %variadic3 = load ptr, ptr %variadic1, align 8\l  %deref = load %qc_variadic, ptr %variadic3, align 8\l  %current_index = extractvalue %qc_variadic %deref, 2\l  %variadic4 = load ptr, ptr %variadic1, align 8\l  %variadic5 = load ptr, ptr %variadic1, align 8\l  %deref6 = load %qc_variadic, ptr %variadic5, align 8\l  %count = extractvalue %qc_variadic %deref6, 1\l  %icmpge = icmp sge i32 %current_index, %count\l  ret i1 %icmpge\l}"];
-}

@@ -1,5 +1,0 @@
-digraph "CFG for 'qc_random_int' function" {
-	label="CFG for 'qc_random_int' function";
-
-	Node0x562fc79a2c60 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %max1 = alloca i32, align 4\l  store i32 %max, ptr %max1, align 4\l  %calltmp = call i64 @__qc_randnext()\l  %max2 = load i32, ptr %max1, align 4\l  %promote_int = sext i32 %max2 to i64\l  %srem = srem i64 %calltmp, %promote_int\l  %0 = trunc i64 %srem to i32\l  ret i32 %0\l}"];
-}

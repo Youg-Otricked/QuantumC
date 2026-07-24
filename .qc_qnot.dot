@@ -1,5 +1,0 @@
-digraph "CFG for 'qc_qnot' function" {
-	label="CFG for 'qc_qnot' function";
-
-	Node0x562fc7823b50 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %a1 = alloca i32, align 4\l  store i32 %a, ptr %a1, align 4\l  %a2 = load i32, ptr %a1, align 4\l  %sub = sub i32 3, %a2\l  ret i32 %sub\l}"];
-}

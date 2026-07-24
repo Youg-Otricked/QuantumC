@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_llvm_ver' function" {
-	label="CFG for '__qc_llvm_ver' function";
-
-	Node0x562fc78179d0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  ret i32 21\l}"];
-}

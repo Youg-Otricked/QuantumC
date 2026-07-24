@@ -1,9 +1,0 @@
-digraph "CFG for 'qc_to_string_bool' function" {
-	label="CFG for 'qc_to_string_bool' function";
-
-	Node0x562fc7964700 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %output = alloca ptr, align 8\l  %len = alloca i64, align 8\l  %s = alloca ptr, align 8\l  %b1 = alloca i1, align 1\l  store i1 %b, ptr %b1, align 1\l  %b2 = load i1, ptr %b1, align 1\l  %select_val = select i1 %b2, ptr @.str.32, ptr @.str.33\l  store ptr %select_val, ptr %s, align 8\l  %s3 = load ptr, ptr %s, align 8\l  %builtin_call = call i64 @qc_len(ptr %s3)\l  store i64 %builtin_call, ptr %len, align 8\l  %len4 = load i64, ptr %len, align 8\l  %add = add i64 %len4, 1\l  %builtin_call5 = call ptr @qc_malloc(i64 %add)\l  store ptr %builtin_call5, ptr %output, align 8\l  %output6 = load ptr, ptr %output, align 8\l  %isnull = icmp eq ptr %output6, null\l  br i1 %isnull, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
-	Node0x562fc7964700:s0 -> Node0x562fc7964610;
-	Node0x562fc7964700:s1 -> Node0x562fc795f960;
-	Node0x562fc7964610 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{then:\l|  ret ptr null\l}"];
-	Node0x562fc795f960 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{ifcont:\l|  %output7 = load ptr, ptr %output, align 8\l  %s8 = load ptr, ptr %s, align 8\l  %len9 = load i64, ptr %len, align 8\l  %add10 = add i64 %len9, 1\l  %calltmp = call ptr @__qc_memcpy(ptr %output7, ptr %s8, i64 %add10)\l  %output11 = load ptr, ptr %output, align 8\l  ret ptr %output11\l}"];
-}

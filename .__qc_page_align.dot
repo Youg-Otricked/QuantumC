@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_page_align' function" {
-	label="CFG for '__qc_page_align' function";
-
-	Node0x562fc7841d90 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %page = alloca i64, align 8\l  %size1 = alloca i64, align 8\l  store i64 %size, ptr %size1, align 8\l  store i64 4096, ptr %page, align 8\l  %size2 = load i64, ptr %size1, align 8\l  %page3 = load i64, ptr %page, align 8\l  %add = add i64 %size2, %page3\l  %sub = sub i64 %add, 1\l  %page4 = load i64, ptr %page, align 8\l  %sub5 = sub i64 %page4, 1\l  %nottmp = xor i64 %sub5, -1\l  %andtmp = and i64 %sub, %nottmp\l  ret i64 %andtmp\l}"];
-}

@@ -1,5 +1,0 @@
-digraph "CFG for '__qc_is_hex' function" {
-	label="CFG for '__qc_is_hex' function";
-
-	Node0x562fc79a6580 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %c1 = alloca i8, align 1\l  store i8 %c, ptr %c1, align 1\l  %c2 = load i8, ptr %c1, align 1\l  %calltmp = call i1 @__qc_is_digit(i8 %c2)\l  %c3 = load i8, ptr %c1, align 1\l  %icmpge = icmp sge i8 %c3, 97\l  %c4 = load i8, ptr %c1, align 1\l  %icmple = icmp sle i8 %c4, 102\l  %and = and i1 %icmpge, %icmple\l  %or = or i1 %calltmp, %and\l  %c5 = load i8, ptr %c1, align 1\l  %icmpge6 = icmp sge i8 %c5, 65\l  %c7 = load i8, ptr %c1, align 1\l  %icmple8 = icmp sle i8 %c7, 70\l  %and9 = and i1 %icmpge6, %icmple8\l  %or10 = or i1 %or, %and9\l  ret i1 %or10\l}"];
-}

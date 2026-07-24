@@ -1,5 +1,0 @@
-digraph "CFG for 'qc_close' function" {
-	label="CFG for 'qc_close' function";
-
-	Node0x562fc78b1c00 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %fd1 = alloca i32, align 4\l  store i32 %fd, ptr %fd1, align 4\l  %fd2 = load i32, ptr %fd1, align 4\l  call void asm sideeffect inteldialect \"\\0A    mov rax, 3\\0A    mov edi,\l... $0\\0A    syscall\\0A    \", \"r,~\{rax\},~\{rdi\}\"(i32 %fd2)\l  ret void\l}"];
-}

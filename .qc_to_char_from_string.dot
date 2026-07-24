@@ -1,9 +1,0 @@
-digraph "CFG for 'qc_to_char_from_string' function" {
-	label="CFG for 'qc_to_char_from_string' function";
-
-	Node0x562fc79bfab0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870" fontname="Courier",label="{entry:\l|  %str1 = alloca ptr, align 8\l  store ptr %str, ptr %str1, align 8\l  %str2 = load ptr, ptr %str1, align 8\l  %ptr_truthy = icmp ne ptr %str2, null\l  br i1 %ptr_truthy, label %then, label %ifcont\l|{<s0>T|<s1>F}}"];
-	Node0x562fc79bfab0:s0 -> Node0x562fc79bd7e0;
-	Node0x562fc79bfab0:s1 -> Node0x562fc79c5640;
-	Node0x562fc79bd7e0 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70" fontname="Courier",label="{then:\l|  %str3 = load ptr, ptr %str1, align 8\l  %ptr_arr_addr = getelementptr i8, ptr %str3, i32 0\l  %ptr_arr_val = load i8, ptr %ptr_arr_addr, align 1\l  ret i8 %ptr_arr_val\l}"];
-	Node0x562fc79c5640 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#c32e3170" fontname="Courier",label="{ifcont:\l|  ret i8 0\l}"];
-}
