@@ -59,7 +59,7 @@ jobs:
       
       - name: Build (Linux)
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release . -S -DCXX_RUNTIME=ON
+          cmake -DCMAKE_BUILD_TYPE=Release . -DCXX_RUNTIME=ON
           cmake --build . -j$(nproc)
           mv qc qc-linux
 
@@ -85,7 +85,7 @@ jobs:
         run: clang -S -emit-llvm -O0 -I$(brew --prefix libffi)/include -o runtime.ll runtime.cpp
       - name: Build (macOS)
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR -S -DCXX_RUNTIME=ON .
+          cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_DIR=$LLVM_DIR -DCXX_RUNTIME=ON .
           cmake --build . -j$(sysctl -n hw.logicalcpu)
           mv qc qc-macos
 
