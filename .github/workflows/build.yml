@@ -168,13 +168,13 @@ jobs:
           key: llvm-wasm-${{ runner.os }}-21
       - name: Build native bootstrap QC
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            ninja-build nodejs npm g++
           cmake -S . -B build-native-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCXX_RUNTIME=ON
-          cmake --build build-native-bootstrap -j"$(nproc)"
+            -DCXX_RUNTIME=ON \
+            -DCMAKE_C_COMPILER=clang-21 \
+            -DCMAKE_CXX_COMPILER=clang++-21 \
+            -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm
+          cmake --build build-native-bootstrap -j"$(nproc)"      
       - name: Generate runtime IR
         run: |
           ./build-native-bootstrap/qc \
