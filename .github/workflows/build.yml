@@ -170,7 +170,9 @@ jobs:
             -DCXX_RUNTIME=ON \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+
           emmake cmake --build build-bootstrap -j"$(nproc)"
+
       - name: Create bootstrap QC launcher
         run: |
           cat > qc-bootstrap <<'EOF'
@@ -178,6 +180,7 @@ jobs:
           node "$GITHUB_WORKSPACE/build-bootstrap/qc.js" "$@"
           EOF
           chmod +x qc-bootstrap
+
       - name: Build QuantumC with C^4 runtime
         run: |
           emcmake cmake -S . -B build \
@@ -186,6 +189,7 @@ jobs:
             -DQC_EXECUTABLE=$GITHUB_WORKSPACE/qc-bootstrap \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+
           emmake cmake --build build -j"$(nproc)"
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
