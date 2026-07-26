@@ -117,8 +117,6 @@ jobs:
           path: test.qc
   build-wasm:
     runs-on: ubuntu-latest
-    container:
-      image: debian:sid    
     steps:
       - uses: actions/checkout@v4
       - name: Setup Emscripten
@@ -127,10 +125,14 @@ jobs:
           version: 'latest'
       - name: Install dependencies
         run: |
-            sudo apt update
-            sudo apt install -y \
-              cmake ninja-build git \
-              zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 21
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            llvm-21-dev cmake ninja-build git \
+            zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
       - name: Restore LLVM cache
         id: cache-llvm
         uses: actions/cache/restore@v4
