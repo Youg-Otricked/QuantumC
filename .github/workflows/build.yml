@@ -125,14 +125,10 @@ jobs:
           version: 'latest'
       - name: Install dependencies
         run: |
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 21
-
-          sudo apt-get update
-          sudo apt-get install -y \
-            llvm-21-dev cmake ninja-build git \
-            zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
+            sudo apt update
+            sudo apt install -y \
+              cmake ninja-build git \
+              zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
       - name: Restore LLVM cache
         id: cache-llvm
         uses: actions/cache/restore@v4
@@ -166,28 +162,16 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
-      - name: Build native bootstrap QC
+      - name: Build QuantumC
         run: |
-          cmake -S . -B build-native-bootstrap \
+          mkdir -p build
+          cd build
+          emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCXX_RUNTIME=ON \
-            -DCMAKE_C_COMPILER=clang-21 \
-            -DCMAKE_CXX_COMPILER=clang++-21 \
-            -DLLVM_DIR=/usr/lib/llvm-21/lib/cmake/llvm
-          cmake --build build-native-bootstrap -j"$(nproc)"      
-      - name: Generate runtime IR
-        run: |
-          ./build-native-bootstrap/qc \
-            -co -nrt --target wasm32-unknown-unknown -O3 runtime.qc -o runtime.ll
-      - name: Build QuantumC with self-hosted runtime
-        run: |
-          emcmake cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCXX_RUNTIME=OFF \
-            -DQC_EXECUTABLE=$GITHUB_WORKSPACE/build-native-bootstrap/qc \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-          emmake cmake --build build -j"$(nproc)"
+
+          emmake make -j$(nproc) VERBOSE=1
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:

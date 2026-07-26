@@ -26,6 +26,9 @@ Function<int(int)>;
 - Operator.
 - Function pointers
 - Empty arrays with syntax `[int]`
+- Friend (allows other classes to access)
+- Private/Protected inheritance
+- Static
 - Modifier user type:
 ```cpp
 modifier async type function {
@@ -110,13 +113,14 @@ TOP PRIORITY:
 5. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
 6. Token/ident/type/keyword/usertype direct type (parser refactor)
 7. Empty arrays.
-8. Codeblocks.
-9. Concepts
-10. Modifier (x1.0.0)
-11. Variadics on generics
-12. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-13. Other stuff + Variadic Generics
-14. Metadata
+8. Static and Friend
+9. Codeblocks.
+10. Concepts
+11. Modifier (x1.0.0)
+12. Variadics on generics
+13. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+14. Other stuff + Variadic Generics
+15. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -138,7 +142,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-15. Preproccessers
+16. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -147,5 +151,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-16. User-Defined metadata
-17. User-Defined macro _functions_ (the only good thing in rust)
+17. User-Defined metadata
+18. User-Defined macro _functions_ (the only good thing in rust)
