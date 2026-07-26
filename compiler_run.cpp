@@ -518,7 +518,8 @@ const char* run_quantumc_code(const char* code) {
                                false,            // optimize
                                "O0",             // opt_level
                                "/working/a.out", // output_file
-                               false             // output_wasm
+                               false,            // output_wasm
+                               false             // link runtime
                            });
     if (result.ast.error) {
         output = result.ast.error->as_string();
