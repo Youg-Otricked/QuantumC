@@ -162,13 +162,11 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
-      - name: Build QuantumC runtime object
-        run: |
-          em++ -c path/to/runtime.cpp -o build/runtime.o
       - name: Build QuantumC
         run: |
           mkdir -p build
           cd build
+          em++ -c ../runtime.cpp -o ./runtime.o
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
