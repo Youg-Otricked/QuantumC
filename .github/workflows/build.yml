@@ -178,7 +178,7 @@ jobs:
       - name: Generate runtime IR
         run: |
           ./build-native-bootstrap/qc \
-            -co -nrt ---target wasm32-unknown-unknown O3 runtime.qc -o runtime.ll
+            -co -nrt --target wasm32-unknown-unknown -O3 runtime.qc -o runtime.ll
       - name: Build QuantumC with self-hosted runtime
         run: |
           emcmake cmake -S . -B build \
