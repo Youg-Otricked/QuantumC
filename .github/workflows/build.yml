@@ -117,7 +117,6 @@ jobs:
           path: test.qc
   build-wasm:
     runs-on: ubuntu-latest
-    needs: ['tag']
     steps:
       - uses: actions/checkout@v4
       - name: Setup Emscripten
@@ -163,34 +162,25 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
-      - name: Build QuantumC with CXX runtime
+      - name: Build native bootstrap QC
         run: |
-          emcmake cmake -S . -B build-bootstrap \
+          sudo apt install -y clang-21 llvm-21 llvm-21-dev g++
+          cmake -S . -B build-native-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCXX_RUNTIME=ON \
-            -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-
-          emmake cmake --build build-bootstrap -j"$(nproc)"
-
-      - name: Create bootstrap QC launcher
+            -DCXX_RUNTIME=ON
+          cmake --build build-native-bootstrap -j"$(nproc)"
+      - name: Generate runtime IR
         run: |
-          cat > qc-bootstrap <<'EOF'
-          #!/usr/bin/env bash
-          node "$GITHUB_WORKSPACE/build-bootstrap/qc.js" "$@"
-          EOF
-          chmod +x qc-bootstrap
-      - name: Remove bootstrap runtime IR
-        run: rm -f runtime.ll
-      - name: Build QuantumC with C^4 runtime
+          ./build-native-bootstrap/qc \
+            -co -nrt ---target wasm32-unknown-unknown O3 runtime.qc -o runtime.ll
+      - name: Build QuantumC with self-hosted runtime
         run: |
           emcmake cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCXX_RUNTIME=OFF \
-            -DQC_EXECUTABLE=$GITHUB_WORKSPACE/qc-bootstrap \
+            -DQC_EXECUTABLE=$GITHUB_WORKSPACE/build-native-bootstrap/qc \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-
           emmake cmake --build build -j"$(nproc)"
       - name: Upload WASM build
         uses: actions/upload-artifact@v4

@@ -13432,7 +13432,7 @@ std::string removeExtension(const std::string& filename) {
     if (lastDot == std::string::npos) { return filename; }
     return filename.substr(0, lastDot);
 }
-int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug) {
+int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, std::string tgt = "") {
 #ifdef __EMSCRIPTEN__
     llvm::InitializeAllTargets();
     llvm::InitializeAllTargetMCs();
@@ -13470,7 +13470,7 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug) {
     llvm::InitializeAllTargetMCs();
     llvm::InitializeAllAsmPrinters();
     llvm::InitializeAllAsmParsers();
-    llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
+    llvm::Triple triple(tgt.empty() ? llvm::sys::getDefaultTargetTriple() : tgt);
     M.setTargetTriple(triple);
     std::string err;
     const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, err);
@@ -13670,14 +13670,6 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         if (config.compile_mode) {
             llvm::LLVMContext context;
             auto master_module = new llvm::Module("master_module", context);
-            if (config.use_runtime) {
-                llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
-                llvm::SMDiagnostic err;
-                llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
-                auto modulePtr = llvm::parseIR(bufRef, err, context);
-                if (!modulePtr) { throw "Failed to load runtime.ll"; }
-                if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
-            }
 #ifdef __EMSCRIPTEN__
             llvm::InitializeAllTargets();
             llvm::InitializeAllTargetMCs();
@@ -13698,7 +13690,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             llvm::InitializeAllTargets();
             llvm::InitializeAllTargetMCs();
 
-            llvm::Triple triple(llvm::sys::getDefaultTargetTriple());
+            llvm::Triple triple(config.target.empty() ? llvm::sys::getDefaultTargetTriple() : config.target);
             master_module->setTargetTriple(triple);
 
             std::string target_err;
@@ -13711,6 +13703,14 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 delete TM;
             }
 #endif
+            if (config.use_runtime) {
+                llvm::StringRef irString(_binary_runtime_ll_start, _binary_runtime_ll_size);
+                llvm::SMDiagnostic err;
+                llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
+                auto modulePtr = llvm::parseIR(bufRef, err, context);
+                if (!modulePtr) { throw "Failed to load runtime.ll"; }
+                if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
+            }
             std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
             std::unordered_map<std::string, std::unordered_map<std::string, FuncDefNode*>> db_fDefs;
             std::unordered_map<std::string, std::unordered_map<std::string, std::pair<int, int>>> db_jagged;
@@ -13859,7 +13859,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 message += ". Compiled to " + ll_file;
                 return Mer{ast, resp, message, diagnostics};
             }
-            int llc_result = emitObjectFile(*master_module, obj_file, config.debug);
+            int llc_result = emitObjectFile(*master_module, obj_file, config.debug, config.target);
             if (llc_result != 0) {
                 diagnostics.push_back({new CTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
                 return Mer{ast, resp, message, diagnostics};
