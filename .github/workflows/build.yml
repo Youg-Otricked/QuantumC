@@ -170,7 +170,8 @@ jobs:
           emcmake cmake .. \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
-            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install \
+            -DCXX_RUNTIME=ON
 
           emmake make -j$(nproc) VERBOSE=1
       - name: Upload WASM build
