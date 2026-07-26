@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
         if (arg == "--no-context" || arg == "-nc") {
             config.use_context = false;
         } else if (arg == "--target") {
-            if (i + 1 < argc) {std::cerr << "--target requires a argument"; return 1;}
+            if (i + 1 >= argc) {std::cerr << "--target requires a argument"; return 1;}
             config.target = argv[++i];
         } else if (arg == "--silent-version" || arg == "-sv") {
             std::cout << ver << '\n';
