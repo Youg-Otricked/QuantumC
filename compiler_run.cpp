@@ -522,6 +522,7 @@ const char* run_quantumc_code(const char* code) {
                            });
     if (result.ast.error) {
         output = result.ast.error->as_string();
+        std::cout.rdbuf(old);
         return output.c_str();
     } else if (!result.errors.empty()) {
         output.clear();
@@ -545,8 +546,10 @@ const char* run_quantumc_code(const char* code) {
 
             output += diag.error->as_string() + "\n";
         }
+        std::cout.rdbuf(old);
         return output.c_str();
     }
+    std::cout.rdbuf(old);
     return "Success";
 }
 }
