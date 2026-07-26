@@ -1405,6 +1405,7 @@ class LLVMCompiler {
         }
         return result + ">" + suffix;
     }
+    unsigned pointerSizeBits;
     llvm::Value* createRuntimeSizedArray(std::vector<AnyNode>& elements, llvm::Value* totalSize);
     void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
     llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
@@ -1435,9 +1436,7 @@ class LLVMCompiler {
         return false;
     }
     unsigned getPtrSize() {
-        llvm::BasicBlock* bb = builder->GetInsertBlock();
-        if (!bb || !bb->getParent()) { return 64; }
-        return bb->getModule()->getDataLayout().getPointerSizeInBits();
+        return pointerSizeBits; 
     }
 #define hasVarType(name) foundInStack(varTypesStack, name)
 #define hasLocal(name) foundInStack(localsStack, name)

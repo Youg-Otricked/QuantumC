@@ -59,7 +59,6 @@
 #endif
 bool no_main = false;
 static bool random_seeded = false;
-
 bool isCharInSet(char c, const std::string& charSet) {
     return charSet.find(c) != std::string::npos;
 }
@@ -5803,6 +5802,7 @@ LLVMCompiler::LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& userTy
     : userTypes(userTys), context(ctx) {
     module = (mod == nullptr ? new llvm::Module("qc_module", context) : mod);
     builder = new llvm::IRBuilder<>(context);
+    pointerSizeBits = module->getDataLayout().getPointerSizeInBits();
     jaggedArraysStack.push_back({});
     arrayTypeStringsStack.push_back({});
     arrayLengthsStack.push_back({});
