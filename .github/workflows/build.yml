@@ -117,6 +117,8 @@ jobs:
           path: test.qc
   build-wasm:
     runs-on: ubuntu-latest
+    container:
+      image: debian:sid    
     steps:
       - uses: actions/checkout@v4
       - name: Setup Emscripten
@@ -164,7 +166,11 @@ jobs:
           key: llvm-wasm-${{ runner.os }}-21
       - name: Build native bootstrap QC
         run: |
-          sudo apt install -y clang-21 llvm-21 llvm-21-dev g++
+          apt-get update
+          apt-get install -y \
+            clang-21 llvm-21 llvm-21-dev \
+            cmake ninja-build git nodejs npm \
+            g++ zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
           cmake -S . -B build-native-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
             -DCXX_RUNTIME=ON
