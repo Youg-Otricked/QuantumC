@@ -13708,7 +13708,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 llvm::SMDiagnostic err;
                 llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
                 auto modulePtr = llvm::parseIR(bufRef, err, context);
-                if (!modulePtr) { throw "Failed to load runtime.ll"; }
+                if (!modulePtr) {
+    err.print("runtime.ll", llvm::errs());
+    throw "Failed to load runtime.ll";
+}
                 if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
             }
             std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
