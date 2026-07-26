@@ -5832,8 +5832,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             return builder->getInt16(static_cast<int16_t>(v));
         }
         case TokenType::ADDR_T: {
-            size_t v = std::stoull(text);
-            return llvm::ConstantInt::get(builder->getContext(), llvm::APInt(getPtrSize(), v));
+            llvm::APInt value(getPtrSize(), text, 10);
+            return llvm::ConstantInt::get(builder->getContext(), value);
         }
         case TokenType::FLOAT: {
             std::string t = text;

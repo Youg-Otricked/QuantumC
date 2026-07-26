@@ -16,6 +16,11 @@ set(COMPILER_FOR_RUNTIME "clang++")
 if(EMSCRIPTEN)
     set(COMPILER_FOR_RUNTIME "em++")
 endif()
+if(EMSCRIPTEN)
+    set(RUNTIME_TARGET_FLAGS --target wasm32-unknown-unknown)
+else()
+    set(RUNTIME_TARGET_FLAGS)
+endif()
 else()
     if(NOT QC_EXECUTABLE)
         find_program(QC_EXECUTABLE NAMES qc REQUIRED)
@@ -35,9 +40,9 @@ add_custom_command(
 else()
 add_custom_command(
     OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
-    COMMAND "${QC_EXECUTABLE}" -co -nrt -O3
-            "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
-            -o "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
+    COMMAND "${QC_EXECUTABLE}" -co -nrt ${RUNTIME_TARGET_FLAGS} -O3
+        "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
+        -o "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"    
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
     VERBATIM
 )

@@ -107,7 +107,7 @@ void *__qc_memcpy(void *dst, void *src, addr_t size) {
     }
     return dst;
 }
-const addr_t MAX_ADDR = ~0;
+const addr_t MAX_ADDR = ~0a;
 // Memset. Because calloc is literally memset(malloc())
 void *qc_memset(void *ptr, int value, addr_t size) {
     addr_t address = `to_address(ptr);
@@ -240,7 +240,7 @@ addr_t __qc_system_alloc(addr_t size) {
             syscall
             mov $0=r, rax
         )", result, size, "~{rax,rdi,rsi,rdx,r8,r9,r10,r11,rcx,memory}");
-    if (result == ~0) return 0a;
+    if (result == ~0a) return 0a;
     __qc_heap.system_mem += size;
     return result;
 }
