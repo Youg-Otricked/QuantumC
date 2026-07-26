@@ -163,16 +163,25 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
-      - name: Build QuantumC (WASM)
+      - name: Build QuantumC bootstrap
         run: |
-          mkdir -p build
-          cd build
-          emcmake cmake .. \
+          cmake -S . -B build-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCXX_RUNTIME=ON \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-
-          emmake make -j$(nproc) VERBOSE=1
+          cmake --build build-bootstrap -j"$(nproc)"
+      - name: Generate self-hosted runtime IR
+        run: |
+          ./build-bootstrap/qc ./runtime.qc -co -nrt -O3 -o runtime.ll
+      - name: Build QuantumC with self-hosted runtime
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCXX_RUNTIME=OFF \
+            -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
+            -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
+          cmake --build build -j"$(nproc)"
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
