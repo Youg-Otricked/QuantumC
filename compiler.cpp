@@ -5825,7 +5825,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         case TokenType::LONG_INT: {
             intptr_t v = std::stoll(text);
-            return builder->getInt64(static_cast<int64_t>(v));
+            return getPtrSize() == 32 ? builder->getInt32(static_cast<int32_t>(v)) : builder->getInt64(static_cast<int64_t>(v));
         }
         case TokenType::SHORT_INT: {
             intptr_t v = std::stoi(text);
@@ -8722,11 +8722,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     ptrTy.pop_back();
                 }
                 llvm::Value* newVal;
-                llvm::Value* one = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), 1);
+                llvm::Value* one = llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), 1);
                 if ((*unary)->op_tok.type == TokenType::INCREMENT) {
                     newVal = builder->CreateGEP(llvmTypeFor(ptrTy), oldVal, one, "ptr_inc");
                 } else {
-                    llvm::Value* negOne = llvm::ConstantInt::get(llvm::Type::getInt64Ty(context), -1, true);
+                    llvm::Value* negOne = llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), -1, true);
                     newVal = builder->CreateGEP(llvmTypeFor(ptrTy), oldVal, negOne, "ptr_dec");
                 }
                 builder->CreateStore(newVal, lhs, resolveVolatileVar(name));
@@ -8799,7 +8799,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {builder->getIntNTy(getPtrSize())}, false);
                     mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
                 }
-                llvm::Value* size = builder->getInt64(0);
+                llvm::Value* size = llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), 0);
                 llvm::Value* ptr = builder->CreateCall(mallocFn, {size}, "empty_arr");
                 return builder->CreateBitCast(ptr, retTy, "empty_arr_cast");
             }

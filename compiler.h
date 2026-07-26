@@ -1917,12 +1917,12 @@ class LLVMCompiler {
             else if (ty->isIntegerTy())
                 return builder->CreateSExt(arg, retTy);
         } else if (target == "long int") {
-            retTy = builder->getInt64Ty();
+            retTy = builder->getIntNTy(getPtrSize());
             if (ty->isPointerTy())
                 fnName = "qc_to_int_from_string";
             else if (ty->isFloatTy() || ty->isDoubleTy())
                 return builder->CreateFPToSI(arg, retTy);
-            else if (ty->isIntegerTy(64))
+            else if (ty == retTy)
                 return arg;
             else if (ty->isIntegerTy())
                 return builder->CreateSExt(arg, retTy);
