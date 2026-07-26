@@ -180,7 +180,8 @@ jobs:
           node "$GITHUB_WORKSPACE/build-bootstrap/qc.js" "$@"
           EOF
           chmod +x qc-bootstrap
-
+      - name: Remove bootstrap runtime IR
+        run: rm -f runtime.ll
       - name: Build QuantumC with C^4 runtime
         run: |
           emcmake cmake -S . -B build \
