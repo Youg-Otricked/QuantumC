@@ -162,6 +162,9 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
+      - name: Build QuantumC runtime object
+        run: |
+          em++ -c path/to/runtime.cpp -o build/runtime.o
       - name: Build QuantumC
         run: |
           mkdir -p build
@@ -180,6 +183,7 @@ jobs:
             build/qc.js
             build/qc.wasm
             build/qc.data
+            build/runtime.o
   deploy-to-website:  
     needs: [build-wasm]
     runs-on: ubuntu-latest
@@ -203,13 +207,13 @@ jobs:
           cp wasm-files/qc.js website/QuantumC/
           cp wasm-files/qc.wasm website/QuantumC/
           cp wasm-files/qc.data website/QuantumC/
-       
+          cp wasm-files/runtime.o website/QuantumC/       
       - name: Commit and push to website repo
         run: |
           cd website
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add QuantumC/qc.js QuantumC/qc.wasm QuantumC/stdlib.qc QuantumC/qc.data
+          git add QuantumC/qc.js QuantumC/qc.wasm QuantumC/qc.data QuantumC/runtime.o
           git commit -m "Update Quantum C compiler [automated]" || echo "No changes to commit"
           git push
   release:
