@@ -168,11 +168,9 @@ jobs:
           key: llvm-wasm-${{ runner.os }}-21
       - name: Build native bootstrap QC
         run: |
-          apt-get update
-          apt-get install -y \
-            clang-21 llvm-21 llvm-21-dev \
-            cmake ninja-build git nodejs npm \
-            g++ zlib1g-dev libffi-dev libxml2-dev libedit-dev libzstd-dev
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build nodejs npm g++
           cmake -S . -B build-native-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
             -DCXX_RUNTIME=ON
@@ -199,7 +197,7 @@ jobs:
             build/qc.wasm
             build/qc.data
   deploy-to-website:  
-    needs: [build-wasm, tag]
+    needs: [build-wasm]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
     steps:
