@@ -163,25 +163,30 @@ jobs:
         with:
           path: llvm-install
           key: llvm-wasm-${{ runner.os }}-21
-      - name: Build QuantumC bootstrap
+      - name: Build QuantumC with CXX runtime
         run: |
-          cmake -S . -B build-bootstrap \
+          emcmake cmake -S . -B build-bootstrap \
             -DCMAKE_BUILD_TYPE=Release \
             -DCXX_RUNTIME=ON \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-          cmake --build build-bootstrap -j"$(nproc)"
-      - name: Generate self-hosted runtime IR
+          emmake cmake --build build-bootstrap -j"$(nproc)"
+      - name: Create bootstrap QC launcher
         run: |
-          ./build-bootstrap/qc ./runtime.qc -co -nrt -O3 -o runtime.ll
-      - name: Build QuantumC with self-hosted runtime
+          cat > qc-bootstrap <<'EOF'
+          #!/usr/bin/env bash
+          node "$GITHUB_WORKSPACE/build-bootstrap/qc.js" "$@"
+          EOF
+          chmod +x qc-bootstrap
+      - name: Build QuantumC with C^4 runtime
         run: |
-          cmake -S . -B build \
+          emcmake cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCXX_RUNTIME=OFF \
+            -DQC_EXECUTABLE=$GITHUB_WORKSPACE/qc-bootstrap \
             -DLLVM_DIR=$GITHUB_WORKSPACE/llvm-install/lib/cmake/llvm \
             -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/llvm-install
-          cmake --build build -j"$(nproc)"
+          emmake cmake --build build -j"$(nproc)"
       - name: Upload WASM build
         uses: actions/upload-artifact@v4
         with:
