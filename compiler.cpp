@@ -131,6 +131,8 @@ std::string get_token_name(TokenType tok) {
     case TokenType::INT: return "int";
     case TokenType::STRING: return "string";
     case TokenType::ADDR_T: return "addr_t";
+    case TokenType::BYTE: return "byte";
+    case TokenType::NIBBLE: return "nibble";
     case TokenType::LONG_INT: return "long int";
     case TokenType::SHORT_INT: return "short int";
     case TokenType::LONG_DOUBLE: return "long double";
@@ -203,8 +205,8 @@ std::string get_token_name(TokenType tok) {
     case TokenType::STAR: return "*";
     case TokenType::SCOPE: return "::";
     case TokenType::LSHIFT: return "<<";
-    case TokenType::RSHIFT: return ">>";
-    case TokenType::R_ROT: return ">>>";
+    case TokenType::RSHIFT: return "|>";
+    case TokenType::R_ROT: return "|>>";
     case TokenType::L_ROT: return "<<<";
     case TokenType::BITWISE_XOR: return "$";
     case TokenType::BITWISE_NOT: return "~";
@@ -214,6 +216,14 @@ std::string get_token_name(TokenType tok) {
     case TokenType::SIZEOF: return "sizeof";
     case TokenType::EOFT: return "<eof>";
     case TokenType::VARADIC: return "...";
+    case TokenType::RROT_EQ: return "|>>=";
+    case TokenType::LROT_EQ: return "<<<=";
+    case TokenType::LSH_EQ: return "<<=";
+    case TokenType::RSH_EQ: return "|>=";
+    case TokenType::LRSH_EQ: return ":>=";
+    case TokenType::BIT_X_EQ: return "$=";
+    case TokenType::BIT_A_EQ: return "&=";
+    case TokenType::BIT_O_EQ: return "|=";
     default: return "<unknown token>";
     }
 
@@ -697,6 +707,14 @@ TokenType stringToTokenType(const std::string& str) {
                                                                             {"PLUS", TokenType::PLUS},
                                                                             {"R_ROT", TokenType::R_ROT},
                                                                             {"L_ROT", TokenType::L_ROT},
+                                                                            {"RROT_EQ", TokenType::RROT_EQ},
+                                                                            {"LROT_EQ", TokenType::LROT_EQ},
+                                                                            {"RSH_EQ", TokenType::RSH_EQ},
+                                                                            {"LSH_EQ", TokenType::LSH_EQ},
+                                                                            {"LRSH_EQ", TokenType::LRSH_EQ},
+                                                                            {"BIT_X_EQ", TokenType::BIT_X_EQ},
+                                                                            {"BIT_A_EQ", TokenType::BIT_A_EQ},
+                                                                            {"BIT_O_EQ", TokenType::BIT_O_EQ},
                                                                             {"AMPERSAND", TokenType::AMPERSAND},
                                                                             {"PIPE", TokenType::PIPE},
                                                                             {"RSHIFT", TokenType::RSHIFT},
@@ -717,6 +735,8 @@ TokenType stringToTokenType(const std::string& str) {
                                                                             {"DECREMENT", TokenType::DECREMENT},
                                                                             {"IDENTIFIER", TokenType::IDENTIFIER},
                                                                             {"ADDR_T", TokenType::ADDR_T},
+                                                                            {"BYTE", TokenType::BYTE},
+                                                                            {"NIBBLE", TokenType::NIBBLE},
                                                                             {"LONG_DOUBLE", TokenType::LONG_DOUBLE},
                                                                             {"SHORT_INT", TokenType::SHORT_INT},
                                                                             {"LONG_INT", TokenType::LONG_INT},
@@ -744,6 +764,8 @@ AnyNode Parser::default_value_for_type(const Token& type_tok, const Position& po
     if (type == "double") return AnyNode{NumberNode(Token(TokenType::DOUBLE, "0.0", pos))};
     if (type == "long double") return AnyNode{NumberNode(Token(TokenType::LONG_DOUBLE, "0.0", pos))};
     if (type == "addr_t") return AnyNode{NumberNode(Token(TokenType::ADDR_T, "0", pos))};
+    if (type == "byte") return AnyNode{NumberNode(Token(TokenType::BYTE, "0", pos))};
+    if (type == "nibble") return AnyNode{NumberNode(Token(TokenType::NIBBLE, "0", pos))};
 
     if (type == "string") return AnyNode{StringNode(Token(TokenType::STRING, "", pos))};
     if (type == "char") return AnyNode{CharNode(Token(TokenType::CHAR, std::string(1, '\0'), pos))};
@@ -1327,7 +1349,8 @@ Prs Parser::for_stmt() {
         if (this->current_tok.type == TokenType::KEYWORD &&
             (this->current_tok.value == "const" || this->current_tok.value == "int" || this->current_tok.value == "float" ||
              this->current_tok.value == "double" || this->current_tok.value == "bool" || this->current_tok.value == "qbool" ||
-             this->current_tok.value == "string" || this->current_tok.value == "char" || this->current_tok.value == "addr_t")) {
+             this->current_tok.value == "string" || this->current_tok.value == "char" || this->current_tok.value == "addr_t" ||
+             this->current_tok.value == "byte" || this->current_tok.value == "nibble")) {
 
             bool is_const = false;
             Token tok = current_tok;
@@ -1639,8 +1662,8 @@ Prs Parser::atom() {
         return this->qin_expr();
     }
 
-    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T ||
-        tok.type == TokenType::LONG_INT || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE) {
+    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T || tok.type == TokenType::BYTE ||
+        tok.type == TokenType::LONG_INT || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE || tok.type == TokenType::NIBBLE) {
         this->advance();
         return res.success(NumberNode(tok));
     } else if (tok.type == TokenType::STRING) {
@@ -1718,7 +1741,7 @@ Prs Parser::atom() {
                 if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
                                                      TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
                                                      TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                     TokenType::LESS, TokenType::MORE})
+                                                     TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
                           .contains(this->current_tok.type))) {
                     this->index = oldId;
                     name = oldName;
@@ -2580,7 +2603,11 @@ Prs Parser::assignment_expr() {
     if (res.error) return res.to_prs();
 
     if (this->current_tok.type == TokenType::EQ || this->current_tok.type == TokenType::PLUS_EQ || this->current_tok.type == TokenType::MINUS_EQ ||
-        this->current_tok.type == TokenType::MUL_EQ || this->current_tok.type == TokenType::DIV_EQ || this->current_tok.type == TokenType::MOD_EQ) {
+        this->current_tok.type == TokenType::MUL_EQ || this->current_tok.type == TokenType::DIV_EQ || this->current_tok.type == TokenType::MOD_EQ ||
+        this->current_tok.type == TokenType::RSH_EQ || this->current_tok.type == TokenType::LSH_EQ || this->current_tok.type == TokenType::LRSH_EQ ||
+        this->current_tok.type == TokenType::RROT_EQ || this->current_tok.type == TokenType::LROT_EQ ||
+        this->current_tok.type == TokenType::BIT_X_EQ || this->current_tok.type == TokenType::BIT_O_EQ ||
+        this->current_tok.type == TokenType::BIT_A_EQ) {
 
         bool is_var = std::holds_alternative<VarAccessNode*>(left);
         bool is_array_access = std::holds_alternative<ArrayAccessNode*>(left);
@@ -2621,6 +2648,14 @@ Prs Parser::assignment_expr() {
             case TokenType::MUL_EQ: binop_type = TokenType::MUL; break;
             case TokenType::DIV_EQ: binop_type = TokenType::DIV; break;
             case TokenType::MOD_EQ: binop_type = TokenType::MOD; break;
+            case TokenType::RSH_EQ: binop_type = TokenType::RSHIFT; break;
+            case TokenType::LSH_EQ: binop_type = TokenType::LSHIFT; break;
+            case TokenType::LRSH_EQ: binop_type = TokenType::LOGICAL_RSHIFT; break;
+            case TokenType::RROT_EQ: binop_type = TokenType::R_ROT; break;
+            case TokenType::LROT_EQ: binop_type = TokenType::L_ROT; break;
+            case TokenType::BIT_X_EQ: binop_type = TokenType::BITWISE_XOR; break;
+            case TokenType::BIT_O_EQ: binop_type = TokenType::PIPE; break;
+            case TokenType::BIT_A_EQ: binop_type = TokenType::AMPERSAND; break;
             default: res.failure(new InvalidSyntaxError("QC-S057: Unsupported op for struct fields", op_tok.pos)); return res.to_prs();
             }
             AnyNode lhsBase = clone_node(*(prop->base));
@@ -3093,7 +3128,7 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "byte", "nibble", "string", "char", "bool", "qbool"})
                             .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
@@ -3289,7 +3324,7 @@ Prs Parser::statement() {
                         GenericType curr;
                         if (this->current_tok.type != TokenType::IDENTIFIER) {
                             if (this->current_tok.type == TokenType::KEYWORD &&
-                                std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                                std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                     .contains(this->current_tok.value)) {
                                 curr.isNonType = true;
                                 curr.nonTypeKind = this->current_tok.value;
@@ -3504,7 +3539,7 @@ Prs Parser::statement() {
                     GenericType curr;
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         if (this->current_tok.type == TokenType::KEYWORD &&
-                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                 .contains(this->current_tok.value)) {
                             curr.isNonType = true;
                             curr.nonTypeKind = this->current_tok.value;
@@ -3742,7 +3777,7 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                        std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                             .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
@@ -3903,7 +3938,7 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                        std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                             .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
@@ -3994,6 +4029,8 @@ Prs Parser::statement() {
             case TokenType::LONG_DOUBLE: this->advance(); return UnionMember{"long_double:" + first_tok.value};
             case TokenType::ADDR_T: this->advance(); return UnionMember{"addr_t:" + first_tok.value};
             case TokenType::CHAR: this->advance(); return UnionMember{"char:" + first_tok.value};
+            case TokenType::BYTE: this->advance(); return UnionMember{"byte:" + first_tok.value};
+            case TokenType::NIBBLE: this->advance(); return UnionMember{"nibble:" + first_tok.value};
             case TokenType::BOOL: this->advance(); return UnionMember{"bool:" + first_tok.value};
             case TokenType::QBOOL: this->advance(); return UnionMember{"qbool:" + first_tok.value};
             default: break;
@@ -4016,9 +4053,9 @@ Prs Parser::statement() {
         };
 
         auto is_type_or_literal_token = [&](TokenType tt) {
-            return tt == TokenType::STRING || tt == TokenType::IDENTIFIER || tt == TokenType::KEYWORD || tt == TokenType::INT ||
+            return tt == TokenType::STRING || tt == TokenType::IDENTIFIER || tt == TokenType::KEYWORD || tt == TokenType::INT || tt == TokenType::NIBBLE || 
                    tt == TokenType::FLOAT || tt == TokenType::DOUBLE || tt == TokenType::ADDR_T || tt == TokenType::BOOL || tt == TokenType::QBOOL ||
-                   tt == TokenType::CHAR || tt == TokenType::LONG_INT || tt == TokenType::SHORT_INT || tt == TokenType::LONG_DOUBLE;
+                   tt == TokenType::CHAR || tt == TokenType::LONG_INT || tt == TokenType::SHORT_INT || tt == TokenType::LONG_DOUBLE || tt == TokenType::BYTE;
         };
 
         if (!is_type_or_literal_token(this->current_tok.type)) {
@@ -4092,6 +4129,8 @@ Prs Parser::statement() {
             case TokenType::SHORT_INT: return "short_int:" + tok.value;
             case TokenType::LONG_DOUBLE: return "long_double:" + tok.value;
             case TokenType::ADDR_T: return "addr_t:" + tok.value;
+            case TokenType::BYTE: return "byte:" + tok.value;
+            case TokenType::NIBBLE: return "nibble:" + tok.value;
             case TokenType::CHAR: return "char:" + tok.value;
             case TokenType::BOOL: return "bool:" + tok.value;
             case TokenType::QBOOL: return "qbool:" + tok.value;
@@ -4166,8 +4205,11 @@ Prs Parser::statement() {
                     size_t next_i = index + 1;
                     if (next_i < tokens.size() && (tokens[next_i].type == TokenType::EQ || tokens[next_i].type == TokenType::PLUS_EQ ||
                                                    tokens[next_i].type == TokenType::MINUS_EQ || tokens[next_i].type == TokenType::MUL_EQ ||
-                                                   tokens[next_i].type == TokenType::DIV_EQ || tokens[next_i].type == TokenType::MOD_EQ)) {
-
+                                                   tokens[next_i].type == TokenType::DIV_EQ || tokens[next_i].type == TokenType::MOD_EQ ||
+                                                   tokens[next_i].type == TokenType::RSH_EQ || tokens[next_i].type == TokenType::LSH_EQ ||
+                                                   tokens[next_i].type == TokenType::LRSH_EQ || tokens[next_i].type == TokenType::RROT_EQ ||
+                                                   tokens[next_i].type == TokenType::LROT_EQ || tokens[next_i].type == TokenType::BIT_X_EQ ||
+                                                   tokens[next_i].type == TokenType::BIT_O_EQ || tokens[next_i].type == TokenType::BIT_A_EQ)) {
                         AnyNode assign_node = res.reg(this->assignment_expr());
                         if (res.error) return res.to_prs();
 
@@ -4230,7 +4272,7 @@ Prs Parser::statement() {
                     GenericType curr;
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
                         if (this->current_tok.type == TokenType::KEYWORD &&
-                            std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                            std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                 .contains(this->current_tok.value)) {
                             curr.isNonType = true;
                             curr.nonTypeKind = this->current_tok.value;
@@ -4370,7 +4412,7 @@ Prs Parser::statement() {
                 GenericType curr;
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
                     if (this->current_tok.type == TokenType::KEYWORD &&
-                        std::unordered_set<std::string>({"int", "double", "float", "addr_t", "string", "char", "bool", "qbool"})
+                        std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                             .contains(this->current_tok.value)) {
                         curr.isNonType = true;
                         curr.nonTypeKind = this->current_tok.value;
@@ -4696,8 +4738,9 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (type == "float") return builder->getFloatTy();
     if (type == "double") return builder->getDoubleTy();
     if (type == "long double") return builder->getDoubleTy();
+    if (type == "nibble") return builder->getIntNTy(4);
     if (type == "addr_t") return builder->getIntNTy(getPtrSize());
-    if (type == "char") return builder->getInt8Ty();
+    if (type == "char" || type == "byte") return builder->getInt8Ty();
     if (type == "bool") return builder->getInt1Ty();
     if (type == "qbool") return builder->getIntNTy(2);
     if (type == "string") return llvm::PointerType::get(context, 0);
@@ -4761,14 +4804,14 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                     return nullptr;
                 }
             } else if (generic.constraint == "numeric") {
-                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
                     cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
                 static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
-                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                                                                             "long int", "char",   "bool",  "byte", "nibble", "qbool",  "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
@@ -5093,13 +5136,13 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
                     return nullptr;
                 }
             } else if (generic.constraint == "numeric") {
-                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
                     cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
                                                                              "long int", "char",   "bool",  "qbool",  "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
@@ -5216,13 +5259,13 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
                     return {};
                 }
             } else if (generic.constraint == "numeric") {
-                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
                     cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return {};
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
                                                                              "long int", "char",   "bool",  "qbool",  "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
@@ -5340,13 +5383,13 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
                     return "";
                 }
             } else if (generic.constraint == "numeric") {
-                if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
                     cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return "";
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
                                                                              "long int", "char",   "bool",  "qbool",  "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
@@ -5833,6 +5876,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         case TokenType::ADDR_T: {
             llvm::APInt value(getPtrSize(), text, 10);
+            return llvm::ConstantInt::get(builder->getContext(), value);
+        }
+        case TokenType::BYTE: {
+            llvm::APInt value(8, text, 10);
+            return llvm::ConstantInt::get(builder->getContext(), value);
+        }
+        case TokenType::NIBBLE: {
+            llvm::APInt value(4, text, 10);
             return llvm::ConstantInt::get(builder->getContext(), value);
         }
         case TokenType::FLOAT: {
@@ -6489,6 +6540,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i16");
                 }
+                
                 if (ty->isIntegerTy(64)) {
                     auto* fn = module->getFunction("qc_to_string_long_int");
                     if (!fn) {
@@ -6524,6 +6576,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_string_bool", module);
                     }
                     return builder->CreateCall(fn, {v}, "fstr_bool");
+                }
+                if (ty->isIntegerTy(4)) {
+                    auto* fn = module->getFunction("qc_to_string_nibble");
+                    if (!fn) {
+                        auto* i4Ptr = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(i4Ptr, {builder->getIntNTy(4)}, false);
+                        fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_string_nibble", module);
+                    }
+                    return builder->CreateCall(fn, {v}, "fstr_nibble");
                 }
                 if (ty->isIntegerTy(8)) {
                     auto* fn = module->getFunction("qc_to_string_char");
@@ -6821,7 +6882,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             builder->SetInsertPoint(endBB);
             return builder->CreateLoad(resultAlloc->getAllocatedType(), resultAlloc, "union_op_result");
         }
-
+        std::string lTyStr = getExpressionType((*bin)->left_node);
+        std::string rTyStr = getExpressionType((*bin)->right_node);
         L = normalizeValue(L, (*bin)->left_node);
         R = normalizeValue(R, (*bin)->right_node);
         lty = L->getType();
@@ -6849,20 +6911,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         bool isCharOperation = false;
-        if ((lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) && (op == TokenType::PLUS || op == TokenType::MINUS)) {
-            bool lIsChar = lty == builder->getInt8Ty();
-            bool rIsChar = rty == builder->getInt8Ty();
+        if ((lTyStr == "char" || rTyStr == "char") && (op == TokenType::PLUS || op == TokenType::MINUS)) {
+            bool lIsChar = lTyStr == "char";
+            bool rIsChar = rTyStr == "char";
             if (lIsChar && rIsChar) {
                 L = builder->CreateSExt(L, builder->getInt32Ty(), "char_promote");
                 R = builder->CreateSExt(R, builder->getInt32Ty(), "char_promote");
                 lty = builder->getInt32Ty();
                 rty = builder->getInt32Ty();
             } else if (lIsChar) {
-                L = builder->CreateSExt(L, rty, "char_promote");
+                L = emitPrimitiveConversion(L, "char");
                 lty = rty;
                 isCharOperation = true;
             } else if (rIsChar) {
-                R = builder->CreateSExt(R, lty, "char_promote");
+                R = emitPrimitiveConversion(R, "char");
                 rty = lty;
                 isCharOperation = true;
             }
@@ -7007,7 +7069,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                    : isCharOperation ? builder->CreateTrunc(builder->CreateSub(L, R, "sub"), builder->getInt8Ty(), "trunc_char")
                                      : builder->CreateSub(L, R, "sub");
         case TokenType::MUL:
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
+            if (lTyStr == "char" || rTyStr == "char") {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
                 return nullptr;
             }
@@ -7026,7 +7088,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             return isFloatTy ? builder->CreateFMul(L, R, "fmul") : builder->CreateMul(L, R, "mul");
         case TokenType::DIV:
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
+            if (lTyStr == "char" || rTyStr == "char") {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
                 return nullptr;
             }
@@ -7045,7 +7107,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             return isFloatTy ? builder->CreateFDiv(L, R, "fdiv") : builder->CreateSDiv(L, R, "sdiv");
         case TokenType::MOD:
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
+            if (lTyStr == "char" || rTyStr == "char") {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
                 return nullptr;
             }
@@ -7099,7 +7161,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return builder->CreateCall(rotFunc, {L, L, R}, "rottmp");
             }
         case TokenType::POWER: {
-            if (lty == builder->getInt8Ty() || rty == builder->getInt8Ty()) {
+            if (lTyStr == "char" || rTyStr == "char") {
                 cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
                 return nullptr;
             }
@@ -7384,6 +7446,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     arrayTypeStrings[name] = "char";
                 else if (elemTy->isIntegerTy(1))
                     arrayTypeStrings[name] = "bool";
+                else if (elemTy->isIntegerTy(4))
+                    arrayTypeStrings[name] = "nibble";
                 else if (elemTy->isIntegerTy(2))
                     arrayTypeStrings[name] = "qbool";
                 else if (elemTy->isPointerTy())
@@ -7426,6 +7490,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 arrayTypeStrings[name] = "double";
             else if (elemTy->isIntegerTy(8))
                 arrayTypeStrings[name] = "char";
+            else if (elemTy->isIntegerTy(4))
+                arrayTypeStrings[name] = "nibble";
             else if (elemTy->isIntegerTy(1))
                 arrayTypeStrings[name] = "bool";
             else if (elemTy->isIntegerTy(2))
@@ -8222,10 +8288,35 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         switch (op) {
                         case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
+
                         case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
+
                         case TokenType::MUL_EQ: rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal); break;
+
                         case TokenType::DIV_EQ: rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal); break;
+
                         case TokenType::MOD_EQ: rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal); break;
+
+                        case TokenType::RSH_EQ: rhsVal = builder->CreateAShr(oldVal, rhsVal); break;
+
+                        case TokenType::LSH_EQ: rhsVal = builder->CreateShl(oldVal, rhsVal); break;
+
+                        case TokenType::LRSH_EQ: rhsVal = builder->CreateLShr(oldVal, rhsVal); break;
+
+                        case TokenType::BIT_A_EQ: rhsVal = builder->CreateAnd(oldVal, rhsVal); break;
+
+                        case TokenType::BIT_O_EQ: rhsVal = builder->CreateOr(oldVal, rhsVal); break;
+
+                        case TokenType::BIT_X_EQ: rhsVal = builder->CreateXor(oldVal, rhsVal); break;
+
+                        case TokenType::LROT_EQ:
+                            rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
+                            break;
+
+                        case TokenType::RROT_EQ:
+                            rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
+                            break;
+
                         default: break;
                         }
                     }
@@ -8293,10 +8384,35 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     switch (op) {
                     case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
+
                     case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
+
                     case TokenType::MUL_EQ: rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal); break;
+
                     case TokenType::DIV_EQ: rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal); break;
+
                     case TokenType::MOD_EQ: rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal); break;
+
+                    case TokenType::RSH_EQ: rhsVal = builder->CreateAShr(oldVal, rhsVal); break;
+
+                    case TokenType::LSH_EQ: rhsVal = builder->CreateShl(oldVal, rhsVal); break;
+
+                    case TokenType::LRSH_EQ: rhsVal = builder->CreateLShr(oldVal, rhsVal); break;
+
+                    case TokenType::BIT_A_EQ: rhsVal = builder->CreateAnd(oldVal, rhsVal); break;
+
+                    case TokenType::BIT_O_EQ: rhsVal = builder->CreateOr(oldVal, rhsVal); break;
+
+                    case TokenType::BIT_X_EQ: rhsVal = builder->CreateXor(oldVal, rhsVal); break;
+
+                    case TokenType::LROT_EQ:
+                        rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
+                        break;
+
+                    case TokenType::RROT_EQ:
+                        rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
+                        break;
+
                     default: break;
                     }
                 }
@@ -8532,11 +8648,33 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         switch ((*asn)->op_tok.type) {
         case TokenType::EQ: newVal = rhsVal; break;
+
         case TokenType::PLUS_EQ: newVal = isFloatTy ? builder->CreateFAdd(oldVal, rhsVal, "fadd") : builder->CreateAdd(oldVal, rhsVal, "add"); break;
+
         case TokenType::MINUS_EQ: newVal = isFloatTy ? builder->CreateFSub(oldVal, rhsVal, "fsub") : builder->CreateSub(oldVal, rhsVal, "sub"); break;
+
         case TokenType::MUL_EQ: newVal = isFloatTy ? builder->CreateFMul(oldVal, rhsVal, "fmul") : builder->CreateMul(oldVal, rhsVal, "mul"); break;
+
         case TokenType::DIV_EQ: newVal = isFloatTy ? builder->CreateFDiv(oldVal, rhsVal, "fdiv") : builder->CreateSDiv(oldVal, rhsVal, "sdiv"); break;
+
         case TokenType::MOD_EQ: newVal = isFloatTy ? builder->CreateFRem(oldVal, rhsVal, "frem") : builder->CreateSRem(oldVal, rhsVal, "srem"); break;
+
+        case TokenType::RSH_EQ: newVal = builder->CreateAShr(oldVal, rhsVal, "ashr"); break;
+
+        case TokenType::LSH_EQ: newVal = builder->CreateShl(oldVal, rhsVal, "shl"); break;
+
+        case TokenType::LRSH_EQ: newVal = builder->CreateLShr(oldVal, rhsVal, "lshr"); break;
+
+        case TokenType::BIT_A_EQ: newVal = builder->CreateAnd(oldVal, rhsVal, "and"); break;
+
+        case TokenType::BIT_O_EQ: newVal = builder->CreateOr(oldVal, rhsVal, "or"); break;
+
+        case TokenType::BIT_X_EQ: newVal = builder->CreateXor(oldVal, rhsVal, "xor"); break;
+
+        case TokenType::LROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
+
+        case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
+
         default: cg_error((*asn)->op_tok.pos, "Unsupported assignment operator."); return nullptr;
         }
         if ((*asn)->op_tok.type == TokenType::EQ) {
@@ -9035,8 +9173,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                                   {"`to_float", "qc_to_float_from_string"},
                                                                                   {"`to_double", "qc_to_double_from_string"},
                                                                                   {"`to_char", "qc_to_char_from_string"},
-                                                                                  {"`to_bool", "qc_to_bool_from_int"},
+                                                                                  {"`to_bool", "qc_to_bool_from_string"},
                                                                                   {"`to_string", "qc_to_string_int"},
+                                                                                  {"`to_byte", "qc_to_byte_from_string"},
+                                                                                  {"`to_nibble", "qc_to_nibble_from_string"},
                                                                                   {"`to_addr_t", "qc_to_addr_t_from_string"},
                                                                                   {"`to_qbool", "qc_to_qbool_from_string"},
                                                                                   {"`to_long_int", "qc_to_long_int_from_string"},
@@ -9120,8 +9260,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string typeName = "unknown";
                     if (argTy->isIntegerTy(32))
                         typeName = "int";
+                    else if (argTy->isIntegerTy(4)) 
+                        typeName = "nibble";
                     else if (argTy->isIntegerTy(64))
-                        typeName = "uintptr_t";
+                        typeName = "addr_t";
                     if (argTy->isIntegerTy(16))
                         typeName = "short int";
                     else if (argTy->isFloatTy())
@@ -9359,7 +9501,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (!itgVal || !itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos, "%u formater takes an int-like (int, "
                                                                          "long int, short "
-                                                                         "int, addr_t)");
+                                                                         "int, addr_t, nibble, byte)");
                                 return nullptr;
                             }
                             llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
@@ -9695,7 +9837,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
-                            if (aTy->isIntegerTy(32) || aTy->isIntegerTy(64) || aTy->isIntegerTy(16)) {
+                            if (aTy->isIntegerTy(32) || aTy->isIntegerTy(64) || aTy->isIntegerTy(16) || aTy->isIntegerTy(4)) {
                                 builder->CreateCall(printString,
                                                     {builder->CreateCall(fmtInt, {builder->CreateZExt(val, builder->getIntNTy(getPtrSize())),
                                                                                   llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), width),
@@ -9850,6 +9992,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "addr_t");
                 }
+                if (funcName == "`to_byte" && !call.arg_nodes.empty()) {
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "byte");
+                }
+                if (funcName == "`to_nibble" && !call.arg_nodes.empty()) {
+                    llvm::Value* arg = emitExpr(call.arg_nodes.front());
+                    if (!arg) return nullptr;
+                    return emitBuiltinConversion(arg, "nibble");
+                } 
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isIntegerTy())) {
@@ -10103,7 +10255,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else if (output_types.size() > 1) {
                         return_ty = llvm::StructType::get(context, output_types);
                     }
-                    llvm::FunctionType* fn_ty = llvm::FunctionType::get(return_ty, input_types, false);  
+                    llvm::FunctionType* fn_ty = llvm::FunctionType::get(return_ty, input_types, false);
                     std::string constraints;
                     bool first = true;
                     for (auto& [idx, op] : unique_outputs) {
@@ -11278,6 +11430,8 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
         fnName = "qc_to_string_bool";
     else if (ty->isIntegerTy(2))
         fnName = "qc_to_string_qbool";
+    else if (ty->isIntegerTy(4))
+        fnName = "qc_to_string_nibble";
     else if (ty->isIntegerTy(8))
         fnName = "qc_to_string_char";
     else {
@@ -13709,9 +13863,9 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 llvm::MemoryBufferRef bufRef(irString, "runtime.ll");
                 auto modulePtr = llvm::parseIR(bufRef, err, context);
                 if (!modulePtr) {
-    err.print("runtime.ll", llvm::errs());
-    throw "Failed to load runtime.ll";
-}
+                    err.print("runtime.ll", llvm::errs());
+                    throw "Failed to load runtime.ll";
+                }
                 if (llvm::Linker::linkModules(*master_module, std::move(modulePtr))) { throw "Failed to link runtime module"; }
             }
             std::unordered_map<std::string, std::unordered_map<std::string, FunctionSignature>> db_sigs;
@@ -13925,6 +14079,8 @@ Token Lexer::make_number() {
     bool is_short = false;
     bool is_hex = false;
     bool is_addrt = false;
+    bool is_byte = false;
+    bool is_nibble = false;
     if (this->current_char == '0') {
         switch (this->text[this->pos.index + 1]) {
         case 'x':
@@ -13970,7 +14126,13 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        }
+        } else if (this->current_char == 'b') {
+            this->advance();
+            return Token(TokenType::BYTE, std::to_string(val), start_pos);
+        } else if (this->current_char == 'n') {
+            this->advance();
+            return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
+        } 
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
         int passed = 0;
@@ -13995,7 +14157,13 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        }
+        } else if (this->current_char == 'b') {
+            this->advance();
+            return Token(TokenType::BYTE, std::to_string(val), start_pos);
+        } else if (this->current_char == 'n') {
+            this->advance();
+            return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
+        } 
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
         int passed = 0;
@@ -14020,11 +14188,17 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        }
+        } else if (this->current_char == 'b') {
+            this->advance();
+            return Token(TokenType::BYTE, std::to_string(val), start_pos);
+        } else if (this->current_char == 'n') {
+            this->advance();
+            return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
+        } 
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
         int passed = 0;
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsa'")) {
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsabn'")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
                     this->advance();
@@ -14049,6 +14223,14 @@ Token Lexer::make_number() {
                 is_addrt = true;
                 this->advance();
                 break;
+            } else if (this->current_char == 'b') {
+                this->advance();
+                is_byte = true;
+                break;
+            } else if (this->current_char == 'n') {
+                this->advance();
+                is_nibble = true;
+                break;
             } else {
                 if (passed == 3 && this->current_char == '\'') {
                     passed = 0;
@@ -14067,6 +14249,8 @@ Token Lexer::make_number() {
         if (is_long) return Token(TokenType::LONG_DOUBLE, num, start_pos);
         return Token(TokenType::DOUBLE, num, start_pos);
     }
+    if (is_byte) return Token(TokenType::BYTE, num, start_pos);
+    if (is_nibble) return Token(TokenType::NIBBLE, num, start_pos);
     if (is_addrt) return Token(TokenType::ADDR_T, num, start_pos);
     if (is_long) return Token(TokenType::LONG_INT, num, start_pos);
     if (is_short) return Token(TokenType::SHORT_INT, num, start_pos);
@@ -14085,7 +14269,7 @@ Token Lexer::make_identifier() {
         id == "enum" || id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || id == "foreach" || id == "do" ||
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
         id == "function" || id == "namespace" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" ||
-        id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict") {
+        id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" || id == "nibble") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }
@@ -14476,8 +14660,18 @@ Ler Lexer::make_tokens() {
                     this->advance();
                     if (current_char == '<') {
                         this->advance();
+                        if (this->current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::LROT_EQ, "<<<=", start_pos));
+                            break;
+                        }
                         tokens.push_back(Token(TokenType::L_ROT, "<<<", start_pos));
                     } else {
+                        if (this->current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::LSH_EQ, "<<=", start_pos));
+                            break;
+                        }
                         tokens.push_back(Token(TokenType::LSHIFT, "<<", start_pos));
                     }
                 } else if (current_char == '=') {
@@ -14539,6 +14733,11 @@ Ler Lexer::make_tokens() {
                         tokens.push_back(Token(TokenType::COLLAPSE_AND, "&|&", start_pos));
                     }
                 } else {
+                    if (this->current_char == '=') {
+                        this->advance();
+                        tokens.push_back(Token(TokenType::BIT_A_EQ, "&=", start_pos));
+                        break;
+                    }
                     tokens.push_back(Token(TokenType::AMPERSAND, "&", start_pos));
                     break;
                 }
@@ -14563,11 +14762,26 @@ Ler Lexer::make_tokens() {
                     this->advance();
                     if (this->current_char == '>') {
                         this->advance();
-                        tokens.push_back(Token(TokenType::R_ROT, ">>>", start_pos));
+                        if (this->current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::RROT_EQ, "|>>=", start_pos));
+                            break;
+                        }
+                        tokens.push_back(Token(TokenType::R_ROT, "|>>", start_pos));
                     } else {
+                        if (this->current_char == '=') {
+                            this->advance();
+                            tokens.push_back(Token(TokenType::RSH_EQ, "|>=", start_pos));
+                            break;
+                        }
                         tokens.push_back(Token(TokenType::RSHIFT, "|>", start_pos));
                     }
                 } else {
+                    if (this->current_char == '=') {
+                        this->advance();
+                        tokens.push_back(Token(TokenType::BIT_O_EQ, "|=", start_pos));
+                        break;
+                    }
                     tokens.push_back(Token(TokenType::PIPE, "|", start_pos));
                     break;
                 }
@@ -14605,6 +14819,11 @@ Ler Lexer::make_tokens() {
                     break;
                 } else if (current_char == '>') {
                     this->advance();
+                    if (this->current_char == '=') {
+                        this->advance();
+                        tokens.push_back(Token(TokenType::LRSH_EQ, ":>=", start_pos));
+                        break;
+                    }
                     tokens.push_back(Token(TokenType::LOGICAL_RSHIFT, ":>", start_pos));
                     break;
                 } else {
@@ -14628,8 +14847,13 @@ Ler Lexer::make_tokens() {
                 tokens.push_back(Token(TokenType::DOT, ".", start_pos));
                 break;
             case '$':
-                tokens.push_back(Token(TokenType::BITWISE_XOR, "$", start_pos));
                 this->advance();
+                if (this->current_char == '=') {
+                    this->advance();
+                    tokens.push_back(Token(TokenType::BIT_X_EQ, "$=", start_pos));
+                    break;
+                }
+                tokens.push_back(Token(TokenType::BITWISE_XOR, "$", start_pos));
                 break;
             case '~':
                 tokens.push_back(Token(TokenType::BITWISE_NOT, "~", start_pos));

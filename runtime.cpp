@@ -309,7 +309,33 @@ char* qc_to_string_double(double x) {
     memcpy(out, buf, n + 1);
     return out;
 } // self hosted
-
+char* qc_to_string_addr_t(uintptr_t x) {
+    char buf[32];
+    int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);
+    if (n < 0) return nullptr;
+    char* out = (char*)malloc(n + 1);
+    if (!out) return nullptr;
+    memcpy(out, buf, n + 1);
+    return out;
+} // self hosted
+char* qc_to_string_byte(uint8_t x) {
+    char buf[32];
+    int n = snprintf(buf, sizeof(buf), "%u", x);
+    if (n < 0) return nullptr;
+    char* out = (char*)malloc(n + 1);
+    if (!out) return nullptr;
+    memcpy(out, buf, n + 1);
+    return out;
+} // self hosted
+char* qc_to_string_nibble(uint8_t x) {
+    char buf[32];
+    int n = snprintf(buf, sizeof(buf), "%u" PRIdPTR, x);
+    if (n < 0) return nullptr;
+    char* out = (char*)malloc(n + 1);
+    if (!out) return nullptr;
+    memcpy(out, buf, n + 1);
+    return out;
+} // self hosted
 char* qc_to_string_bool(bool b) {
     const char* s = b ? "true" : "false";
     size_t len = strlen(s);
@@ -520,6 +546,13 @@ intptr_t qc_to_long_int_from_string(const char* str) {
 size_t qc_to_addr_t_from_string(const char* str) {
     return str ? static_cast<size_t>(strtoull(str, nullptr, 10)) : 0;
 } // self hosted
+uint8_t qc_to_nibble_from_string(const char* str) {
+    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10)) : 0;
+}
+uint8_t qc_to_byte_from_string(const char* str) {
+    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10)) : 0;
+}
+
 float qc_to_float_from_string(const char* str) {
     return str ? (float)atof(str) : 0.0f;
 } // self hosted

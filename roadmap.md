@@ -102,25 +102,25 @@ __qc_build_date() — timestamp of the build
 __qc_target_triple() — what platform/arch this runtime was compiled for (x86_64-linux-gnu, wasm32-unknown-unknown, etc.) — relevant since your lesson context here is literally about compiling toward WASM/LLVM targets
 __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
+- actually make operators do things because aparantly they dont.
 - atomics
 - byte (u8) type
 - nibble (u4) type
 TOP PRIORITY:
-1. `byte`, `nibble`, combinational bitwise
-2. Error system + diagnostics overhaul
-3. -L, -A
-4. Try/Catch.
-5. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
-6. Token/ident/type/keyword/usertype direct type (parser refactor)
-7. Empty arrays.
-8. Static and Friend
-9. Codeblocks.
-10. Concepts
-11. Modifier (x1.0.0)
-12. Variadics on generics
-13. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-14. Other stuff + Variadic Generics
-15. Metadata
+1. Error system + diagnostics overhaul
+2. -L, -A
+3. Try/Catch.
+4. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
+5. Token/ident/type/keyword/usertype direct type (parser refactor)
+6. Empty arrays.
+7. Static and Friend
+8. Codeblocks.
+9. Concepts
+10. Modifier (x1.0.0)
+11. Variadics on generics
+12. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+13. Other stuff + Variadic Generics
+14. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -142,7 +142,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-16. Preproccessers
+15. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -151,5 +151,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-17. User-Defined metadata
-18. User-Defined macro _functions_ (the only good thing in rust)
+16. User-Defined metadata
+17. User-Defined macro _functions_ (the only good thing in rust)

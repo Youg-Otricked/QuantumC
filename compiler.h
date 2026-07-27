@@ -118,6 +118,8 @@ enum class TokenType {
     SHORT_INT,
     STRING,
     FLOAT,
+    BYTE,
+    NIBBLE,
     ADDR_T,
     DOUBLE,
     CHAR,
@@ -136,6 +138,8 @@ enum class TokenType {
     LSHIFT,
     RSHIFT,
     SCOPE,
+    LSH_EQ,
+    RSH_EQ,
     SEMICOLON,
     DEF,
     INCREMENT,
@@ -160,9 +164,15 @@ enum class TokenType {
     XOR,
     BITWISE_NOT,
     BITWISE_XOR,
+    BIT_X_EQ,
     R_ROT,
     L_ROT,
+    RROT_EQ,
+    LROT_EQ,
     LOGICAL_RSHIFT,
+    LRSH_EQ,
+    BIT_A_EQ,
+    BIT_O_EQ,
     VARADIC,
     NOT,
     EQ,
@@ -1289,6 +1299,31 @@ class LLVMCompiler {
             llvm::AllocaInst* temp = createEntryAlloca("enum_int", builder->getInt32Ty());
             builder->CreateStore(builder->getInt32(i), temp);
             return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
+        } else if (type == "long int") {
+            long long i = std::stoll(value);
+            llvm::AllocaInst* temp = createEntryAlloca("enum_long_int", builder->getIntNTy(getPtrSize()));
+            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), i, true), temp);
+            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
+        } else if (type == "short int") {
+            long long i = std::stoll(value);
+            llvm::AllocaInst* temp = createEntryAlloca("enum_short_int", builder->getInt16Ty());
+            builder->CreateStore(builder->getInt16(i), temp);
+            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
+        } else if (type == "addr_t") {
+            long long i = std::stoll(value);
+            llvm::AllocaInst* temp = createEntryAlloca("enum_addr_t", builder->getIntNTy(getPtrSize()));
+            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), i, false), temp);
+            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
+        } else if (type == "byte") {
+            long long i = std::stoll(value);
+            llvm::AllocaInst* temp = createEntryAlloca("enum_byte", builder->getInt8Ty());
+            builder->CreateStore(builder->getInt8(i), temp);
+            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
+        } else if (type == "nibble") {
+            long long i = std::stoll(value);
+            llvm::AllocaInst* temp = createEntryAlloca("enum_nibble", builder->getIntNTy(4));
+            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(4), i, false), temp);
+            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
         } else if (type == "float") {
             float f = std::stof(value);
             llvm::AllocaInst* temp = createEntryAlloca("enum_float", builder->getFloatTy());
@@ -1515,10 +1550,10 @@ class LLVMCompiler {
         } else if (auto binOp = std::get_if<BinOpNode*>(&node)) {
             std::string leftType = getExpressionType((*binOp)->left_node);
             std::string rightType = getExpressionType((*binOp)->right_node);
+            if (leftType == "char" && rightType == "char") return "int";
             if (leftType == rightType) return leftType;
             if (leftType == "double" || rightType == "double") return "double";
             if (leftType == "float" || rightType == "float") return "float";
-            if (leftType == "char" && rightType == "char") return "int";
             return leftType;
         } else if (auto strNode = std::get_if<StringNode>(&node)) {
             return "string";
@@ -1531,6 +1566,8 @@ class LLVMCompiler {
             case TokenType::LONG_INT: return "long int";
             case TokenType::SHORT_INT: return "short int";
             case TokenType::ADDR_T: return "addr_t";
+            case TokenType::BYTE: return "byte";
+            case TokenType::NIBBLE: return "nibble";
             default: break;
             }
         } else if (auto boolNode = std::get_if<BoolNode>(&node)) {
@@ -1634,6 +1671,8 @@ class LLVMCompiler {
                 if (funcName == "`to_qbool") return "qbool";
                 if (funcName == "`to_long_int") return "long int";
                 if (funcName == "`to_short_int") return "short int";
+                if (funcName == "`to_byte") return "byte";
+                if (funcName == "`to_nibble") return "nibble";
                 if (funcName == "`open") return "int";
                 if (funcName == "`close" || funcName == "`write" || funcName == "`free" || funcName == "`flush") return "void";
                 if (funcName == "`malloc" || funcName == "`calloc" || funcName == "`realloc" || funcName == "`mapped_ptr") return "void*";
@@ -1972,6 +2011,22 @@ class LLVMCompiler {
                 return builder->CreateZExtOrTrunc(arg, retTy);
             else if (ty->isFloatTy() || ty->isDoubleTy())
                 return builder->CreateFPToUI(arg, retTy);
+        } else if (target == "byte") {
+            retTy = builder->getInt8Ty();
+            if (ty->isPointerTy())
+                fnName = "qc_to_byte_from_string";
+            else if (ty->isIntegerTy())
+                return builder->CreateZExtOrTrunc(arg, retTy);
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToUI(arg, retTy);
+        } else if (target == "nibble") {
+            retTy = builder->getIntNTy(getPtrSize());
+            if (ty->isPointerTy())
+                fnName = "qc_to_nibble_from_string";
+            else if (ty->isIntegerTy())
+                return builder->CreateZExtOrTrunc(arg, retTy);
+            else if (ty->isFloatTy() || ty->isDoubleTy())
+                return builder->CreateFPToUI(arg, retTy);
         }
 
         if (fnName.empty() || !retTy) {
@@ -2023,6 +2078,10 @@ class LLVMCompiler {
                 resultTy = builder->getIntNTy(getPtrSize());
             else if (target == "short int")
                 resultTy = builder->getInt16Ty();
+            else if (target == "nibble")
+                resultTy = builder->getIntNTy(4);
+            else if (target == "byte")
+                resultTy = builder->getInt8Ty();
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
@@ -2087,6 +2146,10 @@ class LLVMCompiler {
                 resultTy = builder->getIntNTy(getPtrSize());
             else if (target == "short int")
                 resultTy = builder->getInt16Ty();
+            else if (target == "nibble")
+                resultTy = builder->getIntNTy(4);
+            else if (target == "byte") 
+                resultTy = builder->getInt8Ty();
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
@@ -2437,14 +2500,14 @@ class LLVMCompiler {
                                 return nullptr;
                             }
                         } else if (generic.constraint == "numeric") {
-                            if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                            if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "byte", "nibble", "long double", "short int", "long int"})
                                       .contains(value))) {
                                 cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                                 return nullptr;
                             }
                         } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
                             static const std::unordered_set<std::string> native_types = {
-                                "int", "double", "float", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
+                                "int", "double", "float", "addr_t", "byte", "nibble",  "long double", "short int", "long int", "char", "bool", "qbool", "string"};
                             auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                             if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                                 if (generic.constraint == "usertype") {
@@ -2777,13 +2840,13 @@ class LLVMCompiler {
                         return nullptr;
                     }
                 } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                    if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                               .contains(value))) {
                         cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
                                                                                  "long int", "char",   "bool",  "qbool",  "string"};
                     auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                     if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
@@ -2947,13 +3010,13 @@ class LLVMCompiler {
                         return nullptr;
                     }
                 } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "long double", "short int", "long int"})
+                    if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                               .contains(value))) {
                         cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
+                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
                                                                                  "long int", "char",   "bool",  "qbool",  "string"};
                     auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                     if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
@@ -3272,8 +3335,8 @@ class LLVMCompiler {
         return baseName;
     }
     std::string resolveTypeName(std::string name, bool strip = true) {
-        if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
-            name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double" || name == "addr_t") {
+        if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" || name == "byte" ||
+            name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double" || name == "addr_t" || name == "nibble") {
             return name;
         }
         std::string suffix;
@@ -3721,7 +3784,7 @@ class LLVMCompiler {
 
             bool matches = false;
 
-            if (type == "int" || type == "float" || type == "double" || type == "addr_t") {
+            if (type == "int" || type == "float" || type == "double" || type == "addr_t" || type == "long int" || type == "short int" || type == "long double" || type == "nibble" || type == "byte") {
                 if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
                     if (numNode->tok.value == value) { matches = true; }
                 }

@@ -838,7 +838,12 @@ string __qc_to_string_addr_t(addr_t x) {
     output[index] = '\0';
     return output;
 }
-
+string qc_to_string_nibble(nibble x) {
+    return __qc_to_string_addr_t(x);
+}
+string qc_to_string_byte(byte x) {
+    return __qc_to_string_addr_t(x);
+}
 string qc_to_string_long_int(long int x) {
     return __qc_to_string_long_int_helper(x);
 }
@@ -1343,6 +1348,12 @@ short int qc_to_short_int_from_string(string str) {
 }
 addr_t qc_to_addr_t_from_string(string str) {
     return qc_to_long_int_from_string(str);
+}
+byte qc_to_byte_from_string(string str) {
+    return `to_byte(qc_to_long_int_from_string(str));
+}
+nibble qc_to_nibble_from_string(string str) {
+    return `to_nibble(qc_to_long_int_from_string(str));
 }
 double qc_to_double_from_string(string str) {
     if (!str) return 0.0;
