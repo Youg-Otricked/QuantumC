@@ -107,8 +107,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.21.0 = "`byte`, `nibble`, combinational bitwise"
-Next Version: x0.22.0 = "Overhaul the error system while not becoming C++"
+Current Version: x0.22.0 = "Better Errors"
+Next Version: x0.22.1 = "-L, -A"
 
 # Current Version Highlights
 
@@ -120,10 +120,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Systemsy stuff
+└─ QOL
 
 Minor
-└─ N/A
+└─ Overhauled the error system
 
 Patch
 └─ N/A
@@ -131,15 +131,10 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.18.* -> x0.20.*`)
+These are deprecations in the past 3 moderate versions (`x0.20.* -> x0.22.*`)
 
-1. Deletion of interpreter
-2. Removal of built-in `list` and `map` collection types
-3. Removal of `namespace UnitTest` from the standard library (better version coming version `x1.X.X+`)
-4. Deprecation of `auto` params and returns to functions and methods
-5. Deprecated spread (`@`) in function calls
-6. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
-7. All intrinsics now start with `\``
+1. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
+2. All intrinsics now start with `\``
 
 ## Feature Roadmap
 

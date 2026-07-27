@@ -26,6 +26,20 @@
 #include <print>
 #endif
 bool isCharInSet(char, const std::string&);
+inline int levenshteinDistance(std::string& a, std::string& b) { // hehe fancy word
+    std::vector<int> prev(b.size() + 1);
+    std::vector<int> curr(b.size() + 1);
+    for (size_t j = 0; j <= b.size(); j++) prev[j] = j;
+    for (size_t i = 1; i <= a.size(); i++) {
+        curr[0] = i;
+        for (size_t j = 1; j <= b.size(); j++) {
+            int cost = a[i - 1] == b[j - 1] ? 0 : 1;
+            curr[j] = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
+        }
+        std::swap(prev, curr);
+    }
+    return prev[b.size()];
+}
 std::string trim(const std::string& str);
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,13 +54,13 @@ class Position {
   public:
     std::string Filename;
     std::string Filetxt;
-    int index;
-    int line;
-    int column;
-    int length = 1;
+    size_t index;
+    size_t line;
+    size_t column;
+    size_t length = 1;
     Position();
-    std::string arrow_string() const;
-    Position(std::string, std::string, int, int, int);
+    std::string arrow_string(size_t context = 2) const;
+    Position(std::string, std::string, size_t, size_t, size_t);
     void advance(char current_char);
     Position copy();
     bool operator==(const Position&) const = default;
@@ -87,8 +101,6 @@ class QBoolNode;
 class QIfNode;
 class QSwitchNode;
 class ArrayAssignNode;
-class SeedCallNode;
-class RandomCallNode;
 class FieldAssignNode;
 class MapLiteralNode;
 class TryCatchNode;
@@ -98,8 +110,7 @@ using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, B
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
-                             SpreadNode*, ForeachNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*, FieldAssignNode*, MapLiteralNode*,
-                             NamespaceNode*, TryCatchNode*>;
+                             SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -232,32 +243,66 @@ class Error {
 
 class IllegalCharError : public Error {
   public:
-    IllegalCharError(std::string details, Position pos) : Error("Illegal Character", details, pos) {}
-    std::string as_string() override;
+    IllegalCharError(std::string details, Position pos) : Error("illegal character", details, pos) {}
 };
 
 class InvalidSyntaxError : public Error {
   public:
-    InvalidSyntaxError(std::string details, Position pos) : Error("Invalid Syntax: ", details, pos) {}
-    std::string as_string() override;
+    InvalidSyntaxError(std::string details, Position pos) : Error("invalid syntax: ", details, pos) {}
 };
 
 class MissingSemicolonError : public Error {
   public:
-    MissingSemicolonError(Position pos) : Error("Expected Semicolon on line and char", " ", pos) {}
-    std::string as_string() override;
+    MissingSemicolonError(Position pos) : Error("QC-MS99", "expected semicolon", pos) {}
 };
-
+class Note {
+  public:
+    Position pos;
+    std::string message;
+    Note(const Position& pos, const std::string& message) : pos(pos), message(message) {}
+    std::string as_string() const {
+        std::string result;
+        result += "note: ";
+        result += message;
+        result += "\n";
+        result += "   --> ";
+        result += pos.Filename;
+        result += ":";
+        result += std::to_string(pos.line + 1);
+        result += ":";
+        result += std::to_string(pos.column + 1);
+        result += "\n";
+        result += pos.arrow_string(0);
+        return result;
+    }
+};
 class CTError : public Error {
   public:
-    CTError(std::string d, Position pos, bool is_warning = false) : Error("Error: ", d, pos) { this->is_warning = is_warning; }
+    CTError(std::string d, Position pos, bool is_warning = false, std::string code = "", std::vector<Note> notes = {}) : Error(code, d, pos) {
+        this->is_warning = is_warning;
+        this->notes = notes;
+    }
     bool is_warning = false;
+    std::vector<Note> notes;
     std::string as_string() override {
         std::string result;
-        result += (is_warning ? "Warning: " : "Compile-time Error: ") + this->details + "\n";
-        result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
-                  "\n\n";
+        result += (is_warning ? "warning " : "error ");
+        result += this->error_name;
+        if (!this->details.empty()) { result += ": " + this->details; }
+        result += "\n";
+        result += " --> ";
+        result += this->pos.Filename;
+        result += ":";
+        result += std::to_string(this->pos.line + 1);
+        result += ":";
+        result += std::to_string(this->pos.column + 1);
+        result += "\n";
         result += this->pos.arrow_string();
+        for (const auto& note : notes) {
+            result += "\n\033[0m\033[36m  ";
+            result += note.as_string();
+            result += "\033[0m";
+        }
         return result;
     }
 };
@@ -275,6 +320,137 @@ struct GenericType {
     bool negated = false;
     std::vector<std::string> subconstraints;
 };
+
+class Parameter;
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// VALUE NODES //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+std::string printAny(const AnyNode& node);
+Position get_pos(AnyNode node);
+class QInNode {
+  public:
+    QInNode() {}
+
+    std::string print() const { return "std::qin"; }
+};
+class CharNode {
+  public:
+    Token tok;
+    CharNode(Token t) : tok(t) {}
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
+};
+
+class NumberNode {
+  public:
+    Token tok;
+    NumberNode(Token tok);
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
+};
+
+class StringNode {
+  public:
+    Token tok;
+    StringNode(Token tok);
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
+};
+
+class BoolNode {
+  public:
+    Token tok;
+    BoolNode(Token tok);
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
+};
+class QBoolNode {
+  public:
+    Token tok;
+    QBoolNode(Token tok);
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
+};
+class NullptrNode {
+  public:
+    Position pos;
+    NullptrNode(Position p) : pos(p) {}
+    Position getPos() { return this->pos; }
+    std::string print() const { return "nullptr"; }
+};
+class RefVarDeclNode {
+  public:
+    Token type_tok;
+    Token var_name_tok;
+    Token target_tok;
+    Position pos;
+    Position getPos() { return this->pos; }
+    RefVarDeclNode(Token type, Token name, Token target, Position p) : var_name_tok(name), target_tok(target), pos(p) {
+        type.value.erase(type.value.find_last_not_of('&') + 1);
+        this->type_tok = type;
+    }
+    std::string print() const { return this->type_tok.value; }
+};
+//////////////////////////////////////////////////////////////////////////////////////////////
+// StatementsNode ///////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+class StatementsNode {
+  public:
+    std::vector<AnyNode> statements;
+    bool is_block = false;
+    Position getPos() { return statements.empty() ? Position("", "", 0, 0, 0) : get_pos(statements[0]); }
+    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false) : statements(stmts), is_block(is_block) {}
+    std::string print() const;
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// OTHER NODES //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////
+class Parameter {
+  public:
+    Token type;
+    Token name;
+    std::optional<AnyNode> default_value;
+    class FunctionSignature {
+      public:
+        std::vector<Token> return_types;
+        std::vector<Parameter> params;
+        std::string print() const {
+            std::string res = "fn(";
+            for (size_t i = 0; i < params.size(); i++) {
+                res += params[i].toString();
+                if (i + 1 != params.size()) res += ", ";
+            }
+            res += ") -> ";
+            if (return_types.empty())
+                res += "void";
+            else
+                for (size_t i = 0; i < return_types.size(); i++) {
+                    res += return_types[i].value;
+                    if (i + 1 != return_types.size()) res += ", ";
+                }
+            return res;
+        }
+    };
+    std::string toString() const {
+        std::string res = isVolatile ? "volatile " : "";
+        return res + (signature.has_value() ? signature.value().print() : type.value + " " + name.value) +
+               (default_value.has_value() ? (" = " + printAny(default_value.value())) : "");
+    }
+    std::optional<FunctionSignature> signature;
+    bool isVolatile = false;
+};
+struct ParamTypeInfo {
+    Token type;
+    struct FunctionSignature {
+        std::vector<Token> return_types;
+        std::vector<ParamTypeInfo> params;
+    };
+    Token name;
+    std::optional<FunctionSignature> signature;
+    bool isVolatile = false;
+};
 struct StructField {
     std::string name;
     std::string type;
@@ -288,8 +464,9 @@ struct ClassField {
     std::string type;
     std::string access;
 };
-struct Parameter;
-struct ClassMethodInfo {
+
+class ClassMethodInfo {
+  public:
     Token name_tok;
     std::vector<Parameter> params;
     std::vector<Token> return_types;
@@ -299,6 +476,20 @@ struct ClassMethodInfo {
     bool is_final = false;
     bool is_volatile = false;
     std::vector<GenericType> generics;
+    std::string print() {
+        std::string res = is_volatile ? "volatile " : "";
+        if (is_final) res += " final ";
+        res += access + " " + name_tok.value + "(";
+        for (int i = 0; i < return_types.size(); i++) {
+            res += return_types[i].value;
+            if (i + 1 < return_types.size()) { res += ", "; }
+        }
+        for (int i = 0; i < params.size(); i++) {
+            res += params[i].toString();
+            if (i + 1 < return_types.size()) res += ", ";
+        }
+        return res;
+    }
 };
 
 enum class UserTypeKind { Struct, Alias, Union, Enum, Class };
@@ -338,114 +529,14 @@ struct Mer {
     std::vector<Diagnostic> errors;
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-// VALUE NODES //////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-std::string printAny(const AnyNode& node);
-class QInNode {
-  public:
-    QInNode() {}
-
-    std::string print() const { return "std::qin"; }
-};
-class CharNode {
-  public:
-    Token tok;
-    CharNode(Token t) : tok(t) {}
-    std::string print() const;
-};
-
-class NumberNode {
-  public:
-    Token tok;
-    NumberNode(Token tok);
-    std::string print() const;
-};
-
-class StringNode {
-  public:
-    Token tok;
-    StringNode(Token tok);
-    std::string print() const;
-};
-
-class BoolNode {
-  public:
-    Token tok;
-    BoolNode(Token tok);
-    std::string print() const;
-};
-class QBoolNode {
-  public:
-    Token tok;
-    QBoolNode(Token tok);
-    std::string print() const;
-};
-class NullptrNode {
-  public:
-    Position pos;
-    NullptrNode(Position p) : pos(p) {}
-    std::string print() const { return "nullptr"; }
-};
-class RefVarDeclNode {
-  public:
-    Token type_tok;
-    Token var_name_tok;
-    Token target_tok;
-    Position pos;
-
-    RefVarDeclNode(Token type, Token name, Token target, Position p) : var_name_tok(name), target_tok(target), pos(p) {
-        type.value.erase(type.value.find_last_not_of('&') + 1);
-        this->type_tok = type;
-    }
-    std::string print() const { return this->type_tok.value; }
-};
-//////////////////////////////////////////////////////////////////////////////////////////////
-// StatementsNode ///////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-class StatementsNode {
-  public:
-    std::vector<AnyNode> statements;
-    bool is_block = false;
-
-    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false) : statements(stmts), is_block(is_block) {}
-
-    std::string print() const;
-};
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// OTHER NODES //////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////
-struct Parameter {
-    Token type;
-    Token name;
-    std::optional<AnyNode> default_value;
-    struct FunctionSignature {
-        std::vector<Token> return_types;
-        std::vector<Parameter> params;
-    };
-    std::optional<FunctionSignature> signature;
-    bool isVolatile = false;
-};
-struct ParamTypeInfo {
-    Token type;
-    struct FunctionSignature {
-        std::vector<Token> return_types;
-        std::vector<ParamTypeInfo> params;
-    };
-    Token name;
-    std::optional<FunctionSignature> signature;
-    bool isVolatile = false;
-};
 class BinOpNode {
   public:
     bool is_f;
     AnyNode left_node;
     Token op_tok;
     AnyNode right_node;
-
+    Position getPos() { return op_tok.pos; }
     BinOpNode(AnyNode left, Token op, AnyNode right, bool is_f = false) : left_node(left), op_tok(op), right_node(right) { this->is_f = is_f; }
-
     std::string print() const;
 };
 
@@ -454,7 +545,7 @@ class UnaryOpNode {
     Token op_tok;
     AnyNode node;
     bool is_postfix;
-
+    Position getPos() { return op_tok.pos; }
     UnaryOpNode(Token op, AnyNode n, bool postfix = false) : op_tok(op), node(n), is_postfix(postfix) {}
     std::string print() const;
 };
@@ -465,7 +556,7 @@ class AssignExprNode {
     AnyNode value;
     Token op_tok;
     AssignExprNode(AnyNode t, Token op, AnyNode v) : target(t), op_tok(op), value(v) {}
-
+    Position getPos() { return op_tok.pos; }
     std::string print() { return "(" + printAny(target) + " = " + printAny(value) + ")"; }
 };
 
@@ -475,7 +566,7 @@ class VarAssignNode {
     Token type_tok;
     Token var_name_tok;
     AnyNode value_node;
-
+    Position getPos() { return var_name_tok.pos; }
     VarAssignNode(bool is_const, Token type, Token name, AnyNode value) : is_const(is_const), type_tok(type), var_name_tok(name), value_node(value) {}
 
     std::string print() const;
@@ -484,7 +575,7 @@ class VarAssignNode {
 class VarAccessNode {
   public:
     Token var_name_tok;
-
+    Position getPos() { return var_name_tok.pos; }
     VarAccessNode(Token name) : var_name_tok(name) {}
 
     std::string print() const;
@@ -497,7 +588,7 @@ class IfNode {
     StatementsNode* then_branch;
     std::vector<std::pair<AnyNode, StatementsNode*>> elif_branches;
     StatementsNode* else_branch;
-
+    Position getPos() { return get_pos(condition); }
     IfNode(std::optional<AnyNode> init_node, AnyNode cond, StatementsNode* then_b, std::vector<std::pair<AnyNode, StatementsNode*>> elifs = {},
            StatementsNode* else_b = nullptr)
         : init(init_node), condition(cond), then_branch(then_b), elif_branches(elifs), else_branch(else_b) {}
@@ -511,7 +602,7 @@ class QIfNode {
     StatementsNode* then_branch;
     std::vector<std::pair<AnyNode, StatementsNode*>> qelif_branches;
     StatementsNode* qelse_branch;
-
+    Position getPos() { return get_pos(condition); }
     QIfNode(std::optional<AnyNode> init_stmt, AnyNode cond, StatementsNode* then_b, std::vector<std::pair<AnyNode, StatementsNode*>> qelif_b,
             StatementsNode* qelse_b)
         : init(init_stmt), condition(cond), then_branch(then_b), qelif_branches(qelif_b), qelse_branch(qelse_b) {}
@@ -531,7 +622,7 @@ class SwitchNode {
         StatementsNode* body;
     };
     std::vector<Section> sections;
-
+    Position getPos() { return get_pos(value); }
     std::string print() { return printAny(value); }
 };
 class QSwitchNode {
@@ -541,7 +632,7 @@ class QSwitchNode {
     StatementsNode* case_f;
     StatementsNode* case_n;
     StatementsNode* case_b;
-
+    Position getPos() { return get_pos(value); }
     QSwitchNode(AnyNode val, StatementsNode* t, StatementsNode* f, StatementsNode* n, StatementsNode* b)
         : value(val), case_t(t), case_f(f), case_n(n), case_b(b) {}
 
@@ -553,6 +644,7 @@ class BreakNode {
     Token tok;
     BreakNode(Token t) : tok(t) {}
     std::string print() { return "(break)"; }
+    Position getPos() { return tok.pos; }
 };
 
 class WhileNode {
@@ -560,6 +652,7 @@ class WhileNode {
     AnyNode condition;
     StatementsNode* body;
 
+    Position getPos() { return get_pos(condition); }
     WhileNode(AnyNode cond, StatementsNode* b) : condition(cond), body(b) {}
 
     std::string print() { return "(while " + printAny(condition) + " " + body->print() + ")"; }
@@ -572,10 +665,12 @@ class TryCatchNode {
     StatementsNode* catch_body;
     Token tok;
     Position pos;
-
+    Position getPos() { return tok.pos; }
     TryCatchNode(StatementsNode* try_b, std::string var_name, std::string var_type, StatementsNode* catch_b, Token t, Position p)
         : try_body(try_b), catch_var_name(var_name), catch_var_type(var_type), catch_body(catch_b), tok(t), pos(p) {}
-    std::string print() { return "try {\n\t" + try_body->print() + "\n} catch {\n\t" + catch_body->print() + "\n}"; }
+    std::string print() {
+        return "try {\n\t" + try_body->print() + "\n} catch (" + catch_var_type + " " + catch_var_name + ") {\n\t" + catch_body->print() + "\n}";
+    }
 };
 class ForNode {
   public:
@@ -584,6 +679,7 @@ class ForNode {
     std::optional<AnyNode> update;
     StatementsNode* body;
 
+    Position getPos() { return get_pos(condition); }
     ForNode(std::optional<AnyNode> i, AnyNode cond, std::optional<AnyNode> u, StatementsNode* b) : init(i), condition(cond), update(u), body(b) {}
 
     std::string print() {
@@ -600,6 +696,7 @@ class ContinueNode {
   public:
     Token tok;
     ContinueNode(Token t) : tok(t) {}
+    Position getPos() { return tok.pos; }
     std::string print() { return "(continue)"; }
 };
 
@@ -623,6 +720,13 @@ class FuncDefNode {
         this->generics = generics;
         this->is_volatile = is_volatile;
     }
+    Position getPos() {
+        if (name_tok.has_value()) return name_tok.value().pos;
+
+        if (return_types.empty()) return get_pos(body);
+
+        return return_types[0].pos;
+    }
     std::string print() {
         std::string result = "";
         for (size_t i = 0; i < return_types.size(); i++) {
@@ -643,14 +747,14 @@ class CallNode {
     AnyNode node_to_call;
     std::list<AnyNode> arg_nodes;
     CallNode(AnyNode node, std::list<AnyNode> args) : node_to_call(node), arg_nodes(args) {}
-
+    Position getPos() { return get_pos(node_to_call); }
     std::string print() { return printAny(node_to_call) + "(args)"; }
 };
 class MultiReturnNode {
   public:
     std::vector<AnyNode> values;
     Position pos;
-
+    Position getPos() { return pos; }
     MultiReturnNode(std::vector<AnyNode> vals, Position p) : values(vals), pos(p) {}
 
     std::string print() {
@@ -669,7 +773,7 @@ class MultiVarDeclNode {
     std::vector<Token> type_toks;
     std::vector<Token> var_names;
     AnyNode value;
-
+    Position getPos() { return var_names[0].pos; };
     MultiVarDeclNode(bool is_const, std::vector<Token> type_toks, std::vector<Token> var_names, AnyNode value)
         : is_const(is_const), type_toks(type_toks), var_names(var_names), value(value) {}
 };
@@ -679,7 +783,7 @@ class ArrayDeclNode {
     Token type_tok;
     Token var_name_tok;
     AnyNode value;
-
+    Position getPos() { return var_name_tok.pos; }
     int dimensions;
     std::vector<std::optional<int>> sizes;
 
@@ -704,7 +808,7 @@ class ArrayLiteralNode {
   public:
     std::vector<AnyNode> elements;
     Position pos;
-
+    Position getPos() { return pos; }
     ArrayLiteralNode(std::vector<AnyNode> elems, Position p) : elements(elems), pos(p) {}
 
     std::string print() {
@@ -720,7 +824,7 @@ class MapLiteralNode {
   public:
     std::vector<std::pair<AnyNode, AnyNode>> pairs;
     Position pos;
-
+    Position getPos() { return pos; }
     MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos) : pairs(p), pos(pos) {}
 
     std::string print() const { return "map<>"; }
@@ -729,7 +833,7 @@ class ArrayAccessNode {
   public:
     AnyNode base;
     std::vector<AnyNode> indices;
-
+    Position getPos() { return get_pos(base); }
     ArrayAccessNode(AnyNode base_node, std::vector<AnyNode> idxs) : base(base_node), indices(idxs) {}
 
     std::string print() {
@@ -747,7 +851,7 @@ class MethodCallNode {
     AnyNode base;
     Token method_name;
     std::vector<AnyNode> args;
-
+    Position getPos() { return method_name.pos; }
     MethodCallNode(AnyNode base_node, Token method, std::vector<AnyNode> arguments) : base(base_node), method_name(method), args(arguments) {}
 
     std::string print() { return printAny(base) + "." + method_name.value + "(...)"; }
@@ -756,7 +860,7 @@ class ReturnNode {
   public:
     AnyNode value;
     Position pos;
-
+    Position getPos() { return pos; }
     ReturnNode(AnyNode val, Position p) : value(val), pos(p) {}
 
     std::string print() { return "return " + printAny(value); }
@@ -768,13 +872,13 @@ class PropertyAccessNode {
     Token base_name_tok;
     PropertyAccessNode(AnyNode base_node, Token base_name, Token prop)
         : base(new AnyNode(base_node)), base_name_tok(base_name), property_name(prop) {}
-
+    Position getPos() { return property_name.pos; }
     std::string print() { return printAny(*base) + "." + property_name.value; }
 };
 class SpreadNode {
   public:
     AnyNode expr;
-
+    Position getPos() { return get_pos(expr); }
     SpreadNode(AnyNode expression) : expr(expression) {}
 
     std::string print() { return "@" + printAny(expr); }
@@ -785,7 +889,7 @@ class ForeachNode {
     Token elem_name;
     AnyNode collection;
     AnyNode body;
-
+    Position getPos() { return elem_name.pos; }
     ForeachNode(Token type, Token name, AnyNode coll, AnyNode body_stmt) : elem_type(type), elem_name(name), collection(coll), body(body_stmt) {}
 
     std::string print() { return "foreach (" + elem_type.value + " " + elem_name.value + " in ...)"; }
@@ -795,7 +899,7 @@ class FieldAssignNode {
     AnyNode base;
     Token field_name;
     AnyNode value;
-
+    Position getPos() { return field_name.pos; }
     FieldAssignNode(AnyNode b, Token f, AnyNode v) : base(b), field_name(f), value(v) {}
     std::string print() const { return printAny(base) + "." + field_name.value + " = " + printAny(value); }
 };
@@ -803,37 +907,20 @@ class ArrayAssignNode {
   public:
     AnyNode array_access;
     AnyNode value;
-
+    Position getPos() { return get_pos(array_access); }
     ArrayAssignNode(AnyNode access, AnyNode val) : array_access(access), value(val) {}
 
     std::string print() const { return "array_assign"; }
 };
-class RandomCallNode {
-  public:
-    std::vector<AnyNode> args;
-
-    RandomCallNode(std::vector<AnyNode> a) : args(a) {}
-
-    std::string print() const { return "random()"; }
-};
-
-class SeedCallNode {
-  public:
-    AnyNode value;
-
-    SeedCallNode(AnyNode val) : value(val) {}
-
-    std::string print() const { return "seed()"; }
-};
 class NamespaceNode {
   public:
     std::string name;
+    Position pos;
     std::vector<AnyNode> body;
-
-    NamespaceNode(std::string name, std::vector<AnyNode> body) : name(name), body(body) {}
+    Position getPos() { return pos; }
+    NamespaceNode(std::string name, std::vector<AnyNode> body, Position pos) : name(name), body(body) { this->pos = pos; }
     std::string print() { return "namespace " + name; }
 };
-
 //////////////////////////////////////////////////////////////////////////////////////////////
 // PARSE RESULT /////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -842,8 +929,8 @@ using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, Ch
                          VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
-                         QSwitchNode*, ArrayAssignNode*, SeedCallNode*, RandomCallNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*,
-                         TryCatchNode*, RefVarDeclNode, NullptrNode>;
+                         QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode,
+                         NullptrNode>;
 
 class ParseResult {
   public:
@@ -1244,8 +1331,12 @@ class LLVMCompiler {
         std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes, std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
         std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals);
     bool is_main;
-    void cg_warn(const Position& pos, const std::string& msg);
-    void cg_error(const Position& pos, const std::string& msg);
+    void cg_warn(const Position& pos, const std::string& msg, std::string code = "");
+    void cg_error(const Position& pos, const std::string& msg, std::string code = "");
+    void cg_note(const Position& pos, const std::string& msg) {
+        if (errors.empty()) return;
+        errors.back().notes.emplace_back(pos, msg);
+    }
     std::vector<CTError> errors;
     llvm::BasicBlock* currentBreakBB = nullptr;
     llvm::BasicBlock* currentContinueBB = nullptr;
@@ -1470,9 +1561,7 @@ class LLVMCompiler {
         }
         return false;
     }
-    unsigned getPtrSize() {
-        return pointerSizeBits; 
-    }
+    unsigned getPtrSize() { return pointerSizeBits; }
 #define hasVarType(name) foundInStack(varTypesStack, name)
 #define hasLocal(name) foundInStack(localsStack, name)
 #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
@@ -1680,21 +1769,26 @@ class LLVMCompiler {
                 if (funcName == "`typeof") { return "string"; }
                 if (funcName == "`ternary") {
                     if ((*callNode)->arg_nodes.size() < 3) {
-                        cg_error(Position(), "Too few args to ternary");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `ternary");
+                        cg_note((*varAcc)->var_name_tok.pos, "`ternary expects 3 arguments: condition, true_value, false_value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
                     }
                     return getExpressionType(*std::next((*callNode)->arg_nodes.begin()));
                 }
                 if (funcName == "`next") {
                     if ((*callNode)->arg_nodes.size() < 2) {
-                        cg_error(Position(), "Too few args to `next");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `next");
+                        cg_note((*varAcc)->var_name_tok.pos, "`next expects 2 arguments");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
                     }
                     auto node = *std::next((*callNode)->arg_nodes.begin());
                     if (auto str = std::get_if<StringNode>(&node)) {
                         return resolveTypeName(substituteGenerics(str->tok.value), false);
                     } else {
-                        cg_error(Position(), "Arg 2 to `next is a comptime string");
+                        cg_error((*varAcc)->var_name_tok.pos, "arg 2 to `next is a comptime string");
+                        cg_error((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
                         return "unknown";
                     }
                 }
@@ -1798,12 +1892,25 @@ class LLVMCompiler {
             llvm::StructType* classTy = genericiseOrFindClass(typeName);
             int fieldIdx = getFlattenedFieldIndex(baseTypeName(typeName), propName);
             if (fieldIdx == -1) {
-                cg_error(prop.property_name.pos, "Field not found in class " + typeName + ": " + propName);
+                cg_error(prop.property_name.pos, "field " + propName + " not found in class " + typeName);
+                if (propName.length() > 3) {
+                    std::vector<std::pair<int, std::string>> suggestions;
+                    for (auto& field : userTypes[baseTypeName(typeName)].classFields) {
+                        int distance = levenshteinDistance(propName, field.name);
+                        if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                    }
+                    std::sort(suggestions.begin(), suggestions.end());
+                    if (!suggestions.empty()) {
+                        std::string note = "similar fields:";
+                        for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                        cg_note(prop.property_name.pos, note);
+                    }
+                }
                 return nullptr;
             }
             auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(typeName), propName);
             if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                cg_error(prop.property_name.pos, "Cannot access " + fieldAccess + " field: " + propName);
+                cg_error(prop.property_name.pos, "cannot access " + fieldAccess + " field " + propName);
                 return nullptr;
             }
             return builder->CreateStructGEP(classTy, baseAddr, fieldIdx, propName + "_ptr");
@@ -1819,7 +1926,21 @@ class LLVMCompiler {
                 }
             }
             if (fieldIdx == -1) {
-                cg_error(prop.property_name.pos, "Field not found in struct " + typeName + ": " + propName);
+                cg_error(prop.property_name.pos, "field " + propName + " not found in struct " + typeName);
+                if (propName.length() > 3) {
+                    std::vector<std::pair<int, std::string>> suggestions;
+                    for (auto& field : userTypes[baseTypeName(typeName)].fields) {
+                        int distance = levenshteinDistance(propName, field.name);
+                        if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                    }
+                    std::sort(suggestions.begin(), suggestions.end());
+                    if (!suggestions.empty()) {
+                        std::string note = "similar fields:";
+                        for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                        cg_note(prop.property_name.pos, note);
+                    }
+                }
+
                 return nullptr;
             }
             return builder->CreateStructGEP(structTy, baseAddr, fieldIdx, propName + "_ptr");
@@ -1852,7 +1973,7 @@ class LLVMCompiler {
                 }
             }
         }
-        cg_error(prop.property_name.pos, "Cannot resolve address for property '" + propName + "' on type '" + typeName + "'");
+        cg_error(prop.property_name.pos, "cannot resolve address for property '" + propName + "' on type '" + typeName + "'");
         return nullptr;
     }
     llvm::StructType* getOrCreateStructType(std::vector<llvm::Type*> fields, const std::string& name) {
@@ -2148,7 +2269,7 @@ class LLVMCompiler {
                 resultTy = builder->getInt16Ty();
             else if (target == "nibble")
                 resultTy = builder->getIntNTy(4);
-            else if (target == "byte") 
+            else if (target == "byte")
                 resultTy = builder->getInt8Ty();
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
@@ -2215,7 +2336,7 @@ class LLVMCompiler {
             if (!isUnionType(srcTy) && paramTy == unionTy) {
                 int tag = findUnionVariantTag(unionName, argNode, v);
                 if (tag == -1) {
-                    cg_error(Position(), "Argument doesn't match union variant for parameter " + std::to_string(argIndex));
+                    cg_error(get_pos(argNode), "argument doesn't match union variant for " + unionName + " parameter " + std::to_string(argIndex));
                     return nullptr;
                 }
 
@@ -2247,7 +2368,7 @@ class LLVMCompiler {
             if (!isEnumType(srcTy) && paramTy == enumTy) {
                 int tag = findEnumVariantTag(enumName, argNode, v);
                 if (tag == -1) {
-                    cg_error(Position(), "Argument doesn't match enum variant for parameter " + std::to_string(argIndex));
+                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex));
                     return nullptr;
                 }
 
@@ -2276,18 +2397,10 @@ class LLVMCompiler {
             }
             return v;
         }
-        if (srcTy->isFloatTy() && paramTy->isDoubleTy()) {
-            return builder->CreateFPExt(v, paramTy, "arg_fpext");
-        }
-        if (srcTy->isDoubleTy() && paramTy->isFloatTy()) {
-            return builder->CreateFPTrunc(v, paramTy, "arg_fptrunc");
-        }
-        if (srcTy->isIntegerTy() && paramTy->isFloatingPointTy()) {
-            return builder->CreateSIToFP(v, paramTy, "arg_sitofp");
-        }
-        if (srcTy->isFloatingPointTy() && paramTy->isIntegerTy()) {
-            return builder->CreateFPToSI(v, paramTy, "arg_fptosi");
-        }
+        if (srcTy->isFloatTy() && paramTy->isDoubleTy()) { return builder->CreateFPExt(v, paramTy, "arg_fpext"); }
+        if (srcTy->isDoubleTy() && paramTy->isFloatTy()) { return builder->CreateFPTrunc(v, paramTy, "arg_fptrunc"); }
+        if (srcTy->isIntegerTy() && paramTy->isFloatingPointTy()) { return builder->CreateSIToFP(v, paramTy, "arg_sitofp"); }
+        if (srcTy->isFloatingPointTy() && paramTy->isIntegerTy()) { return builder->CreateFPToSI(v, paramTy, "arg_fptosi"); }
         return v;
     }
     std::vector<llvm::Value*> emitAdaptedArgs(const std::list<AnyNode>& argNodes, llvm::FunctionType* fnTy,
@@ -2301,7 +2414,7 @@ class LLVMCompiler {
                 if (auto* varAccess = std::get_if<VarAccessNode*>(&argNode)) {
                     v = getVarAddress((*varAccess)->var_name_tok.value);
                 } else {
-                    cg_error(Position(), "L-value required for reference parameter");
+                    cg_error(get_pos(argNode), "L-value required for reference parameter");
                     return {};
                 }
             } else {
@@ -2483,7 +2596,7 @@ class LLVMCompiler {
                     GenericType generic = classInfo.generics[i];
                     if (genericParams.size() <= i) {
                         if (generic.defaultValue.empty()) {
-                            cg_error(Position(), "Too few generic params for class " + className);
+                            cg_error(get_pos(node), "too few generic params for class " + className);
                             return nullptr;
                         }
                     }
@@ -2496,27 +2609,29 @@ class LLVMCompiler {
                     if (!generic.isNonType && !generic.isVariadic) {
                         if (generic.constraint == "pointer") {
                             if (!(value.ends_with("*"))) {
-                                cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                                cg_error(get_pos(node), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                                 return nullptr;
                             }
                         } else if (generic.constraint == "numeric") {
-                            if (!(std::unordered_set<std::string>({"int", "double", "float", "addr_t", "byte", "nibble", "long double", "short int", "long int"})
+                            if (!(std::unordered_set<std::string>(
+                                      {"int", "double", "float", "addr_t", "byte", "nibble", "long double", "short int", "long int"})
                                       .contains(value))) {
-                                cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                                cg_error(get_pos(node), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                                 return nullptr;
                             }
                         } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                            static const std::unordered_set<std::string> native_types = {
-                                "int", "double", "float", "addr_t", "byte", "nibble",  "long double", "short int", "long int", "char", "bool", "qbool", "string"};
+                            static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "addr_t",   "byte",
+                                                                                         "nibble", "long double", "short int", "long int", "char",
+                                                                                         "bool",   "qbool",       "string"};
                             auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                             if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                                 if (generic.constraint == "usertype") {
-                                    cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                                    cg_error(get_pos(node), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                                     return nullptr;
                                 }
                             } else {
                                 if (generic.constraint == "primitive") {
-                                    cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                                    cg_error(get_pos(node), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                                     return nullptr;
                                 }
                             }
@@ -2525,7 +2640,7 @@ class LLVMCompiler {
                             if (generic.negated) {
                                 for (std::string subconstraint : generic.subconstraints) {
                                     if (value == subconstraint) {
-                                        cg_error(Position(),
+                                        cg_error(get_pos(node),
                                                  "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                         return nullptr;
                                     }
@@ -2536,7 +2651,7 @@ class LLVMCompiler {
                                     if (value == subconstraint) { is_valid = true; }
                                 }
                                 if (!is_valid) {
-                                    cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                                    cg_error(get_pos(node), "Generic constrait " + generic.name + " does not except type " + value);
                                     return nullptr;
                                 }
                             }
@@ -2547,7 +2662,7 @@ class LLVMCompiler {
                         GenericType generic = classInfo.generics[i];
                         if (genericParams.size() <= i) {
                             if (generic.defaultValue.empty()) {
-                                cg_error(Position(), "Too few generic params for class " + className);
+                                cg_error(get_pos(node), "Too few generic params for class " + className);
                                 return nullptr;
                             }
                         }
@@ -2581,6 +2696,54 @@ class LLVMCompiler {
             return emitMethodCall(fn, thisPtr, args, methodName);
         }
         return nullptr;
+    }
+    void addConstructorNotes(const std::string& className, const std::vector<llvm::Value*>& args, Position pos) {
+        auto& methods = userTypes[baseTypeName(className)].classMethods;
+        struct Candidate {
+            int score;
+            ClassMethodInfo* method;
+        };
+        std::vector<Candidate> candidates;
+        for (auto& method : methods) {
+            if (!method.is_constructor) continue;
+            int score = 0;
+            size_t argCount = args.size();
+            size_t paramCount = method.params.size();
+            score -= std::abs((int)argCount - (int)paramCount) * 5;
+            size_t count = std::min(argCount, paramCount);
+            for (size_t i = 0; i < count; i++) {
+                llvm::Type* argTy = args[i]->getType();
+                llvm::Type* paramTy = llvmTypeFor(method.params[i].type.value);
+                if (argTy == paramTy) {
+                    score += 3;
+                } else if ((argTy->isIntegerTy() || argTy->isFloatTy() || argTy->isDoubleTy()) &&
+                           (paramTy->isIntegerTy() || paramTy->isFloatTy() || paramTy->isDoubleTy())) {
+                    score += 1;
+                } else if (argTy->isPointerTy() && paramTy->isPointerTy()) {
+                    score += 1;
+                } else {
+                    score -= 3;
+                }
+            }
+            candidates.push_back({score, &method});
+        }
+        if (candidates.empty()) return;
+        std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+        if (candidates[0].score > 0) { cg_note(pos, "closest matching constructor: " + candidates[0].method->print()); }
+        if (candidates.size() <= 5) {
+            std::string note = "available constructors:";
+            for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
+            cg_note(pos, note);
+        } else {
+            std::string note = "other constructors:";
+            size_t shown = 0;
+            for (auto& candidate : candidates) {
+                if (shown >= 3) break;
+                note += "\n  - " + candidate.method->print();
+                shown++;
+            }
+            cg_note(pos, note);
+        }
     }
     std::string fixMangling(std::string type) { return buildMangledName(baseTypeName(type), genericParamsFromName(type)); }
     std::vector<llvm::Value*> reconcileArgs(llvm::Function* func, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args) {
@@ -2755,7 +2918,6 @@ class LLVMCompiler {
             return builder->CreateInBoundsGEP(arrTy, tmp, {zero, zero}, "decayptr");
         }
         if (v->getType()->isPointerTy()) return v;
-        cg_error({}, "Cannot decay non-array type to pointer for function call");
         return nullptr;
     }
     llvm::Value* emitVirtualOrDirectCall(const std::string& ty, const std::string& methodName, llvm::Value* payload,
@@ -2823,7 +2985,7 @@ class LLVMCompiler {
             GenericType generic = method.generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for function " + method.name_tok.value);
+                    cg_error(method.name_tok.pos, "Too few generic params for function " + method.name_tok.value);
                     return nullptr;
                 }
             }
@@ -2836,27 +2998,29 @@ class LLVMCompiler {
             if (!generic.isNonType && !generic.isVariadic) {
                 if (generic.constraint == "pointer") {
                     if (!(value.ends_with("*"))) {
-                        cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                        cg_error(method.name_tok.pos, "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                    if (!(std::unordered_set<std::string>(
+                              {"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                               .contains(value))) {
-                        cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                        cg_error(method.name_tok.pos, "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
-                                                                                 "long int", "char",   "bool",  "qbool",  "string"};
+                    static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "byte",     "nibble",
+                                                                                 "addr_t", "long double", "short int", "long int", "char",
+                                                                                 "bool",   "qbool",       "string"};
                     auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                     if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                         if (generic.constraint == "usertype") {
-                            cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                            cg_error(method.name_tok.pos, "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                             return nullptr;
                         }
                     } else {
                         if (generic.constraint == "primitive") {
-                            cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                            cg_error(method.name_tok.pos, "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                             return nullptr;
                         }
                     }
@@ -2865,7 +3029,7 @@ class LLVMCompiler {
                     if (generic.negated) {
                         for (std::string subconstraint : generic.subconstraints) {
                             if (value == subconstraint) {
-                                cg_error(Position(),
+                                cg_error(method.name_tok.pos,
                                          "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                 return nullptr;
                             }
@@ -2876,7 +3040,7 @@ class LLVMCompiler {
                             if (value == subconstraint) { is_valid = true; }
                         }
                         if (!is_valid) {
-                            cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                            cg_error(method.name_tok.pos, "Generic constrait " + generic.name + " does not except type " + value);
                             return nullptr;
                         }
                     }
@@ -2887,7 +3051,7 @@ class LLVMCompiler {
                 GenericType generic = method.generics[i];
                 if (genericParams.size() <= i) {
                     if (generic.defaultValue.empty()) {
-                        cg_error(Position(), "Too few generic params for class " + method.name_tok.value);
+                        cg_error(method.name_tok.pos, "Too few generic params for method " + method.name_tok.value);
                         return nullptr;
                     }
                 }
@@ -2993,7 +3157,7 @@ class LLVMCompiler {
             GenericType generic = funcDef->generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for function " + funcDef->name_tok.value().value);
+                    cg_error(get_pos(funcDef), "Too few generic params for function " + funcDef->name_tok.value().value);
                     return nullptr;
                 }
             }
@@ -3006,27 +3170,29 @@ class LLVMCompiler {
             if (!generic.isNonType && !generic.isVariadic) {
                 if (generic.constraint == "pointer") {
                     if (!(value.ends_with("*"))) {
-                        cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                        cg_error(get_pos(funcDef), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                    if (!(std::unordered_set<std::string>(
+                              {"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                               .contains(value))) {
-                        cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                        cg_error(get_pos(funcDef), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                         return nullptr;
                     }
                 } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
-                                                                                 "long int", "char",   "bool",  "qbool",  "string"};
+                    static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "byte",     "nibble",
+                                                                                 "addr_t", "long double", "short int", "long int", "char",
+                                                                                 "bool",   "qbool",       "string"};
                     auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                     if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                         if (generic.constraint == "usertype") {
-                            cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                            cg_error(get_pos(funcDef), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                             return nullptr;
                         }
                     } else {
                         if (generic.constraint == "primitive") {
-                            cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                            cg_error(get_pos(funcDef), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                             return nullptr;
                         }
                     }
@@ -3035,7 +3201,7 @@ class LLVMCompiler {
                     if (generic.negated) {
                         for (std::string subconstraint : generic.subconstraints) {
                             if (value == subconstraint) {
-                                cg_error(Position(),
+                                cg_error(get_pos(funcDef),
                                          "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                                 return nullptr;
                             }
@@ -3046,7 +3212,7 @@ class LLVMCompiler {
                             if (value == subconstraint) { is_valid = true; }
                         }
                         if (!is_valid) {
-                            cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                            cg_error(get_pos(funcDef), "Generic constrait " + generic.name + " does not except type " + value);
                             return nullptr;
                         }
                     }
@@ -3057,7 +3223,7 @@ class LLVMCompiler {
                 GenericType generic = funcDef->generics[i];
                 if (genericParams.size() <= i) {
                     if (generic.defaultValue.empty()) {
-                        cg_error(Position(), "Too few generic params for class " + funcDef->name_tok.value().value);
+                        cg_error(get_pos(funcDef), "Too few generic params for class " + funcDef->name_tok.value().value);
                         return nullptr;
                     }
                 }
@@ -3113,7 +3279,7 @@ class LLVMCompiler {
                         pos = t.find("[]", pos + 2);
                     }
                     if (dims > 0) {
-                        cg_warn(Position(),
+                        cg_warn(get_pos(funcDef),
                                 "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
                                     size_t pos = 0;
                                     while ((pos = str.find("[]", pos)) != std::string::npos) {
@@ -3335,8 +3501,9 @@ class LLVMCompiler {
         return baseName;
     }
     std::string resolveTypeName(std::string name, bool strip = true) {
-        if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" || name == "byte" ||
-            name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double" || name == "addr_t" || name == "nibble") {
+        if (name == "int" || name == "float" || name == "double" || name == "char" || name == "bool" || name == "qbool" || name == "string" ||
+            name == "byte" || name == "void" || name == "auto" || name == "short int" || name == "long int" || name == "long double" ||
+            name == "addr_t" || name == "nibble") {
             return name;
         }
         std::string suffix;
@@ -3460,6 +3627,23 @@ class LLVMCompiler {
         if (hasLocal(name)) return findLocal(name)->second;
         if (globals.count(name)) return globals[name];
         return nullptr;
+    }
+
+    std::vector<std::string> getVisibleVariables() {
+        std::vector<std::string> vars;
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string prefix = current.empty() ? "" : current + "::";
+            for (auto& [name, type] : varTypes) {
+                if (!name.starts_with(prefix)) continue;
+                std::string relative = name.substr(prefix.size());
+                vars.push_back(relative);
+            }
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+        }
+        return vars;
     }
     std::string resolveVarType(const std::string& name) {
         if (name.find("::") != std::string::npos) {
@@ -3784,7 +3968,8 @@ class LLVMCompiler {
 
             bool matches = false;
 
-            if (type == "int" || type == "float" || type == "double" || type == "addr_t" || type == "long int" || type == "short int" || type == "long double" || type == "nibble" || type == "byte") {
+            if (type == "int" || type == "float" || type == "double" || type == "addr_t" || type == "long int" || type == "short int" ||
+                type == "long double" || type == "nibble" || type == "byte") {
                 if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
                     if (numNode->tok.value == value) { matches = true; }
                 }

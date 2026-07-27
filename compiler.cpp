@@ -85,32 +85,39 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
 Position::Position() {
 }
-std::string Position::arrow_string() const {
-    if (Filetxt.empty() || index < 0 || index > (int)Filetxt.size()) { return "\n"; }
-
-    int start = index;
-    while (start > 0 && Filetxt[start - 1] != '\n') start--;
-
-    int end = index;
-    while (end < (int)Filetxt.size() && Filetxt[end] != '\n') end++;
-
-    if (start < 0) start = 0;
-    if (end < start) end = start;
-
-    std::string line = Filetxt.substr(start, end - start);
-
-    std::string result = "\n";
-    result += line + "\n";
-
-    int col = std::max(0, column);
-    int len = std::max(1, length);
-
-    result += std::string(col, ' ');
-    result += std::string(len, '^');
-    result += "\n";
+std::string Position::arrow_string(size_t context) const {
+    if (Filetxt.empty() || index < 0 || index > Filetxt.size()) { return "\n"; }
+    std::vector<std::string> lines;
+    std::stringstream ss(Filetxt);
+    std::string temp;
+    while (std::getline(ss, temp)) { lines.push_back(temp); }
+    size_t current = line;
+    size_t first = (current >= context) ? current - context : 0;
+    size_t last = std::min(current + context, lines.size() - 1);
+    std::string result;
+    int width = std::to_string(last + 1).size();
+    for (int i = first; i <= last; i++) {
+        std::string num = std::to_string(i + 1);
+        result += "  ";
+        result += std::string(width - num.size(), ' ');
+        result += num;
+        result += " | ";
+        result += lines[i];
+        result += "\n";
+        if (i == current) {
+            result += "  ";
+            result += std::string(width, ' ');
+            result += " | ";
+            size_t col = column < 0 ? 0 : static_cast<size_t>(column);
+            size_t len = length < 1 ? 1 : static_cast<size_t>(length);
+            result += std::string(col, ' ');
+            result += std::string(len, '^');
+            result += "\n";
+        }
+    }
     return result;
 }
-Position::Position(std::string Filename, std::string Filetxt, int index, int line, int column) {
+Position::Position(std::string Filename, std::string Filetxt, size_t index, size_t line, size_t column) {
     this->Filename = Filename;
     this->Filetxt = Filetxt;
     this->index = index;
@@ -251,32 +258,21 @@ std::string Token::print() const {
 Error::Error(std::string err, std::string details, Position pos) {
     this->details = details;
     this->error_name = err;
-    this->pos = pos.copy();
+    this->pos = pos;
 }
 std::string Error::as_string() {
-    return std::format("{}: {} (File {}, Line {}:{})", this->error_name, this->details, this->pos.Filename, this->pos.line, this->pos.column);
-}
-std::string MissingSemicolonError::as_string() {
     std::string result;
-    result += "QC-MS99: Missing Semicolon on ";
-    result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
-              "\n\n";
-    result += this->pos.arrow_string();
-    return result;
-}
-std::string InvalidSyntaxError::as_string() {
-    std::string result;
-    result += "Invalid Syntax: " + this->details + "\n";
-    result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
-              "\n\n";
-    result += this->pos.arrow_string();
-    return result;
-}
-std::string IllegalCharError::as_string() {
-    std::string result;
-    result += "Illegal Charecter: " + this->details + "\n";
-    result += "File " + this->pos.Filename + ", line " + std::to_string(this->pos.line + 1) + ", col " + std::to_string(this->pos.column + 1) +
-              "\n\n";
+    result += "error";
+    if (!this->error_name.empty()) { result += " " + this->error_name; }
+    if (!this->details.empty()) { result += ": " + this->details; }
+    result += "\n";
+    result += " --> ";
+    result += this->pos.Filename;
+    result += ":";
+    result += std::to_string(this->pos.line + 1);
+    result += ":";
+    result += std::to_string(this->pos.column + 1);
+    result += "\n";
     result += this->pos.arrow_string();
     return result;
 }
@@ -317,6 +313,19 @@ AnyNode clone_node(const AnyNode& node) {
                 return new ArrayAccessNode(clone_node(arg->base), cloned_indices);
             } else {
                 throw std::runtime_error("Cannot clone complex node type");
+            }
+        },
+        node);
+}
+Position get_pos(AnyNode node) {
+    return std::visit(
+        [](auto& n) -> Position {
+            if constexpr (requires { n.getPos(); }) {
+                return n.getPos();
+            } else if constexpr (requires { n->getPos(); }) {
+                return n->getPos();
+            } else {
+                return Position("", "", 0, 0, 0);
             }
         },
         node);
@@ -395,10 +404,6 @@ std::string printAny(const AnyNode& node) {
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return arg.print();
             } else if constexpr (std::is_same_v<T, ArrayAssignNode*>) {
-                return arg->print();
-            } else if constexpr (std::is_same_v<T, RandomCallNode*>) {
-                return arg->print();
-            } else if constexpr (std::is_same_v<T, SeedCallNode*>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, FieldAssignNode*>) {
                 return arg->print();
@@ -580,10 +585,6 @@ Prs ParseResult::success(AnyNode node) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, ArrayAssignNode*>) {
                 return Prs{arg};
-            } else if constexpr (std::is_same_v<T, RandomCallNode*>) {
-                return Prs{arg};
-            } else if constexpr (std::is_same_v<T, SeedCallNode*>) {
-                return Prs{arg};
             } else if constexpr (std::is_same_v<T, FieldAssignNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, MapLiteralNode*>) {
@@ -673,10 +674,6 @@ Prs ParseResult::to_prs() {
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, ArrayAssignNode*>) {
-                return Prs{arg};
-            } else if constexpr (std::is_same_v<T, RandomCallNode*>) {
-                return Prs{arg};
-            } else if constexpr (std::is_same_v<T, SeedCallNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, FieldAssignNode*>) {
                 return Prs{arg};
@@ -1662,8 +1659,9 @@ Prs Parser::atom() {
         return this->qin_expr();
     }
 
-    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T || tok.type == TokenType::BYTE ||
-        tok.type == TokenType::LONG_INT || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE || tok.type == TokenType::NIBBLE) {
+    if (tok.type == TokenType::INT || tok.type == TokenType::FLOAT || tok.type == TokenType::DOUBLE || tok.type == TokenType::ADDR_T ||
+        tok.type == TokenType::BYTE || tok.type == TokenType::LONG_INT || tok.type == TokenType::SHORT_INT || tok.type == TokenType::LONG_DOUBLE ||
+        tok.type == TokenType::NIBBLE) {
         this->advance();
         return res.success(NumberNode(tok));
     } else if (tok.type == TokenType::STRING) {
@@ -3324,7 +3322,8 @@ Prs Parser::statement() {
                         GenericType curr;
                         if (this->current_tok.type != TokenType::IDENTIFIER) {
                             if (this->current_tok.type == TokenType::KEYWORD &&
-                                std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+                                std::unordered_set<std::string>(
+                                    {"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                     .contains(this->current_tok.value)) {
                                 curr.isNonType = true;
                                 curr.nonTypeKind = this->current_tok.value;
@@ -3759,7 +3758,7 @@ Prs Parser::statement() {
             }
         }
 
-        return res.success(new NamespaceNode(nsName.value, body));
+        return res.success(new NamespaceNode(nsName.value, body, nsName.pos));
     }
     if (tok.type == TokenType::KEYWORD && tok.value == "struct") {
         this->advance();
@@ -4053,9 +4052,10 @@ Prs Parser::statement() {
         };
 
         auto is_type_or_literal_token = [&](TokenType tt) {
-            return tt == TokenType::STRING || tt == TokenType::IDENTIFIER || tt == TokenType::KEYWORD || tt == TokenType::INT || tt == TokenType::NIBBLE || 
-                   tt == TokenType::FLOAT || tt == TokenType::DOUBLE || tt == TokenType::ADDR_T || tt == TokenType::BOOL || tt == TokenType::QBOOL ||
-                   tt == TokenType::CHAR || tt == TokenType::LONG_INT || tt == TokenType::SHORT_INT || tt == TokenType::LONG_DOUBLE || tt == TokenType::BYTE;
+            return tt == TokenType::STRING || tt == TokenType::IDENTIFIER || tt == TokenType::KEYWORD || tt == TokenType::INT ||
+                   tt == TokenType::NIBBLE || tt == TokenType::FLOAT || tt == TokenType::DOUBLE || tt == TokenType::ADDR_T || tt == TokenType::BOOL ||
+                   tt == TokenType::QBOOL || tt == TokenType::CHAR || tt == TokenType::LONG_INT || tt == TokenType::SHORT_INT ||
+                   tt == TokenType::LONG_DOUBLE || tt == TokenType::BYTE;
         };
 
         if (!is_type_or_literal_token(this->current_tok.type)) {
@@ -4643,15 +4643,14 @@ Aer Parser::parse() {
                     if (arg->name_tok.has_value() && arg->name_tok->value == entrypointName) {
                         if (arg->return_types.empty() || arg->return_types[0].value != "int") {
                             std::string actual = arg->return_types.empty() ? "void" : arg->return_types[0].value;
-                            throw InvalidSyntaxError("the entrypoint must return int, not " + actual,
-                                                     arg->return_types.empty() ? Position() : arg->return_types[0].pos);
+                            throw InvalidSyntaxError("the entrypoint must return int, not " + actual, get_pos(arg));
                         }
                         if (!arg->params.empty() && (arg->params.front().type.value != "string[]" &&
                                                      ((((arg->params.size())) == 2 &&
                                                        (arg->params.front().type.value != "int" || arg->params.back().type.value != "char**"))))) {
                             throw InvalidSyntaxError(
                                 "the entrypoint must have no parameters, take a integer argc and a char** argv, or take a array of strings.",
-                                arg->return_types.empty() ? Position() : arg->return_types[0].pos);
+                                get_pos(arg));
                         }
                         if (!arg->params.empty()) {
                             if (arg->params.front().type.value == "string[]") {
@@ -4674,7 +4673,8 @@ Aer Parser::parse() {
     }
 
     if (!has_main && !no_main) {
-        return Aer{nullptr, new Error("Missing the entrypoint function", "Program must have an 'int entrypointname()' function", Position())};
+        return Aer{nullptr,
+                   new Error("Missing the entrypoint function", "Program must have an 'int entrypointname()' function", Position("", "", 0, 0, 0))};
     }
     for (auto& [name, ut] : user_types) {
         if (ut.kind == UserTypeKind::Class && !ut.baseClassName.empty()) {
@@ -4716,7 +4716,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (type.ends_with("]")) {
         size_t open = type.rfind('[');
         if (open == std::string::npos) {
-            cg_error(Position(), "Malformed array type");
+            cg_error(Position(), "malformed array type");
             return nullptr;
         }
         std::string sizeStr = type.substr(open + 1, type.size() - open - 2);
@@ -4724,7 +4724,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
         try {
             count = parseInteger(sizeStr);
         } catch (...) {
-            cg_error(Position(), "Invalid array size: " + sizeStr);
+            cg_error(Position(), "invalid array size: " + sizeStr);
             return nullptr;
         }
         std::string elementType = type.substr(0, open);
@@ -4787,7 +4787,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         GenericType generic = classInfo.generics[i];
         if (genericParams.size() <= i) {
             if (generic.defaultValue.empty()) {
-                cg_error(Position(), "Too few generic params for class " + className);
+                cg_error(Position(), "too few generic params for class " + className);
                 return nullptr;
             }
         }
@@ -4800,27 +4800,27 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         if (!generic.isNonType && !generic.isVariadic) {
             if (generic.constraint == "pointer") {
                 if (!(value.ends_with("*"))) {
-                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "numeric") {
                 if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
-                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "addr_t", "long double", "short int",
-                                                                             "long int", "char",   "bool",  "byte", "nibble", "qbool",  "string"};
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "addr_t", "long double", "short int", "long int", "char", "bool", "byte", "nibble", "qbool", "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
-                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                         return nullptr;
                     }
                 } else {
                     if (generic.constraint == "primitive") {
-                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                         return nullptr;
                     }
                 }
@@ -4829,7 +4829,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 if (generic.negated) {
                     for (std::string subconstraint : generic.subconstraints) {
                         if (value == subconstraint) {
-                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                             return nullptr;
                         }
                     }
@@ -4839,7 +4839,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                         if (value == subconstraint) { is_valid = true; }
                     }
                     if (!is_valid) {
-                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
                         return nullptr;
                     }
                 }
@@ -4850,7 +4850,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             GenericType generic = classInfo.generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for class " + className);
+                    cg_error(Position(), "too few generic params for class " + className);
                     return nullptr;
                 }
             }
@@ -4919,7 +4919,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             for (auto& method : classInfo.classMethods) {
                 for (auto& baseMethod : baseInfo.classMethods) {
                     if (baseMethod.name_tok.value == method.name_tok.value && baseMethod.is_final) {
-                        cg_error(method.name_tok.pos, "Cannot override final method '" + baseMethod.name_tok.value + "' from base class '" +
+                        cg_error(method.name_tok.pos, "cannot override final method '" + baseMethod.name_tok.value + "' from base class '" +
                                                           classInfo.baseClassName + "'");
                     }
                 }
@@ -4933,7 +4933,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
         if (method.is_constructor && classInfo.is_abstract_class) {
-            cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
+            cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
             continue;
         }
         if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) !=
@@ -5064,7 +5064,9 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                                 builder->CreateCall(parentCtor, allArgs);
                                 bodyStartIdx = 1;
                             } else {
-                                cg_error(Position(), "Parent class '" + classInfo.baseClassName + "' has no matching constructor");
+                                Position pos = get_pos(*call);
+                                cg_error(pos, "parent class `" + classInfo.baseClassName + "` has no matching constructor");
+                                addConstructorNotes(classInfo.baseClassName, parentArgs, pos);
                             }
                         }
                     }
@@ -5119,7 +5121,7 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
         GenericType generic = structInfo.generics[i];
         if (genericParams.size() <= i) {
             if (generic.defaultValue.empty()) {
-                cg_error(Position(), "Too few generic params for struct " + structName);
+                cg_error(Position(), "too few generic params for struct " + structName);
                 return nullptr;
             }
         }
@@ -5132,27 +5134,27 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
         if (!generic.isNonType && !generic.isVariadic) {
             if (generic.constraint == "pointer") {
                 if (!(value.ends_with("*"))) {
-                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "numeric") {
                 if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
-                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return nullptr;
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
-                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
-                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                         return nullptr;
                     }
                 } else {
                     if (generic.constraint == "primitive") {
-                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                         return nullptr;
                     }
                 }
@@ -5161,7 +5163,7 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
                 if (generic.negated) {
                     for (std::string subconstraint : generic.subconstraints) {
                         if (value == subconstraint) {
-                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                             return nullptr;
                         }
                     }
@@ -5171,7 +5173,7 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
                         if (value == subconstraint) { is_valid = true; }
                     }
                     if (!is_valid) {
-                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
                         return nullptr;
                     }
                 }
@@ -5182,7 +5184,7 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
             GenericType generic = structInfo.generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for struct " + structName);
+                    cg_error(Position(), "too few generic params for struct " + structName);
                     return nullptr;
                 }
             }
@@ -5242,7 +5244,7 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
         GenericType generic = unionInfo.generics[i];
         if (genericParams.size() <= i) {
             if (generic.defaultValue.empty()) {
-                cg_error(Position(), "Too few generic params for struct " + unionName);
+                cg_error(Position(), "too few generic params for struct " + unionName);
                 return {};
             }
         }
@@ -5255,27 +5257,27 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
         if (!generic.isNonType && !generic.isVariadic) {
             if (generic.constraint == "pointer") {
                 if (!(value.ends_with("*"))) {
-                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                     return {};
                 }
             } else if (generic.constraint == "numeric") {
                 if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
-                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return {};
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
-                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
-                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                         return {};
                     }
                 } else {
                     if (generic.constraint == "primitive") {
-                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                         return {};
                     }
                 }
@@ -5284,7 +5286,7 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
                 if (generic.negated) {
                     for (std::string subconstraint : generic.subconstraints) {
                         if (value == subconstraint) {
-                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                             return {};
                         }
                     }
@@ -5294,7 +5296,7 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
                         if (value == subconstraint) { is_valid = true; }
                     }
                     if (!is_valid) {
-                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
                         return {};
                     }
                 }
@@ -5305,7 +5307,7 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
             GenericType generic = unionInfo.generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for struct " + unionName);
+                    cg_error(Position(), "too few generic params for struct " + unionName);
                     return {};
                 }
             }
@@ -5366,7 +5368,7 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
         GenericType generic = aliasInfo.generics[i];
         if (genericParams.size() <= i) {
             if (generic.defaultValue.empty()) {
-                cg_error(Position(), "Too few generic params for alias " + aliasName);
+                cg_error(Position(), "too few generic params for alias " + aliasName);
                 return "";
             }
         }
@@ -5379,27 +5381,27 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
         if (!generic.isNonType && !generic.isVariadic) {
             if (generic.constraint == "pointer") {
                 if (!(value.ends_with("*"))) {
-                    cg_error(Position(), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
                     return "";
                 }
             } else if (generic.constraint == "numeric") {
                 if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
-                    cg_error(Position(), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
                     return "";
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {"int",      "double", "float", "byte", "nibble", "addr_t", "long double", "short int",
-                                                                             "long int", "char",   "bool",  "qbool",  "string"};
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
-                        cg_error(Position(), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
                         return "";
                     }
                 } else {
                     if (generic.constraint == "primitive") {
-                        cg_error(Position(), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
                         return "";
                     }
                 }
@@ -5408,7 +5410,7 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
                 if (generic.negated) {
                     for (std::string subconstraint : generic.subconstraints) {
                         if (value == subconstraint) {
-                            cg_error(Position(), "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
                             return "";
                         }
                     }
@@ -5418,7 +5420,7 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
                         if (value == subconstraint) { is_valid = true; }
                     }
                     if (!is_valid) {
-                        cg_error(Position(), "Generic constrait " + generic.name + " does not except type " + value);
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
                         return "";
                     }
                 }
@@ -5429,7 +5431,7 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
             GenericType generic = aliasInfo.generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(Position(), "Too few generic params for alias " + aliasName);
+                    cg_error(Position(), "too few generic params for alias " + aliasName);
                     return "";
                 }
             }
@@ -5500,7 +5502,7 @@ void LLVMCompiler::createUserTypes() {
             if (!info.baseClassName.empty()) {
                 auto base_it = userTypes.find(baseTypeName(info.baseClassName));
                 if (base_it != userTypes.end() && base_it->second.is_final_class) {
-                    cg_error(Position(), "Cannot inherit from final class '" + info.baseClassName + "'");
+                    cg_error(Position(), "cannot inherit from final class '" + info.baseClassName + "'");
                     continue;
                 }
             }
@@ -5618,7 +5620,7 @@ void LLVMCompiler::createUserTypes() {
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
             if (method.is_constructor && info.is_abstract_class) {
-                cg_error(method.name_tok.pos, "Cannot make a constructor on a abstract class.");
+                cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
                 continue;
             }
             if (std::find(genericMethodIndices[mapKey].begin(), genericMethodIndices[mapKey].end(), methodIdx) !=
@@ -5768,11 +5770,11 @@ llvm::FunctionType* LLVMCompiler::llvmFuncTypeFor(const std::vector<Token>& retu
 
     return llvmFuncTypeForHelper(returnTypes, converted);
 }
-void LLVMCompiler::cg_error(const Position& pos, const std::string& msg) {
-    errors.emplace_back(msg, pos);
+void LLVMCompiler::cg_error(const Position& pos, const std::string& msg, std::string code) {
+    errors.emplace_back(msg, pos, false, code);
 }
-void LLVMCompiler::cg_warn(const Position& pos, const std::string& msg) {
-    errors.emplace_back(msg, pos, true);
+void LLVMCompiler::cg_warn(const Position& pos, const std::string& msg, std::string code) {
+    errors.emplace_back(msg, pos, true, code);
 }
 llvm::Value* LLVMCompiler::createJaggedArray(AnyNode& literalNode, int elemTypeCode, int depth) {
     auto arrLit = std::get_if<ArrayLiteralNode*>(&literalNode);
@@ -5915,7 +5917,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         } else if (qbool->tok.value == "both") {
             value = 0b11;
         } else {
-            cg_error(qbool->tok.pos, "Invalid qbool value: " + qbool->tok.value);
+            cg_error(qbool->tok.pos, "invalid qbool value '" + qbool->tok.value + "'");
             return nullptr;
         }
         return llvm::ConstantInt::get(builder->getIntNTy(2), value);
@@ -5949,13 +5951,31 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string varName = (*varAccess)->var_name_tok.value;
                     llvm::Value* alloc = getVarAddress(varName);
                     if (!alloc) {
-                        cg_error(Position(), "qin: variable not declared: " + varName);
+                        Position pos = get_pos(*varAccess);
+                        cg_error(pos, "qin: variable not declared: " + varName);
+                        auto suggestions = getVisibleVariables();
+                        std::vector<std::pair<int, std::string>> matches;
+                        if (varName.size() >= 3) {
+                            for (auto& name : suggestions) {
+                                int distance = levenshteinDistance(varName, name);
+                                if (distance <= 2) { matches.push_back({distance, name}); }
+                            }
+                        }
+                        std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+                        if (!matches.empty()) {
+                            std::string note = "did you mean ";
+                            size_t count = std::min<size_t>(3, matches.size());
+                            for (size_t i = 0; i < count; i++) {
+                                if (i != 0) note += ", ";
+                                note += "`" + matches[i].second + "`";
+                            }
+                            note += "?";
+                            cg_note(pos, note);
+                        }
                         return nullptr;
                     }
-
                     llvm::Type* varTy = getPointeeType(varName);
                     llvm::Value* converted = input;
-
                     if (varTy->isIntegerTy(32)) {
                         llvm::Function* fn = module->getFunction("qc_to_int_from_string");
                         if (!fn) {
@@ -6012,6 +6032,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_qbool_from_string", module);
                         }
                         converted = builder->CreateCall(fn, {input});
+                    } else if (varTy->isIntegerTy(4)) {
+                        llvm::Function* fn = module->getFunction("qc_to_nibble_from_string");
+                        if (!fn) {
+                            auto* fnTy = llvm::FunctionType::get(builder->getIntNTy(4), {llvm::PointerType::get(context, 0)}, false);
+                            fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_to_nibble_from_string", module);
+                        }
+                        converted = builder->CreateCall(fn, {input});
                     }
 
                     builder->CreateStore(converted, alloc);
@@ -6019,7 +6046,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return builder->getInt32(0);
                 }
 
-                cg_error(Position(), "qin: right side must be a variable");
+                cg_error(get_pos((*bin)->right_node), "qin: right side must be a variable");
                 return nullptr;
             }
         }
@@ -6540,7 +6567,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     return builder->CreateCall(fn, {v}, "fstr_i16");
                 }
-                
+
                 if (ty->isIntegerTy(64)) {
                     auto* fn = module->getFunction("qc_to_string_long_int");
                     if (!fn) {
@@ -6836,7 +6863,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 case TokenType::RSHIFT:
                 case TokenType::LOGICAL_RSHIFT:
                     if (isFP) {
-                        cg_error((*bin)->op_tok.pos, "Bitwise operations not allowed on "
+                        cg_error((*bin)->op_tok.pos, "bitwise operations not allowed on "
                                                      "floating-point union members");
                         return nullptr;
                     }
@@ -6856,7 +6883,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 case TokenType::L_ROT:
                 case TokenType::R_ROT: {
                     if (isFP) {
-                        cg_error((*bin)->op_tok.pos, "Rotation not allowed on floating-point union "
+                        cg_error((*bin)->op_tok.pos, "rotation not allowed on floating-point union "
                                                      "members");
                         return nullptr;
                     }
@@ -6975,7 +7002,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return builder->CreateCall(concatFn, {L, R}, "str_concat");
                 } else if (lType.ends_with("*") || lType == "@nullptr" || lType == "string" && rType != "string" || lType.ends_with("]")) {
                     if (lType == "void*") {
-                        cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
+                        cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
                                                      "void pointers");
                         return nullptr;
                     }
@@ -6985,7 +7012,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (start_pos != std::string::npos) { lType.replace(start_pos, lType.size() - start_pos, "*"); }
                     }
                     if (!llvmTypeFor(rType)->isIntegerTy()) {
-                        cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on "
+                        cg_error((*bin)->op_tok.pos, "pointer arithmetic may only be preformed on "
                                                      "ptr lhs and "
                                                      "int rhs, got " +
                                                          lType + " and " + rType);
@@ -6997,16 +7024,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
                 }
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on types " + lType + " + " + " rType");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on types " + lType + " + " + " rType");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy         ? builder->CreateFAdd(L, R, "fadd")
@@ -7020,17 +7047,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if ((lType.ends_with("]") || lType.ends_with("*") || lType == "@nullptr") &&
                     (rType.ends_with("]") || rType.ends_with("*") || rType == "@nullptr")) {
                     if (lType == "void*") {
-                        cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
+                        cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
                                                      "void pointers");
                         return nullptr;
                     }
                     if (rType == "void*") {
-                        cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on "
+                        cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
                                                      "void pointers");
                         return nullptr;
                     }
                     if (remove_last_ptr(lType) != remove_last_ptr(rType)) {
-                        cg_error((*bin)->op_tok.pos, "Pointer arithmetic may only be preformed on "
+                        cg_error((*bin)->op_tok.pos, "pointer arithmetic may only be preformed on "
                                                      "the same lhs "
                                                      "and rhs type, got " +
                                                          lType + " and " + rType);
@@ -7053,16 +7080,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return builder->CreateGEP(llvmTypeFor(baseType), L, {negR}, "ptr_arith_minus");
                 }
 
-                cg_error((*bin)->op_tok.pos, "Invalid pointer subtraction: " + lType + " - " + rType);
+                cg_error((*bin)->op_tok.pos, "invalid pointer subtraction: " + lType + " - " + rType);
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy         ? builder->CreateFSub(L, R, "fsub")
@@ -7070,58 +7097,58 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                      : builder->CreateSub(L, R, "sub");
         case TokenType::MUL:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFMul(L, R, "fmul") : builder->CreateMul(L, R, "mul");
         case TokenType::DIV:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFDiv(L, R, "fdiv") : builder->CreateSDiv(L, R, "sdiv");
         case TokenType::MOD:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFRem(L, R, "frem") : builder->CreateSRem(L, R, "srem");
@@ -7129,11 +7156,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::PIPE:
         case TokenType::BITWISE_XOR:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform bitwise operations on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on float/double types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform bitwise operations on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on string types");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::AMPERSAND) return builder->CreateAnd(L, R, "andtmp");
@@ -7143,7 +7170,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::LSHIFT:
         case TokenType::LOGICAL_RSHIFT:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform shifts on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform shifts on float/double types");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::LSHIFT) return builder->CreateShl(L, R, "shltmp");
@@ -7152,7 +7179,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::L_ROT:
         case TokenType::R_ROT:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform rotations on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform rotations on float/double types");
                 return nullptr;
             }
             {
@@ -7162,20 +7189,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         case TokenType::POWER: {
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
                 return nullptr;
             }
             llvm::Type* ty = L->getType();
@@ -7191,7 +7218,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Function* powFn = llvm::Intrinsic::getOrInsertDeclaration(module, llvm::Intrinsic::pow, {ty});
                 return builder->CreateCall(powFn, {L, R}, "pow");
             } else {
-                cg_error((*bin)->op_tok.pos, "POWER not supported for this type");
+                cg_error((*bin)->op_tok.pos, "pOWER not supported for this type");
                 return nullptr;
             }
         }
@@ -7286,14 +7313,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::MORE_EQ: {
             bool isFloatTy = false;
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "Cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
                 return nullptr;
             }
             if (lty->isIntegerTy() && rty->isIntegerTy()) {
                 unsigned lBits = lty->getIntegerBitWidth();
                 unsigned rBits = rty->getIntegerBitWidth();
                 if (lBits == 1 || lBits == 2 || rBits == 1 || rBits == 2) {
-                    cg_error((*bin)->op_tok.pos, "Cannot use comparison operators on bool/qbool");
+                    cg_error((*bin)->op_tok.pos, "cannot use comparison operators on bool/qbool");
                     return nullptr;
                 }
                 if (lBits < rBits) {
@@ -7313,7 +7340,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     rty = lty;
                 }
             } else {
-                cg_error((*bin)->op_tok.pos, "Cannot compare non-numeric types with <, >, <=, >=");
+                cg_error((*bin)->op_tok.pos, "cannot compare non-numeric types with <, >, <=, >=");
                 return nullptr;
             }
             switch (op) {
@@ -7420,7 +7447,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (qcType == "auto") {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
-                cg_error((*va)->var_name_tok.pos, "Cannot infer type from invalid expression");
+                cg_error((*va)->var_name_tok.pos, "cannot infer type from invalid expression");
                 return nullptr;
             }
 
@@ -7462,7 +7489,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (qcType == "auto[]" || qcType.starts_with("auto[")) {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
-                cg_error((*va)->var_name_tok.pos, "Cannot infer array type");
+                cg_error((*va)->var_name_tok.pos, "cannot infer array type");
                 return nullptr;
             }
 
@@ -7528,7 +7555,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             auto userTypeIt = userTypes.find(qcType);
             llvm::StructType* classTy = generateGenericClass(qcType, userTypeIt->second, genericParams);
             if (classTy == nullptr) {
-                cg_error((*va)->var_name_tok.pos, "Failed to generate generic subset for class " + qcType);
+                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for class " + qcType);
                 return nullptr;
             }
             llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
@@ -7573,7 +7600,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
                     builder->CreateStore(rhs, instance, isVolatile);
@@ -7592,7 +7619,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     varTypes[fullName] = mangledName;
                     volatileVars[fullName] = isVolatile;
                 } else {
-                    cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
+                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType);
                     return nullptr;
                 }
                 auto vtableIt = vtables.find(mangledName);
@@ -7615,7 +7642,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return nullptr;
                 } else {
                     if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
                     builder->CreateStore(rhs, instance, isVolatile);
@@ -7650,7 +7677,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             auto userTypeIt = userTypes.find(qcType);
             llvm::StructType* structTy = generateGenericStruct(qcType, userTypeIt->second, genericParams);
             if (structTy == nullptr) {
-                cg_error((*va)->var_name_tok.pos, "Failed to generate generic subset for struct " + qcType);
+                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for struct " + qcType);
                 return nullptr;
             }
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
@@ -7699,7 +7726,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
                     } else {
-                        cg_error((*mapLit)->pos, "Struct field name must be an identifier");
+                        cg_error((*mapLit)->pos, "struct field name must be an identifier");
                         return nullptr;
                     }
                     int fieldIndex = -1;
@@ -7710,7 +7737,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                     }
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos, "Unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType);
                         return nullptr;
                     }
                     llvm::Value* fieldValue = emitExpr(valueNode);
@@ -7742,7 +7769,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
 
             if (tag == -1) {
-                cg_error((*va)->var_name_tok.pos, "Value does not match any variant of union " + qcType);
+                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType);
                 return nullptr;
             }
             auto& member = info.members[tag];
@@ -7751,7 +7778,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
             llvm::Type* memberTy = llvmTypeFor(baseType);
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
-                cg_error((*va)->var_name_tok.pos, "Union literal variant type mismatch");
+                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
                 return nullptr;
             }
             llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
@@ -7800,7 +7827,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "Global struct initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant");
                         return nullptr;
                     }
                     gv->setInitializer(constant);
@@ -7829,7 +7856,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
                     } else {
-                        cg_error((*mapLit)->pos, "Struct field name must be an identifier");
+                        cg_error((*mapLit)->pos, "struct field name must be an identifier");
                         return nullptr;
                     }
 
@@ -7843,7 +7870,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
 
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos, "Unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType);
                         return nullptr;
                     }
 
@@ -7858,7 +7885,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "Global struct initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant");
                         return nullptr;
                     }
                     gv->setInitializer(constant);
@@ -7920,7 +7947,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
                         return nullptr;
                     }
                     builder->CreateStore(rhs, instance, isVolatile);
@@ -7938,7 +7965,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     varTypes[fullName] = qcType;
                     volatileVars[fullName] = isVolatile;
                 } else {
-                    cg_error((*va)->var_name_tok.pos, "No valid operator[]= method found on class " + qcType);
+                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType);
                     return nullptr;
                 }
                 auto vtableIt = vtables.find(qcType);
@@ -7951,7 +7978,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
                 if (rhs->getType() != classTy) {
-                    cg_error((*va)->var_name_tok.pos, "Cannot initialize " + qcType + " from class of different type.");
+                    cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
                     return nullptr;
                 }
                 builder->CreateStore(rhs, instance, isVolatile);
@@ -7972,7 +7999,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(unionAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(value);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "Global union initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global union initializer must be constant");
                         return false;
                     }
                     gv->setInitializer(constant);
@@ -7991,7 +8018,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
             if (tag == -1) {
-                cg_error((*va)->var_name_tok.pos, "Value does not match any variant of union " + qcType);
+                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType);
                 return nullptr;
             }
             auto& member = userTypes.at(baseTypeName(qcType)).members[tag];
@@ -8000,7 +8027,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
             llvm::Type* memberTy = llvmTypeFor(baseType);
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
-                cg_error((*va)->var_name_tok.pos, "Union literal variant type mismatch");
+                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
                 return nullptr;
             }
             llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
@@ -8023,7 +8050,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(enumAlloc)) {
                 auto* constant = llvm::dyn_cast<llvm::Constant>(rhs);
                 if (!constant) {
-                    cg_error((*va)->var_name_tok.pos, "Global enum initializer must be constant");
+                    cg_error((*va)->var_name_tok.pos, "global enum initializer must be constant");
                     return nullptr;
                 }
                 gv->setInitializer(constant);
@@ -8062,7 +8089,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!existingAlloc) {
             llvm::Type* ty = llvmTypeFor(qcType);
             if (!ty) {
-                cg_error((*va)->var_name_tok.pos, "Unknown type: " + qcType);
+                cg_error((*va)->var_name_tok.pos, "unknown type: " + qcType);
                 return nullptr;
             }
             alloc = createEntryAlloca(fullName, ty);
@@ -8099,7 +8126,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Type* destTy = getPointeeType(fullName);
         llvm::Value* rhs = emitExpr((*va)->value_node);
         if (!rhs) {
-            cg_error((*va)->var_name_tok.pos, "Failed to compile initializer for '" + name + "'");
+            cg_error((*va)->var_name_tok.pos, "failed to compile initializer for '" + name + "'");
             return nullptr;
         }
 
@@ -8151,11 +8178,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 uint64_t srcLen = srcArrTy->getNumElements();
                 uint64_t destLen = destArrTy->getNumElements();
                 if (srcElemTy != destElemTy) {
-                    cg_error((*va)->var_name_tok.pos, "Array element type mismatch in assignment");
+                    cg_error((*va)->var_name_tok.pos, "array element type mismatch in assignment");
                     return nullptr;
                 }
                 if (srcLen > destLen) {
-                    cg_error((*va)->var_name_tok.pos, "Source array is larger than destination array");
+                    cg_error((*va)->var_name_tok.pos, "source array is larger than destination array");
                     return nullptr;
                 }
                 llvm::AllocaInst* newArr = createEntryAlloca("array_copy", destArrTy);
@@ -8176,7 +8203,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 rhs = newArr;
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
-                cg_error((*va)->var_name_tok.pos, "Cannot assign double to float in compiled mode");
+                cg_error((*va)->var_name_tok.pos, "cannot assign double to float in compiled mode");
                 return nullptr;
             } else if (srcTy->isIntegerTy() && destTy->isIntegerTy()) {
                 unsigned srcBits = srcTy->getIntegerBitWidth();
@@ -8189,7 +8216,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (srcTy->isIntegerTy() && destTy->isFloatingPointTy()) {
                 rhs = builder->CreateSIToFP(rhs, destTy, "i2f");
             } else {
-                cg_error((*va)->var_name_tok.pos, "Type mismatch in assignment in compiled mode");
+                cg_error((*va)->var_name_tok.pos, "type mismatch in assignment in compiled mode");
                 return nullptr;
             }
         }
@@ -8221,7 +8248,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (alloc) {
             llvm::Type* ty = getPointeeType(name);
             if (ty == nullptr) {
-                cg_error((*acc)->var_name_tok.pos, "Could not resolve var type");
+                cg_error((*acc)->var_name_tok.pos, "could not resolve var type");
                 return nullptr;
             }
             return builder->CreateLoad(ty, alloc, resolveVolatileVar(name), name);
@@ -8230,7 +8257,26 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Function* fn = resolveFunction(name);
         if (fn) { return fn; }
 
-        cg_error((*acc)->var_name_tok.pos, "Use of undeclared variable '" + name + "' in compiled mode");
+        cg_error((*acc)->var_name_tok.pos, "use of undeclared variable '" + name + "'");
+        auto suggestions = getVisibleVariables();
+        std::vector<std::pair<int, std::string>> matches;
+        if (name.size() >= 3) {
+            for (auto& vname : suggestions) {
+                int distance = levenshteinDistance(name, vname);
+                if (distance <= 2) { matches.push_back({distance, vname}); }
+            }
+        }
+        std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+        if (!matches.empty()) {
+            std::string note = "did you mean ";
+            size_t count = std::min<size_t>(3, matches.size());
+            for (size_t i = 0; i < count; i++) {
+                if (i != 0) note += ", ";
+                note += "`" + matches[i].second + "`";
+            }
+            note += "?";
+            cg_note((*acc)->var_name_tok.pos, note);
+        }
         return nullptr;
     } else if (auto asn = std::get_if<AssignExprNode*>(&node)) {
         if (auto propAccess = std::get_if<PropertyAccessNode*>(&(*asn)->target)) {
@@ -8242,7 +8288,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::StructType* classTy = genericiseOrFindClass(currentClassName);
                     int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), fieldName);
                     if (fieldIdx == -1) {
-                        cg_error((*propAccess)->property_name.pos, "Field not found: " + fieldName);
+                        cg_error((*propAccess)->property_name.pos, "field not found: " + fieldName);
                         return nullptr;
                     }
                     std::string resolvedFieldType;
@@ -8326,7 +8372,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 llvm::Value* locAlloc = getVarAddress(varName);
                 if (!locAlloc) {
-                    cg_error(Position(), "Unknown variable: " + varName);
+                    cg_error(get_pos(*varAccess), "unknown variable: " + varName);
                     return nullptr;
                 }
 
@@ -8334,7 +8380,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                 auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
                 if (!structTy) {
-                    cg_error(Position(), "Not a struct");
+                    cg_error(get_pos(*varAccess), "not a struct");
                     return nullptr;
                 }
 
@@ -8370,7 +8416,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
                         if (!rhsVal->getType()->isIntegerTy()) {
-                            cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
+                            cg_error(get_pos((*asn)->value), "pointer offset must be an integer");
                             return nullptr;
                         }
                         llvm::Value* offset = rhsVal;
@@ -8423,7 +8469,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         llvm::Value* alloc = emitLValue((*asn)->target);
         if (!alloc) {
-            cg_error((*asn)->op_tok.pos, "Left side of assignment must be an L-value "
+            cg_error((*asn)->op_tok.pos, "left side of assignment must be an L-value "
                                          "(variable, property, or dereference)");
             return nullptr;
         }
@@ -8432,7 +8478,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string lhsTypeStr = getExpressionType((*asn)->target);
         llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
-            cg_error((*asn)->op_tok.pos, "Could not resolve type " + lhsTypeStr + " for assignment");
+            cg_error(get_pos((*asn)->target), "could not resolve type " + lhsTypeStr + " for assignment");
             return nullptr;
         }
         for (auto& [unionName, unionTy] : unionTypes) {
@@ -8455,7 +8501,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Type* memberTy = llvmTypeFor(baseType);
 
                 if (rhsTy->getTypeID() != memberTy->getTypeID()) {
-                    cg_error((*asn)->op_tok.pos, "Union variant payload type mismatch");
+                    cg_error((*asn)->op_tok.pos, "union variant payload type mismatch");
                     return nullptr;
                 }
                 llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
@@ -8485,7 +8531,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         std::string rhsType = getExpressionType((*asn)->value);
         if (!rhsVal) {
-            cg_error((*asn)->op_tok.pos, "Failed to compile right-hand side of assignment");
+            cg_error(get_pos((*asn)->value), "failed to compile right-hand side of assignment");
             return nullptr;
         }
         llvm::Type* srcTy = rhsVal->getType();
@@ -8516,15 +8562,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             auto& srcInfo = userTypes.at(baseTypeName(srcClassName));
                             if (srcInfo.baseClassName == destClassName) {
                             } else {
-                                cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                                cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                                 return nullptr;
                             }
                         } else {
-                            cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                            cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                             return nullptr;
                         }
                     } else {
-                        cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                         return nullptr;
                     }
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
@@ -8534,7 +8580,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     unsigned srcBits = srcTy->getIntegerBitWidth();
                     unsigned destBits = destTy->getIntegerBitWidth();
                     if ((srcBits == 1 || srcBits == 2) && (destBits != srcBits)) {
-                        cg_error((*asn)->op_tok.pos, "Cannot convert bool/qbool to other integer types");
+                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types");
                         return nullptr;
                     }
 
@@ -8556,14 +8602,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
                         srcTy = rhsVal->getType();
                     } else {
-                        cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                         return nullptr;
                     }
                 } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
                     if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr") {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
-                        cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                         return nullptr;
                     }
                 } else if (srcTy->isIntegerTy() && destTy->isPointerTy()) {
@@ -8583,7 +8629,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         builder->CreateStore(newPtr, alloc, resolveVolatileVar(name));
                         return newPtr;
                     }
-                    cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                     return nullptr;
                 }
             }
@@ -8595,7 +8641,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     unsigned srcBits = srcTy->getIntegerBitWidth();
                     unsigned destBits = destTy->getIntegerBitWidth();
                     if ((srcBits == 1 || srcBits == 2) && (destBits != srcBits)) {
-                        cg_error((*asn)->op_tok.pos, "Cannot convert bool/qbool to other integer types");
+                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types");
                         return nullptr;
                     }
 
@@ -8611,10 +8657,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else if (srcTy->isIntegerTy() && destTy->isDoubleTy()) {
                     rhsVal = builder->CreateSIToFP(rhsVal, destTy, "i2d");
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
-                    cg_error((*asn)->op_tok.pos, "Cannot narrow double to float (loses precision)");
+                    cg_error((*asn)->op_tok.pos, "cannot narrow double to float (loses precision)");
                     return nullptr;
                 } else if (srcTy->isFloatingPointTy() && destTy->isIntegerTy()) {
-                    cg_error((*asn)->op_tok.pos, "Cannot convert floating point to integer (loses "
+                    cg_error((*asn)->op_tok.pos, "cannot convert floating point to integer (loses "
                                                  "precision)");
                     return nullptr;
                 } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
@@ -8629,11 +8675,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr") {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
-                        cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                         return nullptr;
                     }
                 } else {
-                    cg_error((*asn)->op_tok.pos, "Type mismatch in assignment");
+                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
                     return nullptr;
                 }
             }
@@ -8675,7 +8721,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
 
-        default: cg_error((*asn)->op_tok.pos, "Unsupported assignment operator."); return nullptr;
+        default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator."); return nullptr;
         }
         if ((*asn)->op_tok.type == TokenType::EQ) {
             if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
@@ -8693,7 +8739,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     llvm::Value* lhsAlloc = emitLValue((*asn)->target);
                                     return emitMethodCall(opMethod, lhsAlloc, {rhsVal, len}, "operator[]=");
                                 }
-                                cg_error((*asn)->op_tok.pos, "Class " + className + " has no valid matching operator[]=");
+                                cg_error((*asn)->op_tok.pos, "class " + className + " has no valid matching operator[]=");
                                 return nullptr;
                             }
                         }
@@ -8814,7 +8860,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
             llvm::Type* ty = operand->getType();
             if (ty->isFloatingPointTy() || ty->isPointerTy()) {
-                cg_error((*unary)->op_tok.pos, "Cannot perform bitwise NOT on non-integer type");
+                cg_error((*unary)->op_tok.pos, "cannot perform bitwise NOT on non-integer type");
                 return nullptr;
             }
             llvm::Value* allOnes = llvm::ConstantInt::get(ty, -1, true);
@@ -8920,12 +8966,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Function* f = emitFuncDef(*(*fnPtr));
         return f;
     } else if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
-        cg_error(Position(), "Map literals may not be used outside of struct intialization (`Point p = {x: 321, y: 123}`)");
+        cg_error(get_pos(*mapLit), "map literals may not be used outside of struct intialization (`Point p = {x: 321, y: 123}`)");
         return nullptr;
     } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
         if ((*arrLit)->elements.empty()) {
             if (!currentFunction) {
-                cg_error(Position(), "Empty array literals only supported in functions");
+                cg_error(get_pos(*arrLit), "empty array literals only supported in functions");
                 return nullptr;
             }
 
@@ -8942,7 +8988,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return builder->CreateBitCast(ptr, retTy, "empty_arr_cast");
             }
 
-            cg_error(Position(), "Cannot determine element type for empty array");
+            cg_error(get_pos(*arrLit), "cannot determine element type for empty array");
             return nullptr;
         }
 
@@ -9047,7 +9093,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (paramIt != funcDef->params.end()) ++paramIt;
                     }
                     if (hasSpread) {
-                        cg_error(Position(), "Spread is no longer allowed in function calls.");
+                        cg_error(get_pos(&call), "spread is no longer allowed in function calls.");
                         return nullptr;
                     }
                     funcName = fixMangling(funcName);
@@ -9101,11 +9147,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         classTy = generateGenericClass(resolvedName, classIt->second, genericParams);
                         resolvedName = fullName;
                         if (classTy == nullptr) {
-                            cg_error((*va)->var_name_tok.pos, "Failed to generate generic subset for class " + resolvedName);
+                            cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for class " + resolvedName);
                             return nullptr;
                         }
                     } else {
-                        cg_error(Position(), "Class '" + resolvedName + "' has no generated type");
+                        cg_error(get_pos(*callPtr), "class '" + resolvedName + "' has no generated type");
                         return nullptr;
                     }
                 }
@@ -9128,7 +9174,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     llvm::Function* ctor = findMethodOverload(resolvedName, ctorName, ctorArgs);
                     if (!ctor) {
-                        cg_error((*varAccess)->var_name_tok.pos, "No matching constructor for " + resolvedName);
+                        cg_error((*varAccess)->var_name_tok.pos, "no matching constructor for " + resolvedName);
                         return nullptr;
                     }
                     bool isCtorVariadic = (ctorInfo->params.size() > 0 && ctorInfo->params.back().type.value == "...");
@@ -9260,7 +9306,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string typeName = "unknown";
                     if (argTy->isIntegerTy(32))
                         typeName = "int";
-                    else if (argTy->isIntegerTy(4)) 
+                    else if (argTy->isIntegerTy(4))
                         typeName = "nibble";
                     else if (argTy->isIntegerTy(64))
                         typeName = "addr_t";
@@ -9531,7 +9577,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                             llvm::Value* stVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!stVal) {
-                                cg_error((*varAccess)->var_name_tok.pos, "Failed to resolve argument for "
+                                cg_error((*varAccess)->var_name_tok.pos, "failed to resolve argument for "
                                                                          "formatter in " +
                                                                              funcName);
                                 return nullptr;
@@ -10001,7 +10047,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
                     return emitBuiltinConversion(arg, "nibble");
-                } 
+                }
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!(val->getType()->isIntegerTy())) {
@@ -10300,12 +10346,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.front())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
-                            cg_error((*varAccess)->var_name_tok.pos, "Argument one must be a variadic argument: " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "argument one must be a variadic argument: " + funcName);
                             return nullptr;
                         }
                         StringNode* expectedType = std::get_if<StringNode>(&call.arg_nodes.back());
                         if (!expectedType) {
-                            cg_error((*varAccess)->var_name_tok.pos, "Argument two must be a string storing the type: " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a string storing the type: " + funcName);
                             return nullptr;
                         }
                         llvm::Value* ConvertedValue = nullptr;
@@ -10339,7 +10385,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         return ConvertedValue;
                     } else {
-                        cg_error((*varAccess)->var_name_tok.pos, "Argument one must be a direct variadic argument: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "argument one must be a direct variadic argument: " + funcName);
                     }
                     return nullptr;
                 }
@@ -10347,7 +10393,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.back())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
-                            cg_error((*acc)->var_name_tok.pos, "Argument must be a variadic argument: " + funcName);
+                            cg_error((*acc)->var_name_tok.pos, "argument must be a variadic argument: " + funcName);
                             return nullptr;
                         }
                         llvm::Function* isEmpty = module->getFunction("qc_variadic_is_empty");
@@ -10359,13 +10405,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* VariableAddr = resolveVariable(var_name);
                         return builder->CreateCall(isEmpty, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"), "variadc_is_empty");
                     } else {
-                        cg_error((*acc)->var_name_tok.pos, "Argument must be a direct variadic argument: " + funcName);
+                        cg_error((*acc)->var_name_tok.pos, "argument must be a direct variadic argument: " + funcName);
                     }
                     return nullptr;
                 }
                 llvm::Function* fn = module->getFunction(runtimeName);
                 if (!fn) {
-                    cg_error((*varAccess)->var_name_tok.pos, "Built-in function not found in runtime: " + runtimeName);
+                    cg_error((*varAccess)->var_name_tok.pos, "built-in function not found in runtime: " + runtimeName);
                     return nullptr;
                 }
                 llvm::FunctionType* builtinFnTy = fn->getFunctionType();
@@ -10395,13 +10441,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
             if (!calleeVal) {
-                cg_error((*varAccess)->var_name_tok.pos, "Undeclared function or variable: " + name);
+                cg_error((*varAccess)->var_name_tok.pos, "undeclared function or variable: " + name);
                 return nullptr;
             }
             funcName = name;
         }
         if (!fnTy) {
-            cg_error(Position(), "Could not determine function type");
+            cg_error(get_pos(&call), "could not determine function type");
             return nullptr;
         }
         bool hasSpread = false;
@@ -10413,7 +10459,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
 
         if (hasSpread) {
-            cg_error(Position(), "Spread is no longer allowed in function calls.");
+            cg_error(get_pos(&call), "spread is no longer allowed in function calls.");
             return nullptr;
         }
 
@@ -10428,7 +10474,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, fnTy, paramTypeStrings);
         if (call.arg_nodes.size() < args.size()) {
-            cg_error(Position(), "Too few args to function.");
+            cg_error(get_pos(&call),
+                     "too few arguments to function: got " + std::to_string(call.arg_nodes.size()) + ", expected " + std::to_string(args.size()));
+
+            cg_note(get_pos(&call), "missing " + std::to_string(args.size() - call.arg_nodes.size()) + " argument" +
+                                        (args.size() - call.arg_nodes.size() == 1 ? "" : "s"));
+
             return nullptr;
         }
         if (!paramTypeStrings.empty() && paramTypeStrings.back() == "...") {
@@ -10481,12 +10532,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
                         llvm::Value* defVal = emitExpr(defaultRef);
                         if (!defVal) {
-                            cg_error(Position(), "Failed to evaluate default parameter");
+                            cg_error(get_pos(&call), "failed to evaluate default parameter");
                             return nullptr;
                         }
                         args.push_back(defVal);
                     } else {
-                        cg_error(Position(), "Missing required argument at position " + std::to_string(paramIdx));
+                        cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx));
                         return nullptr;
                     }
                 }
@@ -10501,16 +10552,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string ptrTy = getExpressionType(arrAcc->base);
         if (ptrTy.ends_with("*") || ptrTy == "@nullptr" || ptrTy == "string") {
             if (ptrTy == "@nullptr") {
-                cg_error(Position(), "Attempted to dereference nullptr");
+                cg_error(get_pos(arrAcc), "attempted to dereference nullptr");
                 return nullptr;
             }
             if (ptrTy == "void*") {
-                cg_error((*bin)->op_tok.pos, "Pointer arithmetic cannot be preformed on void pointers");
+                cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on void pointers");
                 return nullptr;
             }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
             if (!value->getType()->isIntegerTy()) {
-                cg_error(Position(), "Attempted to index a pointer with a non-integer value.");
+                cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a non-integer value.");
                 return nullptr;
             }
             if (ptrTy == "string") {
@@ -10526,7 +10577,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* idx = emitExpr(arrAcc->indices[0]);
             llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
             if (!ref) {
-                cg_error(Position(), ptrTy + " does not have operator[]");
+                cg_error(get_pos(arrAcc), ptrTy + " does not have operator[]");
                 return nullptr;
             }
             return ref;
@@ -10537,7 +10588,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 auto jagIt = findJaggedArray(name);
                 llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
-                    cg_error(Position(), "Unknown jagged array: " + name);
+                    cg_error(get_pos(varAcc), "unknown jagged array: " + name);
                     return nullptr;
                 }
 
@@ -10582,7 +10633,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
-                cg_error(Position(), "Unknown array: " + name);
+                cg_error(get_pos(varAcc), "unknown array: " + name);
                 return nullptr;
             }
 
@@ -10595,7 +10646,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (!indexVal) return nullptr;
                 auto it = findArrayType(name);
                 if (it == arrayTypeStrings.end()) {
-                    cg_error(Position(), "Failed to find array access type");
+                    cg_error(get_pos(varAcc), "failed to find array access type");
                     return nullptr;
                 }
                 std::string baseType = it->second;
@@ -10625,7 +10676,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             base = emitLValue(arrAcc->base);
             elemTy = llvm::cast<llvm::ArrayType>(val->getType())->getElementType();
             if (!elemTy) {
-                cg_error(Position(), "Cannot determine element type for array access");
+                cg_error(get_pos(arrAcc), "cannot determine element type for array access");
                 return nullptr;
             }
             llvm::Value* idx = emitExpr(arrAcc->indices[arrAcc->indices.size() - 1]);
@@ -10635,7 +10686,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             base = val;
             elemTy = llvmTypeFor(ptrTy.ends_with("*") ? ptrTy.substr(0, ptrTy.size() - 1) : ptrTy.substr(0, ptrTy.size() - 2));
             if (!elemTy) {
-                cg_error(Position(), "Cannot determine element type for array access");
+                cg_error(get_pos(arrAcc), "cannot determine element type for array access");
                 return nullptr;
             }
             llvm::Value* idx = emitExpr(arrAcc->indices[arrAcc->indices.size() - 1]);
@@ -10653,13 +10704,26 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), propName);
 
                 if (fieldIdx == -1) {
-                    cg_error(Position(), "Unknown property: " + propName);
+                    cg_error(get_pos(*varAccess), "unknown property: " + propName);
+                    if (propName.length() > 3) {
+                        std::vector<std::pair<int, std::string>> suggestions;
+                        for (auto& field : userTypes[baseTypeName(currentClassName)].classFields) {
+                            int distance = levenshteinDistance(propName, field.name);
+                            if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                        }
+                        std::sort(suggestions.begin(), suggestions.end());
+                        if (!suggestions.empty()) {
+                            std::string note = "similar fields:";
+                            for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                            cg_note(get_pos(*varAccess), note);
+                        }
+                    }
                     return nullptr;
                 }
 
                 auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(currentClassName), propName);
                 if (!canAccessField(baseTypeName(currentClassName), fieldOwnerClass, fieldAccess)) {
-                    cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                    cg_error(get_pos(*varAccess), "cannot access " + fieldAccess + " field " + propName + " on " + baseTypeName(currentClassName));
                     return nullptr;
                 }
 
@@ -10690,14 +10754,25 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     return enumVal;
                 } else {
-                    cg_error(Position(), "Enum " + baseName + " has no member " + propName);
+                    cg_error(get_pos(*varAccess), "enum " + baseName + " has no member " + propName);
+                    std::vector<std::pair<int, std::string>> suggestions;
+                    for (auto& entry : userTypes[resolved].enumEntries) {
+                        int distance = levenshteinDistance(propName, entry.memberName);
+                        if (distance <= 2) { suggestions.push_back({distance, entry.memberName}); }
+                    }
+                    std::sort(suggestions.begin(), suggestions.end());
+                    if (!suggestions.empty()) {
+                        std::string note = "similar entrys:";
+                        for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                        cg_note(get_pos(*varAccess), note);
+                    }
                     return nullptr;
                 }
             }
         }
 
         if (isEnum) {
-            cg_error(Position(), "Enum member not found");
+            cg_error(get_pos(*propAccess), "enum member not found");
             return nullptr;
         }
         if (propName == "length") {
@@ -10734,7 +10809,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
 
                             if (fieldIdx == -1) {
-                                cg_error(Position(), "Struct " + structName + " has no field " + propName);
+                                cg_error(get_pos(*varAccess), "struct " + structName + " has no field " + propName);
+                                if (propName.length() > 3) {
+                                    std::vector<std::pair<int, std::string>> suggestions;
+                                    for (auto& field : userTypes[baseTypeName(structName)].fields) {
+                                        int distance = levenshteinDistance(propName, field.name);
+                                        if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                                    }
+                                    std::sort(suggestions.begin(), suggestions.end());
+                                    if (!suggestions.empty()) {
+                                        std::string note = "similar fields:";
+                                        for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                                        cg_note(get_pos(*varAccess), note);
+                                    }
+                                }
                                 return nullptr;
                             }
 
@@ -10760,7 +10848,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
 
                 if (fieldIdx == -1) {
-                    cg_error(Position(), "Struct " + structName + " has no field " + propName);
+                    cg_error(get_pos(*propAccess), "struct " + structName + " has no field " + propName);
+                    if (propName.length() > 3) {
+                        std::vector<std::pair<int, std::string>> suggestions;
+                        for (auto& field : userTypes[baseTypeName(structName)].fields) {
+                            int distance = levenshteinDistance(propName, field.name);
+                            if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                        }
+                        std::sort(suggestions.begin(), suggestions.end());
+                        if (!suggestions.empty()) {
+                            std::string note = "similar fields:";
+                            for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                            cg_note(get_pos(*propAccess), note);
+                        }
+                    }
+
                     return nullptr;
                 }
                 llvm::Value* result = builder->CreateExtractValue(baseVal, fieldIdx, propName);
@@ -10772,12 +10874,25 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 int fieldIdx = getFlattenedFieldIndex(baseTypeName(className), propName);
 
                 if (fieldIdx == -1) {
-                    cg_error(Position(), "Field not found: " + propName);
+                    cg_error(get_pos(*propAccess), "field " + propName + " not found in class " + baseTypeName(className));
+                    if (propName.length() > 3) {
+                        std::vector<std::pair<int, std::string>> suggestions;
+                        for (auto& field : userTypes[baseTypeName(className)].classFields) {
+                            int distance = levenshteinDistance(propName, field.name);
+                            if (distance <= 2) { suggestions.push_back({distance, field.name}); }
+                        }
+                        std::sort(suggestions.begin(), suggestions.end());
+                        if (!suggestions.empty()) {
+                            std::string note = "similar fields:";
+                            for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                            cg_note(get_pos(*propAccess), note);
+                        }
+                    }
                     return nullptr;
                 }
                 auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(className), propName);
                 if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                    cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                    cg_error(get_pos(*propAccess), "cannot access " + fieldAccess + " field " + propName);
                     return nullptr;
                 }
 
@@ -10844,7 +10959,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (genericClasses[resolvedVariant]) {
                                 classTy = generateGenericClass(resolvedVariant, userTypes.find(resolvedVariant)->second, genericParams);
                                 if (classTy == nullptr) {
-                                    cg_error(Position(), "Failed to create specialized version of class " + resolvedVariant);
+                                    cg_error(get_pos(*propAccess), "failed to create specialized version of class " + resolvedVariant);
                                     return nullptr;
                                 }
                             } else {
@@ -10885,7 +11000,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
         }
-        cg_error((*propAccess)->property_name.pos, "Unknown property: " + propName);
+        cg_error((*propAccess)->property_name.pos, "unknown property: " + propName);
         return nullptr;
     } else if (auto methodCall = std::get_if<MethodCallNode*>(&node)) {
         auto* call = methodCall;
@@ -10936,7 +11051,69 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 }
                             }
                             if (!info) {
-                                cg_error((*call)->method_name.pos, "No overload found");
+                                cg_error((*call)->method_name.pos, "no overload found");
+                                struct Candidate {
+                                    int score;
+                                    ClassMethodInfo* method;
+                                };
+                                std::vector<Candidate> candidates;
+                                for (auto& method : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
+                                    if (method.is_constructor || (method.name_tok.value != methodName)) continue;
+                                    int score = 0;
+                                    size_t argCount = (*call)->args.size();
+                                    size_t paramCount = method.params.size();
+                                    score -= std::abs((int)argCount - (int)paramCount) * 5;
+                                    size_t count = std::min(argCount, paramCount);
+                                    for (size_t i = 0; i < count; i++) {
+                                        llvm::Type* argTy = emitExpr((*call)->args[i])->getType();
+                                        llvm::Type* paramTy = llvmTypeFor(method.params[i].type.value);
+                                        if (argTy == paramTy) {
+                                            score += 3;
+                                        } else if ((argTy->isIntegerTy() || argTy->isFloatTy() || argTy->isDoubleTy()) &&
+                                                   (paramTy->isIntegerTy() || paramTy->isFloatTy() || paramTy->isDoubleTy())) {
+                                            score += 1;
+                                        } else if (argTy->isPointerTy() && paramTy->isPointerTy()) {
+                                            score += 1;
+                                        } else {
+                                            score -= 3;
+                                        }
+                                    }
+                                    candidates.push_back({score, &method});
+                                }
+                                if (candidates.empty()) {
+                                    if (methodName.length() < 3) return nullptr;
+                                    std::vector<std::pair<int, std::string>> suggestions;
+                                    for (auto& method : userTypes[baseTypeName(ty)].classMethods) {
+                                        int distance = levenshteinDistance(methodName, method.name_tok.value);
+                                        if (distance <= 2) { suggestions.push_back({distance, method.name_tok.value}); }
+                                    }
+                                    std::sort(suggestions.begin(), suggestions.end());
+                                    if (!suggestions.empty()) {
+                                        std::string note = "similar methods:";
+                                        for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                                        cg_note(get_pos(*varAccess), note);
+                                    }
+                                    return nullptr;
+                                }
+                                std::sort(candidates.begin(), candidates.end(),
+                                          [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+                                if (candidates[0].score > 0) {
+                                    cg_note(get_pos(*varAccess), "closest matching overload: " + candidates[0].method->print());
+                                }
+                                if (candidates.size() <= 5) {
+                                    std::string note = "available overloads:";
+                                    for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
+                                    cg_note(get_pos(*varAccess), note);
+                                } else {
+                                    std::string note = "other overloads:";
+                                    size_t shown = 0;
+                                    for (auto& candidate : candidates) {
+                                        if (shown >= 3) break;
+                                        note += "\n  - " + candidate.method->print();
+                                        shown++;
+                                    }
+                                    cg_note(get_pos(*varAccess), note);
+                                }
                                 return nullptr;
                             }
                             auto args = prepareArgs(info, (*call)->args);
@@ -10997,7 +11174,68 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                         }
                         if (!info) {
-                            cg_error((*call)->method_name.pos, "No overload found");
+                            cg_error((*call)->method_name.pos, "no overload found");
+                            struct Candidate {
+                                int score;
+                                ClassMethodInfo* method;
+                            };
+                            std::vector<Candidate> candidates;
+                            for (auto& method : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
+                                if (method.is_constructor || (method.name_tok.value != methodName)) continue;
+                                int score = 0;
+                                size_t argCount = (*call)->args.size();
+                                size_t paramCount = method.params.size();
+                                score -= std::abs((int)argCount - (int)paramCount) * 5;
+                                size_t count = std::min(argCount, paramCount);
+                                for (size_t i = 0; i < count; i++) {
+                                    llvm::Type* argTy = emitExpr((*call)->args[i])->getType();
+                                    llvm::Type* paramTy = llvmTypeFor(method.params[i].type.value);
+                                    if (argTy == paramTy) {
+                                        score += 3;
+                                    } else if ((argTy->isIntegerTy() || argTy->isFloatTy() || argTy->isDoubleTy()) &&
+                                               (paramTy->isIntegerTy() || paramTy->isFloatTy() || paramTy->isDoubleTy())) {
+                                        score += 1;
+                                    } else if (argTy->isPointerTy() && paramTy->isPointerTy()) {
+                                        score += 1;
+                                    } else {
+                                        score -= 3;
+                                    }
+                                }
+                                candidates.push_back({score, &method});
+                            }
+                            if (candidates.empty()) {
+                                if (methodName.length() < 3) return nullptr;
+                                std::vector<std::pair<int, std::string>> suggestions;
+                                for (auto& method : userTypes[baseTypeName(ty)].classMethods) {
+                                    int distance = levenshteinDistance(methodName, method.name_tok.value);
+                                    if (distance <= 2) { suggestions.push_back({distance, method.name_tok.value}); }
+                                }
+                                std::sort(suggestions.begin(), suggestions.end());
+                                if (!suggestions.empty()) {
+                                    std::string note = "similar methods:";
+                                    for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                                    cg_note((*call)->method_name.pos, note);
+                                }
+                                return nullptr;
+                            }
+                            std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+                            if (candidates[0].score > 0) {
+                                cg_note((*call)->method_name.pos, "closest matching overload: " + candidates[0].method->print());
+                            }
+                            if (candidates.size() <= 5) {
+                                std::string note = "available overloads:";
+                                for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
+                                cg_note((*call)->method_name.pos, note);
+                            } else {
+                                std::string note = "other overloads:";
+                                size_t shown = 0;
+                                for (auto& candidate : candidates) {
+                                    if (shown >= 3) break;
+                                    note += "\n  - " + candidate.method->print();
+                                    shown++;
+                                }
+                                cg_note((*call)->method_name.pos, note);
+                            }
                             return nullptr;
                         }
                         auto args = prepareArgs(info, (*call)->args);
@@ -11017,7 +11255,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 structType = generateGenericClass(baseTypeName(ownerClass), userTypes.find(baseTypeName(ownerClass))->second,
                                                   genericParamsFromName(ownerClass));
                 if (structType == nullptr) {
-                    cg_error(Position(), "Failed to create specialized version of class " + baseTypeName(ownerClass));
+                    cg_error(get_pos(*call), "failed to create specialized version of class " + baseTypeName(ownerClass));
                     return nullptr;
                 }
             } else {
@@ -11033,7 +11271,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     break;
                 }
             }
-            if (!found) { return (cg_error((*call)->method_name.pos, "Field not found"), nullptr); }
+            if (!found) { return (cg_error((*call)->method_name.pos, "field not found"), nullptr); }
             llvm::Value* fieldAddr = builder->CreateStructGEP(structType, baseAddr, fieldIndex);
             thisPtr = fieldAddr;
             AnyNode temp = AnyNode(propAcc);
@@ -11075,7 +11313,68 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                         }
                         if (!info) {
-                            cg_error((*call)->method_name.pos, "No overload found");
+                            cg_error((*call)->method_name.pos, "no overload found");
+                            struct Candidate {
+                                int score;
+                                ClassMethodInfo* method;
+                            };
+                            std::vector<Candidate> candidates;
+                            for (auto& method : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
+                                if (method.is_constructor || (method.name_tok.value != methodName)) continue;
+                                int score = 0;
+                                size_t argCount = (*call)->args.size();
+                                size_t paramCount = method.params.size();
+                                score -= std::abs((int)argCount - (int)paramCount) * 5;
+                                size_t count = std::min(argCount, paramCount);
+                                for (size_t i = 0; i < count; i++) {
+                                    llvm::Type* argTy = emitExpr((*call)->args[i])->getType();
+                                    llvm::Type* paramTy = llvmTypeFor(method.params[i].type.value);
+                                    if (argTy == paramTy) {
+                                        score += 3;
+                                    } else if ((argTy->isIntegerTy() || argTy->isFloatTy() || argTy->isDoubleTy()) &&
+                                               (paramTy->isIntegerTy() || paramTy->isFloatTy() || paramTy->isDoubleTy())) {
+                                        score += 1;
+                                    } else if (argTy->isPointerTy() && paramTy->isPointerTy()) {
+                                        score += 1;
+                                    } else {
+                                        score -= 3;
+                                    }
+                                }
+                                candidates.push_back({score, &method});
+                            }
+                            if (candidates.empty()) {
+                                if (methodName.length() < 3) return nullptr;
+                                std::vector<std::pair<int, std::string>> suggestions;
+                                for (auto& method : userTypes[baseTypeName(ty)].classMethods) {
+                                    int distance = levenshteinDistance(methodName, method.name_tok.value);
+                                    if (distance <= 2) { suggestions.push_back({distance, method.name_tok.value}); }
+                                }
+                                std::sort(suggestions.begin(), suggestions.end());
+                                if (!suggestions.empty()) {
+                                    std::string note = "similar methods:";
+                                    for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                                    cg_note((*call)->method_name.pos, note);
+                                }
+                                return nullptr;
+                            }
+                            std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+                            if (candidates[0].score > 0) {
+                                cg_note((*call)->method_name.pos, "closest matching overload: " + candidates[0].method->print());
+                            }
+                            if (candidates.size() <= 5) {
+                                std::string note = "available overloads:";
+                                for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
+                                cg_note((*call)->method_name.pos, note);
+                            } else {
+                                std::string note = "other overloads:";
+                                size_t shown = 0;
+                                for (auto& candidate : candidates) {
+                                    if (shown >= 3) break;
+                                    note += "\n  - " + candidate.method->print();
+                                    shown++;
+                                }
+                                cg_note((*call)->method_name.pos, note);
+                            }
                             return nullptr;
                         }
                         auto args = prepareArgs(info, (*call)->args);
@@ -11098,7 +11397,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 builder->CreateStore(baseVal, thisPtr);
             }
         }
-        if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "Cannot resolve target"), nullptr);
+        if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target"), nullptr);
         if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, *call, thisPtr)) { return specializedCall; }
         ClassMethodInfo* info = nullptr;
         std::string searchClass = baseTypeName(targetClass);
@@ -11157,7 +11456,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string dispatchClass = targetClass;
         targetClass = resolveVirtualTargetClass(targetClass, methodName, (*call)->args.size());
         llvm::Function* method = findMethodOverload(targetClass, methodName, args);
-        if (!method) return (cg_error((*call)->method_name.pos, "No overload found"), nullptr);
+        if (!method) return (cg_error((*call)->method_name.pos, "no overload found"), nullptr);
         auto vtableIt = vtables.find(targetClass);
         auto slotIt = vtableSlotIndex.find(targetClass);
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
@@ -11181,8 +11480,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         return emitMethodCall(method, thisPtr, args, methodName);
     } else if (auto spread = std::get_if<SpreadNode*>(&node)) {
-        cg_error(Position(), "Spread operator can only be used in array "
-                             "literals");
+        cg_error(get_pos(*spread), "spread operator can only be used in array "
+                                   "literals");
         return nullptr;
     } else if (auto fieldAssign = std::get_if<FieldAssignNode*>(&node)) {
         std::string fieldName = (*fieldAssign)->field_name.value;
@@ -11199,13 +11498,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
                 int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), fieldName);
                 if (fieldIdx == -1) {
-                    cg_error(Position(), "Field not found: " + fieldName);
+                    cg_error(get_pos(*varAccess), "field not found: " + fieldName);
                     return nullptr;
                 }
 
                 auto [fieldOwnerClass, fieldAccess] = getFieldOwner(currentClassName, fieldName);
                 if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                    cg_error(Position(), "Cannot access " + fieldAccess + " field");
+                    cg_error(get_pos(*varAccess), "cannot access " + fieldAccess + " field");
                     return nullptr;
                 }
                 llvm::StructType* classTy = genericiseOrFindClass(currentClassName);
@@ -11435,7 +11734,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
     else if (ty->isIntegerTy(8))
         fnName = "qc_to_string_char";
     else {
-        cg_error(Position(), "Cannot convert type to string");
+        cg_error(Position(), "cannot convert type to string");
         return nullptr;
     }
 
@@ -11471,7 +11770,7 @@ void LLVMCompiler::expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExp
             elements.push_back(elemVal);
         }
     } else {
-        cg_error(Position(), "Cannot spread runtime-sized collection into array literal");
+        cg_error(get_pos(collExpr), "cannot spread runtime-sized collection into array literal");
     }
 }
 llvm::Value* LLVMCompiler::expandSpreadIntoArrays(llvm::Value* collVal, AnyNode& collExpr, llvm::AllocaInst* argsArray, llvm::AllocaInst* typesArray,
@@ -11551,7 +11850,7 @@ llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal, AnyNode& co
     }
 
     if (auto arrLit = std::get_if<ArrayLiteralNode*>(&collExpr)) { return builder->getInt32((*arrLit)->elements.size()); }
-    cg_error(Position(), "Cannot determine collection length for spread");
+    cg_error(get_pos(collExpr), "cannot determine collection length for spread");
     return nullptr;
 }
 llvm::Value* LLVMCompiler::copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex,
@@ -11622,7 +11921,7 @@ llvm::Value* LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& element
     }
 
     if (!elemTy) {
-        cg_error(Position(), "Cannot determine element type for runtime array");
+        cg_error(Position(), "cannot determine element type for runtime array");
         return nullptr;
     }
     llvm::Function* mallocFn = module->getFunction("qc_malloc");
@@ -11812,7 +12111,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::Type* retTy = currentFunction->getReturnType();
 
         if (!retTy->isStructTy()) {
-            cg_error(mret->pos, "Multi-return in non-multi-return function");
+            cg_error(mret->pos, "multi-return in non-multi-return function");
             return;
         }
 
@@ -11902,7 +12201,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (isUnionType(destTy, &unionName)) {
                     int tag = findUnionVariantTag(unionName, mret->values[i], val);
                     if (tag == -1) {
-                        cg_error(mret->pos, "Return value doesn't match union variant");
+                        cg_error(mret->pos, "return value doesn't match union variant");
                         return;
                     }
 
@@ -11930,7 +12229,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (!isEnumType(srcTy) && isEnumType(destTy)) {
                     int tag = findEnumVariantTag(enumName, mret->values[i], val);
                     if (tag == -1) {
-                        cg_error(mret->pos, "Return value doesn't match enum variant");
+                        cg_error(mret->pos, "return value doesn't match enum variant");
                         return;
                     }
 
@@ -12010,7 +12309,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (currentFunction->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
-                cg_error((*ret)->pos, "Return without value in non-void function");
+                cg_error((*ret)->pos, "return without value in non-void function");
             }
             return;
         }
@@ -12051,7 +12350,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!isUnionType(srcTy) && destTy == unionTy) {
                 int tag = findUnionVariantTag(unionName, (*ret)->value, v);
                 if (tag == -1) {
-                    cg_error((*ret)->pos, "Return value doesn't match union variant");
+                    cg_error((*ret)->pos, "return value doesn't match union variant");
                     return;
                 }
 
@@ -12079,7 +12378,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!isEnumType(srcTy) && destTy == enumTy) {
                 int tag = findEnumVariantTag(enumName, (*ret)->value, v);
                 if (tag == -1) {
-                    cg_error((*ret)->pos, "Return value doesn't match enum variant");
+                    cg_error((*ret)->pos, "return value doesn't match enum variant");
                     return;
                 }
 
@@ -12098,13 +12397,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
     } else if (auto mv = safe_get<MultiVarDeclNode>(node)) {
         llvm::Value* callVal = emitExpr(mv->value);
         if (!callVal) {
-            cg_error(mv->var_names[0].pos, "Failed to compile multi-var initializer");
+            cg_error(mv->var_names[0].pos, "failed to compile multi-var initializer");
             return;
         }
 
         llvm::Type* retTy = callVal->getType();
         if (!retTy->isStructTy() || retTy->getStructNumElements() != mv->var_names.size()) {
-            cg_error(mv->var_names[0].pos, "Multi-return arity/type mismatch");
+            cg_error(mv->var_names[0].pos, "multi-return arity/type mismatch");
             return;
         }
 
@@ -12249,13 +12548,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (currentBreakBB) {
             builder->CreateBr(currentBreakBB);
         } else {
-            cg_error(Position(), "break outside of loop/switch");
+            cg_error(get_pos(node), "break outside of loop/switch");
         }
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
             builder->CreateBr(currentContinueBB);
         } else {
-            cg_error(Position(), "continue outside of loop");
+            cg_error(get_pos(node), "continue outside of loop");
         }
     } else if (auto for_node = safe_get<ForNode>(node)) {
         enterScope();
@@ -12488,7 +12787,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         enterScope();
         llvm::Value* qb_val = emitExpr(qsw->value);
         if (!qb_val) {
-            cg_error(Position("", "", 0, 0, 0), "Failed to compile qswitch value");
+            cg_error(get_pos(qsw), "failed to compile qswitch value");
             return;
         }
         for (auto& [enumName, enumTy] : enumTypes) {
@@ -12503,7 +12802,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
         qb_val = normalizeValue(qb_val, qsw->value);
         if (qb_val->getType() != builder->getIntNTy(2)) {
-            cg_error(Position("", "", 0, 0, 0), "qswitch requires qbool type");
+            cg_error(get_pos(qsw), "qswitch requires qbool type");
             return;
         }
         llvm::BasicBlock* check_true = llvm::BasicBlock::Create(context, "qsw.check_true", currentFunction);
@@ -12744,17 +13043,17 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             std::string ptrTy = getExpressionType(arrAcc->base);
             if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
                 if (ptrTy == "@nullptr") {
-                    cg_error(Position(), "Attempted to dereference nullptr");
+                    cg_error(get_pos(arrAcc), "attempted to dereference nullptr");
                     return;
                 }
                 if (ptrTy == "void*") {
-                    cg_error(Position(), "You cannot dereference or indice void*");
+                    cg_error(get_pos(arrAcc), "you cannot dereference or indice void*");
                     return;
                 }
                 std::string valueTy = getExpressionType(arrAcc->indices[0]);
                 if (valueTy != "int") {
-                    cg_error(Position(), "Attempted to index a pointer with a "
-                                         "non-integer value.");
+                    cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a "
+                                                          "non-integer value.");
                     return;
                 }
                 llvm::Value* value = emitExpr(arrAcc->indices[0]);
@@ -12768,7 +13067,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* idx = emitExpr(arrAcc->indices[0]);
                 llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
                 if (!ref) {
-                    cg_error(Position(), ptrTy + " does not have operator[]");
+                    cg_error(get_pos(arrAcc->base), ptrTy + " does not have operator[]");
                     return;
                 }
                 llvm::Value* val = emitExpr(arrAssign->value);
@@ -12780,7 +13079,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
                     if (!hasLocal(name)) {
-                        cg_error(Position(), "Unknown jagged array: " + name);
+                        cg_error(get_pos(varAcc), "unknown jagged array: " + name);
                         return;
                     }
                     auto it = findLocal(name);
@@ -12833,7 +13132,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 }
                 llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
-                    cg_error(Position(), "Unknown array: " + name);
+                    cg_error(get_pos(arrAcc->base), "unknown array: " + name);
                     return;
                 }
 
@@ -13288,7 +13587,7 @@ std::vector<CTError> LLVMCompiler::compile(
                                     builder->CreateCall(parentCtor, allArgs);
                                     bodyStartIdx = 1;
                                 } else {
-                                    cg_error(Position(), "Parent class '" + info.baseClassName + "' has no matching constructor");
+                                    cg_error(get_pos(*call), "parent class '" + info.baseClassName + "' has no matching constructor");
                                 }
                             }
                         }
@@ -13342,7 +13641,7 @@ std::vector<CTError> LLVMCompiler::compile(
                 llvm::Value* result = builder->CreateCall(userEntry, user_entry_args, "entry_result");
                 builder->CreateRet(result);
             } else {
-                cg_error(Position(), "Entrypoint function '" + entrypointName + "' not defined");
+                cg_error(Position("", "", 0, 0, 0), "entrypoint function '" + entrypointName + "' not defined");
             }
         }
     }
@@ -13940,7 +14239,9 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLen, visVars,
                                                          visAlloc, visLamb, visSpec, visGlobals);
                 if (!errs.empty()) {
-                    for (auto& err : errs) diagnostics.push_back({new CTError(err.details, err.pos), err.is_warning ? "Warning" : "Error"});
+                    for (auto& err : errs)
+                        diagnostics.push_back(
+                            {new CTError(err.details, err.pos, err.is_warning, err.error_name, err.notes), err.is_warning ? "Warning" : "Error"});
                     break;
                 }
                 db_sigs[filepath] = comp.functionSignatures;
@@ -14018,7 +14319,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             int llc_result = emitObjectFile(*master_module, obj_file, config.debug, config.target);
             if (llc_result != 0) {
-                diagnostics.push_back({new CTError("Failed to compile IR to object file", Position("", "", 0, 0, 0)), "Error"});
+                diagnostics.push_back({new CTError("Failed to compile IR to object file", Position("", "", 0, 0, 0))});
                 return Mer{ast, resp, message, diagnostics};
             }
             if (config.object_only) {
@@ -14031,7 +14332,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             if (config.debug) link_cmd += " -g";
             int link_result = system(link_cmd.c_str());
             if (link_result != 0) {
-                diagnostics.push_back({new CTError("Failed to link object file", Position("", "", 0, 0, 0)), "Error"});
+                diagnostics.push_back({new CTError("Failed to link object file", Position("", "", 0, 0, 0))});
                 return Mer{ast, resp, message, diagnostics};
             }
             std::remove(ll_file.c_str());
@@ -14132,7 +14433,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 'n') {
             this->advance();
             return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
-        } 
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
         int passed = 0;
@@ -14163,7 +14464,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 'n') {
             this->advance();
             return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
-        } 
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
         int passed = 0;
@@ -14194,7 +14495,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 'n') {
             this->advance();
             return Token(TokenType::NIBBLE, std::to_string(val), start_pos);
-        } 
+        }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
         int passed = 0;
