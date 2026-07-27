@@ -6,7 +6,7 @@
 
 You may be thinking "This language has a lot of intrinsics. That must mean its going to fill my binary with bloat!".
 
-That is incorrect. Not only does the runtime only link libc and a file of 96 small helpers/wrappers, it also can be excluded from your file.
+That is incorrect. Not only does the runtime only link libc and a file of 80 small helpers/wrappers, it also can be excluded from your file.
 
 By passing the `-nrt` or `--no-runtime` flag to the compiler, you can tell the compiler not to link the runtime `.ll`. This will disable
 
@@ -26,7 +26,7 @@ If you get a undefined function error starting in `qc_`, its most likely a unall
 
 However, you may think "Why would anybody do that?". The answe is simple. _Custom runtimes_.
 
-The runtime is just 90 functions and 2 structs. Its really simple to make your own. Reference the following table to see what functions you need to make per feature.
+The runtime is just 78 functions and 2 structs. Its really simple to make your own. Reference the following table to see what functions you need to make per feature.
 1. String Concatenation
     - `string qc_string_concat(string a, string b)`
 2. Power on ints
@@ -37,7 +37,7 @@ The runtime is just 90 functions and 2 structs. Its really simple to make your o
         void* *items;
         int count;
         int current_index;
-    };
+    }
     ```
     - `bool qc_variadic_is_empty(qc_variadic *variadic)`
     - `void* qc_variadic_next(qc_variadic *variadic)`
@@ -70,7 +70,18 @@ The runtime is just 90 functions and 2 structs. Its really simple to make your o
     - `void qc_set_leaf_element(void *row, int idx, void *value, int elem_type)`
 7. qin
     - `string qc_qin()`
-    - all of the stringify helpers below.
+    - ```qc
+int qc_to_int_from_string(string str) {
+short qc_to_short_int_from_string(string str) {
+long int qc_to_long_int_from_string(string str) {
+addr_t qc_to_addr_t_from_string(string str) {
+float qc_to_float_from_string(string str) {
+double qc_to_double_from_string(string str) {
+char qc_to_char_from_string(string str) {
+nibble qc_to_nibble_from_string(nibble n) {
+byte qc_to_byte_from_string(byte b) {
+```
+
 8. fstrings
     - all of the stringify helpers below.
 9. qout
@@ -99,6 +110,8 @@ string qc_to_string_double(double x)
 string qc_to_string_bool(bool b)
 string qc_to_string_qbool(int q)
 string qc_to_string_char(char c)
+string qc_to_string_nibble(nibble n)
+string qc_to_string_byte(byte b)
 ```
     - `void qc_print_string(string s)`
 10. The Rest of the intrinsics:
@@ -125,13 +138,6 @@ bool qc_to_bool_from_string(string str) {
 int qc_to_qbool_from_string(string str) {
 string qc_trim(string str) {
 string qc_replace(string str, string find, string replace) {
-int qc_to_int_from_string(string str) {
-short qc_to_short_int_from_string(string str) {
-long int qc_to_long_int_from_string(string str) {
-addr_t qc_to_addr_t_from_string(string str) {
-float qc_to_float_from_string(string str) {
-double qc_to_double_from_string(string str) {
-char qc_to_char_from_string(string str) {
 int qc_open(string path, string mode) {
 void qc_close(int fd) {
 void qc_write(int fd, string data) {

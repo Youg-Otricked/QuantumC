@@ -9,7 +9,7 @@
 |Name|Signature|Use|
 |----|---------|---|
 |`_repr`|`string _repr();`|Auto called as a string_representation, called when used in println, print, qout, fstrings|
-|`_eval`|`bool _eval();`  |Auto called when you A: use a class in a if statement with no operators. B: when used on a operator that lacks a operator overload for that logical operator. Defaults to `bool_eval() { return true; }`|
+|`_eval`|`bool _eval();`  |Auto called when you A: use a class in a if statement with no operators. B: when used on a operator that lacks a operator overload for that logical operator. Defaults to `bool _eval() { return true; }`|
 |`operator?`|`type operator(opname)(single arg);`|Auto called when you use a logical or arithmetic operator on a class, eg `operator+` is called when you use `class + other thing`|
 
 ### Syntax And examples

@@ -226,6 +226,7 @@ bool qc_string_eq(const char* a, const char* b) {
     return strcmp(a, b) == 0 ? 1 : 0;
 } // self hosted
 uint8_t qc_qand(uint8_t a, uint8_t b) { // self hosted
+    if (a == 0 && b == 0) return 0;
     if (a == 0 || a == 1 || b == 0 || b == 1) return 1;
     if (a == 2 && b == 2) return 2;
     if (a == 2 && b == 3) return 3;
@@ -311,7 +312,7 @@ char* qc_to_string_double(double x) {
 } // self hosted
 char* qc_to_string_addr_t(uintptr_t x) {
     char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%" PRIdPTR, x);
+    int n = snprintf(buf, sizeof(buf), "%" PRIuPTR, x);
     if (n < 0) return nullptr;
     char* out = (char*)malloc(n + 1);
     if (!out) return nullptr;
@@ -329,7 +330,7 @@ char* qc_to_string_byte(uint8_t x) {
 } // self hosted
 char* qc_to_string_nibble(uint8_t x) {
     char buf[32];
-    int n = snprintf(buf, sizeof(buf), "%u" PRIdPTR, x);
+    int n = snprintf(buf, sizeof(buf), "%u", (unsigned)(x & 0x0F));
     if (n < 0) return nullptr;
     char* out = (char*)malloc(n + 1);
     if (!out) return nullptr;
@@ -380,12 +381,14 @@ void qc_seed(int seed) {
     srand(seed);
 } // self hosted
 int qc_random_int(int max) {
+    if (max <= 0) return 0;
     return rand() % max;
 } // self hosted
 float qc_random_float() {
     return (float)rand() / (float)RAND_MAX;
 } // self hosted
 int qc_random_range(int min, int max) {
+    if (max <= min) return min;
     return min + (rand() % (max - min));
 } // self hosted
 int qc_len(const char* str) { // self hosted
@@ -547,10 +550,10 @@ size_t qc_to_addr_t_from_string(const char* str) {
     return str ? static_cast<size_t>(strtoull(str, nullptr, 10)) : 0;
 } // self hosted
 uint8_t qc_to_nibble_from_string(const char* str) {
-    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10)) : 0;
+    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10) & 0x0FULL) : 0;
 }
 uint8_t qc_to_byte_from_string(const char* str) {
-    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10)) : 0;
+    return str ? static_cast<uint8_t>(strtoull(str, nullptr, 10) & 0xFFULL) : 0;
 }
 
 float qc_to_float_from_string(const char* str) {
@@ -659,19 +662,23 @@ void qc_close(int fd) {
     close(fd);
 } // self hosted
 
-char* qc_read(int fd) {
-    char buffer[1024];
-
-    ssize_t n = read(fd, buffer, sizeof(buffer) - 1);
-    if (n <= 0) return strdup("");
-
+ssize_t qc_read(int fd, char *buffer, size_t size) {
+    if (size == 0) return 0;
+    ssize_t n = read(fd, buffer, size - 1);
+    if (n <= 0) return n;
     buffer[n] = '\0';
-    return strdup(buffer);
-} // self hosted
-
-void qc_write(int fd, const char* data) {
-    if (data) write(fd, data, strlen(data));
-} // self hosted
+    return n;
+}
+void qc_write(int fd, const char *data) {
+    if (!data) return;
+    size_t len = strlen(data);
+    while (len > 0) {
+        ssize_t n = write(fd, data, len);
+        if (n <= 0) return;
+        data += n;
+        len -= n;
+    }
+}// self hosted
 typedef struct {
     void** items;
     int count;

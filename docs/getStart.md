@@ -12,7 +12,7 @@ Choose one method:
 1. Download the [Package And Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager/releases/latest). (Webi install coming soon)
 2. Setup
 ```sh
-./qcm setup // adds binary to path, makes .qc directory, .qcm directory, and adds .qc/bin to path
+./qcm setup # adds binary to path, makes .qc directory, .qcm directory, and adds .qc/bin to path
 ```
 3. Install latest qc version.
 ```sh

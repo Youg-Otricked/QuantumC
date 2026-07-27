@@ -14,7 +14,7 @@ void __qc_release_notes() {
     mov rax, 1
     mov rdi, 1
     mov rsi, $0r
-    mov rdx, 62
+    mov rdx, 63
     )", "Added generic functions & methods, deprecated `auto` functions\n", "~{rax}~{rdi}~{rsi}~{rdx}");
 }
 ///////////////////
@@ -39,6 +39,7 @@ void* qc_variadic_next(qc_variadic* variadic) {
 /////////////////
 
 int qc_qand(int a, int b) {
+    if (a == 0 && b == 0) return 0;
     if (a == 0 || a == 1 || b == 0 || b == 1) return 1;
     if (a == 2 && b == 2) return 2;
     if (a == 2 && b == 3) return 3;
@@ -80,7 +81,7 @@ bool qc_qor_collapse(int a, int b) {
 // REAL MALLOC ///
 /////////////////
 const int ALIGNMENT = 16;
-void *__qc_memcpy(void *dst, void *src, addr_t size) {
+void* __qc_memcpy(void *dst, void *src, addr_t size) {
     char *d = dst;
     char *s = src;
     while (size && (`to_address(d) & 7)) {
@@ -166,6 +167,7 @@ __qc_malloc_chunk* __qc_find_free_chunk(addr_t size) {
         if (current->free && current->size >= size) return current;
         current = current->next_free;
     }
+    return nullptr;
 }
 // Add chunk to heaps freelist
 void __qc_add_to_free_list(__qc_malloc_chunk *chunk) {
@@ -180,11 +182,10 @@ char* __qc_chunk_user_data(__qc_malloc_chunk *chunk) {
 }
 // Split chunk to get wanted size.
 void __qc_split_chunk(__qc_malloc_chunk *chunk, addr_t wanted) {
+    if (chunk->size < wanted + sizeof "__qc_malloc_chunk" + 16) return;
     addr_t remaining = chunk->size - wanted - sizeof "__qc_malloc_chunk";
-    if (remaining < 16) return;
     __qc_malloc_chunk *new_chunk = `mapped_ptr(`to_address(chunk->user_data) + wanted);
     new_chunk->user_data = __qc_chunk_user_data(new_chunk);
-    chunk->size = wanted;
     new_chunk->size = remaining;
     new_chunk->free = true;
     new_chunk->prev_phys = chunk;
@@ -210,14 +211,14 @@ __qc_malloc_chunk* __qc_get_previous_physical_chunk(__qc_malloc_chunk *chunk) {
 }
 // Self explanitory
 void __qc_merge_chunks(__qc_malloc_chunk *a, __qc_malloc_chunk *b) {
+    __qc_malloc_chunk *successor = b->next_phys;
     a->size += sizeof "__qc_malloc_chunk";
     a->size += b->size;
     a->free = true;
-    a->next_phys = b->next_phys;
+    a->next_phys = successor;
+    if (successor) successor->prev_phys = a;
     b->prev_phys = nullptr;
     b->next_phys = nullptr;
-    b->free = false;
-    if (b->next_phys) b->next_phys->prev_phys = a;
 }
 // Alignment helper
 addr_t __qc_page_align(addr_t size) {
@@ -240,7 +241,7 @@ addr_t __qc_system_alloc(addr_t size) {
             syscall
             mov $0=r, rax
         )", result, size, "~{rax,rdi,rsi,rdx,r8,r9,r10,r11,rcx,memory}");
-    if (result == ~0a) return 0a;
+    if (result > (~0a - 4096a)) return 0a;
     __qc_heap.system_mem += size;
     return result;
 }
@@ -265,7 +266,7 @@ void* qc_malloc(addr_t request_size) {
         }
         chunk = chunk->next_free;
     }
-    if (__qc_heap.top_chunk && __qc_heap.top_chunk->size >= size) {
+    if (__qc_heap.top_chunk && __qc_heap.top_chunk->size >= size + sizeof "__qc_malloc_chunk") {
         chunk = __qc_heap.top_chunk;
         addr_t remaining = chunk->size - size - sizeof "__qc_malloc_chunk";
         chunk->size = size;
@@ -299,7 +300,6 @@ void* qc_malloc(addr_t request_size) {
     new_chunk->next_phys = nullptr;
     new_chunk->prev_free = nullptr;
     new_chunk->next_free = nullptr;
-    if (__qc_heap.first_chunk == nullptr) __qc_heap.first_chunk = new_chunk;
     __qc_malloc_chunk *last = nullptr;
     if (__qc_heap.first_chunk == nullptr) {
         __qc_heap.first_chunk = new_chunk;
@@ -364,14 +364,13 @@ void qc_free(void *ptr) {
         __qc_merge_chunks(chunk, next);
     }
     next = __qc_get_next_physical_chunk(chunk);
-    if (next == __qc_heap.top_chunk && next->free) {
+    if (next != nullptr && next == __qc_heap.top_chunk && next->free) {
         chunk->size += sizeof "__qc_malloc_chunk" + next->size;
         chunk->next_phys = next->next_phys;
         if (next->next_phys) next->next_phys->prev_phys = chunk;
         __qc_heap.top_chunk = chunk;
         chunk->prev_free = nullptr;
         chunk->next_free = nullptr;
-        __qc_malloc_chunk *after = __qc_get_next_physical_chunk(chunk);
         return;
     }
     __qc_add_to_free_list(chunk);
@@ -396,14 +395,7 @@ void *qc_realloc(void *ptr, addr_t new_size) {
     addr_t old_size = old_chunk->size;
     new_size = __qc_align(new_size);
     if (new_size <= old_size) {
-        if (old_size - new_size >= 16) {
-            if (old_chunk == __qc_heap.top_chunk) {
-                __qc_split_chunk(old_chunk, new_size);
-                __qc_heap.top_chunk = __qc_get_next_physical_chunk(old_chunk);
-            } else {
-                __qc_split_chunk(old_chunk, new_size);
-            }
-        }
+        __qc_split_chunk(old_chunk, new_size);
         return ptr;
     }
     __qc_malloc_chunk *next = __qc_get_next_physical_chunk(old_chunk);
@@ -447,7 +439,7 @@ bool qc_string_eq(string a, string b) {
     }
     return a[i] == b[i];
 }
-string qc_string_concat(string a, string* b) {
+string qc_string_concat(string a, string b) {
     if (!a) a = "";
     if (!b) b = "";
     addr_t len_a = `len(a);
@@ -461,6 +453,7 @@ string qc_string_concat(string a, string* b) {
     return result;
 } 
 bool qc_contains(string str, string sub) {
+    if (!str || !sub) return false;
     if (*sub == '\0') {
         return true;
     }
@@ -548,7 +541,7 @@ bool qc_endswith(string str, string suffix) {
             return false;
         }
     }
-    return false;
+    return true;
 }
 
 bool __qc_is_space(char c) {
@@ -593,7 +586,14 @@ string qc_replace(string str, string find, string replace) {
         return dup;
     }
     int count = 0;
-    for (addr_t i = 0a; i <= str_len - find_len; ) {
+    if (find_len > str_len) {
+        string dup = `malloc(str_len + 1);
+        if (!dup) return nullptr;
+        for (addr_t i = 0a; i <= str_len; i++) dup[i] = str[i];
+        return dup;
+    }
+    addr_t last_start = str_len - find_len;
+    for (addr_t i = 0a; i <= last_start; ) {
         int match = 1;
         for (addr_t j = 0a; j < find_len; j++) {
             if (str[i + j] != find[j]) {
@@ -621,7 +621,7 @@ string qc_replace(string str, string find, string replace) {
     addr_t dst_idx = 0;
     while (src_idx < str_len) {
         int match = 0;
-        if (src_idx <= str_len - find_len) {
+        if (src_idx <= last_start) {    
             match = 1;
             for (addr_t j = 0a; j < find_len; j++) {
                 if (str[src_idx + j] != find[j]) {
@@ -678,10 +678,10 @@ string __qc_strdup(string src) {
 // FILES ////////
 ////////////////
 const int O_WRONLY = 1;
-const int O_CREAT = 64;
-const int O_TRUNC = 512;
-const int O_APPEND = 1024;
-const int O_RDWR = 2;
+const int O_CREAT  = 64;
+const int O_TRUNC  = 512;
+const int O_APPEND = 2048;
+const int O_RDWR   = 2;
 const int O_RDONLY = 0;
 
 int qc_open(string path, string permission) {
@@ -712,7 +712,7 @@ int qc_open(string path, string permission) {
     mov r10d, $3r
     syscall
     mov $0=r, eax
-    )", res, path, fgs, `ternary(fgs < 3, 0, 0644), "~{rax}~{rdi}~{rsi}~{rdx}~{r10}");
+    )", res, path, fgs, `ternary(fgs & O_CREAT, 0o0, 0o0644), "~{rax}~{rdi}~{rsi}~{rdx}~{r10}");
     if (res < 0) {
         return -1;
     }
@@ -726,53 +726,63 @@ void qc_close(int fd) {
     )", fd, "~{rax}~{rdi}");
 }
 
-char *qc_read(int fd) {
-    char[1024] buffer = ['\0'];
-    long int n = 0;
+long int qc_read(int fd, char *buffer, long int size) {
+    long int n = 0l;
     `inline(R"(
-    mov rax, 0
-    mov edi, $1r
-    mov rsi, $2r
-    mov rdx, 1023
-    syscall
-    mov $0=r, rax)", n, fd, buffer, "~{rax}~{rdi}~{rsi}~{rdx}");
-    if (n <= 0)
-        return __qc_strdup("");
-    buffer[n] = '\0';
-    return __qc_strdup(buffer);
-}
-void qc_write(int fd, string data) {
-    if (data)
-        `inline(R"(
-        mov rax, 1
-        mov edi, $0r
-        mov rsi, $1r
-        mov rdx, $2r
+        mov rax, 0
+        mov edi, $1r
+        mov rsi, $2r
+        mov rdx, $3r
         syscall
-        )", fd, data, `len(data), "~{rax}~{rdi}~{rsi}~{rdx}~{rcx}~{r11}");
+        mov $0=r, rax
+    )", n, fd, buffer, size, "~{rax}~{rdi}~{rsi}~{rdx}");
+    return n;
+}
+long int qc_write(int fd, string data) {
+    long int n = 0l;
+    `inline(R"(
+        mov rax, 1
+        mov edi, $1r 
+        mov rsi, $2r
+        mov rdx, $3r
+        syscall
+        mov $0=r, rax
+    )", n, fd, data, `len(data), "~{rax}~{rdi}~{rsi}~{rdx}~{rcx}~{r11}");
+    return n;
 }
 //////////////////
 // DIRECT I/O ///
 ////////////////
-string __qc_current_buffer = "";
+const addr_t __QC_BUF_CAP = 4096a;
+char[4096] __qc_out_buffer = ['\0'];
+addr_t __qc_out_len = 0a;
 int __qc_write_to = 1;
 void qc_flush() {
-    qc_write(__qc_write_to, __qc_current_buffer);
-    __qc_current_buffer = "";
+    if (__qc_out_len == 0a) return;
+    __qc_out_buffer[__qc_out_len] = '\0';
+    qc_write(__qc_write_to, __qc_out_buffer);
+    __qc_out_len = 0a;
 }
 void qc_print_string(string value) {
-    if (__qc_write_to == 1) {
-        __qc_current_buffer += value;
-        if (`contains(value, "\n")) {
-            `flush();
-        }
-    } else {
-        `write(__qc_write_to, value);
-    }
+    if (!value) return;
+    if (__qc_write_to != 1) { `write(__qc_write_to, value); return; }
+    addr_t n = `len(value);
+    if (n >= __QC_BUF_CAP - 1a) { `flush(); `write(__qc_write_to, value); return; }
+    if (__qc_out_len + n >= __QC_BUF_CAP - 1a) `flush();
+    __qc_memcpy(&__qc_out_buffer[__qc_out_len], value, n);
+    __qc_out_len += n;
+    if (`contains(value, "\n")) `flush();
 }
 string qc_qin() {
-    `flush();
-    return `read(0);
+    string result = "";
+    while (true) {
+        char c;
+        long int n = qc_read(0, &c, 1);
+        if (n <= 0) break;
+        if (c == '\n') break;
+        result += c;
+    }
+    return result;
 }
 //////////////////
 // X_TO_STRING //
@@ -780,8 +790,7 @@ string qc_qin() {
 void __qc_reverse(char* str, int length) {
     int left = 0;
     int right = length - 1;
-    while (left < right)
-    {
+    while (left < right) {
         char temp = str[left];
         str[left] = str[right];
         str[right] = temp;
@@ -796,9 +805,9 @@ string __qc_to_string_long_int_helper(long int x) {
     bool negative = x < 0;
     addr_t value;
     if (negative) {
-        value = -x;
+        value = 0a - `to_addr_t(x);    
     } else {
-        value = x;
+        value = `to_addr_t(x);
     }
     if (value == 0) {
         buf[index++] = '0';
@@ -996,60 +1005,6 @@ string qc_fmt_unsigned_int(addr_t v, int width, int precision, bool zero_pad) {
     }
     return stringified;
 }
-string qc_fmt_float(double v, int width, int precision, bool zero_pad) {
-    bool is_negative = false;
-    if (v < 0.0) {
-        is_negative = true;
-        v = -v;
-    }
-    string stringified = `to_string(v);
-    int dot_pos = -1;
-    int i = 0;
-    while (i < `len(stringified)) {
-        if (`substring(stringified, i, 1) == ".") {
-            dot_pos = i;
-        }
-        i = i + 1;
-    }
-    if (dot_pos == -1) {
-        dot_pos = `len(stringified);
-        stringified = stringified + ".";
-    }
-    string int_part = `substring(stringified, 0, dot_pos);
-    string frac_part = `substring(stringified, dot_pos + 1, `len(stringified) - dot_pos - 1);
-    if (precision == 0) {
-        stringified = int_part;
-    } else {
-        if (`len(frac_part) > precision) {
-            frac_part = `substring(frac_part, 0, precision);
-        }
-        while (`len(frac_part) < precision) {
-            frac_part = frac_part + "0";
-        }
-        stringified = int_part + "." + frac_part;
-    }
-    if (is_negative && zero_pad) {
-        stringified = "-" + stringified;
-        is_negative = false; 
-    }
-    while (`len(stringified) < width) {
-        if (zero_pad) {
-            stringified = "0" + stringified;
-        } else {
-            stringified = " " + stringified;
-        }
-    }
-    if (is_negative) {
-        stringified = "-" + stringified;
-    }
-    return stringified;
-}
-
-
-
-string qc_fmt_double(double v, int width, int precision, bool zero_pad) {
-    return qc_fmt_float(v, width, precision, zero_pad);
-}
 string qc_fmt_scientific(double v, int width, int precision, bool zero_pad) {
     bool is_negative = false;
     if (v < 0.0) {
@@ -1107,6 +1062,61 @@ string qc_fmt_scientific(double v, int width, int precision, bool zero_pad) {
     return stringified;
 }
 
+
+string qc_fmt_float(double v, int width, int precision, bool zero_pad) {
+    bool is_negative = false;
+    if (v < 0.0) {
+        is_negative = true;
+        v = -v;
+    }
+    string stringified = `to_string(v);
+    int dot_pos = -1;
+    int i = 0;
+    while (i < `len(stringified)) {
+        if (`substring(stringified, i, 1) == ".") {
+            dot_pos = i;
+        }
+        i = i + 1;
+    }
+    if (dot_pos == -1) {
+        dot_pos = `len(stringified);
+        stringified = stringified + ".";
+    }
+    string int_part = `substring(stringified, 0, dot_pos);
+    string frac_part = `substring(stringified, dot_pos + 1, `len(stringified) - dot_pos - 1);
+    if (precision == 0) {
+        stringified = int_part;
+    } else {
+        if (`len(frac_part) > precision) {
+            frac_part = `substring(frac_part, 0, precision);
+        }
+        while (`len(frac_part) < precision) {
+            frac_part = frac_part + "0";
+        }
+        stringified = int_part + "." + frac_part;
+    }
+    if (is_negative && zero_pad) {
+        stringified = "-" + stringified;
+        is_negative = false; 
+    }
+    while (`len(stringified) < width) {
+        if (zero_pad) {
+            stringified = "0" + stringified;
+        } else {
+            stringified = " " + stringified;
+        }
+    }
+    if (is_negative) {
+        stringified = "-" + stringified;
+    }
+    return stringified;
+}
+
+
+
+string qc_fmt_double(double v, int width, int precision, bool zero_pad) {
+    return qc_fmt_float(v, width, precision, zero_pad);
+}
 string qc_fmt_char(char v, int width, bool zero_pad) {
     string stringified = `to_string(v); 
     while (`len(stringified) < width) {

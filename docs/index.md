@@ -34,7 +34,7 @@ int main() {
 ### Pages:
 [Getting started](./getStart.md)
 
-[Basics](./BasicSyntax.md)i
+[Basics](./BasicSyntax.md)
 
 [Control flow](./ControlFlow.md)
 

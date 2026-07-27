@@ -37,7 +37,6 @@ General formatting recommendations:
 A namespace should generally contain one of the following:
 1. Namespaces should do one thing well, similar to the UNIX philosophy, 
 2. Namespaces should have either:
-
         1. one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
         2. above + namespaces containing extra helpers
         3. helper functions / utility functions (think a `Math` namespace with log, cos...)

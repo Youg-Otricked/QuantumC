@@ -44,7 +44,7 @@ int main() {
     if (!flag) { // This block won't run because the opisite of true is false
         `qout("This block won't run\n");
     } else if (flag && other) {// This block won't run because true and false is false
-        `qout("This block also won't run\n")';
+        `qout("This block also won't run\n");
     } else { // This block runs;
         other = true;
         if (flag ^ other) {// This block won't run because other and flag are both true

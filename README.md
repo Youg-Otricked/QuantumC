@@ -88,6 +88,7 @@ For the version
 `Mi` = `3`
 `P` = `4`
 
+P is ommited if it is 0.
 Critical versions represent the largest generational milestones in QuantumC's development.
 
 v = Interpreter
@@ -617,7 +618,7 @@ class ArrayIterator<T> {
     ArrayIterator(T* data, int size, bool is_end) {
         this.data = data;
         this.size = size;
-        this.current_index = `ternary(is_end, size - 1, 0);
+        this.current_index = `ternary(is_end, size, 0);
     }
     bool _atEnd() {
         return this.size <= this.current_index;

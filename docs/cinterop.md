@@ -22,6 +22,9 @@ int add(int a, int b) {
 This is equivelant to 
 ```c
 extern "C" {
+    int add(int a, int b) {
+        return a + b;
+    }
 }
 ```
 in many other languages.

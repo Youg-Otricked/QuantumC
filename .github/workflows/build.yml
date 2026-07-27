@@ -140,7 +140,7 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/llvm/llvm-project.git
           cd llvm-project
-          emcmake cmake -S -DCXX_RUNTIME=ON -S llvm -B build -G Ninja \
+          emcmake cmake -S llvm -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/llvm-install \
             -DLLVM_TARGETS_TO_BUILD="WebAssembly" \

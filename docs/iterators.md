@@ -37,7 +37,7 @@ class ArrayIterator<T> {
     ArrayIterator(T* data, int size, bool is_end) {
         this.data = data;
         this.size = size;
-        this.current_index = `ternary(is_end, size - 1, 0);
+        this.current_index = `ternary(is_end, size, 0);
     }
     bool _atEnd() {
         return this.size <= this.current_index;

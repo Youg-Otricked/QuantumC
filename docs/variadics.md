@@ -8,7 +8,7 @@ Variadics are simple. They just mean any amount of arguments can be passed to th
 
 ```
 int addMany(...args) {
-    int sum;
+    int sum = 0;
     while (!`is_empty(args)) {
         sum += `next(args, "int");
     }

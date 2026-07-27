@@ -26,12 +26,12 @@
 #include <print>
 #endif
 bool isCharInSet(char, const std::string&);
-inline int levenshteinDistance(std::string& a, std::string& b) { // hehe fancy word
+inline int levenshteinDistance(const std::string& a, const std::string& b) { // hehe fancy word
     std::vector<int> prev(b.size() + 1);
     std::vector<int> curr(b.size() + 1);
-    for (size_t j = 0; j <= b.size(); j++) prev[j] = j;
+    for (size_t j = 0; j <= b.size(); j++) prev[j] = static_cast<int>(j);
     for (size_t i = 1; i <= a.size(); i++) {
-        curr[0] = i;
+        curr[0] = static_cast<int>(i);
         for (size_t j = 1; j <= b.size(); j++) {
             int cost = a[i - 1] == b[j - 1] ? 0 : 1;
             curr[j] = std::min({curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost});
@@ -1126,7 +1126,7 @@ class Parser {
             this->advance();
         }
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "fn") {
-            type = "fn";
+            type += "fn";
             this->advance();
             if (this->current_tok.type != TokenType::LPAREN) {
                 throw InvalidSyntaxError("`fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
@@ -1147,11 +1147,12 @@ class Parser {
                 throw InvalidSyntaxError("`fn` must have a `->` before the return type.", this->current_tok.pos);
             }
             type += " -> ";
+            this->advance();
             type += parseTypeString();
             return type;
         }
         if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "short" || this->current_tok.value == "long")) {
-            type = this->current_tok.value + " ";
+            type += this->current_tok.value + " ";
             this->advance();
         }
         if (this->current_tok.type == TokenType::KEYWORD || this->current_tok.type == TokenType::IDENTIFIER) {
@@ -1567,7 +1568,7 @@ class LLVMCompiler {
 #define hasArrayType(name) foundInStack(arrayTypeStringsStack, name)
 #define hasArrayLength(name) foundInStack(arrayLengthsStack, name)
 #define hasJaggedArray(name) foundInStack(jaggedArraysStack, name)
-#define hasVolatileVar(name) foundInStack(jaggedArraysStack, name)
+#define hasVolatileVar(name) foundInStack(volatileVarsStack, name)
 #define volatileVars (volatileVarsStack.back())
 #define arrayLengths (arrayLengthsStack.back())
 #define maps (mapsStack.back())
@@ -1682,7 +1683,7 @@ class LLVMCompiler {
             } else {
                 if (auto varAcc = std::get_if<VarAccessNode*>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
-                    if (hasArrayType(name)) { return arrayTypeStrings[name]; }
+                    if (hasArrayType(name)) { return findArrayType(name)->second; }
                 }
             }
             std::string className = baseTypeName(baseType);
@@ -1788,7 +1789,7 @@ class LLVMCompiler {
                         return resolveTypeName(substituteGenerics(str->tok.value), false);
                     } else {
                         cg_error((*varAcc)->var_name_tok.pos, "arg 2 to `next is a comptime string");
-                        cg_error((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
+                        cg_note((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
                         return "unknown";
                     }
                 }
@@ -2017,6 +2018,25 @@ class LLVMCompiler {
                 llvm::Value* base = emitExpr((*arrAcc)->base);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
                 return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_arr_addr");
+            }
+            if (ptrTy.ends_with("]")) {
+                llvm::Value* base = emitExpr((*arrAcc)->base);
+                llvm::Value* index = emitExpr((*arrAcc)->indices[0]);
+                llvm::Type* baseTy = llvmTypeFor(ptrTy.substr(0, ptrTy.rfind("[")));
+                if (baseTy->isArrayTy()) {
+                    return builder->CreateGEP(
+                        baseTy,
+                        base,
+                        {builder->getInt32(0), index},
+                        "lval_arr_addr"
+                    );
+                }
+                return builder->CreateGEP(
+                    baseTy,
+                    base,
+                    index,
+                    "lval_arr_addr"
+                );
             }
             if (genericiseOrFindClass(ptrTy)) {
                 llvm::Value* obj = emitLValue((*arrAcc)->base);
@@ -2411,16 +2431,18 @@ class LLVMCompiler {
             AnyNode& argNode = const_cast<AnyNode&>(*it);
             llvm::Value* v = nullptr;
             if (i < paramTypeStrings.size() && paramTypeStrings[i].ends_with("&")) {
-                if (auto* varAccess = std::get_if<VarAccessNode*>(&argNode)) {
-                    v = getVarAddress((*varAccess)->var_name_tok.value);
-                } else {
+                v = emitLValue(argNode);
+                if (!v) {
                     cg_error(get_pos(argNode), "L-value required for reference parameter");
                     return {};
                 }
             } else {
                 v = emitExpr(argNode);
             }
-            if (!v) return {};
+            if (!v) {
+                cg_error(get_pos(argNode), "Failed to emit argument");
+                return {};
+            }
             if (i < fnTy->getNumParams()) {
                 llvm::Type* paramTy = fnTy->getParamType(i);
                 v = adaptArgumentForParam(v, argNode, paramTy, i);

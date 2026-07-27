@@ -115,7 +115,7 @@ The line `int* p2 = p - 1;` subtracts 4 bytes from the position of p (becuase in
 
 Sometimes we have an address as a number. We can store it with the `addr_t` type.
 ```qc
-addr_t x = 0xdeadbeefDEADBEEF
+addr_t x = 0xdeadbeefDEADBEEF;
 ```
 
 Allowed number formats:
@@ -144,7 +144,7 @@ QuantumC has simple helpers for that.
 long int y = 9l;
 long int* x = &y;
 addr_t ptr_addr = `to_address(x);
-long int* ptr_from_addr = `mapped_ptr(addr_t);
+long int* ptr_from_addr = `mapped_ptr(ptr_addr);
 ```
 
 ## The Heap
@@ -224,7 +224,7 @@ void doSmnth() {
 }
 ```
 
-Because of this, classes should have a `_destroy` method, which `free`s all heap-allocated memory of the class. Note that `_destory` is _not_ responsible for cleaning up heap-objects _you_ create in that class. 
+Because of this, classes should have a `_destroy` method, which `free`s all heap-allocated memory of the class. Note that `_destroy` is _not_ responsible for cleaning up heap-objects _you_ create in that class. 
 Eg if we have a generic class:
 ```qc
 class C<T> {
@@ -249,5 +249,5 @@ Ownership (who should free) is simple.
 Ownership Rules:
 - If you allocate it, you free it.
 - If you return it, the caller frees it.
-- If your class owns it, free it in `_destory`.
+- If your class owns it, free it in `_destroy`.
 - If your class merely stores someone else's pointer, don't free it.

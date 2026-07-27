@@ -90,7 +90,7 @@ namespace Array {
                 if (!this._atEnd()) {
                     return this.data[this.current_index++];
                 }
-                return this.data[this.current_index];
+                return this.data[this.size - 1]; 
             } 
             bool _atStart() {
                 return this.current_index <= 0;
@@ -119,10 +119,11 @@ namespace Array {
             this.size = 0;
         }
         void operator[]=(T* data, int length) {
-            if (length > S) {
+            `free(this.data);
+            if (S == 0) {
                 this.size = length;
             } else {
-                this.size = S;
+                this.size = `ternary((length > S), S, length);
             }
             this.data = `malloc(sizeof "T" * this.size);
             for (int i = 0; i < this.size; i++) {
@@ -172,7 +173,7 @@ namespace Vector {
                 if (!this._atEnd()) {
                     return this.data[this.current_index++];
                 }
-                return this.data[this.current_index];
+                return this.data[this.size - 1];
             } 
             bool _atStart() {
                 return this.current_index <= 0;
@@ -241,6 +242,7 @@ namespace Vector {
             this.reserve(this.size);
         }
         void operator[]=(T* data, int length) {
+            `free(this.data);
             this.capacity = length;
             this.size = length;
             this.data = `malloc(sizeof "T" * this.capacity);
@@ -338,12 +340,12 @@ namespace List {
             if (index < this.size / 2) {
                 current = this.head;
                 for (int i = 0; i < index; i++) {
-                    current = current.next;
+                    current = current->next;
                 }
             } else {
                 current = this.tail;
                 for (int i = this.size - 1; i > index; i--) {
-                    current = current.prev;
+                    current = current->prev;
                 }
             }
             return current;
@@ -359,8 +361,7 @@ namespace List {
         }
         void pushFront(T value) {
             Node<T>* node = `malloc(sizeof "Node<T>");
-            node = Node<T>(value);
-
+            *node = Node<T>(value);
             node.next = this.head;
             if (this.head != nullptr) {
                 this.head->prev = node;
@@ -372,7 +373,7 @@ namespace List {
         }
         void pushBack(T value) {
             Node<T>* node = `malloc(sizeof "Node<T>");
-            node = Node<T>(value);
+            *node = Node<T>(value);
             node.prev = this.tail;
             if (this.tail != nullptr) {
                 this.tail->next = node;
@@ -387,9 +388,9 @@ namespace List {
                 return;
             }
             Node<T>* old = this.head;
-            this.head = this.head.next;
+            this.head = this.head->next;
             if (this.head != nullptr) {
-                this.head.prev = nullptr;
+                this.head->prev = nullptr;
             } else {
                 this.tail = nullptr;
             }
@@ -413,7 +414,7 @@ namespace List {
         void clear() {
             Node<T>* current = this.head;
             while (current != nullptr) {
-                Node<T>* next = current.next;
+                Node<T>* next = current->next;
                 `free(current);
                 current = next;
             }
@@ -421,13 +422,13 @@ namespace List {
             this.tail = nullptr;
             this.size = 0;
         }
-        bool `contains(T value) {
+        bool contains(T value) {
             Node<T>* current = this.head;
             while (current != nullptr) {
-                if (current.data == value) {
+                if (current->data == value) {
                     return true;
                 }
-                current = current.next;
+                current = current->next;
             }
             return false;
         }
@@ -463,8 +464,8 @@ namespace List {
             Node<T>* current = other.head;
 
             while (current != nullptr) {
-                this.pushBack(current.data);
-                current = current.next;
+                this.pushBack(current->data);
+                current = current->next;
             }
 
             return this;
@@ -490,11 +491,13 @@ namespace Utils {
         }
         return fin;
     }
+    struct _timespec {
+        long int rem_sec;
+        long int rem_nsec;
+    }
     volatile void sleep(long int milliseconds) {
-        volatile long int req_sec = milliseconds / 1000;
-        volatile long int req_nsec = (milliseconds % 1000) * 1000000;
-        volatile long int rem_sec = 0;
-        volatile long int rem_nsec = 0;
+        volatile long int req[2] = [milliseconds / 1000, (milliseconds % 1000) * 1000000];
+        volatile _timespec rem = {0, 0};
         while (true) {
             volatile long int result = 0;
             `inline(R"(
@@ -505,13 +508,13 @@ namespace Utils {
                 mov r10, $2r
                 syscall
                 mov $0=r, rax
-            )", result, &req_sec, &rem_sec, "~{rax}~{rdi}~{rsi}~{rdx}~{r10}~{rcx}~{r11}");
+            )", result, &req[0], &(rem.rem_sec), "~{rax}~{rdi}~{rsi}~{rdx}~{r10}~{rcx}~{r11}");
             if (result == 0) {
                 break;
             }
             if (result == -4) {
-                req_sec = rem_sec;
-                req_nsec = rem_nsec;
+                req[0] = rem.rem_sec;
+                req[1] = rem.rem_nsec;
                 continue;
             }
             break;

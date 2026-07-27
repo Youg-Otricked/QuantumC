@@ -91,12 +91,12 @@ std::string Position::arrow_string(size_t context) const {
     std::stringstream ss(Filetxt);
     std::string temp;
     while (std::getline(ss, temp)) { lines.push_back(temp); }
-    size_t current = line;
+    size_t current = std::min<size_t>(line, lines.size() - 1);
     size_t first = (current >= context) ? current - context : 0;
     size_t last = std::min(current + context, lines.size() - 1);
     std::string result;
-    int width = std::to_string(last + 1).size();
-    for (int i = first; i <= last; i++) {
+    size_t width = std::to_string(last + 1).size();
+    for (size_t i = first; i <= last; i++) {
         std::string num = std::to_string(i + 1);
         result += "  ";
         result += std::string(width - num.size(), ' ');
@@ -1822,22 +1822,65 @@ Prs Parser::atom() {
                 Token property_name = this->current_tok;
                 this->advance();
                 if (this->current_tok.type == TokenType::LESS) {
+                    size_t oldId = this->index;
+                    std::string oldName = property_name.value;
                     this->advance();
                     property_name.value += "<";
                     int depth = 1;
+                    if (this->current_tok.type == TokenType::MORE) {
+                        property_name.value = oldName;
+                        this->index = oldId;
+                        this->current_tok = this->tokens[this->index];
+                        depth = 0;
+                    }
+                    bool next_comma = false;
+                    bool just_incremented = true;
                     while (depth > 0) {
+                        if (next_comma) {
+                            if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                                this->current_tok.type != TokenType::MORE) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        } else {
+                            if (this->current_tok.type == TokenType::COMMA) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        }
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                                  .contains(this->current_tok.type))) {
+                            this->index = oldId;
+                            property_name.value = oldName;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
+                            if (just_incremented) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                            just_incremented = true;
                             depth++;
                             if (depth > 128) {
                                 res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       name.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
-                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   pos));
+                                                                       property_name.value.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -1846,11 +1889,14 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else {
+                            just_incremented = false;
                         }
+                        if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                         property_name.value += this->current_tok.value;
                         this->advance();
                     }
-                    property_name.value += ">";
+                    if (this->index != oldId && property_name.value != oldName) property_name.value += ">";
                 }
                 Token base_name_tok;
                 if (auto var = std::get_if<VarAccessNode*>(&base)) {
@@ -1903,22 +1949,65 @@ Prs Parser::atom() {
                 Token property_name = this->current_tok;
                 this->advance();
                 if (this->current_tok.type == TokenType::LESS) {
+                    size_t oldId = this->index;
+                    std::string oldName = property_name.value;
                     this->advance();
                     property_name.value += "<";
                     int depth = 1;
+                    if (this->current_tok.type == TokenType::MORE) {
+                        property_name.value = oldName;
+                        this->index = oldId;
+                        this->current_tok = this->tokens[this->index];
+                        depth = 0;
+                    }
+                    bool next_comma = false;
+                    bool just_incremented = true;
                     while (depth > 0) {
+                        if (next_comma) {
+                            if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                                this->current_tok.type != TokenType::MORE) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        } else {
+                            if (this->current_tok.type == TokenType::COMMA) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        }
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                                  .contains(this->current_tok.type))) {
+                            this->index = oldId;
+                            property_name.value = oldName;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
+                            if (just_incremented) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                            just_incremented = true;
                             depth++;
                             if (depth > 128) {
                                 res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       name.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
-                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   pos));
+                                                                       property_name.value.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -1927,11 +2016,14 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else {
+                            just_incremented = false;
                         }
+                        if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                         property_name.value += this->current_tok.value;
                         this->advance();
                     }
-                    property_name.value += ">";
+                    if (this->index != oldId && property_name.value != oldName) property_name.value += ">";
                 }
                 if (this->current_tok.type == TokenType::LPAREN) {
                     this->advance();
@@ -2017,23 +2109,65 @@ Prs Parser::atom() {
                     Token property_name = this->current_tok;
                     this->advance();
                     if (this->current_tok.type == TokenType::LESS) {
+                        size_t oldId = this->index;
+                        std::string oldName = property_name.value;
                         this->advance();
                         property_name.value += "<";
                         int depth = 1;
+                        if (this->current_tok.type == TokenType::MORE) {
+                            property_name.value = oldName;
+                            this->index = oldId;
+                            this->current_tok = this->tokens[this->index];
+                            depth = 0;
+                        }
+                        bool next_comma = false;
+                        bool just_incremented = true;
                         while (depth > 0) {
+                            if (next_comma) {
+                                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                                    this->current_tok.type != TokenType::MORE) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                            } else {
+                                if (this->current_tok.type == TokenType::COMMA) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                            }
+                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                                                                 TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                                 TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                                 TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                                      .contains(this->current_tok.type))) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
                             if (this->current_tok.type == TokenType::EOFT) {
-                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.type == TokenType::LESS) {
+                                if (just_incremented) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                                just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(
-                                        new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                   name.substr(0, 120) + "..." +
-                                                                   "\n\nNote: We opened the box and there was another box. And another. Please stop. "
-                                                                   "The compiler is not a Matryoshka doll. It has feelings too.",
-                                                               pos));
+                                     res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                       property_name.value.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2042,11 +2176,14 @@ Prs Parser::atom() {
                                     this->advance();
                                     break;
                                 }
+                            } else {
+                                just_incremented = false;
                             }
+                            if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                             property_name.value += this->current_tok.value;
                             this->advance();
                         }
-                        property_name.value += ">";
+                        if (this->index != oldId && property_name.value != oldName) property_name.value += ">";
                     }
                     Token base_name_tok;
                     if (auto var = std::get_if<VarAccessNode*>(&base)) {
@@ -2099,23 +2236,65 @@ Prs Parser::atom() {
                     Token property_name = this->current_tok;
                     this->advance();
                     if (this->current_tok.type == TokenType::LESS) {
+                        size_t oldId = this->index;
+                        std::string oldName = property_name.value;
                         this->advance();
                         property_name.value += "<";
                         int depth = 1;
+                        if (this->current_tok.type == TokenType::MORE) {
+                            property_name.value = oldName;
+                            this->index = oldId;
+                            this->current_tok = this->tokens[this->index];
+                            depth = 0;
+                        }
+                        bool next_comma = false;
+                        bool just_incremented = true;
                         while (depth > 0) {
+                            if (next_comma) {
+                                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                                    this->current_tok.type != TokenType::MORE) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                            } else {
+                                if (this->current_tok.type == TokenType::COMMA) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                            }
+                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                                                                 TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                                 TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                                 TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                                      .contains(this->current_tok.type))) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
                             if (this->current_tok.type == TokenType::EOFT) {
-                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.type == TokenType::LESS) {
+                                if (just_incremented) {
+                                    this->index = oldId;
+                                    property_name.value = oldName;
+                                    this->current_tok = this->tokens[this->index];
+                                    break;
+                                }
+                                just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(
-                                        new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                   name.substr(0, 120) + "..." +
-                                                                   "\n\nNote: We opened the box and there was another box. And another. Please stop. "
-                                                                   "The compiler is not a Matryoshka doll. It has feelings too.",
-                                                               pos));
+                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                                       property_name.value.substr(0, 120) + "..." +
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
+                                                                   this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2124,11 +2303,14 @@ Prs Parser::atom() {
                                     this->advance();
                                     break;
                                 }
+                            } else {
+                                just_incremented = false;
                             }
+                            if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                             property_name.value += this->current_tok.value;
                             this->advance();
                         }
-                        property_name.value += ">";
+                        if (this->index != oldId && property_name.value != oldName) property_name.value += ">";
                     }
                     if (this->current_tok.type == TokenType::LPAREN) {
                         this->advance();
@@ -2209,21 +2391,64 @@ Prs Parser::atom() {
                 Token property_name = this->current_tok;
                 this->advance();
                 if (this->current_tok.type == TokenType::LESS) {
+                    size_t oldId = this->index;
+                    std::string oldName = property_name.value;
                     this->advance();
                     property_name.value += "<";
                     int depth = 1;
+                    if (this->current_tok.type == TokenType::MORE) {
+                        property_name.value = oldName;
+                        this->index = oldId;
+                        this->current_tok = this->tokens[this->index];
+                        depth = 0;
+                    }
+                    bool next_comma = false;
+                    bool just_incremented = true;
                     while (depth > 0) {
+                        if (next_comma) {
+                            if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                                this->current_tok.type != TokenType::MORE) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        } else {
+                            if (this->current_tok.type == TokenType::COMMA) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                        }
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
+                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
+                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
+                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                                  .contains(this->current_tok.type))) {
+                            this->index = oldId;
+                            property_name.value = oldName;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
                         if (this->current_tok.type == TokenType::EOFT) {
                             res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
+                            if (just_incremented) {
+                                this->index = oldId;
+                                property_name.value = oldName;
+                                this->current_tok = this->tokens[this->index];
+                                break;
+                            }
+                            just_incremented = true;
                             depth++;
                             if (depth > 128) {
                                 res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                                                        property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please "
-                                                                       "stop. The compiler is not a Matryoshka doll. It has feelings too.",
+                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
                                                                    this->current_tok.pos));
                                 return res.to_prs();
                             }
@@ -2233,11 +2458,14 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else {
+                            just_incremented = false;
                         }
+                        if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
                         property_name.value += this->current_tok.value;
                         this->advance();
                     }
-                    property_name.value += ">";
+                    if (this->index != oldId && property_name.value != oldName) property_name.value += ">";
                 }
                 Token base_name_tok;
                 if (auto unary = std::get_if<UnaryOpNode*>(&base)) {
@@ -3240,7 +3468,6 @@ Prs Parser::statement() {
         if (!baseName.empty()) {
             auto* base_ptr = find_type(base_type_name(baseName));
             if (base_ptr && base_ptr->kind == UserTypeKind::Class && base_ptr->is_final_class) {
-                auto& baseInfo = *base_ptr;
                 res.failure(new InvalidSyntaxError("Cannot inherit from final class '" + base_type_name(baseName) + "'", class_name.pos));
                 return res.to_prs();
             }
@@ -3265,7 +3492,8 @@ Prs Parser::statement() {
         info.kind = UserTypeKind::Class;
         dummy.is_abstract_class = is_abstract_class;
         info.is_abstract_class = is_abstract_class;
-        if (user_types.contains(base_type_name(class_name.value))) {
+        std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
+        if (user_types.contains(base_type_name(full_key))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + class_name.value + "'", class_name.pos));
             return res.to_prs();
         }
@@ -3273,7 +3501,6 @@ Prs Parser::statement() {
         info.generics = generics;
         dummy.namespace_path = currentNamespace;
         info.namespace_path = currentNamespace;
-        std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
         user_types[base_type_name(full_key)] = dummy;
 
         while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
@@ -3904,9 +4131,9 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-
+        std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
         if (this->current_tok.type == TokenType::SEMICOLON) { this->advance(); }
-        if (user_types.contains(base_type_name(struct_name.value))) {
+        if (user_types.contains(base_type_name(full_key))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
             return res.to_prs();
         }
@@ -3915,7 +4142,6 @@ Prs Parser::statement() {
         info.fields = fields;
         info.generics = generics;
         info.namespace_path = currentNamespace;
-        std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
         user_types[base_type_name(full_key)] = info;
         this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
@@ -4084,7 +4310,8 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        if (user_types.contains(base_type_name(type_name.value))) {
+        std::string full_key = currentNamespace.empty() ? type_name.value : currentNamespace + "::" + type_name.value;
+        if (user_types.contains(base_type_name(full_key))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + type_name.value + "'", type_name.pos));
             return res.to_prs();
         }
@@ -4098,7 +4325,6 @@ Prs Parser::statement() {
         }
         info.generics = generics;
         info.namespace_path = currentNamespace;
-        std::string full_key = currentNamespace.empty() ? type_name.value : currentNamespace + "::" + type_name.value;
         user_types[base_type_name(full_key)] = info;
         this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
@@ -4166,7 +4392,8 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        if (user_types.contains(base_type_name(enum_name.value))) {
+        std::string full_key = currentNamespace.empty() ? enum_name.value : currentNamespace + "::" + enum_name.value;
+        if (user_types.contains(base_type_name(full_key))) {
             res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + enum_name.value + "'", enum_name.pos));
             return res.to_prs();
         }
@@ -4175,7 +4402,6 @@ Prs Parser::statement() {
         info.members = members;
         info.enumEntries = entries;
         info.namespace_path = currentNamespace;
-        std::string full_key = currentNamespace.empty() ? enum_name.value : currentNamespace + "::" + enum_name.value;
         user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
@@ -4752,7 +4978,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
         return genericiseOrFindStruct(type);
     }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
-    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericStructs.end()) {
+    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericUnions.end()) {
         genericiseOrFindUnion(type);
         return unionTypes[type];
     }
@@ -5726,7 +5952,7 @@ llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>
             } else {
                 std::string toType = p.type.value;
                 while (toType.starts_with("out ") || toType.starts_with("inout ")) {
-                    toType = toType.substr(toType.find(" "), toType.length() - toType.find(" "));
+                    toType.erase(0, toType.find(' ') + 1);
                 }
                 if (toType.ends_with("restrict")) { toType = toType.substr(0, toType.length() - 8); }
                 paramTypes.push_back(llvmTypeFor(toType));
@@ -6053,7 +6279,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Value* L = emitExpr((*bin)->left_node);
         if (!L) return nullptr;
         if (op == TokenType::AND || op == TokenType::OR) {
-            L = toTruthiness(L, Position("", "", 0, 0, 0));
+            L = toTruthiness(L, get_pos((*bin)->left_node));
             if (L) {
                 llvm::BasicBlock* lhsBB = builder->GetInsertBlock();
                 llvm::BasicBlock* rhsBB = llvm::BasicBlock::Create(context, op == TokenType::AND ? "and.rhs" : "or.rhs", currentFunction);
@@ -7024,7 +7250,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
                 }
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on types " + lType + " + " + " rType");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on types " + lType + " + " + rType);
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
@@ -7352,16 +7578,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         case TokenType::AND:
-            L = toTruthiness(L, Position("", "", 0, 0, 0));
-            R = toTruthiness(R, Position("", "", 0, 0, 0));
+            L = toTruthiness(L, get_pos((*bin)->left_node));
+            R = toTruthiness(R, get_pos((*bin)->right_node));
             return builder->CreateAnd(L, R, "and");
         case TokenType::OR:
-            L = toTruthiness(L, Position("", "", 0, 0, 0));
-            R = toTruthiness(R, Position("", "", 0, 0, 0));
+            L = toTruthiness(L, get_pos((*bin)->left_node));
+            R = toTruthiness(R, get_pos((*bin)->right_node));
             return builder->CreateOr(L, R, "or");
         case TokenType::XOR:
-            L = toTruthiness(L, Position("", "", 0, 0, 0));
-            R = toTruthiness(R, Position("", "", 0, 0, 0));
+            L = toTruthiness(L, get_pos((*bin)->left_node));
+            R = toTruthiness(R, get_pos((*bin)->right_node));       
             return builder->CreateXor(L, R, "xor");
         case TokenType::QAND:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
@@ -9147,7 +9373,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         classTy = generateGenericClass(resolvedName, classIt->second, genericParams);
                         resolvedName = fullName;
                         if (classTy == nullptr) {
-                            cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for class " + resolvedName);
+                            cg_error(get_pos(*varAccess), "failed to generate generic subset for class " + resolvedName);
                             return nullptr;
                         }
                     } else {
@@ -10087,7 +10313,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must be the same type: " + funcName);
                         return nullptr;
                     }
-                    llvm::Value* val = emitExpr(call.arg_nodes.front());
+                    llvm::Value* val = toTruthiness(emitExpr(call.arg_nodes.front()), get_pos(call.arg_nodes.front()));
                     if (val->getType()->isIntegerTy(1)) { return builder->CreateSelect(val, is_tr, is_fl, "select_val"); }
                     cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
                     return nullptr;
@@ -10184,8 +10410,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         return nullptr;
                     }
                     std::string clobber_string = clobber_string_node->tok.value;
-                    std::string current_clobber = "";
-                    std::string current_reg = "";
                     size_t i = 0;
                     while (i < clobber_string.size()) {
                         if (clobber_string[i] != '~') {
@@ -10228,7 +10452,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return nullptr;
                         }
                     }
-                    if (!(current_clobber.empty())) { clobbers.push_back(current_clobber); }
                     std::unordered_set<int> output_indices;
                     std::unordered_set<int> input_indices;
                     for (const auto& op : output_ops) output_indices.insert(op.index);
@@ -10405,7 +10628,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* VariableAddr = resolveVariable(var_name);
                         return builder->CreateCall(isEmpty, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"), "variadc_is_empty");
                     } else {
-                        cg_error((*acc)->var_name_tok.pos, "argument must be a direct variadic argument: " + funcName);
+                        cg_error(get_pos(call.arg_nodes.back()), "argument must be a direct variadic argument: " + funcName);
                     }
                     return nullptr;
                 }
@@ -10556,7 +10779,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             }
             if (ptrTy == "void*") {
-                cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on void pointers");
+                cg_error(get_pos(arrAcc), "pointer arithmetic cannot be preformed on void pointers");
                 return nullptr;
             }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
@@ -12468,7 +12691,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
         }
         cond = normalizeValue(cond, if_node->condition);
-        cond = toTruthiness(cond, Position("", "", 0, 0, 0));
+        cond = toTruthiness(cond, get_pos(if_node->condition));
         if (!cond) return;
         llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(context, "then", currentFunction);
         llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
@@ -12534,7 +12757,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
         }
         cond = normalizeValue(cond, while_node->condition);
-        cond = toTruthiness(cond, Position("", "", 0, 0, 0));
+        cond = toTruthiness(cond, get_pos(while_node->condition));
         if (!cond) return;
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
@@ -12582,7 +12805,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
         }
         cond = normalizeValue(cond, for_node->condition);
-        cond = toTruthiness(cond, Position("", "", 0, 0, 0));
+        cond = toTruthiness(cond, get_pos(for_node->condition));
         if (!cond) return;
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
@@ -14405,17 +14628,12 @@ Token Lexer::make_number() {
         }
     }
     if (is_hex) {
-        int passed = 0;
         while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + "abcdefABCDEF'")) {
-            if (passed == 2 && this->current_char == '\'') {
-                passed = 0;
+            if (this->current_char == '\'') {
                 this->advance();
-            } else if (this->current_char == '\'') {
-                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 2 chars on hex numbers", start_pos);
             }
             num += this->current_char;
             this->advance();
-            passed++;
         }
         size_t val = std::stoull(num, nullptr, 16);
         if (this->current_char == 'l') {
@@ -14436,17 +14654,12 @@ Token Lexer::make_number() {
         }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
-        int passed = 0;
         while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 8) || this->current_char == '\'')) {
-            if (passed == 3 && this->current_char == '\'') {
-                passed = 0;
+            if (this->current_char == '\'') {
                 this->advance();
-            } else if (this->current_char == '\'') {
-                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 3 chars on octal numbers", start_pos);
-            }
+            }            
             num += this->current_char;
             this->advance();
-            passed++;
         }
         size_t val = std::stoull(num, nullptr, 8);
         if (this->current_char == 'l') {
@@ -14467,17 +14680,12 @@ Token Lexer::make_number() {
         }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
-        int passed = 0;
         while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 2) || this->current_char == '\'')) {
-            if (passed == 4 && this->current_char == '\'') {
-                passed = 0;
+            if (this->current_char == '\'') {
                 this->advance();
-            } else if (this->current_char == '\'') {
-                throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 4 chars on binary numbers", start_pos);
             }
             num += this->current_char;
             this->advance();
-            passed++;
         }
         size_t val = std::stoull(num, nullptr, 2);
         if (this->current_char == 'l') {
@@ -14498,7 +14706,6 @@ Token Lexer::make_number() {
         }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
-        int passed = 0;
         while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsabn'")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
@@ -14532,16 +14739,14 @@ Token Lexer::make_number() {
                 this->advance();
                 is_nibble = true;
                 break;
-            } else {
-                if (passed == 3 && this->current_char == '\'') {
-                    passed = 0;
-                    this->advance();
-                } else if (this->current_char == '\'') {
-                    throw new InvalidSyntaxError("QC-IC03: ' delimiter may only appear every 3 chars on decimal numbers", start_pos);
+            } else if (this->current_char == '\'') {
+                if (num.empty() || !std::isdigit(static_cast<unsigned char>(this->text[this->pos.index + 1]))) {
+                    throw new InvalidSyntaxError("QC-IC03: ' delimiter must appear between digits", start_pos);
                 }
+                this->advance();
+            } else {
                 num += this->current_char;
                 this->advance();
-                passed++;
             }
         }
     }
@@ -15228,9 +15433,15 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         }
         size_t start = source.find('(', pos);
         size_t end = source.find(')', start);
+        if (start == std::string::npos || end == std::string::npos) {
+           throw std::runtime_error("malformed #depends directive: expected #depends(<namespace>: <deps...>)");
+        }
         std::string directive = source.substr(start + 1, end - start - 1);
 
         size_t colon = directive.find(':');
+        if (colon == std::string::npos) {
+            throw std::runtime_error("malformed #depends directive: missing ':' separator");
+        }
         std::string owner_ns = trim(directive.substr(0, colon));
         std::string rest = directive.substr(colon + 1);
         size_t segment_start = 0;
