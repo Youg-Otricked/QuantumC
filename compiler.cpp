@@ -75,6 +75,7 @@ std::string strip(const std::string& s) {
     return r;
 }
 bool loose;
+std::unordered_map<std::string,  std::string> aliases;
 std::string entrypointName = "main";
 extern "C" const char _binary_runtime_ll_start[];
 extern "C" const size_t _binary_runtime_ll_size;
@@ -14177,6 +14178,7 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, s
 }
 Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Check for inline directives
+    aliases = config.aliases;
     if (text.find("// @no-context") != std::string::npos) { config.use_context = false; }
 
     if (text.find("// @looser-types") != std::string::npos) { config.looser_types = true; }
@@ -14551,8 +14553,23 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 return Mer{ast, resp, message, diagnostics};
             }
             std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
-            std::string link_cmd = "gcc " + obj_file + " -o " + final_exe + " -lm";
+            std::string link_cmd = "gcc " + obj_file + " -o " + final_exe;
+            for (const auto& path : config.library_search_paths) {
+                link_cmd += " -L\"" + path + "\"";
+            }
+            for (const auto& lib : config.libraries) {
+                if (lib.ends_with(".a") || lib.ends_with(".so") || lib.ends_with(".dylib")) {
+                    link_cmd += " -l\"" + lib + "\"";
+                } else {
+                    link_cmd += " -l" + lib;
+                }
+            }
+            for (const std::string& arg : config.link_with) {
+                link_cmd += " " + arg;
+            }
+            link_cmd += " -lm";
             if (config.debug) link_cmd += " -g";
+            if (!config.quiet_mode) std::cout << "Linking with command " + link_cmd << '\n';
             int link_result = system(link_cmd.c_str());
             if (link_result != 0) {
                 diagnostics.push_back({new CTError("Failed to link object file", Position("", "", 0, 0, 0))});
@@ -15492,6 +15509,8 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
             const char* home = std::getenv("QC_STDLIB");
             if (!home) { throw std::runtime_error("QC_STDLIB environment variable not set"); }
             full_path = std::string(home);
+        } else if (aliases.count(path)) {
+            full_path = resolve_path(current_file, aliases[path]);
         } else {
             full_path = resolve_path(current_file, path);
         }

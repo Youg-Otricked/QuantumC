@@ -108,8 +108,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.22.0 = "Better Errors"
-Next Version: x0.22.1 = "-L, -A"
+Current Version: x0.22.1 = "-L, -A, -l (wow that was easy)"
+Next Version: x0.23.0 = "TRY CATCH"
 
 # Current Version Highlights
 
@@ -124,7 +124,7 @@ Moderate
 └─ QOL
 
 Minor
-└─ Overhauled the error system
+└─ Added -L (Link Search Dir), -A (Alias), -l (Link this file), -Wl,(pass to linker)
 
 Patch
 └─ N/A
@@ -175,7 +175,7 @@ These are deprecations in the past 3 moderate versions (`x0.20.* -> x0.22.*`)
 |                     | Bitwise Logic                                                          | Done        |
 |                     | Really fancy operator overloads                                        | Planned     |
 |                     | Try/Catch and `throw`                                                  | Planned     |
-|                     | Error message quality and helpfulness upgrade                          | Planned     |
+|                     | Error message quality and helpfulness upgrade                          | Done        |
 
 See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md)
 # Contributing

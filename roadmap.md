@@ -17,7 +17,6 @@ class Function<T, '(', V, ')'> {
 ...
 Function<int(int)>;
 ```
-- `-L (link)` and  `-A (alias)` flags
 - Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
@@ -104,19 +103,18 @@ __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version bui
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 - atomics
 TOP PRIORITY:
-1. -L, -A
-2. Try/Catch.
-3. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
-4. Token/ident/type/keyword/usertype direct type (parser refactor)
-5. Empty arrays.
-6. Static and Friend
-7. Codeblocks.
-8. Concepts
-9. Modifier (x1.0.0)
-10. Variadics on generics
-11. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-12. Other stuff + Variadic Generics
-13. Metadata
+1. Try/Catch.
+2. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
+3. Token/ident/type/keyword/usertype direct type (parser refactor)
+4. Empty arrays.
+5. Static and Friend
+6. Codeblocks.
+7. Concepts
+8. Modifier (x1.0.0)
+9. Variadics on generics
+10. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+11. Other stuff + Variadic Generics
+12. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -138,7 +136,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-14. Preproccessers
+13. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -147,5 +145,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-15. User-Defined metadata
-16. User-Defined macro _functions_ (the only good thing in rust)
+14. User-Defined metadata
+15. User-Defined macro _functions_ (the only good thing in rust)

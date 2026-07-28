@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.22.0";
+const std::string ver = "x0.22.1";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -215,11 +215,41 @@ int main(int argc, char* argv[]) {
                 std::cerr << "Error: -o requires output filename\n";
                 return 1;
             }
+        } else if (arg == "-A" || arg == "--alias") {
+            if (i + 2 < argc) {
+                std::string alias_name = argv[i + 1];
+                std::string alias_path = argv[i + 2];
+                config.aliases[alias_name] = alias_path;
+                i += 2;
+            } else {
+                std::cerr << "Error: -A requires alias name and path\n";
+                return 1;
+            }
+        } else if (arg == "-L") {
+            if (i + 1 < argc) {
+                config.library_search_paths.push_back(argv[++i]);
+            } else {
+                std::cerr << "Error: -L requires a directory path\n";
+                return 1;
+            }
+        } else if (arg.starts_with("-L")) {
+            config.library_search_paths.push_back(arg.substr(2));
+        } else if (arg == "-l") {
+            if (i + 1 < argc) {
+                config.libraries.push_back(argv[++i]);
+            } else {
+                std::cerr << "Error: -l requires a library name\n";
+                return 1;
+            }
+        } else if (arg.starts_with("-l")) {
+            config.libraries.push_back(arg.substr(2));
+        } else if (arg.starts_with("-Wl,")) {
+            config.link_with.push_back(arg.substr(4));
         } else if (arg == "-d" || arg == "--debug") {
             config.debug = true;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Compiler)" << ver
+Quantum C Compiler )" << ver
                       << R"(
 
 Usage: ./qc [options] <file>
@@ -246,6 +276,13 @@ Options:
     Features depending on runtime helpers, including string concatenation,
     fstrings, conversion helpers, variadic helpers, and other runtime-backed
     functions, require equivalent user-provided implementations.
+  -A, --alias
+    Alias takes 2 arguments: Alias of and too, eg
+    qc -A myLib /usr/local/bin/abcdef.qc main.qc
+  -L
+    Adds a directory to linking search path
+  -l
+    Links a .so / .o / .a file
 In Code:
   When writing code, you can use these same options as inline keywords at the top of your file:
   // @print-ast == -a
@@ -462,10 +499,9 @@ Examples:
             slow_print(result.ast.error->as_string() + "\n", RED);
             has_fatal = true;
         }
-
-        slow_print("==============\n", BOLD);
-        slow_print("= Error Code =\n", BOLD);
-
+        if (has_fatal && config.quiet_mode) return 1; else if (config.quiet_mode) return 0;
+            slow_print("==============\n", BOLD);
+            slow_print("= Error Code =\n", BOLD);
         if (has_fatal) {
             slow_print("Program exited with code 1\n", RED);
             slow_print("==============\n", BOLD);
