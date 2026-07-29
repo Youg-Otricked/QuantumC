@@ -10,14 +10,13 @@ if(LLVM_VERSION_MAJOR LESS 21)
     message(FATAL_ERROR "LLVM 21+ required, found ${LLVM_VERSION_MAJOR}")
 endif()
 option(ENABLE_LLVM "Enable LLVM-based compiler" ON)
-option(CXX_RUNTIME "Build runtime.ll from runtime.cpp instead of runtime.qc" OFF)
+option(CXX_RUNTIME "Build runtime.ll from runtime.cpp instead of runtime.qc" ON)
 set(RUNTIME_TARGET_FLAGS)
-if(CXX_RUNTIME)
 set(COMPILER_FOR_RUNTIME "clang++")
 if(EMSCRIPTEN)
     set(COMPILER_FOR_RUNTIME "em++")
 endif()
-else()
+if(NOT CXX_RUNTIME)
     if(NOT QC_EXECUTABLE)
         find_program(QC_EXECUTABLE NAMES qc REQUIRED)
     endif()
@@ -31,31 +30,42 @@ else()
         set(RUNTIME_TARGET_FLAGS)
     endif()
 endif()
+set(RUNTIMENEEDS_LL_PATH "")
 if(CXX_RUNTIME)
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-    COMMAND ${COMPILER_FOR_RUNTIME} ${RUNTIME_TARGET_FLAGS} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
-    VERBATIM
-)
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+        COMMAND ${COMPILER_FOR_RUNTIME} ${RUNTIME_TARGET_FLAGS} -S -emit-llvm -O3 ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp -o ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.cpp
+        VERBATIM
+    )
 else()
-add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
-    COMMAND "${QC_EXECUTABLE}" -co -nrt ${RUNTIME_TARGET_FLAGS} -O3
-        "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
-        -o "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"    
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
-    VERBATIM
-)
+    set(RUNTIMENEEDS_LL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/runtimeneeds.ll")
+    add_custom_command(
+        OUTPUT "${RUNTIMENEEDS_LL_PATH}"
+        COMMAND ${COMPILER_FOR_RUNTIME} ${RUNTIME_TARGET_FLAGS} -S -emit-llvm -O3 
+            "${CMAKE_CURRENT_SOURCE_DIR}/runtimeneeds.cpp" 
+            -o "${RUNTIMENEEDS_LL_PATH}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runtimeneeds.cpp"
+        VERBATIM
+    )
+    add_custom_command(
+        OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"
+        COMMAND "${QC_EXECUTABLE}" -co -nrt ${RUNTIME_TARGET_FLAGS} -O3
+            "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
+            -o "${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll"    
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/runtime.qc"
+        VERBATIM
+    )
 endif()
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
     COMMAND ${CMAKE_COMMAND}
         -DRUNTIME_LL=${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+        -DRUNTIMENEEDS_LL=${RUNTIMENEEDS_LL_PATH}
         -DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
         -DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/runtime_embed.cpp.in
         -P ${CMAKE_CURRENT_SOURCE_DIR}/embed_runtime.cmake
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/runtime.ll ${RUNTIMENEEDS_LL_PATH}
     VERBATIM
 )
 set(SOURCES

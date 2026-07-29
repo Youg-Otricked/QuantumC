@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.22.1";
+const std::string ver = "x0.23.0";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -499,9 +499,12 @@ Examples:
             slow_print(result.ast.error->as_string() + "\n", RED);
             has_fatal = true;
         }
-        if (has_fatal && config.quiet_mode) return 1; else if (config.quiet_mode) return 0;
-            slow_print("==============\n", BOLD);
-            slow_print("= Error Code =\n", BOLD);
+        if (has_fatal && config.quiet_mode)
+            return 1;
+        else if (config.quiet_mode)
+            return 0;
+        slow_print("==============\n", BOLD);
+        slow_print("= Error Code =\n", BOLD);
         if (has_fatal) {
             slow_print("Program exited with code 1\n", RED);
             slow_print("==============\n", BOLD);

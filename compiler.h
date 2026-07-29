@@ -25,6 +25,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
+extern uint64_t invokeCounter;
 bool isCharInSet(char, const std::string&);
 inline int levenshteinDistance(const std::string& a, const std::string& b) { // hehe fancy word
     std::vector<int> prev(b.size() + 1);
@@ -160,6 +161,7 @@ enum class TokenType {
     PLUS_EQ,
     MINUS_EQ,
     SIZEOF,
+    THROW,
     MUL_EQ,
     DIV_EQ,
     MOD,
@@ -660,17 +662,18 @@ class WhileNode {
 class TryCatchNode {
   public:
     StatementsNode* try_body;
-    std::string catch_var_name;
-    std::string catch_var_type;
-    StatementsNode* catch_body;
+    struct CatchBody {
+        std::string var_name;
+        std::string var_type;
+        StatementsNode* body;
+    };
+    std::vector<CatchBody> catch_bodys;
     Token tok;
     Position pos;
     Position getPos() { return tok.pos; }
-    TryCatchNode(StatementsNode* try_b, std::string var_name, std::string var_type, StatementsNode* catch_b, Token t, Position p)
-        : try_body(try_b), catch_var_name(var_name), catch_var_type(var_type), catch_body(catch_b), tok(t), pos(p) {}
-    std::string print() {
-        return "try {\n\t" + try_body->print() + "\n} catch (" + catch_var_type + " " + catch_var_name + ") {\n\t" + catch_body->print() + "\n}";
-    }
+    TryCatchNode(StatementsNode* try_b, std::vector<CatchBody> catch_b, Token t, Position p)
+        : try_body(try_b), catch_bodys(catch_b), tok(t), pos(p) {}
+    std::string print() { return "try {\n\t" + try_body->print() + "\n} catch (...) {    ...\n}"; }
 };
 class ForNode {
   public:
@@ -1293,7 +1296,11 @@ struct FunctionSignature {
     llvm::FunctionType* type;
     std::vector<llvm::Value*> defaultValues;
 };
-
+struct ExceptionHandlerInfo {
+    llvm::Function* function;
+    llvm::BasicBlock* landingPad;
+    std::string catchType;
+};
 class LLVMCompiler {
   public:
     RunConfig config;
@@ -1322,6 +1329,14 @@ class LLVMCompiler {
             }
         }
         return mangled.substr(0, angle) + mangled.substr(end);
+    }
+    llvm::Constant* getStringConstant(const std::string& str) {
+        llvm::Constant* stringConstant = llvm::ConstantDataArray::getString(context, str, true);
+        llvm::GlobalVariable* globalString = new llvm::GlobalVariable(*module, stringConstant->getType(), true, llvm::GlobalValue::PrivateLinkage,
+                                                                      stringConstant, ".qc.str");
+        llvm::Constant* zero = llvm::ConstantInt::get(builder->getInt32Ty(), 0);
+        llvm::SmallVector<llvm::Constant*, 2> indices = {zero, zero};
+        return llvm::ConstantExpr::getInBoundsGetElementPtr(stringConstant->getType(), globalString, indices);
     }
     void generateStructReprFunctions();
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
@@ -1478,8 +1493,24 @@ class LLVMCompiler {
     std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
     std::unordered_map<std::string, std::string> currentGenericTypeStrings;
     std::unordered_map<std::string, GenericType> currentNonTypeGenericValues;
+    std::vector<ExceptionHandlerInfo> handlers;
     llvm::Value* currentThis = nullptr;
     std::string currentClassName = "";
+    struct EHHandler {
+        TryCatchNode::CatchBody body;
+        llvm::BasicBlock* block;
+    };
+
+    struct EHScope {
+        llvm::BasicBlock* landingPad;
+        llvm::BasicBlock* continuation;
+        std::vector<EHHandler> handlers;
+    };
+    std::vector<EHScope> ehScopes;
+    bool insideTry() { return !ehScopes.empty(); }
+    llvm::BasicBlock* currentLandingPad() {
+        return ehScopes.back().landingPad;
+    }
     llvm::Value* copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex, llvm::Type* elemTy,
                                    int elemTypeCode);
     std::string substituteGenerics(const std::string& typeStr) {
@@ -1797,6 +1828,9 @@ class LLVMCompiler {
                         return "unknown";
                     }
                 }
+                if (classTypes.contains(resolveTypeName(funcName, false))) {
+                    return resolveTypeName(funcName, false);
+                }
                 if (functionDefs.contains(funcName)) {
                     auto* def = functionDefs[funcName];
                     if (!def->return_types.empty()) {
@@ -2011,37 +2045,36 @@ class LLVMCompiler {
             return emitPropertyAddress(**prop);
         } else if (auto call = std::get_if<CallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
-            if (retType.ends_with("&")) { return emitExpr(node); }
+            if (retType.ends_with("&") || retType.ends_with("*")) { return emitExpr(node); }
         } else if (auto method = std::get_if<MethodCallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
-            if (retType.ends_with("&")) { return emitExpr(node); }
+            if (retType.ends_with("&") || retType.ends_with("*")) { return emitExpr(node); }
         } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
             std::string ptrTy = getExpressionType((*arrAcc)->base);
             if (ptrTy.ends_with("*")) {
                 ptrTy.pop_back();
                 llvm::Value* base = emitExpr((*arrAcc)->base);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
-                return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_arr_addr");
+                return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_ptr_arr_addr");
             }
             if (ptrTy.ends_with("]")) {
-                llvm::Value* base = emitExpr((*arrAcc)->base);
+                llvm::Value* base = emitLValue((*arrAcc)->base);
                 llvm::Value* index = emitExpr((*arrAcc)->indices[0]);
-                llvm::Type* baseTy = llvmTypeFor(ptrTy.substr(0, ptrTy.rfind("[")));
-                if (baseTy->isArrayTy()) {
-                    return builder->CreateGEP(
-                        baseTy,
-                        base,
-                        {builder->getInt32(0), index},
-                        "lval_arr_addr"
-                    );
+                if (!base) {
+                    return nullptr;
+                }
+                llvm::Type* arrayTy = llvmTypeFor(ptrTy);
+                if (!arrayTy->isArrayTy()) {
+                    cg_error(get_pos((*arrAcc)->base), "invalid array type for indexing");
+                    return nullptr;
                 }
                 return builder->CreateGEP(
-                    baseTy,
+                    arrayTy,
                     base,
-                    index,
+                    {builder->getInt32(0), index},
                     "lval_arr_addr"
                 );
-            }
+            } 
             if (genericiseOrFindClass(ptrTy)) {
                 llvm::Value* obj = emitLValue((*arrAcc)->base);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
@@ -2165,7 +2198,7 @@ class LLVMCompiler {
             else if (ty->isFloatTy() || ty->isDoubleTy())
                 return builder->CreateFPToUI(arg, retTy);
         } else if (target == "nibble") {
-            retTy = builder->getIntNTy(getPtrSize());
+            retTy = builder->getIntNTy(4);
             if (ty->isPointerTy())
                 fnName = "qc_to_nibble_from_string";
             else if (ty->isIntegerTy())
@@ -2803,9 +2836,7 @@ class LLVMCompiler {
         }
         return args;
     }
-    llvm::Value* emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args, const std::string& name) {
-        return builder->CreateCall(method, reconcileArgs(method, thisPtr, args), name + "_result");
-    }
+    llvm::Value* emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args, const std::string& name);
     std::string resolveVirtualTargetClass(const std::string& declaredClass, const std::string& methodName, size_t argCount) {
         for (auto& m : userTypes[baseTypeName(declaredClass)].classMethods) {
             if (m.name_tok.value == methodName && m.params.size() == argCount) return declaredClass;
@@ -2929,21 +2960,46 @@ class LLVMCompiler {
     }
     llvm::Value* decayArrayToPointer(llvm::Value* v) {
         if (!v) return nullptr;
+        if (auto* global = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
+            auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(global->getValueType());
+            if (arrTy) {
+                return builder->CreateInBoundsGEP(
+                    arrTy,
+                    global,
+                    {builder->getInt32(0), builder->getInt32(0)},
+                    "decayptr"
+                );
+            }
+        }
         if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(v)) {
             if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(alloca->getAllocatedType())) {
-
-                llvm::Value* zero = builder->getInt32(0);
-
-                return builder->CreateInBoundsGEP(arrTy, alloca, {zero, zero}, "decayptr");
+                return builder->CreateInBoundsGEP(
+                    arrTy,
+                    alloca,
+                    {builder->getInt32(0), builder->getInt32(0)},
+                    "decayptr"
+                );
             }
         }
         if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(v->getType())) {
             llvm::AllocaInst* tmp = builder->CreateAlloca(arrTy);
-            builder->CreateStore(v, tmp);
-            llvm::Value* zero = builder->getInt32(0);
-            return builder->CreateInBoundsGEP(arrTy, tmp, {zero, zero}, "decayptr");
+            llvm::Value* srcPtr = builder->CreateAlloca(arrTy);
+            builder->CreateStore(v, srcPtr);
+            builder->CreateMemCpy(
+                tmp,
+                llvm::MaybeAlign(),
+                srcPtr,
+                llvm::MaybeAlign(),
+                arrTy->getPrimitiveSizeInBits() / 8
+            );
+            return builder->CreateInBoundsGEP(
+                arrTy,
+                tmp,
+                {builder->getInt32(0), builder->getInt32(0)}
+            );
         }
-        if (v->getType()->isPointerTy()) return v;
+        if (v->getType()->isPointerTy())
+            return v;
         return nullptr;
     }
     llvm::Value* emitVirtualOrDirectCall(const std::string& ty, const std::string& methodName, llvm::Value* payload,
@@ -2978,6 +3034,12 @@ class LLVMCompiler {
                 llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
                 std::vector<llvm::Value*> allArgs = {payload};
                 allArgs.insert(allArgs.end(), args.begin(), args.end());
+                if (insideTry()) {
+                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                    llvm::InvokeInst* invoke = builder->CreateInvoke(method->getFunctionType(), fnPtr, contBB, currentLandingPad(), allArgs);
+                    builder->SetInsertPoint(contBB);
+                    return invoke;
+                }
                 return builder->CreateCall(method->getFunctionType(), fnPtr, allArgs);
             }
         }
@@ -3767,7 +3829,12 @@ class LLVMCompiler {
                 llvm::AllocaInst* temp = createEntryAlloca("temp_eval", ty);
                 builder->CreateStore(v, temp);
                 args.push_back(temp);
-
+                if (insideTry()) {
+                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                    llvm::InvokeInst* invoke = builder->CreateInvoke(evalMethod.first, contBB, currentLandingPad(), args);
+                    builder->SetInsertPoint(contBB);
+                    return invoke;
+                }
                 return builder->CreateCall(evalMethod.first, args);
             }
         }

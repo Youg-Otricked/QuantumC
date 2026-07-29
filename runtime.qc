@@ -479,7 +479,7 @@ string qc_to_lower(string str) {
     for (addr_t i = 0; i < len; i++) {
         char c = str[i];
         if (c >= 'A' && c <= 'Z') {
-            result[i] = (c + 32);
+            result[i] = `to_char((c + 32));
         } else {
             result[i] = c;
         }
@@ -496,7 +496,7 @@ string qc_to_upper(string str) {
     for (addr_t i = 0; i < len; i++) {
         char c = str[i];
         if (c >= 'a' && c <= 'z') {
-            result[i] = (c - 32);
+            result[i] = `to_char((c - 32));
         } else {
             result[i] = c;
         }

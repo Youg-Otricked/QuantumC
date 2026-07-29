@@ -45,6 +45,12 @@ Just install the binaries from the github, use the [Package & Version Manager](h
 
 ### Installation
 
+#### Dependencies
+
+You must have `clang` installed (or the path /usr/lib/clang/<VERSION>/include/unwind.h must exist)
+
+---
+
 After cloning the repo to your machine, run
 
 ```bash
@@ -108,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.22.1 = "-L, -A, -l (wow that was easy)"
-Next Version: x0.23.0 = "TRY CATCH"
+Current Version: x0.23.0 = "Try/Catch"
+Next Version: x0.24.0 = "Empty Array Literals & Empty Struct Literals"
 
 # Current Version Highlights
 
@@ -121,21 +127,22 @@ Major
 └─ N/A
 
 Moderate
-└─ QOL
+└─ Try/Catch
 
 Minor
-└─ Added -L (Link Search Dir), -A (Alias), -l (Link this file), -Wl,(pass to linker)
+└─ N/A
 
 Patch
 └─ N/A
 ```
 
+# Notes
+Turns out if you don't do RAII try catch isnt that hard.
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.20.* -> x0.22.*`)
+These are deprecations in the past 3 moderate versions (`x0.21.* -> x0.23.*`)
 
-1. Renamed `fclose`, `fopen`, `fwrite`, and `fread` to not have the `f` and take a raw integer file descriptor.
-2. All intrinsics now start with `\``
+No Deprecations!
 
 ## Feature Roadmap
 
@@ -174,7 +181,7 @@ These are deprecations in the past 3 moderate versions (`x0.20.* -> x0.22.*`)
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
 |                     | Really fancy operator overloads                                        | Planned     |
-|                     | Try/Catch and `throw`                                                  | Planned     |
+|                     | Try/Catch and `throw`                                                  | Done        |
 |                     | Error message quality and helpfulness upgrade                          | Done        |
 
 See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md)
@@ -709,6 +716,9 @@ int main() {
 ```
 
 ---
+## Self Hosted Runtime
+There is currently a unknown bug with the selfhosted runtime.
+
 ## Performance Comparison
 
 Benchmarks are currently unreliable and show significant fluctuations between runs, or things like 0 millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.

@@ -2,6 +2,7 @@
 // TOKENS
 // ///////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////
+#define QC_EXCEPTION_CLASS 0x5143455843455054ULL
 #include "compiler.h"
 #include <algorithm>
 #include <chrono>
@@ -57,6 +58,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
+uint64_t invokeCounter = 0;
 bool no_main = false;
 static bool random_seeded = false;
 bool isCharInSet(char c, const std::string& charSet) {
@@ -75,7 +77,7 @@ std::string strip(const std::string& s) {
     return r;
 }
 bool loose;
-std::unordered_map<std::string,  std::string> aliases;
+std::unordered_map<std::string, std::string> aliases;
 std::string entrypointName = "main";
 extern "C" const char _binary_runtime_ll_start[];
 extern "C" const size_t _binary_runtime_ll_size;
@@ -222,6 +224,7 @@ std::string get_token_name(TokenType tok) {
     case TokenType::AT: return "@";
     case TokenType::PIPE: return "|";
     case TokenType::SIZEOF: return "sizeof";
+    case TokenType::THROW: return "throw";
     case TokenType::EOFT: return "<eof>";
     case TokenType::VARADIC: return "...";
     case TokenType::RROT_EQ: return "|>>=";
@@ -724,6 +727,7 @@ TokenType stringToTokenType(const std::string& str) {
                                                                             {"MUL", TokenType::MUL},
                                                                             {"DIV", TokenType::DIV},
                                                                             {"SIZEOF", TokenType::SIZEOF},
+                                                                            {"THROW", TokenType::THROW},
                                                                             {"POWER", TokenType::POWER},
                                                                             {"LPAREN", TokenType::LPAREN},
                                                                             {"RPAREN", TokenType::RPAREN},
@@ -1067,48 +1071,54 @@ Prs Parser::try_catch_expr() {
     this->advance();
     StatementsNode* try_body;
     if (!parse_block_into(try_body, res)) return res.to_prs();
-    if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "catch")) {
+    std::vector<TryCatchNode::CatchBody> catch_bodys;
+    while (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "catch") {
+        this->advance();
+        if (this->current_tok.type != TokenType::LPAREN) {
+            res.failure(new InvalidSyntaxError("QC-S032: Expected '(' after 'catch'", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER && this->current_tok.value != "...") {
+            res.failure(new InvalidSyntaxError("QC-S033: Expected type in catch declaration", this->current_tok.pos));
+            return res.to_prs();
+        }
+        Token type_tok = this->current_tok;
+        this->advance();
+        if (this->current_tok.type == TokenType::AMPERSAND) {
+            this->advance();
+            type_tok.value += "&";
+        }
+
+        while (this->current_tok.type == TokenType::MUL) {
+            this->advance();
+            type_tok.value += "*";
+        }
+        std::string catch_type = type_tok.value;
+        if (this->current_tok.type != TokenType::IDENTIFIER && catch_type != "...") {
+            res.failure(new InvalidSyntaxError("QC-S034: Expected variable name in catch declaration", this->current_tok.pos));
+            return res.to_prs();
+        }
+        std::string catch_var = "";
+        if (catch_type != "...") {
+            Token var_tok = this->current_tok;
+            catch_var = var_tok.value;
+            this->advance();
+        }
+        if (this->current_tok.type != TokenType::RPAREN) {
+            res.failure(new InvalidSyntaxError("QC-S035: Expected ')' after catch variable", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        StatementsNode* catch_body;
+        if (!parse_block_into(catch_body, res)) return res.to_prs();
+        catch_bodys.push_back({catch_var, catch_type, catch_body});
+    }
+    if (catch_bodys.size() == 0) {
         res.failure(new InvalidSyntaxError("QC-S031: Expected 'catch' after try block", this->current_tok.pos));
         return res.to_prs();
     }
-    this->advance();
-    if (this->current_tok.type != TokenType::LPAREN) {
-        res.failure(new InvalidSyntaxError("QC-S032: Expected '(' after 'catch'", this->current_tok.pos));
-        return res.to_prs();
-    }
-    this->advance();
-    if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-        res.failure(new InvalidSyntaxError("QC-S033: Expected type in catch declaration", this->current_tok.pos));
-        return res.to_prs();
-    }
-    Token type_tok = this->current_tok;
-    this->advance();
-    if (this->current_tok.type == TokenType::AMPERSAND) {
-        this->advance();
-        type_tok.value += "&";
-    }
-
-    while (this->current_tok.type == TokenType::MUL) {
-        this->advance();
-        type_tok.value += "*";
-    }
-    std::string catch_type = type_tok.value;
-    if (this->current_tok.type != TokenType::IDENTIFIER) {
-        res.failure(new InvalidSyntaxError("QC-S034: Expected variable name in catch declaration", this->current_tok.pos));
-        return res.to_prs();
-    }
-    Token var_tok = this->current_tok;
-    std::string catch_var = var_tok.value;
-    this->advance();
-    if (this->current_tok.type != TokenType::RPAREN) {
-        res.failure(new InvalidSyntaxError("QC-S035: Expected ')' after catch variable", this->current_tok.pos));
-        return res.to_prs();
-    }
-    this->advance();
-    StatementsNode* catch_body;
-    if (!parse_block_into(catch_body, res)) return res.to_prs();
-    auto try_catch_node = new TryCatchNode(try_body, catch_var, catch_type, catch_body, try_tok, try_tok.pos);
-
+    auto try_catch_node = new TryCatchNode(try_body, catch_bodys, try_tok, try_tok.pos);
     return res.success(try_catch_node);
 }
 Prs Parser::switch_stmt() {
@@ -1853,10 +1863,11 @@ Prs Parser::atom() {
                                 break;
                             }
                         }
-                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
-                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING,
+                                                             TokenType::INT, TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T,
+                                                             TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT,
+                                                             TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE, TokenType::BYTE,
+                                                             TokenType::NIBBLE})
                                   .contains(this->current_tok.type))) {
                             this->index = oldId;
                             property_name.value = oldName;
@@ -1877,11 +1888,12 @@ Prs Parser::atom() {
                             just_incremented = true;
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   this->current_tok.pos));
+                                res.failure(
+                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                               property_name.value.substr(0, 120) + "..." +
+                                                               "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                               "compiler is not a Matryoshka doll. It has feelings too.",
+                                                           this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -1980,10 +1992,11 @@ Prs Parser::atom() {
                                 break;
                             }
                         }
-                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
-                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING,
+                                                             TokenType::INT, TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T,
+                                                             TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT,
+                                                             TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE, TokenType::BYTE,
+                                                             TokenType::NIBBLE})
                                   .contains(this->current_tok.type))) {
                             this->index = oldId;
                             property_name.value = oldName;
@@ -2004,11 +2017,12 @@ Prs Parser::atom() {
                             just_incremented = true;
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   this->current_tok.pos));
+                                res.failure(
+                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                               property_name.value.substr(0, 120) + "..." +
+                                                               "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                               "compiler is not a Matryoshka doll. It has feelings too.",
+                                                           this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -2140,10 +2154,11 @@ Prs Parser::atom() {
                                     break;
                                 }
                             }
-                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                                                                 TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
-                                                                 TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                                 TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING,
+                                                                 TokenType::INT, TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR,
+                                                                 TokenType::ADDR_T, TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT,
+                                                                 TokenType::SHORT_INT, TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE,
+                                                                 TokenType::BYTE, TokenType::NIBBLE})
                                       .contains(this->current_tok.type))) {
                                 this->index = oldId;
                                 property_name.value = oldName;
@@ -2164,11 +2179,12 @@ Prs Parser::atom() {
                                 just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                     res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError(
+                                        "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                            property_name.value.substr(0, 120) + "..." +
+                                            "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                            "compiler is not a Matryoshka doll. It has feelings too.",
+                                        this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2267,10 +2283,11 @@ Prs Parser::atom() {
                                     break;
                                 }
                             }
-                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                                                                 TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
-                                                                 TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                                 TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                            if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING,
+                                                                 TokenType::INT, TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR,
+                                                                 TokenType::ADDR_T, TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT,
+                                                                 TokenType::SHORT_INT, TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE,
+                                                                 TokenType::BYTE, TokenType::NIBBLE})
                                       .contains(this->current_tok.type))) {
                                 this->index = oldId;
                                 property_name.value = oldName;
@@ -2291,11 +2308,12 @@ Prs Parser::atom() {
                                 just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError(
+                                        "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                            property_name.value.substr(0, 120) + "..." +
+                                            "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                            "compiler is not a Matryoshka doll. It has feelings too.",
+                                        this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2422,10 +2440,11 @@ Prs Parser::atom() {
                                 break;
                             }
                         }
-                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT,
-                                                             TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL,
-                                                             TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT, TokenType::LONG_DOUBLE,
-                                                             TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                        if (!(std::unordered_set<TokenType>({TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING,
+                                                             TokenType::INT, TokenType::DOUBLE, TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T,
+                                                             TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT, TokenType::SHORT_INT,
+                                                             TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE, TokenType::BYTE,
+                                                             TokenType::NIBBLE})
                                   .contains(this->current_tok.type))) {
                             this->index = oldId;
                             property_name.value = oldName;
@@ -2446,11 +2465,12 @@ Prs Parser::atom() {
                             just_incremented = true;
                             depth++;
                             if (depth > 128) {
-                                res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
-                                                                       property_name.value.substr(0, 120) + "..." +
-                                                                       "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                                       "compiler is not a Matryoshka doll. It has feelings too.",
-                                                                   this->current_tok.pos));
+                                res.failure(
+                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                                               property_name.value.substr(0, 120) + "..." +
+                                                               "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                                               "compiler is not a Matryoshka doll. It has feelings too.",
+                                                           this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -2652,27 +2672,14 @@ Prs Parser::factor() {
         if (res.error) return res.to_prs();
         return res.success(new UnaryOpNode(tok, factor_node));
     }
-    if (current_tok.type == TokenType::INCREMENT || current_tok.type == TokenType::DECREMENT) {
-
-        Token op = current_tok;
-        advance();
-
+    if (this->current_tok.type == TokenType::INCREMENT || this->current_tok.type == TokenType::DECREMENT ||
+        this->current_tok.type == TokenType::SIZEOF || this->current_tok.type == TokenType::THROW) {
+        Token op = this->current_tok;
+        this->advance();
         AnyNode operand = res.reg(this->factor());
         if (res.error) return res.to_prs();
-
         return res.success(new UnaryOpNode(op, operand, false));
     }
-    if (current_tok.type == TokenType::SIZEOF) {
-
-        Token op = current_tok;
-        advance();
-
-        AnyNode operand = res.reg(this->factor());
-        if (res.error) return res.to_prs();
-
-        return res.success(new UnaryOpNode(op, operand, false));
-    }
-
     return this->power();
 }
 Prs Parser::term() {
@@ -5288,7 +5295,14 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                             if (parentCtor) {
                                 std::vector<llvm::Value*> allArgs = {currentThis};
                                 allArgs.insert(allArgs.end(), parentArgs.begin(), parentArgs.end());
-                                builder->CreateCall(parentCtor, allArgs);
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    builder->CreateInvoke(parentCtor, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                } else {
+                                    builder->CreateCall(parentCtor, allArgs);
+                                }
                                 bodyStartIdx = 1;
                             } else {
                                 Position pos = get_pos(*call);
@@ -5952,9 +5966,7 @@ llvm::FunctionType* LLVMCompiler::llvmFuncTypeForHelper(const std::vector<Token>
                 break;
             } else {
                 std::string toType = p.type.value;
-                while (toType.starts_with("out ") || toType.starts_with("inout ")) {
-                    toType.erase(0, toType.find(' ') + 1);
-                }
+                while (toType.starts_with("out ") || toType.starts_with("inout ")) { toType.erase(0, toType.find(' ') + 1); }
                 if (toType.ends_with("restrict")) { toType = toType.substr(0, toType.length() - 8); }
                 paramTypes.push_back(llvmTypeFor(toType));
             }
@@ -6085,6 +6097,16 @@ llvm::Value* LLVMCompiler::boolToQBool(llvm::Value* boolVal) {
     llvm::Value* ext = builder->CreateZExt(boolVal, builder->getInt8Ty());
     llvm::Value* tripled = builder->CreateMul(ext, builder->getInt8(3));
     return builder->CreateTrunc(tripled, builder->getIntNTy(2));
+}
+llvm::Value* LLVMCompiler::emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args,
+                                          const std::string& name) {
+    if (insideTry()) {
+        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+        llvm::InvokeInst* invoke = builder->CreateInvoke(method, contBB, currentLandingPad(), reconcileArgs(method, thisPtr, args));
+        builder->SetInsertPoint(contBB);
+        return invoke;
+    }
+    return builder->CreateCall(method, reconcileArgs(method, thisPtr, args), name + "_result");
 }
 llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
     if (auto num = std::get_if<NumberNode>(&node)) {
@@ -6335,6 +6357,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                                     if (opMethod) {
                                         std::vector<llvm::Value*> allArgs = {L, R};
+                                        if (insideTry()) {
+                                            auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                                   currentFunction);
+                                            llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                            builder->SetInsertPoint(contBB);
+                                            return invk;
+                                        }
                                         return builder->CreateCall(opMethod, allArgs, "op_result");
                                     }
                                 }
@@ -6872,7 +6901,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 llvm::AllocaInst* temp = createEntryAlloca("temp_repr", ty);
                                 builder->CreateStore(v, temp);
                                 args.push_back(temp);
-
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    llvm::InvokeInst* invk = builder->CreateInvoke(reprMethod, contBB, currentLandingPad(), args);
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                }
                                 return builder->CreateCall(reprMethod, args, "repr_result");
                             }
                         }
@@ -7158,6 +7193,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             builder->CreateStore(L, temp);
 
                             std::vector<llvm::Value*> allArgs = {temp, R};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
                             return builder->CreateCall(opMethod, allArgs, "op_result");
                         }
                     }
@@ -7174,11 +7215,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 lty = builder->getInt32Ty();
                 rty = builder->getInt32Ty();
             } else if (lIsChar) {
-                L = emitPrimitiveConversion(L, "char");
+                L = builder->CreateSExtOrTrunc(L, rty, "char_set");
                 lty = rty;
                 isCharOperation = true;
             } else if (rIsChar) {
-                R = emitPrimitiveConversion(R, "char");
+                R = builder->CreateSExtOrTrunc(R, lty, "char_set");
                 rty = lty;
                 isCharOperation = true;
             }
@@ -7588,7 +7629,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             return builder->CreateOr(L, R, "or");
         case TokenType::XOR:
             L = toTruthiness(L, get_pos((*bin)->left_node));
-            R = toTruthiness(R, get_pos((*bin)->right_node));       
+            R = toTruthiness(R, get_pos((*bin)->right_node));
             return builder->CreateXor(L, R, "xor");
         case TokenType::QAND:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
@@ -7642,7 +7683,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
                 llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateCall(fn, {L8, R8});
             }
             cg_error((*bin)->op_tok.pos, "&|& requires qbool operands");
@@ -7656,7 +7696,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 llvm::Value* L8 = builder->CreateZExt(L, builder->getInt8Ty());
                 llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
-                llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateCall(fn, {L8, R8});
             }
             cg_error((*bin)->op_tok.pos, "|&| requires qbool operands");
@@ -7811,7 +7850,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (ctor) {
                                 std::vector<llvm::Value*> allArgs = {instance};
                                 allArgs.insert(allArgs.end(), args.begin(), args.end());
-                                builder->CreateCall(ctor, allArgs);
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    llvm::InvokeInst* invk = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                } else {
+                                    builder->CreateCall(ctor, allArgs);
+                                }
                                 std::string mangledName = buildMangledName(qcType, genericParams);
                                 auto vtableIt = vtables.find(mangledName);
                                 if (vtableIt != vtables.end()) {
@@ -8159,7 +8205,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (ctor) {
                                 std::vector<llvm::Value*> allArgs = {instance};
                                 allArgs.insert(allArgs.end(), args.begin(), args.end());
-                                builder->CreateCall(ctor, allArgs);
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    llvm::InvokeInst* invk = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                } else {
+                                    builder->CreateCall(ctor, allArgs);
+                                }
                                 auto vtableIt = vtables.find(qcType);
                                 if (vtableIt != vtables.end()) {
                                     llvm::Value* vptrField = builder->CreateStructGEP(classTy, instance, 0, "vptr_field");
@@ -8395,38 +8449,45 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (srcTy->isArrayTy() && destTy->isArrayTy()) {
                 auto* srcArrTy = llvm::cast<llvm::ArrayType>(srcTy);
                 auto* destArrTy = llvm::cast<llvm::ArrayType>(destTy);
-                if (llvm::isa<llvm::ConstantArray>(rhs) || llvm::isa<llvm::ConstantAggregateZero>(rhs)) {
-                    auto* tmp = createEntryAlloca("src_array_tmp", srcArrTy);
-                    builder->CreateStore(rhs, tmp);
-                    rhs = tmp;
-                }
-                llvm::Type* srcElemTy = srcArrTy->getElementType();
-                llvm::Type* destElemTy = destArrTy->getElementType();
-                uint64_t srcLen = srcArrTy->getNumElements();
-                uint64_t destLen = destArrTy->getNumElements();
-                if (srcElemTy != destElemTy) {
+                if (srcArrTy->getElementType() != destArrTy->getElementType()) {
                     cg_error((*va)->var_name_tok.pos, "array element type mismatch in assignment");
                     return nullptr;
                 }
+                uint64_t srcLen = srcArrTy->getNumElements();
+                uint64_t destLen = destArrTy->getNumElements();
                 if (srcLen > destLen) {
                     cg_error((*va)->var_name_tok.pos, "source array is larger than destination array");
                     return nullptr;
                 }
-                llvm::AllocaInst* newArr = createEntryAlloca("array_copy", destArrTy);
-                for (uint64_t i = 0; i < srcLen; i++) {
-                    llvm::Value* srcPtr = builder->CreateGEP(srcArrTy, rhs, {builder->getInt32(0), builder->getInt32(i)}, "src_elem_ptr");
-
-                    llvm::Value* destPtr = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(i)}, "dest_elem_ptr");
-
-                    llvm::Value* val = builder->CreateLoad(srcElemTy, srcPtr, "src_elem");
-
-                    builder->CreateStore(val, destPtr);
+                if (!rhs->getType()->isPointerTy()) {
+                    auto* tmp = createEntryAlloca("src_array_tmp", srcArrTy);
+                    builder->CreateStore(rhs, tmp);
+                    rhs = tmp;
                 }
-                llvm::Constant* zero = llvm::Constant::getNullValue(destElemTy);
-                for (uint64_t i = srcLen; i < destLen; i++) {
-                    llvm::Value* destPtr = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(i)}, "dest_zero_ptr");
-
-                    builder->CreateStore(zero, destPtr);
+                llvm::AllocaInst* newArr = createEntryAlloca("array_copy", destArrTy);
+                uint64_t bytes = srcLen * srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
+                builder->CreateMemCpy(
+                    newArr,
+                    llvm::MaybeAlign(),
+                    rhs,
+                    llvm::MaybeAlign(),
+                    bytes
+                );
+                if (destLen > srcLen) {
+                    llvm::Value* zeroStart = builder->CreateGEP(
+                        destArrTy,
+                        newArr,
+                        {builder->getInt32(0), builder->getInt32(srcLen)}
+                    );
+                    uint64_t zeroBytes =
+                        (destLen - srcLen) *
+                        srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
+                    builder->CreateMemSet(
+                        zeroStart,
+                        builder->getInt8(0),
+                        zeroBytes,
+                        llvm::MaybeAlign()
+                    );
                 }
                 rhs = newArr;
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
@@ -8978,6 +9039,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 rhsVal = builder->CreateLoad(expectedRhsTy, rhsVal, "op_rhs_load");
                             }
                             std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
                             llvm::Value* callResult = builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
                             return callResult;
                         }
@@ -9067,6 +9134,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             builder->CreateStore(operand, temp);
 
                             std::vector<llvm::Value*> allArgs = {temp};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
                             return builder->CreateCall(opMethod, allArgs, "unary_op_result");
                         }
                     }
@@ -9188,6 +9261,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             unsigned ptrBitWidth = dl.getPointerSizeInBits();
             llvm::IntegerType* addrType = llvm::IntegerType::get(context, ptrBitWidth);
             return llvm::ConstantInt::get(addrType, size);
+        }
+        if ((*unary)->op_tok.type == TokenType::THROW) {
+            llvm::Value* type = getStringConstant(getExpressionType((*unary)->node));
+            llvm::Value* value = emitExpr((*unary)->node);
+            llvm::Value* storage = builder->CreateAlloca(value->getType());
+            builder->CreateStore(value, storage);
+            value = storage;
+            llvm::Function* createFn = module->getFunction("__qc_create_exception");
+            llvm::Value* exception = builder->CreateCall(createFn, {type, value}, "exception");
+            llvm::Function* throwFn = module->getFunction("__qc_throw");
+            builder->CreateCall(throwFn, {exception});
+            builder->CreateUnreachable();
+            return nullptr;
         }
     } else if (auto fnPtr = std::get_if<FuncDefNode*>(&node)) {
         llvm::Function* f = emitFuncDef(*(*fnPtr));
@@ -9336,7 +9422,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         argValues.resize(fixedCount);
                         argValues.push_back(packVariadicArgs(varVals));
                     }
-                    return builder->CreateCall(fn, argValues);
+                    if (insideTry()) {
+                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                        llvm::InvokeInst* invoke = builder->CreateInvoke(fn, contBB, currentLandingPad(), argValues);
+                        builder->SetInsertPoint(contBB);
+                        return invoke;
+                    } else {
+                        return builder->CreateCall(fn, argValues);
+                    }
                 }
             }
             std::string saved_name = funcName;
@@ -9402,6 +9495,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Function* ctor = findMethodOverload(resolvedName, ctorName, ctorArgs);
                     if (!ctor) {
                         cg_error((*varAccess)->var_name_tok.pos, "no matching constructor for " + resolvedName);
+                        addConstructorNotes(resolvedName, ctorArgs, get_pos(*varAccess));
                         return nullptr;
                     }
                     bool isCtorVariadic = (ctorInfo->params.size() > 0 && ctorInfo->params.back().type.value == "...");
@@ -9414,7 +9508,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     std::vector<llvm::Value*> allArgs = {temp};
                     allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
-                    builder->CreateCall(ctor, allArgs);
+                    if (insideTry()) {
+                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                        builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                        builder->SetInsertPoint(contBB);
+                    } else {
+                        builder->CreateCall(ctor, allArgs);
+                    }
                     auto vtableIt = vtables.find(resolvedName);
                     if (vtableIt != vtables.end()) {
                         llvm::Value* vptrField = builder->CreateStructGEP(classTy, temp, 0, "vptr_field");
@@ -10504,6 +10604,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         input_values.push_back(val);
                         input_types.push_back(val->getType());
                     }
+                    std::vector<std::pair<unsigned, llvm::Type*>> memory_element_types;
                     for (auto& [idx, op] : unique_outputs) {
                         int arg_pos = idx + 1;
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
@@ -10512,6 +10613,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (op.kind == 'm') {
                             input_values.push_back(out_ptr);
                             input_types.push_back(out_ptr->getType());
+                            memory_element_types.push_back({
+                                (unsigned)input_values.size() - 1,
+                                llvmTypeFor(getExpressionType(*it))
+                            });
                         }
                         if (op.kind == 'r') {
                             auto type = getExpressionType(*it);
@@ -10554,7 +10659,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else {
                         asm_fn = llvm::InlineAsm::get(fn_ty, finalized, constraints, true, false, llvm::InlineAsm::AD_Intel);
                     }
-                    llvm::Value* asm_result = builder->CreateCall(fn_ty, asm_fn, input_values);
+                    llvm::CallInst* asm_call = builder->CreateCall(fn_ty, asm_fn, input_values);
+                    for (auto &[idx, ty] : memory_element_types) {
+                        llvm::Attribute attr = llvm::Attribute::get(context, llvm::Attribute::ElementType, ty);
+                        asm_call->addParamAttr(idx, attr);
+                    }
+                    llvm::Value* asm_result = asm_call;
                     if (output_types.empty()) { return nullptr; }
                     if (output_types.size() == 1) {
                         builder->CreateStore(asm_result, output_ptrs[0]);
@@ -10769,8 +10879,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         llvm::Type* retTy = fnTy->getReturnType();
+        if (insideTry()) {
+            auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+            auto* invokeInst = builder->CreateInvoke(fnTy, calleeVal, contBB, currentLandingPad(), args, retTy->isVoidTy() ? "" : "calltmp");
+            builder->SetInsertPoint(contBB);
+            return retTy->isVoidTy() ? nullptr : invokeInst;
+        }
         auto* callInst = builder->CreateCall(fnTy, calleeVal, args, retTy->isVoidTy() ? "" : "calltmp");
-
         return retTy->isVoidTy() ? nullptr : callInst;
     } else if (auto arrAcc = safe_get<ArrayAccessNode>(node)) {
         std::string ptrTy = getExpressionType(arrAcc->base);
@@ -11698,6 +11813,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
                 std::vector<llvm::Value*> allArgs = {thisPtr};
                 allArgs.insert(allArgs.end(), args.begin(), args.end());
+                if (insideTry()) {
+                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                    llvm::InvokeInst* invoke = builder->CreateInvoke(method->getFunctionType(), fnPtr, contBB, currentLandingPad(), allArgs);
+                    builder->SetInsertPoint(contBB);
+                    return invoke;
+                }
                 return builder->CreateCall(method->getFunctionType(), fnPtr, allArgs);
             }
         }
@@ -12372,8 +12493,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
                             std::vector<llvm::Value*> allArgs = {retVal};
                             allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
-                            builder->CreateCall(ctor, allArgs);
-
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invoke = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                            } else {
+                                builder->CreateCall(ctor, allArgs);
+                            }
                             val = builder->CreateLoad(classTy, retVal);
                         }
                     }
@@ -12506,8 +12632,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
                         std::vector<llvm::Value*> allArgs = {retVal};
                         allArgs.insert(allArgs.end(), ctorArgs.begin(), ctorArgs.end());
-                        builder->CreateCall(ctor, allArgs);
-
+                        if (insideTry()) {
+                            auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                            llvm::InvokeInst* invoke = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                            builder->SetInsertPoint(contBB);
+                        } else {
+                            builder->CreateCall(ctor, allArgs);
+                        }
                         llvm::Value* result = llvm::UndefValue::get(classTy);
                         for (unsigned i = 0; i < classTy->getNumElements(); i++) {
                             std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
@@ -13560,6 +13691,114 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         namespaceStack.pop_back();
 
         return;
+    } else if (auto trycatch = safe_get<TryCatchNode>(node)) {
+        enterScope();
+        auto* tryBB = llvm::BasicBlock::Create(context, "try.start", currentFunction);
+        auto* landingPadBB = llvm::BasicBlock::Create(
+            context, "catch.landing", currentFunction
+        );
+        auto* endBB = llvm::BasicBlock::Create(context, "try.end", currentFunction);
+        std::vector<llvm::BasicBlock*> catchBlocks;
+        catchBlocks.reserve(trycatch->catch_bodys.size());
+        EHScope thisScope{
+            .landingPad = landingPadBB,
+            .continuation = endBB,
+            .handlers = {},
+        };
+        for (size_t i = 0; i < trycatch->catch_bodys.size(); ++i) {
+            auto* catchBB = llvm::BasicBlock::Create(
+                context, "catch." + std::to_string(i), currentFunction
+            );
+            catchBlocks.push_back(catchBB);
+            thisScope.handlers.push_back({
+                .body = trycatch->catch_bodys[i],
+                .block = catchBB,
+            });
+        }
+        ehScopes.push_back(std::move(thisScope));
+        builder->CreateBr(tryBB);
+        builder->SetInsertPoint(tryBB);
+        emitStmt(trycatch->try_body);
+        if (!builder->GetInsertBlock()->getTerminator()) {
+            builder->CreateBr(endBB);
+        }
+        builder->SetInsertPoint(landingPadBB);
+        auto* exceptionType = llvm::StructType::get(
+            context, {builder->getPtrTy(), builder->getInt32Ty()}
+        );
+        std::vector<EHHandler> visibleHandlers;
+        for (auto scopeIt = ehScopes.rbegin();
+             scopeIt != ehScopes.rend();
+             ++scopeIt) {
+            for (const auto& handler : scopeIt->handlers) {
+                visibleHandlers.push_back(handler);
+            }
+        }
+        auto* lp = builder->CreateLandingPad(
+            exceptionType,
+            visibleHandlers.size(),
+            "qc.exception"
+        );
+        for (const auto& handler : visibleHandlers) {
+            const auto& c = handler.body;
+            llvm::Constant* typeInfo =
+                c.var_type == "..."
+                    ? llvm::ConstantPointerNull::get(builder->getPtrTy())
+                    : getStringConstant(c.var_type);
+            lp->addClause(typeInfo);
+        }
+        if (!currentFunction->hasPersonalityFn()) {
+            currentFunction->setPersonalityFn(
+                module->getFunction("__qc_personality")
+            );
+        }
+        auto* exception = builder->CreateExtractValue(lp, 0, "exception");
+        auto* selector = builder->CreateExtractValue(lp, 1, "selector");
+        auto* noMatchBB = llvm::BasicBlock::Create(
+            context, "catch.no_match", currentFunction
+        );
+        auto* sw = builder->CreateSwitch(
+            selector, noMatchBB, visibleHandlers.size()
+        );
+        for (size_t i = 0; i < visibleHandlers.size(); ++i) {
+            sw->addCase(
+                llvm::ConstantInt::get(builder->getInt32Ty(), i + 1),
+                visibleHandlers[i].block
+            );
+        }
+        EHScope savedScope = std::move(ehScopes.back());
+        ehScopes.pop_back();
+        for (size_t i = 0; i < savedScope.handlers.size(); ++i) {
+            const auto& c = savedScope.handlers[i].body;
+            auto* catchBB = savedScope.handlers[i].block;
+            builder->SetInsertPoint(catchBB);
+            if (!c.var_name.empty()) {
+                std::string name = getCurrentNamespace().empty()
+                    ? c.var_name
+                    : getCurrentNamespace() + c.var_name;
+                auto* payloadPtr = builder->CreateStructGEP(
+                    exceptionType, exception, 1, "exception.value.ptr"
+                );
+                auto* payload = builder->CreateLoad(
+                    builder->getPtrTy(), payloadPtr, "exception.value"
+                );
+                auto* catchLLVMType = llvmTypeFor(c.var_type);
+                auto* catchValue = builder->CreateLoad(
+                    catchLLVMType, payload, "caught.value"
+                );
+                auto* alloc = createEntryAlloca(name, catchLLVMType);
+                builder->CreateStore(catchValue, alloc);
+                locals[name] = alloc;
+            }
+            emitStmt(c.body);
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                builder->CreateBr(endBB);
+            }
+        }
+        builder->SetInsertPoint(noMatchBB);
+        builder->CreateResume(lp);
+        exitScope();
+        builder->SetInsertPoint(endBB);
     }
 }
 std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
@@ -13808,10 +14047,18 @@ std::vector<CTError> LLVMCompiler::compile(
                                 if (parentCtor) {
                                     std::vector<llvm::Value*> allArgs = {currentThis};
                                     allArgs.insert(allArgs.end(), parentArgs.begin(), parentArgs.end());
-                                    builder->CreateCall(parentCtor, allArgs);
+                                    if (insideTry()) {
+                                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                               currentFunction);
+                                        llvm::InvokeInst* invoke = builder->CreateInvoke(parentCtor, contBB, currentLandingPad(), allArgs);
+                                        builder->SetInsertPoint(contBB);
+                                    } else {
+                                        builder->CreateCall(parentCtor, allArgs);
+                                    }
                                     bodyStartIdx = 1;
                                 } else {
                                     cg_error(get_pos(*call), "parent class '" + info.baseClassName + "' has no matching constructor");
+                                    addConstructorNotes(info.baseClassName, parentArgs, get_pos(*call));
                                 }
                             }
                         }
@@ -14495,7 +14742,6 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             if (!diagnostics.empty()) { error_found = true; }
             std::string message = "Program exited with code: 0";
             if (error_found) { message = "Program exited with code: 1"; }
-
             if (!diagnostics.empty()) { return Mer{ast, resp, message, diagnostics}; }
             std::error_code EC;
             llvm::raw_fd_ostream out(ll_file, EC, llvm::sys::fs::OF_Text);
@@ -14554,9 +14800,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
             std::string link_cmd = "gcc " + obj_file + " -o " + final_exe;
-            for (const auto& path : config.library_search_paths) {
-                link_cmd += " -L\"" + path + "\"";
-            }
+            for (const auto& path : config.library_search_paths) { link_cmd += " -L\"" + path + "\""; }
             for (const auto& lib : config.libraries) {
                 if (lib.ends_with(".a") || lib.ends_with(".so") || lib.ends_with(".dylib")) {
                     link_cmd += " -l\"" + lib + "\"";
@@ -14564,9 +14808,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     link_cmd += " -l" + lib;
                 }
             }
-            for (const std::string& arg : config.link_with) {
-                link_cmd += " " + arg;
-            }
+            for (const std::string& arg : config.link_with) { link_cmd += " " + arg; }
             link_cmd += " -lm";
             if (config.debug) link_cmd += " -g";
             if (!config.quiet_mode) std::cout << "Linking with command " + link_cmd << '\n';
@@ -14646,9 +14888,7 @@ Token Lexer::make_number() {
     }
     if (is_hex) {
         while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + "abcdefABCDEF'")) {
-            if (this->current_char == '\'') {
-                this->advance();
-            }
+            if (this->current_char == '\'') { this->advance(); }
             num += this->current_char;
             this->advance();
         }
@@ -14672,9 +14912,7 @@ Token Lexer::make_number() {
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_octal) {
         while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 8) || this->current_char == '\'')) {
-            if (this->current_char == '\'') {
-                this->advance();
-            }            
+            if (this->current_char == '\'') { this->advance(); }
             num += this->current_char;
             this->advance();
         }
@@ -14698,9 +14936,7 @@ Token Lexer::make_number() {
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else if (is_binary) {
         while (this->current_char != '\0' && ((std::isdigit(this->current_char) && this->current_char - '0' < 2) || this->current_char == '\'')) {
-            if (this->current_char == '\'') {
-                this->advance();
-            }
+            if (this->current_char == '\'') { this->advance(); }
             num += this->current_char;
             this->advance();
         }
@@ -14798,6 +15034,7 @@ Token Lexer::make_identifier() {
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }
     if (id == "qtrue" || id == "qfalse" || id == "both" || id == "none") { return Token(TokenType::QBOOL, id, start_pos); }
     if (id == "sizeof") { return Token(TokenType::SIZEOF, id, start_pos); }
+    if (id == "throw") { return Token(TokenType::THROW, id, start_pos); }
     return Token(TokenType::IDENTIFIER, id, start_pos);
 }
 Token Lexer::make_string() {
@@ -15451,14 +15688,12 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         size_t start = source.find('(', pos);
         size_t end = source.find(')', start);
         if (start == std::string::npos || end == std::string::npos) {
-           throw std::runtime_error("malformed #depends directive: expected #depends(<namespace>: <deps...>)");
+            throw std::runtime_error("malformed #depends directive: expected #depends(<namespace>: <deps...>)");
         }
         std::string directive = source.substr(start + 1, end - start - 1);
 
         size_t colon = directive.find(':');
-        if (colon == std::string::npos) {
-            throw std::runtime_error("malformed #depends directive: missing ':' separator");
-        }
+        if (colon == std::string::npos) { throw std::runtime_error("malformed #depends directive: missing ':' separator"); }
         std::string owner_ns = trim(directive.substr(0, colon));
         std::string rest = directive.substr(colon + 1);
         size_t segment_start = 0;

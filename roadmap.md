@@ -1,4 +1,5 @@
 - Concepts
+- `MyStruct{}` casting literals
 ```
 concept X {
 ...
@@ -8,7 +9,6 @@ class Y {
 } 
 Y proves X;
 ```
-- Try/Catch 
 - allow special character literals in generics, eg:
 ```
 class Function<T, '(', V, ')'> {
@@ -102,12 +102,13 @@ __qc_target_triple() — what platform/arch this runtime was compiled for (x86_6
 __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 - atomics
+- defer
 TOP PRIORITY:
-1. Try/Catch.
+1. Empty Arrays & Struct Literals
 2. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
 3. Token/ident/type/keyword/usertype direct type (parser refactor)
-4. Empty arrays.
-5. Static and Friend
+4. Static and Friend
+5. Defer
 6. Codeblocks.
 7. Concepts
 8. Modifier (x1.0.0)
