@@ -1552,23 +1552,19 @@ Prs Parser::array_literal() {
     this->advance();
 
     std::vector<AnyNode> elements;
-
+    std::string type = "";
+    AnyNode length = std::monostate{};
     if (this->current_tok.type != TokenType::RBRACKET) {
-        if (this->current_tok.type == TokenType::AT) {
+        if (this->current_tok.type == TokenType::KEYWORD || is_known_type(this->current_tok.value)) {
+            type = parseTypeString();
+            if (this->current_tok.type != TokenType::COMMA) {
+                res.failure(new InvalidSyntaxError("QC-S045: Expected ',' after element type in empty array literal.", this->current_tok.pos));
+                return res.to_prs();
+            }
             this->advance();
-            AnyNode spread_expr = res.reg(this->logical_or());
+            length = res.reg(this->atom());
             if (res.error) return res.to_prs();
-
-            elements.push_back(new SpreadNode(spread_expr));
         } else {
-            AnyNode elem = res.reg(this->logical_or());
-            if (res.error) return res.to_prs();
-            elements.push_back(elem);
-        }
-
-        while (this->current_tok.type == TokenType::COMMA) {
-            this->advance();
-
             if (this->current_tok.type == TokenType::AT) {
                 this->advance();
                 AnyNode spread_expr = res.reg(this->logical_or());
@@ -1580,6 +1576,22 @@ Prs Parser::array_literal() {
                 if (res.error) return res.to_prs();
                 elements.push_back(elem);
             }
+
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+
+                if (this->current_tok.type == TokenType::AT) {
+                    this->advance();
+                    AnyNode spread_expr = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+
+                    elements.push_back(new SpreadNode(spread_expr));
+                } else {
+                    AnyNode elem = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    elements.push_back(elem);
+                }
+            }
         }
     }
 
@@ -1589,8 +1601,10 @@ Prs Parser::array_literal() {
     }
 
     this->advance();
-
-    return res.success(new ArrayLiteralNode(elements, start_pos));
+    ArrayLiteralNode *result = new ArrayLiteralNode(elements, start_pos);
+    result->type = type;
+    result->length = length;
+    return res.success(result);
 }
 Prs Parser::atom() {
     ParseResult res;
@@ -1792,6 +1806,61 @@ Prs Parser::atom() {
                 this->advance();
             }
             if (this->index != oldId && name != oldName) name += ">";
+        }
+        if (this->current_tok.type == TokenType::LBRACE) {
+            Position start_pos = this->current_tok.pos;
+            this->advance();
+            if (this->current_tok.type == TokenType::RBRACE) {
+                this->advance();
+                std::vector<std::pair<AnyNode, AnyNode>> pairs;
+                return res.success(new MapLiteralNode(pairs, start_pos, name));
+            }
+            auto first_key_expr = res.reg(this->logical_or());
+            if (res.error) return res.to_prs();
+            if (this->current_tok.type == TokenType::COLON) {
+                this->advance();
+                AnyNode first_val_expr = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+                std::vector<std::pair<AnyNode, AnyNode>> pairs;
+                pairs.emplace_back(first_key_expr, first_val_expr);
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    AnyNode key_expr = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+
+                    if (this->current_tok.type != TokenType::COLON) {
+                        res.failure(new InvalidSyntaxError("QC-S046: Expected ':' in map literal", this->current_tok.pos));
+                        return res.to_prs();
+                    }
+                    this->advance();
+                    AnyNode val_expr = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    pairs.emplace_back(key_expr, val_expr);
+                }
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res.failure(new InvalidSyntaxError("QC-S047: Expected '}' at end of map literal", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                return res.success(new MapLiteralNode(pairs, start_pos, name));
+            } else {
+                std::vector<AnyNode> elements;
+                elements.push_back(first_key_expr);
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    AnyNode e2 = res.reg(this->logical_or());
+                    if (res.error) return res.to_prs();
+                    elements.push_back(e2);
+                }
+
+                if (this->current_tok.type != TokenType::RBRACE) {
+                    res.failure(new InvalidSyntaxError("QC-S048: Expected '}' in initializer list", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+
+                return res.success(new ArrayLiteralNode(elements, start_pos, name));
+            }
         }
         Token ident(TokenType::IDENTIFIER, name, pos);
         AnyNode base = new VarAccessNode(ident);
@@ -7955,7 +8024,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
-                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                if (!(*arrLit)->type.empty()) {
+                    if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*arrLit)->type, true))) {
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " + buildMangledName(qcType, genericParams));
+                        return nullptr;
+                    }
+                }
+                llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
                 auto& structInfo = userTypeIt->second;
                 for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
                     std::string fieldType = structInfo.fields[i].type;
@@ -7964,7 +8040,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
                         if (auto nestedArrLit = std::get_if<ArrayLiteralNode*>(&(*arrLit)->elements[i])) {
                             llvm::StructType* nestedStructTy = genericiseOrFindStruct(fieldType);
-                            llvm::Value* nestedStruct = llvm::UndefValue::get(nestedStructTy);
+                            llvm::Value* nestedStruct = llvm::ConstantAggregateZero::get(nestedStructTy);
                             for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
                                 llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
                                 if (!fieldVal) return nullptr;
@@ -7989,8 +8065,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 volatileVars[fullName] = isVolatile;
                 return nullptr;
             } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
-                llvm::StructType* structTy = genericiseOrFindStruct(qcType);
-                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
+                if (!(*mapLit)->struct_type.empty()) {
+                    if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*mapLit)->struct_type, true))) {
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " + buildMangledName(qcType, genericParams));
+                        return nullptr;
+                    }
+                }
+                llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
                 auto& structInfo = userTypeIt->second;
                 for (auto& [keyNode, valueNode] : (*mapLit)->pairs) {
                     std::string fieldName;
@@ -8054,7 +8137,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
                 return nullptr;
             }
-            llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+            llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
             unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
             llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -8068,6 +8151,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
             if (auto arrLit = std::get_if<ArrayLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
+                if (!(*arrLit)->type.empty()) {
+                    if (qcType != fixMangling(resolveTypeName((*arrLit)->type, true))) {
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " + qcType);
+                        return nullptr;
+                    }
+                }
                 llvm::Value* structVal = llvm::Constant::getNullValue(structTy);
                 auto& structInfo = userTypeIt->second;
                 for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
@@ -8117,7 +8207,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             } else if (auto mapLit = std::get_if<MapLiteralNode*>(&(*va)->value_node)) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
-                llvm::Value* structVal = llvm::UndefValue::get(structTy);
+                if (!(*mapLit)->struct_type.empty()) {
+                    if (qcType != fixMangling(resolveTypeName((*mapLit)->struct_type, true))) {
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " + qcType);
+                        return nullptr;
+                    }
+                }
+                llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
 
                 auto& structInfo = userTypeIt->second;
 
@@ -8311,7 +8408,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
                 return nullptr;
             }
-            llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+            llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
             unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
             llvm::Value* dataPtr = storeAndGetPointer(rhs);
             unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -8792,7 +8889,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error((*asn)->op_tok.pos, "union variant payload type mismatch");
                     return nullptr;
                 }
-                llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
                 unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
                 llvm::Value* dataPtr = storeAndGetPointer(rhs);
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -9279,30 +9376,131 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Function* f = emitFuncDef(*(*fnPtr));
         return f;
     } else if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
-        cg_error(get_pos(*mapLit), "map literals may not be used outside of struct intialization (`Point p = {x: 321, y: 123}`)");
-        return nullptr;
-    } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
-        if ((*arrLit)->elements.empty()) {
-            if (!currentFunction) {
-                cg_error(get_pos(*arrLit), "empty array literals only supported in functions");
+        if ((*mapLit)->struct_type.empty()) {
+            cg_error(get_pos(*mapLit), "struct literals must have a struct type");
+            return nullptr;
+        }
+        llvm::StructType* structTy = genericiseOrFindStruct((*mapLit)->struct_type);
+        if (!structTy) {
+            cg_error(get_pos(*mapLit), "unknown struct type '" + (*mapLit)->struct_type + "'");
+            std::vector<std::pair<int, std::string>> matches;
+            if ((*mapLit)->struct_type.size() >= 3) {
+                for (auto& [vname, strct] : userTypes) {
+                    if (strct.kind != UserTypeKind::Struct) continue;
+                    int distance = levenshteinDistance((*mapLit)->struct_type, vname);
+                    if (distance <= 2) { matches.push_back({distance, vname}); }
+                }
+            }
+            std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+            if (!matches.empty()) {
+                std::string note = "did you mean ";
+                size_t count = std::min<size_t>(3, matches.size());
+                for (size_t i = 0; i < count; i++) {
+                    if (i != 0) note += ", ";
+                    note += "`" + buildMangledName(baseTypeName(matches[i].second), genericParamsFromName((*mapLit)->struct_type), true) + "`";
+                }
+                note += "?";
+                cg_note(get_pos(*mapLit), note);
+            }
+            return nullptr;
+        }
+        llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
+        auto structInfo = userTypes.find(baseTypeName((*mapLit)->struct_type))->second;
+        for (auto& [keyNode, valueNode] : (*mapLit)->pairs) {
+            std::string fieldName;
+            if (auto key = std::get_if<VarAccessNode*>(&keyNode)) {
+                fieldName = (*key)->var_name_tok.value;
+            } else if (auto key = std::get_if<StringNode>(&keyNode)) {
+                fieldName = key->tok.value;
+            } else {
+                cg_error((*mapLit)->pos, "struct field name must be an identifier");
                 return nullptr;
             }
-
-            llvm::Type* retTy = currentFunction->getReturnType();
-            if (retTy->isPointerTy()) {
-                llvm::Type* elemType = builder->getInt32Ty();
-                llvm::Function* mallocFn = module->getFunction("qc_malloc");
-                if (!mallocFn) {
-                    llvm::FunctionType* mallocTy = llvm::FunctionType::get(builder->getPtrTy(), {builder->getIntNTy(getPtrSize())}, false);
-                    mallocFn = llvm::Function::Create(mallocTy, llvm::Function::InternalLinkage, "qc_malloc", module);
+            int fieldIndex = -1;
+            for (size_t i = 0; i < structInfo.fields.size(); i++) {
+                if (structInfo.fields[i].name == fieldName) {
+                    fieldIndex = i;
+                    break;
                 }
-                llvm::Value* size = llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), 0);
-                llvm::Value* ptr = builder->CreateCall(mallocFn, {size}, "empty_arr");
-                return builder->CreateBitCast(ptr, retTy, "empty_arr_cast");
             }
-
-            cg_error(get_pos(*arrLit), "cannot determine element type for empty array");
-            return nullptr;
+            if (fieldIndex == -1) {
+                cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + (*mapLit)->struct_type);
+                return nullptr;
+            }
+            llvm::Value* fieldValue = emitExpr(valueNode);
+            if (!fieldValue) return nullptr;
+            structVal = builder->CreateInsertValue(structVal, fieldValue, fieldIndex);
+        }
+        return structVal;
+    } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
+        if (!(*arrLit)->type.empty() && std::holds_alternative<std::monostate>((*arrLit)->length)) {
+            llvm::StructType* structTy = genericiseOrFindStruct((*arrLit)->type);
+            if (!structTy) {
+                cg_error(get_pos(*arrLit), "unknown struct type '" + (*arrLit)->type + "'");
+                std::vector<std::pair<int, std::string>> matches;
+                if ((*arrLit)->type.size() >= 3) {
+                    for (auto& [vname, strct] : userTypes) {
+                        if (strct.kind != UserTypeKind::Struct) continue;
+                        int distance = levenshteinDistance((*arrLit)->type, vname);
+                        if (distance <= 2) { matches.push_back({distance, vname}); }
+                    }
+                }
+                std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+                if (!matches.empty()) {
+                    std::string note = "did you mean ";
+                    size_t count = std::min<size_t>(3, matches.size());
+                    for (size_t i = 0; i < count; i++) {
+                        if (i != 0) note += ", ";
+                        note += "`" + buildMangledName(baseTypeName(matches[i].second), genericParamsFromName((*arrLit)->type), true) + "`";
+                    }
+                    note += "?";
+                    cg_note(get_pos(*arrLit), note);
+                }
+                return nullptr;
+            }
+            llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
+            auto structInfo = userTypes.find(baseTypeName((*mapLit)->struct_type))->second;
+            for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
+                std::string fieldType = structInfo.fields[i].type;
+                auto fieldTypeIt = userTypes.find(fieldType);
+                llvm::Value* val;
+                if (fieldTypeIt != userTypes.end() && fieldTypeIt->second.kind == UserTypeKind::Struct) {
+                    if (auto nestedArrLit = std::get_if<ArrayLiteralNode*>(&(*arrLit)->elements[i])) {
+                        llvm::StructType* nestedStructTy = genericiseOrFindStruct(fieldType);
+                        llvm::Value* nestedStruct = llvm::ConstantAggregateZero::get(nestedStructTy);
+                        for (size_t j = 0; j < (*nestedArrLit)->elements.size(); j++) {
+                            llvm::Value* fieldVal = emitExpr((*nestedArrLit)->elements[j]);
+                            if (!fieldVal) return nullptr;
+                            nestedStruct = builder->CreateInsertValue(nestedStruct, fieldVal, j);
+                        }
+                        val = nestedStruct;
+                    } else {
+                        val = emitExpr((*arrLit)->elements[i]);
+                        if (!val) return nullptr;
+                    }
+                } else {
+                    val = emitExpr((*arrLit)->elements[i]);
+                    if (!val) return nullptr;
+                }
+                structVal = builder->CreateInsertValue(structVal, val, i);
+            }
+            return structVal;
+        }
+        if ((*arrLit)->elements.empty()) {
+            llvm::Type* elemType = llvmTypeFor((*arrLit)->type);
+            if (elemType == nullptr) {
+                cg_error(get_pos(*arrLit), "empty array literals without an element type are not allowed");
+                cg_note(get_pos(*arrLit), "for a empty literal of integers, you can do `[int, 0]`, or for a array of 10 ints, you can do `[int, 10]`"); 
+                return nullptr;
+            }
+            llvm::Value* length = emitExpr((*arrLit)->length);
+            llvm::ConstantInt* ci = llvm::dyn_cast<llvm::ConstantInt>(length);
+            if (ci == nullptr) {
+                cg_error(get_pos(*arrLit), "empty array literal length must be a constant compile time int");
+                return nullptr;
+            }
+            llvm::ArrayType* arrTy = llvm::ArrayType::get(elemType, ci->getZExtValue());
+            return llvm::ConstantAggregateZero::get(arrTy);
         }
 
         bool hasRuntimeSpread = false;
@@ -11084,7 +11282,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string value = memberIt->second.value;
 
                     llvm::StructType* enumTy = enumTypes[baseName];
-                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                    llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
 
                     enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
 
@@ -12411,7 +12609,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     if (!builder->GetInsertBlock()->getTerminator()) {
         if (fn.is_multi_return()) {
             llvm::Type* retTy = fTy->getReturnType();
-            builder->CreateRet(llvm::UndefValue::get(retTy));
+            builder->CreateRet(llvm::ConstantAggregateZero::get(retTy));
         } else {
             llvm::Type* retTy = fTy->getReturnType();
             if (retTy->isVoidTy()) {
@@ -12421,7 +12619,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
             } else if (retTy->isFloatingPointTy()) {
                 builder->CreateRet(llvm::ConstantFP::get(retTy, 0.0));
             } else {
-                builder->CreateRet(llvm::UndefValue::get(retTy));
+                builder->CreateRet(llvm::ConstantAggregateZero::get(retTy));
             }
         }
     }
@@ -12460,7 +12658,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             return;
         }
 
-        llvm::Value* agg = llvm::UndefValue::get(retTy);
+        llvm::Value* agg = llvm::ConstantAggregateZero::get(retTy);
         llvm::StructType* retStructTy = llvm::cast<llvm::StructType>(retTy);
         for (size_t i = 0; i < mret->values.size(); ++i) {
             llvm::Value* val = nullptr;
@@ -12555,7 +12753,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                         return;
                     }
 
-                    llvm::Value* unionVal = llvm::UndefValue::get(destTy);
+                    llvm::Value* unionVal = llvm::ConstantAggregateZero::get(destTy);
                     unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
                     llvm::Value* dataPtr = storeAndGetPointer(val);
                     val = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -12583,7 +12781,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                         return;
                     }
 
-                    llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                    llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
                     enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
                     llvm::Value* dataPtr = storeAndGetPointer(val);
                     enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
@@ -12639,7 +12837,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                         } else {
                             builder->CreateCall(ctor, allArgs);
                         }
-                        llvm::Value* result = llvm::UndefValue::get(classTy);
+                        llvm::Value* result = llvm::ConstantAggregateZero::get(classTy);
                         for (unsigned i = 0; i < classTy->getNumElements(); i++) {
                             std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
                             llvm::Value* fieldPtr = builder->CreateInBoundsGEP(classTy, retVal, indices);
@@ -12709,7 +12907,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     return;
                 }
 
-                llvm::Value* unionVal = llvm::UndefValue::get(unionTy);
+                llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
                 unionVal = builder->CreateInsertValue(unionVal, builder->getInt32(tag), 0);
                 llvm::Value* dataPtr = storeAndGetPointer(v);
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
@@ -12737,7 +12935,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     return;
                 }
 
-                llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
+                llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
                 enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
                 llvm::Value* dataPtr = storeAndGetPointer(v);
                 enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);

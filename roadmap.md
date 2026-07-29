@@ -1,5 +1,4 @@
 - Concepts
-- `MyStruct{}` casting literals
 ```
 concept X {
 ...
@@ -24,7 +23,6 @@ Function<int(int)>;
 - Methos with code blocks
 - Operator.
 - Function pointers
-- Empty arrays with syntax `[int]`
 - Friend (allows other classes to access)
 - Private/Protected inheritance
 - Static
@@ -104,18 +102,17 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - atomics
 - defer
 TOP PRIORITY:
-1. Empty Arrays & Struct Literals
-2. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
-3. Token/ident/type/keyword/usertype direct type (parser refactor)
-4. Static and Friend
-5. Defer
-6. Codeblocks.
-7. Concepts
-8. Modifier (x1.0.0)
-9. Variadics on generics
-10. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-11. Other stuff + Variadic Generics
-12. Metadata
+1. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
+2. Token/ident/type/keyword/usertype direct type (parser refactor)
+3. Static and Friend
+4. Defer
+5. Codeblocks.
+6. Concepts
+7. Modifier (x1.0.0)
+8. Variadics on generics
+9. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+10. Other stuff + Variadic Generics
+11. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -137,7 +134,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-13. Preproccessers
+12. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -146,5 +143,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-14. User-Defined metadata
-15. User-Defined macro _functions_ (the only good thing in rust)
+13. User-Defined metadata
+14. User-Defined macro _functions_ (the only good thing in rust)

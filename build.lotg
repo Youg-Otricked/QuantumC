@@ -1,0 +1,6 @@
+gmake[2]: *** [CMakeFiles/qc.dir/build.make:87: CMakeFiles/qc.dir/compiler.cpp.o] Interrupt
+gmake[2]: *** [CMakeFiles/qc.dir/build.make:101: CMakeFiles/qc.dir/compiler_run.cpp.o] Interrupt
+gmake[1]: *** wait: No child processes.  Stop.
+gmake[1]: *** Waiting for unfinished jobs....
+gmake[1]: *** wait: No child processes.  Stop.
+gmake: *** [Makefile:91: all] Error 2

@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.23.0 = "Try/Catch"
-Next Version: x0.24.0 = "Empty Array Literals & Empty Struct Literals"
+Current Version: x0.24.0 = "Empty Array Literals & Empty Struct Literals"
+Next Version: x0.24.1 = "Fancy Operator Overloads (operator( )(), combinational/bitwise operator overloads...)"
 
 # Current Version Highlights
 
@@ -127,10 +127,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Try/Catch
+└─ Making the compiler feel more "Native"
 
 Minor
-└─ N/A
+└─ Empty Arrays & Struct Literals
 
 Patch
 └─ N/A

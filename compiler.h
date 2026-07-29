@@ -810,9 +810,11 @@ class ArrayDeclNode {
 class ArrayLiteralNode {
   public:
     std::vector<AnyNode> elements;
+    std::string type;
     Position pos;
+    AnyNode length;
     Position getPos() { return pos; }
-    ArrayLiteralNode(std::vector<AnyNode> elems, Position p) : elements(elems), pos(p) {}
+    ArrayLiteralNode(std::vector<AnyNode> elems, Position p, std::string struct_ty = "") : elements(elems), pos(p), type(struct_ty) {}
 
     std::string print() {
         std::string result = "[";
@@ -820,6 +822,7 @@ class ArrayLiteralNode {
             result += printAny(elements[i]);
             if (i < elements.size() - 1) result += ", ";
         }
+        if (elements.empty()) result += this->type;
         return result + "]";
     }
 };
@@ -827,10 +830,11 @@ class MapLiteralNode {
   public:
     std::vector<std::pair<AnyNode, AnyNode>> pairs;
     Position pos;
+    std::string struct_type;
     Position getPos() { return pos; }
-    MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos) : pairs(p), pos(pos) {}
+    MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos, std::string struct_ty = "") : pairs(p), pos(pos), struct_type(struct_ty) {}
 
-    std::string print() const { return "map<>"; }
+    std::string print() const { return this->struct_type + "{}"; }
 };
 class ArrayAccessNode {
   public:
@@ -1659,7 +1663,14 @@ class LLVMCompiler {
         return sig;
     }
     std::string getExpressionType(AnyNode& node, bool strip = true) {
-        if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
+        if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
+            if (!(*mapLit)->struct_type.empty()) {
+                return (*mapLit)->struct_type;
+            }
+        } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
+            if (!(*arrLit)->type.empty()) {
+                return (*arrLit)->type;
+            }
             if (!(*arrLit)->elements.empty()) {
                 std::string elemType = getExpressionType((*arrLit)->elements[0]);
                 return elemType + "[]";
@@ -2804,7 +2815,7 @@ class LLVMCompiler {
             cg_note(pos, note);
         }
     }
-    std::string fixMangling(std::string type) { return buildMangledName(baseTypeName(type), genericParamsFromName(type)); }
+    std::string fixMangling(std::string type) { return buildMangledName(baseTypeName(type), genericParamsFromName(type), true); }
     std::vector<llvm::Value*> reconcileArgs(llvm::Function* func, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args) {
         std::vector<llvm::Value*> reconciled = {thisPtr};
         auto* funcTy = func->getFunctionType();
@@ -3474,7 +3485,8 @@ class LLVMCompiler {
         if (!cur.empty()) genericParams.push_back(trim(cur));
         return genericParams;
     }
-    std::string buildMangledName(const std::string& baseName, const std::vector<std::string>& params) {
+    std::string buildMangledName(const std::string& baseName, const std::vector<std::string>& params, bool noBrace = false) {
+        if (params.empty() && noBrace) return baseName;
         std::string result = baseName + "<";
         for (size_t i = 0; i < params.size(); i++) {
             if (i != 0) result += ",";

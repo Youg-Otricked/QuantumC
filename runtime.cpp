@@ -652,7 +652,7 @@ void* qc_variadic_next(qc_variadic* variadic) { // self hosted
 ///////////////////
 // EXCEPTIONS ////
 /////////////////
-#define QC_EXCEPTION_CLASS 0x5143455843455054ULL
+#define QC_EXCEPTION_CLASS 0x5143455843455054ULL // My lawyer(coderabbit, its usefull for first-time making crap) advised against "Rust=bad", "IHATEYOU", "WHYYYYYY", "DAMCATCH" and "AGHHHHHH". Not because these are "inappropriate", but because all but the first are too common among compiler devs.
 struct __qc_exception {
     _Unwind_Exception unwind;
     char* type;
