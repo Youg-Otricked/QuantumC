@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x0.24.0";
+const std::string ver = "x0.24.01";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -213,6 +213,16 @@ int main(int argc, char* argv[]) {
                 config.output_file = argv[++i];
             } else {
                 std::cerr << "Error: -o requires output filename\n";
+                return 1;
+            }
+        } else if (arg == "-ad" || arg == "--alias-dir") {
+            if (i + 2 < argc) {
+                std::string alias_name = argv[i + 1];
+                std::string alias_path = argv[i + 2];
+                config.dir_aliases[alias_name] = alias_path;
+                i += 2;
+            } else {
+                std::cerr << "Error: -ad reqires alias name and path\n";
                 return 1;
             }
         } else if (arg == "-A" || arg == "--alias") {

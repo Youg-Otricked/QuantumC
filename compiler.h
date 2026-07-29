@@ -1282,6 +1282,7 @@ struct RunConfig {
     bool dump_tokens = false;
     std::string target = "";
     std::unordered_map<std::string, std::string> aliases = {};
+    std::unordered_map<std::string, std::string> dir_aliases = {};
     std::vector<std::string> library_search_paths = {"."};
     std::vector<std::string> libraries = {};
     std::vector<std::string> link_with = {};

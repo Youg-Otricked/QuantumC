@@ -78,6 +78,7 @@ std::string strip(const std::string& s) {
 }
 bool loose;
 std::unordered_map<std::string, std::string> aliases;
+std::unordered_map<std::string, std::string> dir_aliases;
 std::string entrypointName = "main";
 extern "C" const char _binary_runtime_ll_start[];
 extern "C" const size_t _binary_runtime_ll_size;
@@ -14624,6 +14625,7 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, s
 Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Check for inline directives
     aliases = config.aliases;
+    dir_aliases = config.dir_aliases;
     if (text.find("// @no-context") != std::string::npos) { config.use_context = false; }
 
     if (text.find("// @looser-types") != std::string::npos) { config.looser_types = true; }
@@ -15938,12 +15940,17 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         if (!path.empty() && path.front() == '"') { path = path.substr(1); }
         if (!path.empty() && path.back() == '"') { path = path.substr(0, path.size() - 1); }
         std::string full_path;
+        auto slash = path.find('/');
+        std::string alias = path.substr(0, slash); 
         if (path == "std") {
             const char* home = std::getenv("QC_STDLIB");
             if (!home) { throw std::runtime_error("QC_STDLIB environment variable not set"); }
             full_path = std::string(home);
         } else if (aliases.count(path)) {
             full_path = resolve_path(current_file, aliases[path]);
+        } else if (dir_aliases.count(alias)) {
+            std::string rest = slash == std::string::npos ? "" : path.substr(slash);
+            full_path = resolve_path(current_file, (std::filesystem::path(dir_aliases[alias]) / rest.substr(1)).string());    
         } else {
             full_path = resolve_path(current_file, path);
         }
