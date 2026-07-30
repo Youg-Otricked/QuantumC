@@ -9749,7 +9749,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (llvm::Value* v = resolveVariable(baseTypeName(funcName))) {
                 if (std::string className = resolveVarType(baseTypeName(funcName)); !className.empty()) {
                     if (classTypes.find(className) != classTypes.end()) {
-                        if (funcName.contains("<"))
+                        if (funcName.find("<") != std::string::npos)
                             if (llvm::Value* val = tryHandleSpecialized(
                                     className, buildMangledName("operator()", genericParamsFromName(funcName)),
                                     methodCallFromCall(*callPtr, buildMangledName("operator()", genericParamsFromName(funcName))), v))
@@ -14374,7 +14374,7 @@ std::vector<CTError> LLVMCompiler::compile(
                 genericMethodIndices[className].end()) {
                 continue;
             }
-
+            if (!method.generics.empty()) continue;
             llvm::Function* fn = nullptr;
             auto& overloads = classMethods[className][method.name_tok.value];
 
@@ -14426,6 +14426,7 @@ std::vector<CTError> LLVMCompiler::compile(
                 if (param.signature.has_value()) {
                     paramTy = llvm::PointerType::get(context, 0);
                     typeDescriptor = "fn";
+                    lambdaTypes[param.name.value] = llvmFuncTypeFor(param.signature->return_types, param.signature->params);
                 } else {
                     typeDescriptor = resolveTypeName(param.type.value);
                     paramTy = llvmTypeFor(typeDescriptor);

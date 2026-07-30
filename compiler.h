@@ -3130,6 +3130,9 @@ class LLVMCompiler {
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
+        else if (!userTypes[baseTypeName(className)].namespace_path.empty()) {
+            namespaceStack = {userTypes[baseTypeName(className)].namespace_path};
+        }
         enterScope();
         std::vector<llvm::Type*> paramTypes;
         paramTypes.push_back(llvm::PointerType::get(context, 0));
