@@ -1602,7 +1602,7 @@ Prs Parser::array_literal() {
     }
 
     this->advance();
-    ArrayLiteralNode *result = new ArrayLiteralNode(elements, start_pos);
+    ArrayLiteralNode* result = new ArrayLiteralNode(elements, start_pos);
     result->type = type;
     result->length = length;
     return res.success(result);
@@ -3783,8 +3783,39 @@ Prs Parser::statement() {
                 case TokenType::QAND:
                 case TokenType::QOR:
                 case TokenType::QXOR:
+                case TokenType::INCREMENT:
+                case TokenType::DECREMENT:
+                case TokenType::BITWISE_NOT:
+                case TokenType::RSHIFT:
+                case TokenType::LOGICAL_RSHIFT:
+                case TokenType::R_ROT:
+                case TokenType::LSHIFT:
+                case TokenType::L_ROT:
+                case TokenType::BITWISE_XOR:
+                case TokenType::PIPE:
+                case TokenType::AMPERSAND:
                 case TokenType::COLLAPSE_OR:
+                case TokenType::PLUS_EQ:
+                case TokenType::MINUS_EQ:
+                case TokenType::MUL_EQ:
+                case TokenType::DIV_EQ:
+                case TokenType::MOD_EQ:
+                case TokenType::BIT_X_EQ:
+                case TokenType::BIT_A_EQ:
+                case TokenType::BIT_O_EQ:
+                case TokenType::LSH_EQ:
+                case TokenType::RSH_EQ:
+                case TokenType::LRSH_EQ:
+                case TokenType::RROT_EQ:
+                case TokenType::LROT_EQ:
                 case TokenType::COLLAPSE_AND: break;
+                case TokenType::LPAREN:
+                    this->advance();
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                        return res.to_prs();
+                    }
+                    break;
                 case TokenType::LBRACKET:
                     this->advance();
                     if (this->current_tok.type == TokenType::RBRACKET) {
@@ -3816,6 +3847,19 @@ Prs Parser::statement() {
                 case TokenType::OR: op_name = "operator||"; break;
                 case TokenType::MORE: op_name = "operator>"; break;
                 case TokenType::LESS: op_name = "operator<"; break;
+                case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                case TokenType::MUL_EQ: op_name = "operator*="; break;
+                case TokenType::DIV_EQ: op_name = "operator/="; break;
+                case TokenType::MOD_EQ: op_name = "operator%="; break;
+                case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                case TokenType::LROT_EQ: op_name = "operator<<<="; break;
                 case TokenType::MORE_EQ: op_name = "operator>="; break;
                 case TokenType::LESS_EQ: op_name = "operator<="; break;
                 case TokenType::POWER: op_name = "operator#^"; break;
@@ -3828,6 +3872,49 @@ Prs Parser::statement() {
                 case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
                 case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
                 case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                case TokenType::LPAREN: op_name = "operator()"; break;
+                case TokenType::INCREMENT: op_name = "operator++"; break;
+                case TokenType::DECREMENT: op_name = "operator--"; break;
+                case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                case TokenType::RSHIFT: op_name = "operator|>"; break;
+                case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                case TokenType::R_ROT: op_name = "operator|>>"; break;
+                case TokenType::LSHIFT: op_name = "operator<<"; break;
+                case TokenType::L_ROT: op_name = "operator<<<"; break;
+                case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                case TokenType::PIPE: op_name = "operator|"; break;
+                case TokenType::AMPERSAND: op_name = "operator&"; break;
+                default: break;
+                }
+                name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                this->advance();
+            } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                this->advance();
+                Token op_tok = this->current_tok;
+                Token long_ops[2] = {};
+                switch (op_tok.type) {
+                case TokenType::MINUS:
+                case TokenType::DIV:
+                case TokenType::POWER:
+                case TokenType::MOD:
+                case TokenType::RSHIFT:
+                case TokenType::LOGICAL_RSHIFT:
+                case TokenType::R_ROT:
+                case TokenType::LSHIFT:
+                case TokenType::L_ROT: break;
+                default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
+                }
+                std::string op_name;
+                switch (op_tok.type) {
+                case TokenType::MINUS: op_name = "operator-"; break;
+                case TokenType::DIV: op_name = "operator/"; break;
+                case TokenType::POWER: op_name = "operator#^"; break;
+                case TokenType::MOD: op_name = "operator%"; break;
+                case TokenType::RSHIFT: op_name = "operator|>"; break;
+                case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                case TokenType::R_ROT: op_name = "operator|>>"; break;
+                case TokenType::LSHIFT: op_name = "operator<<"; break;
+                case TokenType::L_ROT: op_name = "operator<<<"; break;
                 default: break;
                 }
                 name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
@@ -6407,36 +6494,68 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!R) return nullptr;
         llvm::Type* lty = L->getType();
         llvm::Type* rty = R->getType();
-        if (lty->isPointerTy()) {
-            if (auto varAccess = std::get_if<VarAccessNode*>(&(*bin)->left_node)) {
-                std::string varName = (*varAccess)->var_name_tok.value;
-                llvm::Value* alloc = getVarAddress(varName);
-                if (alloc) {
-                    llvm::Type* allocTy = getPointeeType(varName);
-
-                    if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
-                        if (structTy->hasName()) {
-                            std::string className = structTy->getName().str();
-
-                            if (classTypes.find(className) != classTypes.end()) {
-                                std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
-
-                                if (!opMethodName.empty()) {
-                                    std::vector<llvm::Value*> args = {R};
-                                    llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
-
-                                    if (opMethod) {
-                                        std::vector<llvm::Value*> allArgs = {L, R};
-                                        if (insideTry()) {
-                                            auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
-                                                                                   currentFunction);
-                                            llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
-                                            builder->SetInsertPoint(contBB);
-                                            return invk;
-                                        }
-                                        return builder->CreateCall(opMethod, allArgs, "op_result");
-                                    }
+        if (L->getType()->isPointerTy()) {
+            llvm::Type* allocTy = llvmTypeFor(getExpressionType((*bin)->left_node));
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+                if (structTy->hasName()) {
+                    std::string className = structTy->getName().str();
+                    if (classTypes.find(className) != classTypes.end()) {
+                        std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                        if (!opMethodName.empty()) {
+                            std::vector<llvm::Value*> args = {R};
+                            llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                            if (opMethod) {
+                                std::vector<llvm::Value*> allArgs = {L, R};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(
+                                        context,
+                                        "invoke.cont." + std::to_string(invokeCounter++),
+                                        currentFunction
+                                    );
+                                    auto invk = builder->CreateInvoke(
+                                        opMethod,
+                                        contBB,
+                                        currentLandingPad(),
+                                        allArgs
+                                    );
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
                                 }
+                                return builder->CreateCall(opMethod, allArgs, "op_result");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (R->getType()->isPointerTy()) {
+            llvm::Type* allocTy = llvmTypeFor(getExpressionType((*bin)->right_node));
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+                if (structTy->hasName()) {
+                    std::string className = structTy->getName().str();
+                    if (classTypes.find(className) != classTypes.end()) {
+                        std::string opMethodName = getRoperatorMethodName((*bin)->op_tok.type);
+                        if (!opMethodName.empty()) {
+                            std::vector<llvm::Value*> args = {L};
+                            llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                            if (opMethod) {
+                                std::vector<llvm::Value*> allArgs = {R, L};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(
+                                        context,
+                                        "invoke.cont." + std::to_string(invokeCounter++),
+                                        currentFunction
+                                    );
+                                    auto invk = builder->CreateInvoke(
+                                        opMethod,
+                                        contBB,
+                                        currentLandingPad(),
+                                        allArgs
+                                    );
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                }
+                                return builder->CreateCall(opMethod, allArgs, "op_result");
                             }
                         }
                     }
@@ -7275,6 +7394,30 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
         }
+        if (auto rStructTy = llvm::dyn_cast<llvm::StructType>(rty)) {
+            if (rStructTy->hasName()) {
+                std::string className = rStructTy->getName().str();
+                if (classTypes.find(className) != classTypes.end()) {
+                    std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                    if (!opMethodName.empty()) {
+                        std::vector<llvm::Value*> args = {L};
+                        llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
+                        if (opMethod) {
+                            llvm::AllocaInst* temp = createEntryAlloca("temp_op_rhs", rty);
+                            builder->CreateStore(R, temp);
+                            std::vector<llvm::Value*> allArgs = {temp, L};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
+                    }
+                }
+            }
+        }
         bool isCharOperation = false;
         if ((lTyStr == "char" || rTyStr == "char") && (op == TokenType::PLUS || op == TokenType::MINUS)) {
             bool lIsChar = lTyStr == "char";
@@ -7971,25 +8114,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     builder->CreateStore(vtableIt->second, vptrField);
                 }
                 return nullptr;
-            } else {
-                llvm::Value* rhs = emitExpr((*va)->value_node);
-                if (!rhs) return nullptr;
-                llvm::Function* opMethod = findMethodOverload(buildMangledName(qcType, genericParams), "operator=", {rhs});
-                std::string mangledName = buildMangledName(qcType, genericParams);
-                if (opMethod) {
-                    emitMethodCall(opMethod, instance, {rhs}, "operator=");
-                    std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-                    locals[fullName] = instance;
-                    varTypes[fullName] = mangledName;
-                    volatileVars[fullName] = isVolatile;
-                    return nullptr;
-                } else {
-                    if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
-                        return nullptr;
-                    }
-                    builder->CreateStore(rhs, instance, isVolatile);
-                }
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = instance;
@@ -8028,7 +8152,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (!(*arrLit)->type.empty()) {
                     if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*arrLit)->type, true))) {
                         cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
-                        cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " + buildMangledName(qcType, genericParams));
+                        cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " +
+                                                      buildMangledName(qcType, genericParams));
                         return nullptr;
                     }
                 }
@@ -8070,7 +8195,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (!(*mapLit)->struct_type.empty()) {
                     if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*mapLit)->struct_type, true))) {
                         cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
-                        cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " + buildMangledName(qcType, genericParams));
+                        cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " +
+                                                      buildMangledName(qcType, genericParams));
                         return nullptr;
                     }
                 }
@@ -8564,28 +8690,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 llvm::AllocaInst* newArr = createEntryAlloca("array_copy", destArrTy);
                 uint64_t bytes = srcLen * srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
-                builder->CreateMemCpy(
-                    newArr,
-                    llvm::MaybeAlign(),
-                    rhs,
-                    llvm::MaybeAlign(),
-                    bytes
-                );
+                builder->CreateMemCpy(newArr, llvm::MaybeAlign(), rhs, llvm::MaybeAlign(), bytes);
                 if (destLen > srcLen) {
-                    llvm::Value* zeroStart = builder->CreateGEP(
-                        destArrTy,
-                        newArr,
-                        {builder->getInt32(0), builder->getInt32(srcLen)}
-                    );
-                    uint64_t zeroBytes =
-                        (destLen - srcLen) *
-                        srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
-                    builder->CreateMemSet(
-                        zeroStart,
-                        builder->getInt8(0),
-                        zeroBytes,
-                        llvm::MaybeAlign()
-                    );
+                    llvm::Value* zeroStart = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(srcLen)});
+                    uint64_t zeroBytes = (destLen - srcLen) * srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
+                    builder->CreateMemSet(zeroStart, builder->getInt8(0), zeroBytes, llvm::MaybeAlign());
                 }
                 rhs = newArr;
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
@@ -9078,37 +9187,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             builder->CreateStore(concatedString, alloc, resolveVolatileVar(name));
             return concatedString;
         }
-        switch ((*asn)->op_tok.type) {
-        case TokenType::EQ: newVal = rhsVal; break;
-
-        case TokenType::PLUS_EQ: newVal = isFloatTy ? builder->CreateFAdd(oldVal, rhsVal, "fadd") : builder->CreateAdd(oldVal, rhsVal, "add"); break;
-
-        case TokenType::MINUS_EQ: newVal = isFloatTy ? builder->CreateFSub(oldVal, rhsVal, "fsub") : builder->CreateSub(oldVal, rhsVal, "sub"); break;
-
-        case TokenType::MUL_EQ: newVal = isFloatTy ? builder->CreateFMul(oldVal, rhsVal, "fmul") : builder->CreateMul(oldVal, rhsVal, "mul"); break;
-
-        case TokenType::DIV_EQ: newVal = isFloatTy ? builder->CreateFDiv(oldVal, rhsVal, "fdiv") : builder->CreateSDiv(oldVal, rhsVal, "sdiv"); break;
-
-        case TokenType::MOD_EQ: newVal = isFloatTy ? builder->CreateFRem(oldVal, rhsVal, "frem") : builder->CreateSRem(oldVal, rhsVal, "srem"); break;
-
-        case TokenType::RSH_EQ: newVal = builder->CreateAShr(oldVal, rhsVal, "ashr"); break;
-
-        case TokenType::LSH_EQ: newVal = builder->CreateShl(oldVal, rhsVal, "shl"); break;
-
-        case TokenType::LRSH_EQ: newVal = builder->CreateLShr(oldVal, rhsVal, "lshr"); break;
-
-        case TokenType::BIT_A_EQ: newVal = builder->CreateAnd(oldVal, rhsVal, "and"); break;
-
-        case TokenType::BIT_O_EQ: newVal = builder->CreateOr(oldVal, rhsVal, "or"); break;
-
-        case TokenType::BIT_X_EQ: newVal = builder->CreateXor(oldVal, rhsVal, "xor"); break;
-
-        case TokenType::LROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
-
-        case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
-
-        default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator."); return nullptr;
-        }
         if ((*asn)->op_tok.type == TokenType::EQ) {
             if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
                 if (structTy->hasName()) {
@@ -9163,7 +9241,105 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                 }
             }
+        } else {
+            if (auto structTy = llvm::dyn_cast<llvm::StructType>(destTy)) {
+                if (structTy->hasName()) {
+                    std::string className = structTy->getName().str();
+                    if (genericiseOrFindClass(className)) {
+                        std::vector<llvm::Value*> args = {rhsVal};
+                        llvm::Function* opMethod = findMethodOverload(className, getCombinationalOperatorMethodName((*asn)->op_tok.type), args);
+                        if (opMethod) {
+                            llvm::Type* expectedRhsTy = opMethod->getFunctionType()->getParamType(1);
+                            if (expectedRhsTy->isStructTy() && rhsVal->getType()->isPointerTy()) {
+                                rhsVal = builder->CreateLoad(expectedRhsTy, rhsVal, "op_rhs_load");
+                            }
+                            std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            llvm::Value* callResult = builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
+                            return callResult;
+                        }
+                    }
+                    cg_error(get_pos(*asn), "no valid overload to " + getCombinationalOperatorMethodName((*asn)->op_tok.type) + " found");
+                    struct Candidate {
+                        int score;
+                        ClassMethodInfo* method;
+                    };
+                    std::vector<Candidate> candidates;
+                    for (auto& method : userTypes.at(baseTypeName(baseTypeName(className))).classMethods) {
+                        if (method.is_constructor || (method.name_tok.value != getCombinationalOperatorMethodName((*asn)->op_tok.type))) continue;
+                        int score = 0;
+                        size_t argCount = 1;
+                        size_t paramCount = 1;
+                        if (srcTy == destTy) {
+                            score += 3;
+                        } else if ((srcTy->isIntegerTy() || srcTy->isFloatTy() || srcTy->isDoubleTy()) &&
+                                   (destTy->isIntegerTy() || destTy->isFloatTy() || destTy->isDoubleTy())) {
+                            score += 1;
+                        } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
+                            score += 1;
+                        } else {
+                            score -= 3;
+                        }
+                        candidates.push_back({score, &method});
+                    }
+                    if (candidates.empty()) {
+                        std::vector<std::pair<int, std::string>> suggestions;
+                        for (auto& method : userTypes[baseTypeName(className)].classMethods) {
+                            int distance = levenshteinDistance(getCombinationalOperatorMethodName((*asn)->op_tok.type), method.name_tok.value);
+                            if (distance <= 2) { suggestions.push_back({distance, method.name_tok.value}); }
+                        }
+                        std::sort(suggestions.begin(), suggestions.end());
+                        if (!suggestions.empty()) {
+                            std::string note = "similar methods:";
+                            for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
+                            cg_note(get_pos(*acc), note);
+                        }
+                        return nullptr;
+                    }
+                    std::sort(candidates.begin(), candidates.end(),
+                              [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+                    if (candidates[0].score > 0) {
+                        cg_note(get_pos(*acc), "closest matching overload: " + candidates[0].method->print());
+                    }
+                    if (candidates.size() <= 5) {
+                        std::string note = "available overloads:";
+                        for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
+                        cg_note(get_pos(*acc), note);
+                    } else {
+                        std::string note = "other overloads:";
+                        size_t shown = 0;
+                        for (auto& candidate : candidates) {
+                            if (shown >= 3) break;
+                            note += "\n  - " + candidate.method->print();
+                            shown++;
+                        }
+                        cg_note(get_pos(*acc), note);
+                    }
+                }
+            }
         }
+        switch ((*asn)->op_tok.type) {
+        case TokenType::EQ: newVal = rhsVal; break;
+        case TokenType::PLUS_EQ: newVal = isFloatTy ? builder->CreateFAdd(oldVal, rhsVal, "fadd") : builder->CreateAdd(oldVal, rhsVal, "add"); break;
+        case TokenType::MINUS_EQ: newVal = isFloatTy ? builder->CreateFSub(oldVal, rhsVal, "fsub") : builder->CreateSub(oldVal, rhsVal, "sub"); break;
+        case TokenType::MUL_EQ: newVal = isFloatTy ? builder->CreateFMul(oldVal, rhsVal, "fmul") : builder->CreateMul(oldVal, rhsVal, "mul"); break;
+        case TokenType::DIV_EQ: newVal = isFloatTy ? builder->CreateFDiv(oldVal, rhsVal, "fdiv") : builder->CreateSDiv(oldVal, rhsVal, "sdiv"); break;
+        case TokenType::MOD_EQ: newVal = isFloatTy ? builder->CreateFRem(oldVal, rhsVal, "frem") : builder->CreateSRem(oldVal, rhsVal, "srem"); break;
+        case TokenType::RSH_EQ: newVal = builder->CreateAShr(oldVal, rhsVal, "ashr"); break;
+        case TokenType::LSH_EQ: newVal = builder->CreateShl(oldVal, rhsVal, "shl"); break;
+        case TokenType::LRSH_EQ: newVal = builder->CreateLShr(oldVal, rhsVal, "lshr"); break;
+        case TokenType::BIT_A_EQ: newVal = builder->CreateAnd(oldVal, rhsVal, "and"); break;
+        case TokenType::BIT_O_EQ: newVal = builder->CreateOr(oldVal, rhsVal, "or"); break;
+        case TokenType::BIT_X_EQ: newVal = builder->CreateXor(oldVal, rhsVal, "xor"); break;
+        case TokenType::LROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
+        case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
+        default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator."); return nullptr;
+        } 
         builder->CreateStore(newVal, alloc, resolveVolatileVar(name));
         return newVal;
     } else if (auto unary = std::get_if<UnaryOpNode*>(&node)) {
@@ -9491,7 +9667,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Type* elemType = llvmTypeFor((*arrLit)->type);
             if (elemType == nullptr) {
                 cg_error(get_pos(*arrLit), "empty array literals without an element type are not allowed");
-                cg_note(get_pos(*arrLit), "for a empty literal of integers, you can do `[int, 0]`, or for a array of 10 ints, you can do `[int, 10]`"); 
+                cg_note(get_pos(*arrLit),
+                        "for a empty literal of integers, you can do `[int, 0]`, or for a array of 10 ints, you can do `[int, 10]`");
                 return nullptr;
             }
             llvm::Value* length = emitExpr((*arrLit)->length);
@@ -9569,6 +9746,45 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (auto* varAccess = std::get_if<VarAccessNode*>(&call.node_to_call)) {
             std::string funcName = (*varAccess)->var_name_tok.value;
             std::string resolvedName = funcName;
+            if (llvm::Value* v = resolveVariable(baseTypeName(funcName))) {
+                if (std::string className = resolveVarType(baseTypeName(funcName)); !className.empty()) {
+                    if (classTypes.find(className) != classTypes.end()) {
+                        if (funcName.contains("<"))
+                            if (llvm::Value* val = tryHandleSpecialized(
+                                    className, buildMangledName("operator()", genericParamsFromName(funcName)),
+                                    methodCallFromCall(*callPtr, buildMangledName("operator()", genericParamsFromName(funcName))), v))
+                                return val;
+                        if (auto methodIt = std::find_if(
+                                userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(),
+                                [&](const ClassMethodInfo& method) { return method.name_tok.value == "operator()" && method.generics.empty(); });
+                            methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
+                            size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
+                            auto& info = userTypes[baseTypeName(className)].classMethods[methodIdx];
+                            MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
+                            auto args = prepareArgs(&info, n->args);
+                            delete n;
+                            bool isVariadic = !info.params.empty() && info.params.back().type.value == "...";
+                            if (isVariadic) {
+                                size_t numFixedParams = info.params.size() - 1;
+                                std::vector<llvm::Value*> varVals;
+                                if (args.size() > numFixedParams) {
+                                    varVals.assign(args.begin() + numFixedParams, args.end());
+                                    args.resize(numFixedParams);
+                                }
+                                args.push_back(packVariadicArgs(varVals));
+                            }
+                            llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
+                            if (!opMethod) {
+                                cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className);
+                                return nullptr;
+                            }
+                            return emitMethodCall(opMethod, v, args, "operator()");
+                        }
+                        cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className);
+                        return nullptr;
+                    }
+                }
+            }
             llvm::Function* resolved = resolveFunction(funcName);
             if (resolved) {
                 resolvedName = resolved->getName().str();
@@ -10812,10 +11028,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (op.kind == 'm') {
                             input_values.push_back(out_ptr);
                             input_types.push_back(out_ptr->getType());
-                            memory_element_types.push_back({
-                                (unsigned)input_values.size() - 1,
-                                llvmTypeFor(getExpressionType(*it))
-                            });
+                            memory_element_types.push_back({(unsigned)input_values.size() - 1, llvmTypeFor(getExpressionType(*it))});
                         }
                         if (op.kind == 'r') {
                             auto type = getExpressionType(*it);
@@ -10859,7 +11072,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         asm_fn = llvm::InlineAsm::get(fn_ty, finalized, constraints, true, false, llvm::InlineAsm::AD_Intel);
                     }
                     llvm::CallInst* asm_call = builder->CreateCall(fn_ty, asm_fn, input_values);
-                    for (auto &[idx, ty] : memory_element_types) {
+                    for (auto& [idx, ty] : memory_element_types) {
                         llvm::Attribute attr = llvm::Attribute::get(context, llvm::Attribute::ElementType, ty);
                         asm_call->addParamAttr(idx, attr);
                     }
@@ -10953,6 +11166,40 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (call.arg_nodes.size() != args.size()) return nullptr;
                 llvm::Type* retTy = fn->getReturnType();
                 return builder->CreateCall(fn, args, retTy->isVoidTy() ? "" : "builtin_call");
+            }
+        }
+        if (llvm::Value* v = emitExpr(call.node_to_call)) {
+            if (std::string className = getExpressionType(call.node_to_call); !className.empty()) {
+                if (classTypes.find(className) != classTypes.end()) {
+                    if (auto methodIt = std::find_if(
+                            userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(),
+                            [&](const ClassMethodInfo& method) { return method.name_tok.value == "operator()" && method.generics.empty(); });
+                        methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
+                        size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
+                        auto& info = userTypes[baseTypeName(className)].classMethods[methodIdx];
+                        MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
+                        auto args = prepareArgs(&info, n->args);
+                        delete n;
+                        bool isVariadic = !info.params.empty() && info.params.back().type.value == "...";
+                        if (isVariadic) {
+                            size_t numFixedParams = info.params.size() - 1;
+                            std::vector<llvm::Value*> varVals;
+                            if (args.size() > numFixedParams) {
+                                varVals.assign(args.begin() + numFixedParams, args.end());
+                                args.resize(numFixedParams);
+                            }
+                            args.push_back(packVariadicArgs(varVals));
+                        }
+                        llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
+                        if (!opMethod) {
+                            cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className);
+                            return nullptr;
+                        }
+                        return emitMethodCall(opMethod, v, args, "operator()");
+                    }
+                    cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className);
+                    return nullptr;
+                }
             }
         }
         llvm::Value* calleeVal = nullptr;
@@ -13893,9 +14140,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
     } else if (auto trycatch = safe_get<TryCatchNode>(node)) {
         enterScope();
         auto* tryBB = llvm::BasicBlock::Create(context, "try.start", currentFunction);
-        auto* landingPadBB = llvm::BasicBlock::Create(
-            context, "catch.landing", currentFunction
-        );
+        auto* landingPadBB = llvm::BasicBlock::Create(context, "catch.landing", currentFunction);
         auto* endBB = llvm::BasicBlock::Create(context, "try.end", currentFunction);
         std::vector<llvm::BasicBlock*> catchBlocks;
         catchBlocks.reserve(trycatch->catch_bodys.size());
@@ -13905,9 +14150,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             .handlers = {},
         };
         for (size_t i = 0; i < trycatch->catch_bodys.size(); ++i) {
-            auto* catchBB = llvm::BasicBlock::Create(
-                context, "catch." + std::to_string(i), currentFunction
-            );
+            auto* catchBB = llvm::BasicBlock::Create(context, "catch." + std::to_string(i), currentFunction);
             catchBlocks.push_back(catchBB);
             thisScope.handlers.push_back({
                 .body = trycatch->catch_bodys[i],
@@ -13918,52 +14161,26 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateBr(tryBB);
         builder->SetInsertPoint(tryBB);
         emitStmt(trycatch->try_body);
-        if (!builder->GetInsertBlock()->getTerminator()) {
-            builder->CreateBr(endBB);
-        }
+        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
         builder->SetInsertPoint(landingPadBB);
-        auto* exceptionType = llvm::StructType::get(
-            context, {builder->getPtrTy(), builder->getInt32Ty()}
-        );
+        auto* exceptionType = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty()});
         std::vector<EHHandler> visibleHandlers;
-        for (auto scopeIt = ehScopes.rbegin();
-             scopeIt != ehScopes.rend();
-             ++scopeIt) {
-            for (const auto& handler : scopeIt->handlers) {
-                visibleHandlers.push_back(handler);
-            }
+        for (auto scopeIt = ehScopes.rbegin(); scopeIt != ehScopes.rend(); ++scopeIt) {
+            for (const auto& handler : scopeIt->handlers) { visibleHandlers.push_back(handler); }
         }
-        auto* lp = builder->CreateLandingPad(
-            exceptionType,
-            visibleHandlers.size(),
-            "qc.exception"
-        );
+        auto* lp = builder->CreateLandingPad(exceptionType, visibleHandlers.size(), "qc.exception");
         for (const auto& handler : visibleHandlers) {
             const auto& c = handler.body;
-            llvm::Constant* typeInfo =
-                c.var_type == "..."
-                    ? llvm::ConstantPointerNull::get(builder->getPtrTy())
-                    : getStringConstant(c.var_type);
+            llvm::Constant* typeInfo = c.var_type == "..." ? llvm::ConstantPointerNull::get(builder->getPtrTy()) : getStringConstant(c.var_type);
             lp->addClause(typeInfo);
         }
-        if (!currentFunction->hasPersonalityFn()) {
-            currentFunction->setPersonalityFn(
-                module->getFunction("__qc_personality")
-            );
-        }
+        if (!currentFunction->hasPersonalityFn()) { currentFunction->setPersonalityFn(module->getFunction("__qc_personality")); }
         auto* exception = builder->CreateExtractValue(lp, 0, "exception");
         auto* selector = builder->CreateExtractValue(lp, 1, "selector");
-        auto* noMatchBB = llvm::BasicBlock::Create(
-            context, "catch.no_match", currentFunction
-        );
-        auto* sw = builder->CreateSwitch(
-            selector, noMatchBB, visibleHandlers.size()
-        );
+        auto* noMatchBB = llvm::BasicBlock::Create(context, "catch.no_match", currentFunction);
+        auto* sw = builder->CreateSwitch(selector, noMatchBB, visibleHandlers.size());
         for (size_t i = 0; i < visibleHandlers.size(); ++i) {
-            sw->addCase(
-                llvm::ConstantInt::get(builder->getInt32Ty(), i + 1),
-                visibleHandlers[i].block
-            );
+            sw->addCase(llvm::ConstantInt::get(builder->getInt32Ty(), i + 1), visibleHandlers[i].block);
         }
         EHScope savedScope = std::move(ehScopes.back());
         ehScopes.pop_back();
@@ -13972,27 +14189,17 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             auto* catchBB = savedScope.handlers[i].block;
             builder->SetInsertPoint(catchBB);
             if (!c.var_name.empty()) {
-                std::string name = getCurrentNamespace().empty()
-                    ? c.var_name
-                    : getCurrentNamespace() + c.var_name;
-                auto* payloadPtr = builder->CreateStructGEP(
-                    exceptionType, exception, 1, "exception.value.ptr"
-                );
-                auto* payload = builder->CreateLoad(
-                    builder->getPtrTy(), payloadPtr, "exception.value"
-                );
+                std::string name = getCurrentNamespace().empty() ? c.var_name : getCurrentNamespace() + c.var_name;
+                auto* payloadPtr = builder->CreateStructGEP(exceptionType, exception, 1, "exception.value.ptr");
+                auto* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr, "exception.value");
                 auto* catchLLVMType = llvmTypeFor(c.var_type);
-                auto* catchValue = builder->CreateLoad(
-                    catchLLVMType, payload, "caught.value"
-                );
+                auto* catchValue = builder->CreateLoad(catchLLVMType, payload, "caught.value");
                 auto* alloc = createEntryAlloca(name, catchLLVMType);
                 builder->CreateStore(catchValue, alloc);
                 locals[name] = alloc;
             }
             emitStmt(c.body);
-            if (!builder->GetInsertBlock()->getTerminator()) {
-                builder->CreateBr(endBB);
-            }
+            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
         }
         builder->SetInsertPoint(noMatchBB);
         builder->CreateResume(lp);
@@ -15227,7 +15434,7 @@ Token Lexer::make_identifier() {
         id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || id == "const" || id == "default" || id == "class" || id == "struct" ||
         id == "enum" || id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || id == "foreach" || id == "do" ||
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
-        id == "function" || id == "namespace" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" ||
+        id == "function" || id == "namespace" || id == "roperator" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" ||
         id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" || id == "nibble") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
@@ -15941,7 +16148,7 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         if (!path.empty() && path.back() == '"') { path = path.substr(0, path.size() - 1); }
         std::string full_path;
         auto slash = path.find('/');
-        std::string alias = path.substr(0, slash); 
+        std::string alias = path.substr(0, slash);
         if (path == "std") {
             const char* home = std::getenv("QC_STDLIB");
             if (!home) { throw std::runtime_error("QC_STDLIB environment variable not set"); }
@@ -15950,7 +16157,7 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
             full_path = resolve_path(current_file, aliases[path]);
         } else if (dir_aliases.count(alias)) {
             std::string rest = slash == std::string::npos ? "" : path.substr(slash);
-            full_path = resolve_path(current_file, (std::filesystem::path(dir_aliases[alias]) / rest.substr(1)).string());    
+            full_path = resolve_path(current_file, (std::filesystem::path(dir_aliases[alias]) / rest.substr(1)).string());
         } else {
             full_path = resolve_path(current_file, path);
         }

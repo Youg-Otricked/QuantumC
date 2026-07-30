@@ -8,18 +8,9 @@ class Y {
 } 
 Y proves X;
 ```
-- allow special character literals in generics, eg:
-```
-class Function<T, '(', V, ')'> {
-    ...
-}
-...
-Function<int(int)>;
-```
 - Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
-- operator( )() (functor, can have codeblocks)
 - Methos with code blocks
 - Operator.
 - Function pointers
@@ -86,12 +77,9 @@ void loop(void) code {
 - Cqb lib in stl. Ci and build.
 - qcheck (QC Lint(qc linter. duh)
 - qconform (QC Formatter)
-- operator++/–-/-/+=/-=//=/*=(combinational operators)
-- operator<</|>\|>>/<<</&/......... (bitwise)
 - `__attributes__((...))`
 - const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
-- Combinational bitwise operators
 - Scoping blocks ({ })
 - more error stuff if i feel like it
 __qc_commit_hash() — exact git commit the compiler/runtime was built from, invaluable for bug reports since version numbers alone often don't pin down exactly which state of the code produced a binary
@@ -102,17 +90,16 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - atomics
 - defer
 TOP PRIORITY:
-1. Fancy operator overloads, ( stuff in generics (entierly stripped out, literally syntactical sugar)
-2. Token/ident/type/keyword/usertype direct type (parser refactor)
-3. Static and Friend
-4. Defer
-5. Codeblocks.
-6. Concepts
-7. Modifier (x1.0.0)
-8. Variadics on generics
-9. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-10. Other stuff + Variadic Generics
-11. Metadata
+1. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
+2. Static and Friend
+3. Defer
+4. Codeblocks.
+5. Concepts
+6. Modifier (x1.0.0)
+7. Variadics on generics
+8. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+9. Other stuff + Variadic Generics
+10. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -134,7 +121,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-12. Preproccessers
+11. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -143,5 +130,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-13. User-Defined metadata
-14. User-Defined macro _functions_ (the only good thing in rust)
+12. User-Defined metadata
+13. User-Defined macro _functions_ (the only good thing in rust)

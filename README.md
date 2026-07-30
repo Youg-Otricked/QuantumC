@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.24.01 = "Empty Array Literals & Empty Struct Literals"
-Next Version: x0.24.1 = "Fancy Operator Overloads (operator( )(), combinational/bitwise operator overloads...)"
+Current Version: x0.24.1 = "Operator( ), combinational and bitwise operator overloads, roperator"
+Next Version: x0.25.0 = "Type/Ident (maybe) primitive type(s)"
 
 # Current Version Highlights
 
@@ -130,17 +130,17 @@ Moderate
 └─ Making the compiler feel more "Native"
 
 Minor
-└─ Empty Arrays & Struct Literals
+└─ Fancy operator overloads
 
 Patch
-└─ Added -ad flag
+└─ N/A
 ```
 
 # Notes
 Turns out if you don't do RAII try catch isnt that hard.
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.21.* -> x0.23.*`)
+These are deprecations in the past 3 moderate versions (`x0.22.* -> x0.24.*`)
 
 No Deprecations!
 
@@ -180,7 +180,7 @@ No Deprecations!
 |                     | `restrict`, `out`, `inout`, `volatile`                                 | Done        |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
-|                     | Really fancy operator overloads                                        | Planned     |
+|                     | Really fancy operator overloads                                        | Done        |
 |                     | Try/Catch and `throw`                                                  | Done        |
 |                     | Error message quality and helpfulness upgrade                          | Done        |
 

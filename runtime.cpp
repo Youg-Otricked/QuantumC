@@ -652,7 +652,10 @@ void* qc_variadic_next(qc_variadic* variadic) { // self hosted
 ///////////////////
 // EXCEPTIONS ////
 /////////////////
-#define QC_EXCEPTION_CLASS 0x5143455843455054ULL // My lawyer(coderabbit, its usefull for first-time making crap) advised against "Rust=bad", "IHATEYOU", "WHYYYYYY", "DAMCATCH" and "AGHHHHHH". Not because these are "inappropriate", but because all but the first are too common among compiler devs.
+#define QC_EXCEPTION_CLASS                                                                                                                           \
+    0x5143455843455054ULL // My lawyer(coderabbit, its usefull for first-time making crap) advised against "Rust=bad", "IHATEYOU", "WHYYYYYY",
+                          // "DAMCATCH" and "AGHHHHHH". Not because these are "inappropriate", but because all but the first are too common among
+                          // compiler devs.
 struct __qc_exception {
     _Unwind_Exception unwind;
     char* type;
@@ -720,13 +723,7 @@ static intptr_t __qc_read_sleb128(uint8_t** p) {
 }
 #define DW_EH_PE_aligned 0x50
 
-static uintptr_t __qc_read_encoded(
-    uint8_t** p,
-    uint8_t encoding,
-    uintptr_t textBase,
-    uintptr_t dataBase,
-    uintptr_t funcBase
-) {
+static uintptr_t __qc_read_encoded(uint8_t** p, uint8_t encoding, uintptr_t textBase, uintptr_t dataBase, uintptr_t funcBase) {
     if (encoding == DW_EH_PE_omit) return 0;
     uint8_t application = encoding & 0x70;
     if (application == DW_EH_PE_aligned) {
@@ -744,9 +741,7 @@ static uintptr_t __qc_read_encoded(
         memcpy(&result, *p, sizeof(uintptr_t));
         *p += sizeof(uintptr_t);
         break;
-    case DW_EH_PE_uleb128:
-        result = (intptr_t)__qc_read_uleb128(p);
-        break;
+    case DW_EH_PE_uleb128: result = (intptr_t)__qc_read_uleb128(p); break;
     case DW_EH_PE_udata2: {
         uint16_t value;
         memcpy(&value, *p, sizeof(value));
@@ -768,9 +763,7 @@ static uintptr_t __qc_read_encoded(
         result = (intptr_t)value;
         break;
     }
-    case DW_EH_PE_sleb128:
-        result = __qc_read_sleb128(p);
-        break;
+    case DW_EH_PE_sleb128: result = __qc_read_sleb128(p); break;
     case DW_EH_PE_sdata2: {
         int16_t value;
         memcpy(&value, *p, sizeof(value));
@@ -792,26 +785,15 @@ static uintptr_t __qc_read_encoded(
         result = (intptr_t)value;
         break;
     }
-    default:
-        abort();
+    default: abort();
     }
     switch (application) {
-    case DW_EH_PE_absptr:
-        break;
-    case DW_EH_PE_pcrel:
-        result += (uintptr_t)encodedStart;
-        break;
-    case DW_EH_PE_textrel:
-        result += textBase;
-        break;
-    case DW_EH_PE_datarel:
-        result += dataBase;
-        break;
-    case DW_EH_PE_funcrel:
-        result += funcBase;
-        break;
-    default:
-        abort();
+    case DW_EH_PE_absptr: break;
+    case DW_EH_PE_pcrel: result += (uintptr_t)encodedStart; break;
+    case DW_EH_PE_textrel: result += textBase; break;
+    case DW_EH_PE_datarel: result += dataBase; break;
+    case DW_EH_PE_funcrel: result += funcBase; break;
+    default: abort();
     }
     if (encoding & DW_EH_PE_indirect) {
         uintptr_t indirectValue;
@@ -820,20 +802,13 @@ static uintptr_t __qc_read_encoded(
     }
     return (uintptr_t)result;
 }
-_Unwind_Reason_Code __qc_personality(
-    int version,
-    _Unwind_Action actions,
-    uint64_t exceptionClass,
-    _Unwind_Exception* exceptionObject,
-    _Unwind_Context* context
-) {
+_Unwind_Reason_Code __qc_personality(int version, _Unwind_Action actions, uint64_t exceptionClass, _Unwind_Exception* exceptionObject,
+                                     _Unwind_Context* context) {
     if (version != 1) return _URC_FATAL_PHASE1_ERROR;
     if (exceptionClass != QC_EXCEPTION_CLASS) return _URC_CONTINUE_UNWIND;
 
     auto* exception = reinterpret_cast<__qc_exception*>(exceptionObject);
-    auto* lsda = reinterpret_cast<uint8_t*>(
-        _Unwind_GetLanguageSpecificData(context)
-    );
+    auto* lsda = reinterpret_cast<uint8_t*>(_Unwind_GetLanguageSpecificData(context));
     if (!lsda) return _URC_CONTINUE_UNWIND;
 
     uintptr_t funcStart = _Unwind_GetRegionStart(context);
@@ -844,9 +819,7 @@ _Unwind_Reason_Code __qc_personality(
 
     uint8_t lpStartEncoding = *p++;
     uintptr_t lpStart = funcStart;
-    if (lpStartEncoding != DW_EH_PE_omit) {
-        lpStart = __qc_read_encoded(&p, lpStartEncoding, 0, 0, funcStart);
-    }
+    if (lpStartEncoding != DW_EH_PE_omit) { lpStart = __qc_read_encoded(&p, lpStartEncoding, 0, 0, funcStart); }
 
     uint8_t typeEncoding = *p++;
     uint8_t* typeTable = nullptr;
@@ -865,12 +838,9 @@ _Unwind_Reason_Code __qc_personality(
     uintptr_t pc = ip - funcStart;
 
     for (uint8_t* cs = callSiteTable; cs < actionTable;) {
-        uintptr_t start =
-            __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
-        uintptr_t length =
-            __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
-        uintptr_t pad =
-            __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
+        uintptr_t start = __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
+        uintptr_t length = __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
+        uintptr_t pad = __qc_read_encoded(&cs, callSiteEncoding, 0, 0, funcStart);
         uintptr_t action = __qc_read_uleb128(&cs);
 
         if (pc >= start && pc < start + length) {
@@ -880,9 +850,7 @@ _Unwind_Reason_Code __qc_personality(
         }
     }
 
-    if (landingPad == 0 || actionIndex == 0) {
-        return _URC_CONTINUE_UNWIND;
-    }
+    if (landingPad == 0 || actionIndex == 0) { return _URC_CONTINUE_UNWIND; }
 
     uint8_t* action = actionTable + actionIndex - 1;
     bool matched = false;
@@ -915,14 +883,9 @@ _Unwind_Reason_Code __qc_personality(
                 hasCatchAll = true;
             } else {
                 ++selectorIndex;
-                uintptr_t typeAddr = __qc_read_encoded(
-                    &entry, typeEncoding, 0, 0,
-                    reinterpret_cast<uintptr_t>(entry)
-                );
-                const char* catchType =
-                    reinterpret_cast<const char*>(typeAddr);
-                if (catchType &&
-                    strcmp(exception->type, catchType) == 0) {
+                uintptr_t typeAddr = __qc_read_encoded(&entry, typeEncoding, 0, 0, reinterpret_cast<uintptr_t>(entry));
+                const char* catchType = reinterpret_cast<const char*>(typeAddr);
+                if (catchType && strcmp(exception->type, catchType) == 0) {
                     matched = true;
                     selector = selectorIndex;
                     break;
@@ -936,24 +899,18 @@ _Unwind_Reason_Code __qc_personality(
         matched = true;
         selector = 0;
     }
-    if (actions & _UA_SEARCH_PHASE) {
-        return matched ? _URC_HANDLER_FOUND : _URC_CONTINUE_UNWIND;
-    }
+    if (actions & _UA_SEARCH_PHASE) { return matched ? _URC_HANDLER_FOUND : _URC_CONTINUE_UNWIND; }
 
     if (actions & _UA_CLEANUP_PHASE) {
         if (matched && (actions & _UA_HANDLER_FRAME)) {
-            _Unwind_SetGR(
-                context, 0, reinterpret_cast<uintptr_t>(exceptionObject)
-            );
+            _Unwind_SetGR(context, 0, reinterpret_cast<uintptr_t>(exceptionObject));
             _Unwind_SetGR(context, 1, static_cast<uintptr_t>(selector));
             _Unwind_SetIP(context, landingPad);
             return _URC_INSTALL_CONTEXT;
         }
 
         if (hasCleanup) {
-            _Unwind_SetGR(
-                context, 0, reinterpret_cast<uintptr_t>(exceptionObject)
-            );
+            _Unwind_SetGR(context, 0, reinterpret_cast<uintptr_t>(exceptionObject));
             _Unwind_SetGR(context, 1, 0);
             _Unwind_SetIP(context, landingPad);
             return _URC_INSTALL_CONTEXT;

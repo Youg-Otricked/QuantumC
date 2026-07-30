@@ -832,7 +832,8 @@ class MapLiteralNode {
     Position pos;
     std::string struct_type;
     Position getPos() { return pos; }
-    MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos, std::string struct_ty = "") : pairs(p), pos(pos), struct_type(struct_ty) {}
+    MapLiteralNode(std::vector<std::pair<AnyNode, AnyNode>> p, Position pos, std::string struct_ty = "")
+        : pairs(p), pos(pos), struct_type(struct_ty) {}
 
     std::string print() const { return this->struct_type + "{}"; }
 };
@@ -1513,9 +1514,7 @@ class LLVMCompiler {
     };
     std::vector<EHScope> ehScopes;
     bool insideTry() { return !ehScopes.empty(); }
-    llvm::BasicBlock* currentLandingPad() {
-        return ehScopes.back().landingPad;
-    }
+    llvm::BasicBlock* currentLandingPad() { return ehScopes.back().landingPad; }
     llvm::Value* copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex, llvm::Type* elemTy,
                                    int elemTypeCode);
     std::string substituteGenerics(const std::string& typeStr) {
@@ -1665,13 +1664,9 @@ class LLVMCompiler {
     }
     std::string getExpressionType(AnyNode& node, bool strip = true) {
         if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
-            if (!(*mapLit)->struct_type.empty()) {
-                return (*mapLit)->struct_type;
-            }
+            if (!(*mapLit)->struct_type.empty()) { return (*mapLit)->struct_type; }
         } else if (auto arrLit = std::get_if<ArrayLiteralNode*>(&node)) {
-            if (!(*arrLit)->type.empty()) {
-                return (*arrLit)->type;
-            }
+            if (!(*arrLit)->type.empty()) { return (*arrLit)->type; }
             if (!(*arrLit)->elements.empty()) {
                 std::string elemType = getExpressionType((*arrLit)->elements[0]);
                 return elemType + "[]";
@@ -1840,9 +1835,7 @@ class LLVMCompiler {
                         return "unknown";
                     }
                 }
-                if (classTypes.contains(resolveTypeName(funcName, false))) {
-                    return resolveTypeName(funcName, false);
-                }
+                if (classTypes.contains(resolveTypeName(funcName, false))) { return resolveTypeName(funcName, false); }
                 if (functionDefs.contains(funcName)) {
                     auto* def = functionDefs[funcName];
                     if (!def->return_types.empty()) {
@@ -2072,21 +2065,14 @@ class LLVMCompiler {
             if (ptrTy.ends_with("]")) {
                 llvm::Value* base = emitLValue((*arrAcc)->base);
                 llvm::Value* index = emitExpr((*arrAcc)->indices[0]);
-                if (!base) {
-                    return nullptr;
-                }
+                if (!base) { return nullptr; }
                 llvm::Type* arrayTy = llvmTypeFor(ptrTy);
                 if (!arrayTy->isArrayTy()) {
                     cg_error(get_pos((*arrAcc)->base), "invalid array type for indexing");
                     return nullptr;
                 }
-                return builder->CreateGEP(
-                    arrayTy,
-                    base,
-                    {builder->getInt32(0), index},
-                    "lval_arr_addr"
-                );
-            } 
+                return builder->CreateGEP(arrayTy, base, {builder->getInt32(0), index}, "lval_arr_addr");
+            }
             if (genericiseOrFindClass(ptrTy)) {
                 llvm::Value* obj = emitLValue((*arrAcc)->base);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
@@ -2651,6 +2637,10 @@ class LLVMCompiler {
 
         return accessible;
     }
+    MethodCallNode* methodCallFromCall(CallNode* call, std::string name) {
+        return new MethodCallNode(call->node_to_call, Token(TokenType::IDENTIFIER, name, get_pos(call)),
+                                  std::vector<AnyNode>(call->arg_nodes.begin(), call->arg_nodes.end()));
+    }
     std::unordered_map<std::string, std::unordered_map<std::string, llvm::Function*>> genericisedMethods;
     llvm::Value* tryHandleSpecialized(const std::string& className, const std::string& methodName, MethodCallNode* node, llvm::Value* thisPtr) {
         if (auto methodIt = std::find_if(
@@ -2974,44 +2964,21 @@ class LLVMCompiler {
         if (!v) return nullptr;
         if (auto* global = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
             auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(global->getValueType());
-            if (arrTy) {
-                return builder->CreateInBoundsGEP(
-                    arrTy,
-                    global,
-                    {builder->getInt32(0), builder->getInt32(0)},
-                    "decayptr"
-                );
-            }
+            if (arrTy) { return builder->CreateInBoundsGEP(arrTy, global, {builder->getInt32(0), builder->getInt32(0)}, "decayptr"); }
         }
         if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(v)) {
             if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(alloca->getAllocatedType())) {
-                return builder->CreateInBoundsGEP(
-                    arrTy,
-                    alloca,
-                    {builder->getInt32(0), builder->getInt32(0)},
-                    "decayptr"
-                );
+                return builder->CreateInBoundsGEP(arrTy, alloca, {builder->getInt32(0), builder->getInt32(0)}, "decayptr");
             }
         }
         if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(v->getType())) {
             llvm::AllocaInst* tmp = builder->CreateAlloca(arrTy);
             llvm::Value* srcPtr = builder->CreateAlloca(arrTy);
             builder->CreateStore(v, srcPtr);
-            builder->CreateMemCpy(
-                tmp,
-                llvm::MaybeAlign(),
-                srcPtr,
-                llvm::MaybeAlign(),
-                arrTy->getPrimitiveSizeInBits() / 8
-            );
-            return builder->CreateInBoundsGEP(
-                arrTy,
-                tmp,
-                {builder->getInt32(0), builder->getInt32(0)}
-            );
+            builder->CreateMemCpy(tmp, llvm::MaybeAlign(), srcPtr, llvm::MaybeAlign(), arrTy->getPrimitiveSizeInBits() / 8);
+            return builder->CreateInBoundsGEP(arrTy, tmp, {builder->getInt32(0), builder->getInt32(0)});
         }
-        if (v->getType()->isPointerTy())
-            return v;
+        if (v->getType()->isPointerTy()) return v;
         return nullptr;
     }
     llvm::Value* emitVirtualOrDirectCall(const std::string& ty, const std::string& methodName, llvm::Value* payload,
@@ -3853,6 +3820,38 @@ class LLVMCompiler {
         }
         return builder->getInt1(1);
     }
+    std::string getCombinationalOperatorMethodName(TokenType op) {
+        switch (op) {
+        case TokenType::PLUS_EQ: return "operator+=";
+        case TokenType::MINUS_EQ: return "operator-=";
+        case TokenType::MUL_EQ: return "operator*=";
+        case TokenType::DIV_EQ: return "operator/=";
+        case TokenType::MOD_EQ: return "operator%=";
+        case TokenType::BIT_X_EQ: return "operator$=";
+        case TokenType::BIT_A_EQ: return "operator&=";
+        case TokenType::BIT_O_EQ: return "operator|=";
+        case TokenType::LSH_EQ: return "operator<<=";
+        case TokenType::RSH_EQ: return "operator|>=";
+        case TokenType::LRSH_EQ: return "operator:>=";
+        case TokenType::RROT_EQ: return "operator|>>=";
+        case TokenType::LROT_EQ: return "operator<<<=";
+        default: return "";
+        }
+    }
+    std::string getRoperatorMethodName(TokenType op) {
+        switch (op) {
+        case TokenType::MINUS: return "roperator-";
+        case TokenType::DIV: return "roperator/";
+        case TokenType::MOD: return "roperator%";
+        case TokenType::POWER: return "roperator#^";
+        case TokenType::RSHIFT: return "roperator|>";
+        case TokenType::LOGICAL_RSHIFT: return "roperator:>";
+        case TokenType::R_ROT: return "roperator|>>";
+        case TokenType::LSHIFT: return "roperator<<";
+        case TokenType::L_ROT: return "roperator<<<";
+        default: return "";
+        }
+    }
     std::string getOperatorMethodName(TokenType op) {
         switch (op) {
         case TokenType::PLUS: return "operator+";
@@ -3877,6 +3876,17 @@ class LLVMCompiler {
         case TokenType::COLLAPSE_OR: return "operator|&|";
         case TokenType::COLLAPSE_AND: return "operator&|&";
         case TokenType::XOR: return "operator^";
+        case TokenType::INCREMENT: return "operator++";
+        case TokenType::DECREMENT: return "operator--";
+        case TokenType::BITWISE_NOT: return "operator~";
+        case TokenType::RSHIFT: return "operator|>";
+        case TokenType::LOGICAL_RSHIFT: return "operator:>";
+        case TokenType::R_ROT: return "operator|>>";
+        case TokenType::LSHIFT: return "operator<<";
+        case TokenType::L_ROT: return "operator<<<";
+        case TokenType::BITWISE_XOR: return "operator$";
+        case TokenType::PIPE: return "operator|";
+        case TokenType::AMPERSAND: return "operator&";
         default: return "";
         }
     }
@@ -3884,6 +3894,10 @@ class LLVMCompiler {
         switch (op) {
         case TokenType::QNOT: return "operator!!";
         case TokenType::NOT: return "operator!";
+        case TokenType::MINUS: return "operator-";
+        case TokenType::INCREMENT: return "operator++";
+        case TokenType::DECREMENT: return "operator--";
+        case TokenType::BITWISE_NOT: return "operator~";
         default: return "";
         }
     }
