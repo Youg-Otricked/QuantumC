@@ -76,8 +76,8 @@ set(SOURCES
 add_executable(qc ${SOURCES})
 target_compile_options(qc PRIVATE
     $<$<CONFIG:Release>:-O3>
+    --std=c++23
     $<$<CONFIG:RelWithDebInfo>:-O2>
-
     $<$<CXX_COMPILER_ID:GNU>:-fconstexpr-ops-limit=1000000000>
 )
 if(ENABLE_LLVM)
