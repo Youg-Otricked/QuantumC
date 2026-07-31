@@ -12464,7 +12464,7 @@ void LLVMCompiler::generateStructReprFunctions() {
         llvm::StructType* structTy = structTypes[name];
         llvm::FunctionType* reprFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {structTy}, false);
         llvm::Function* reprFn = module->getFunction(name + "_repr");
-        if (!reprFn) llvm::Function* reprFn = llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage, name + "_repr", module);
+        if (!reprFn) reprFn = llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage, name + "_repr", module);
         if (isHeader || info.baseFile.ends_with(".hqc")) continue;
         llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
         builder->SetInsertPoint(entryBB);
