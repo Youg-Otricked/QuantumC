@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.24.2 = "Operator( ), combinational and bitwise operator overloads, roperator"
-Next Version: x0.24.3 = ".hqc files so you can include from .so files instead of undefined errors"
+Current Version: x0.24.3 = ".hqc files so you can include from .so files instead of undefined errors""
+Next Version: x0.25.0 = "Token/(maybe)Ident primitive types"
 
 # Current Version Highlights
 
@@ -130,14 +130,12 @@ Moderate
 └─ Making the compiler feel more "Native"
 
 Minor
-└─ Fancy operator overloads
+└─ .hqc
 
 Patch
 └─ N/A
 ```
 
-# Notes
-Turns out if you don't do RAII try catch isnt that hard.
 # Recent Deprecations / Breaking Changes
 
 These are deprecations in the past 3 moderate versions (`x0.22.* -> x0.24.*`)

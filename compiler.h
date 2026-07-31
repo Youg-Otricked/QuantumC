@@ -25,6 +25,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
+extern bool isHeader;
 extern uint64_t invokeCounter;
 bool isCharInSet(char, const std::string&);
 inline int levenshteinDistance(const std::string& a, const std::string& b) { // hehe fancy word
@@ -513,6 +514,7 @@ struct UserTypeInfo {
     bool is_abstract_class = false;
     bool is_final_class = false;
     std::vector<GenericType> generics;
+    std::string baseFile = "";
 };
 
 struct Aer {
@@ -715,15 +717,17 @@ class FuncDefNode {
     bool is_extern = false;
     bool is_foreign = false;
     bool is_volatile = false;
+    bool is_header = true;
     FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, StatementsNode* func_body,
-                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false)
+                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false, bool is_header = false)
         : return_types(ret_types), name_tok(name), params(parameters), body(func_body), namespace_path(ns) {
         this->is_extern = is_ex;
         this->is_foreign = is_f;
         this->generics = generics;
         this->is_volatile = is_volatile;
+        this->is_header = is_header;
     }
-    Position getPos() {
+    Position getPos() const {
         if (name_tok.has_value()) return name_tok.value().pos;
 
         if (return_types.empty()) return get_pos(body);
@@ -3139,7 +3143,8 @@ class LLVMCompiler {
         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
         for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
-        llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
+        llvm::Function* fn = module->getFunction(specializedName);
+        if (!fn) llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
         size_t paramIdx = 0;
         if (method.is_volatile) {
             fn->addFnAttr(llvm::Attribute::NoInline);
@@ -3173,6 +3178,7 @@ class LLVMCompiler {
             }
             if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
+        if (isHeader) return nullptr;
         currentFunction = fn;
         currentClassName = className;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -3307,7 +3313,8 @@ class LLVMCompiler {
         if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
         enterScope();
         llvm::FunctionType* fnTy = llvmFuncTypeFor(funcDef->return_types, funcDef->params);
-        llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
+        llvm::Function* fn = module->getFunction(specializedName);
+        if (!fn) fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, specializedName, module);
         if (funcDef->is_volatile) {
             fn->addFnAttr("noipa");
             fn->addFnAttr(llvm::Attribute::NoInline);
@@ -3324,7 +3331,7 @@ class LLVMCompiler {
             }
             if (it->type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
-
+        if (isHeader) return nullptr;
         currentFunction = fn;
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
         builder->SetInsertPoint(entry);
@@ -3400,6 +3407,19 @@ class LLVMCompiler {
         if (savedBlock) { builder->SetInsertPoint(savedBlock); }
         return fn;
     }
+    llvm::GlobalVariable* getOrCreateVtable(const std::string& name, llvm::ArrayType* type, llvm::Constant* initializer) {
+        if (auto* existing = module->getNamedGlobal(name)) {
+            return existing;
+        }
+        return new llvm::GlobalVariable(
+            *module,
+            type,
+            true,
+            llvm::GlobalValue::ExternalLinkage,
+            initializer,
+            name
+        );
+    }
     llvm::Value* packVariadicArgs(const std::vector<llvm::Value*>& var_vals) {
         llvm::Value* args_cnt = builder->getInt32(var_vals.size());
         llvm::Value* items_array = builder->CreateAlloca(builder->getPtrTy(), args_cnt, "varargs_array");
@@ -3470,7 +3490,9 @@ class LLVMCompiler {
         if (info.kind != UserTypeKind::Struct) return;
         llvm::StructType* structTy = genericiseOrFindStruct(name);
         llvm::FunctionType* reprFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {structTy}, false);
-        llvm::Function* reprFn = llvm::Function::Create(reprFnTy, llvm::Function::InternalLinkage, name + "_repr", module);
+        llvm::Function* reprFn = module->getFunction(name + "_repr");
+        if (!reprFn) llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage, name + "_repr", module);
+        if (isHeader) return;
         llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
         builder->SetInsertPoint(entryBB);
         llvm::Value* structArg = reprFn->arg_begin();

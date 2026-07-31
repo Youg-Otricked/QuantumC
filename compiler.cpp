@@ -82,6 +82,7 @@ std::unordered_map<std::string, std::string> dir_aliases;
 std::string entrypointName = "main";
 extern "C" const char _binary_runtime_ll_start[];
 extern "C" const size_t _binary_runtime_ll_size;
+bool isHeader = false;
 namespace tkz {
 //////////////////////////////////////////////////////////////////////////////////////////////
 // POSITION
@@ -3153,13 +3154,13 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
         }
     }
     if (this->current_tok.type != TokenType::LBRACE) {
-        if (this->in_foreign) {
+        if (this->current_tok.type == TokenType::SEMICOLON) {
             this->advance();
             std::list<Parameter> params_list((params.begin()), (params.end()));
             std::vector<AnyNode> body;
             body.emplace_back(std::monostate{});
             return res.success(new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern,
-                                               this->in_foreign, generics));
+                                               this->in_foreign, generics, is_volatile, true));
         }
         res.failure(new InvalidSyntaxError("QC-S003: Expected '{' to start function body", this->current_tok.pos));
         return res.to_prs();
@@ -3568,6 +3569,7 @@ Prs Parser::statement() {
         info.baseClassName = baseName;
         info.is_final_class = is_final_class;
         info.kind = UserTypeKind::Class;
+        info.baseFile = this->current_tok.pos.Filename;
         dummy.is_abstract_class = is_abstract_class;
         info.is_abstract_class = is_abstract_class;
         std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
@@ -5340,7 +5342,15 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
         for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
-        llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
+        llvm::Function* fn = module->getFunction(methodName);
+        if (!fn) {
+            fn = llvm::Function::Create(
+                fnTy,
+                llvm::Function::ExternalLinkage,
+                methodName,
+                module
+            );
+        } 
         llvm::SmallVector<llvm::Metadata*, 4> retTypes;
         for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
         fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
@@ -5358,14 +5368,18 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             }
             if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
-        classMethods[mangled_class_name][method.name_tok.value].push_back(fn);
+        classMethods[mangled_class_name][method.name_tok.value].push_back(fn); 
         vtableFuncs.push_back(fn);
         slotOrder.push_back(methodName);
     }
     for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mangled_class_name][slotOrder[i]] = i; }
     auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
     auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
-    auto* vtable = new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::InternalLinkage, vtableInit, mangled_class_name + "_vtable");
+    auto* vtable = getOrCreateVtable(
+        mangled_class_name + "_vtable",
+        arrTy,
+        isHeader || classInfo.baseFile.ends_with(".hqc") ? nullptr : vtableInit
+    );
     vtables[mangled_class_name] = vtable;
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
@@ -5400,7 +5414,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 }
             }
         }
-
+        if (isHeader || classInfo.baseFile.ends_with(".hqc")) continue;
         if (!fn || !fn->empty()) continue;
 
         llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
@@ -6034,7 +6048,15 @@ void LLVMCompiler::createUserTypes() {
             llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(method.return_types, method.params);
             for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
-            llvm::Function* fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, methodName, module);
+            llvm::Function* fn = module->getFunction(methodName);
+            if (!fn) {
+                fn = llvm::Function::Create(
+                    fnTy,
+                    llvm::Function::ExternalLinkage,
+                    methodName,
+                    module
+                );
+            } 
             llvm::SmallVector<llvm::Metadata*, 4> retTypes;
             for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
             if (method.is_volatile) {
@@ -6053,13 +6075,20 @@ void LLVMCompiler::createUserTypes() {
                 if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
             }
             classMethods[mapKey][method.name_tok.value].push_back(fn);
+            if (isHeader || info.baseFile.ends_with(".hqc")) {
+                continue;
+            }
             vtableFuncs.push_back(fn);
             slotOrder.push_back(methodName);
         }
         for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mapKey][slotOrder[i]] = i; }
         auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
         auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
-        auto* vtable = new llvm::GlobalVariable(*module, arrTy, true, llvm::GlobalValue::InternalLinkage, vtableInit, mapKey + "_vtable");
+        auto* vtable = getOrCreateVtable(
+            mapKey + "_vtable",
+            arrTy,
+            isHeader || info.baseFile.ends_with(".hqc") ? nullptr : vtableInit
+        );
         vtables[mapKey] = vtable;
         namespaceStack = oldNamespaceStack;
     }
@@ -12434,8 +12463,9 @@ void LLVMCompiler::generateStructReprFunctions() {
         if (!info.generics.empty()) continue;
         llvm::StructType* structTy = structTypes[name];
         llvm::FunctionType* reprFnTy = llvm::FunctionType::get(llvm::PointerType::get(context, 0), {structTy}, false);
-
-        llvm::Function* reprFn = llvm::Function::Create(reprFnTy, llvm::Function::InternalLinkage, name + "_repr", module);
+        llvm::Function* reprFn = module->getFunction(name + "_repr");
+        if (!reprFn) llvm::Function* reprFn = llvm::Function::Create(reprFnTy, llvm::Function::ExternalLinkage, name + "_repr", module);
+        if (isHeader || info.baseFile.ends_with(".hqc")) continue;
         llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", reprFn);
         builder->SetInsertPoint(entryBB);
         llvm::Value* structArg = reprFn->arg_begin();
@@ -12751,7 +12781,7 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm:
     if (!currentFunction) {
         llvm::Constant* initVal = llvm::Constant::getNullValue(ty);
 
-        llvm::GlobalVariable* gv = new llvm::GlobalVariable(*module, ty, false, llvm::GlobalValue::InternalLinkage, initVal, name);
+        llvm::GlobalVariable* gv = new llvm::GlobalVariable(*module, ty, false, llvm::GlobalValue::ExternalLinkage, initVal, name);
         return reinterpret_cast<llvm::AllocaInst*>(gv);
     }
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(), currentFunction->getEntryBlock().begin());
@@ -12766,12 +12796,22 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         name = lambdaName();
     }
     llvm::FunctionType* fTy = llvmFuncTypeFor(fn.return_types, fn.params);
-    auto* existing = module->getFunction(name);
-    if (existing) return existing;
+    llvm::GlobalValue::LinkageTypes linkage = llvm::Function::ExternalLinkage;
+    auto* func = module->getFunction(name);
     functionSignatures[name] = {fTy, {}};
-    llvm::GlobalValue::LinkageTypes linkage = fn.is_extern || fn.is_foreign ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
-
-    auto* func = llvm::Function::Create(fTy, linkage, name, module);
+    if (func) {
+        if (func->getFunctionType() != fTy) {
+            cg_warn(fn.getPos(), "conflicting declaration for function " + name);
+        }
+        if (fn.is_foreign || fn.is_header)
+            return func;
+        if (!func->empty()) {
+            cg_warn(fn.getPos(), "redefinition of function " + name);
+        }
+        func->setLinkage(linkage);
+    } else {
+        func = llvm::Function::Create(fTy, linkage, name, module);
+    }
     llvm::SmallVector<llvm::Metadata*, 4> retTypes;
     for (auto& ret : fn.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
     func->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
@@ -12791,7 +12831,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         }
         if (it->type.value.ends_with("restrict")) { func->addParamAttr(i, llvm::Attribute::NoAlias); }
     }
-    if (fn.is_foreign) return func;
+    if (fn.is_foreign || fn.is_header) return func;
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
     llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
@@ -14392,7 +14432,7 @@ std::vector<CTError> LLVMCompiler::compile(
                         }
 
                         llvm::Type* actualType = overload->getFunctionType()->getParamType(i + 1);
-                        if (expectedType != actualType && param.type.value == "...") {
+                        if (expectedType != actualType && param.type.value != "...") {
                             matches = false;
                             break;
                         }
@@ -14405,7 +14445,7 @@ std::vector<CTError> LLVMCompiler::compile(
             }
 
             if (!fn || !fn->empty()) continue;
-
+            if (isHeader || info.baseFile.ends_with(".hqc")) continue;
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
             builder->SetInsertPoint(entry);
 
@@ -15114,6 +15154,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                         if (d_spec.count(ns)) { visSpec[ns] = d_spec.at(ns); }
                     }
                 }
+                isHeader = std::filesystem::path(filepath).extension() == ".hqc";
                 LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
                 comp.config = config;
                 std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLen, visVars,
