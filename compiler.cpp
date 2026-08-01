@@ -10839,10 +10839,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 }
                                 break;
                             }
-                            auto* varNode = *std::get_if<VarAccessNode*>(&goodArgs[current_arg]);
-                            if ((aTy->isPointerTy() && std::get_if<StringNode>(&goodArgs[current_arg])) ||
-                                (varNode && hasVarType(varNode->var_name_tok.value) &&
-                                 findVarType(varNode->var_name_tok.value)->second == std::string("string"))) {
+                            std::string sourceType = getExpressionType(goodArgs[current_arg]);
+                            if (sourceType == "string" || sourceType == "char*") {
                                 builder->CreateCall(printString,
                                                     {builder->CreateCall(fmtStr, {val, llvm::ConstantInt::get(builder->getInt32Ty(), width),
                                                                                   llvm::ConstantInt::get(builder->getInt1Ty(), zero_pad)})});
