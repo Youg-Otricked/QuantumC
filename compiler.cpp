@@ -1005,7 +1005,7 @@ Prs Parser::if_expr() {
             }
             this->advance();
 
-            init_node = AnyNode{new VarAssignNode(is_const, type_tok, var_name, value)};
+            init_node = AnyNode{new VarAssignNode(is_const, type_tok, var_name, value, this->in_foreign)};
         } else {
             AnyNode expr_init = res.reg(this->assignment_expr());
             if (res.error) return res.to_prs();
@@ -1409,7 +1409,7 @@ Prs Parser::for_stmt() {
                 value = default_value_for_type(type_tok, var_name.pos);
             }
 
-            init = AnyNode{new VarAssignNode(is_const, type_tok, var_name, value)};
+            init = AnyNode{new VarAssignNode(is_const, type_tok, var_name, value, this->in_foreign)};
         } else {
             AnyNode expr_init = res.reg(this->assignment_expr());
             if (res.error) return res.to_prs();
@@ -5003,7 +5003,7 @@ Prs Parser::statement() {
         }
         this->advance();
 
-        return res.success(new VarAssignNode(is_const, type_tok, name_tok, value));
+        return res.success(new VarAssignNode(is_const, type_tok, name_tok, value, this->in_foreign));
     }
     // Expression statement: 2 + 3;
     AnyNode node = res.reg(this->assignment_expr());
@@ -5343,14 +5343,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
         llvm::Function* fn = module->getFunction(methodName);
-        if (!fn) {
-            fn = llvm::Function::Create(
-                fnTy,
-                llvm::Function::ExternalLinkage,
-                methodName,
-                module
-            );
-        } 
+        if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module); }
         llvm::SmallVector<llvm::Metadata*, 4> retTypes;
         for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
         fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
@@ -5368,18 +5361,14 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             }
             if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
-        classMethods[mangled_class_name][method.name_tok.value].push_back(fn); 
+        classMethods[mangled_class_name][method.name_tok.value].push_back(fn);
         vtableFuncs.push_back(fn);
         slotOrder.push_back(methodName);
     }
     for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mangled_class_name][slotOrder[i]] = i; }
     auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
     auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
-    auto* vtable = getOrCreateVtable(
-        mangled_class_name + "_vtable",
-        arrTy,
-        isHeader || classInfo.baseFile.ends_with(".hqc") ? nullptr : vtableInit
-    );
+    auto* vtable = getOrCreateVtable(mangled_class_name + "_vtable", arrTy, isHeader || classInfo.baseFile.ends_with(".hqc") ? nullptr : vtableInit);
     vtables[mangled_class_name] = vtable;
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
@@ -6049,14 +6038,7 @@ void LLVMCompiler::createUserTypes() {
             for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
             llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
             llvm::Function* fn = module->getFunction(methodName);
-            if (!fn) {
-                fn = llvm::Function::Create(
-                    fnTy,
-                    llvm::Function::ExternalLinkage,
-                    methodName,
-                    module
-                );
-            } 
+            if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module); }
             llvm::SmallVector<llvm::Metadata*, 4> retTypes;
             for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
             if (method.is_volatile) {
@@ -6075,20 +6057,14 @@ void LLVMCompiler::createUserTypes() {
                 if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
             }
             classMethods[mapKey][method.name_tok.value].push_back(fn);
-            if (isHeader || info.baseFile.ends_with(".hqc")) {
-                continue;
-            }
+            if (isHeader || info.baseFile.ends_with(".hqc")) { continue; }
             vtableFuncs.push_back(fn);
             slotOrder.push_back(methodName);
         }
         for (size_t i = 0; i < slotOrder.size(); i++) { vtableSlotIndex[mapKey][slotOrder[i]] = i; }
         auto* arrTy = llvm::ArrayType::get(llvm::PointerType::get(context, 0), vtableFuncs.size());
         auto* vtableInit = llvm::ConstantArray::get(arrTy, vtableFuncs);
-        auto* vtable = getOrCreateVtable(
-            mapKey + "_vtable",
-            arrTy,
-            isHeader || info.baseFile.ends_with(".hqc") ? nullptr : vtableInit
-        );
+        auto* vtable = getOrCreateVtable(mapKey + "_vtable", arrTy, isHeader || info.baseFile.ends_with(".hqc") ? nullptr : vtableInit);
         vtables[mapKey] = vtable;
         namespaceStack = oldNamespaceStack;
     }
@@ -6286,13 +6262,18 @@ llvm::Value* LLVMCompiler::boolToQBool(llvm::Value* boolVal) {
 }
 llvm::Value* LLVMCompiler::emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args,
                                           const std::string& name) {
+    auto callArgs = reconcileArgs(method, thisPtr, args);
+    bool returnsVoid = method->getReturnType()->isVoidTy();
     if (insideTry()) {
-        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
-        llvm::InvokeInst* invoke = builder->CreateInvoke(method, contBB, currentLandingPad(), reconcileArgs(method, thisPtr, args));
+        auto* contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+        auto* invoke = builder->CreateInvoke(method, contBB, currentLandingPad(), callArgs);
+        if (!returnsVoid) { invoke->setName(name + "_result"); }
         builder->SetInsertPoint(contBB);
-        return invoke;
+        return returnsVoid ? nullptr : invoke;
     }
-    return builder->CreateCall(method, reconcileArgs(method, thisPtr, args), name + "_result");
+    auto* call = builder->CreateCall(method, callArgs);
+    if (!returnsVoid) { call->setName(name + "_result"); }
+    return returnsVoid ? nullptr : call;
 }
 llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
     if (auto num = std::get_if<NumberNode>(&node)) {
@@ -6536,17 +6517,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (opMethod) {
                                 std::vector<llvm::Value*> allArgs = {L, R};
                                 if (insideTry()) {
-                                    auto contBB = llvm::BasicBlock::Create(
-                                        context,
-                                        "invoke.cont." + std::to_string(invokeCounter++),
-                                        currentFunction
-                                    );
-                                    auto invk = builder->CreateInvoke(
-                                        opMethod,
-                                        contBB,
-                                        currentLandingPad(),
-                                        allArgs
-                                    );
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
                                     builder->SetInsertPoint(contBB);
                                     return invk;
                                 }
@@ -6570,17 +6543,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (opMethod) {
                                 std::vector<llvm::Value*> allArgs = {R, L};
                                 if (insideTry()) {
-                                    auto contBB = llvm::BasicBlock::Create(
-                                        context,
-                                        "invoke.cont." + std::to_string(invokeCounter++),
-                                        currentFunction
-                                    );
-                                    auto invk = builder->CreateInvoke(
-                                        opMethod,
-                                        contBB,
-                                        currentLandingPad(),
-                                        allArgs
-                                    );
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
                                     builder->SetInsertPoint(contBB);
                                     return invk;
                                 }
@@ -7200,70 +7165,159 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (lIsUnion && rIsUnion) {
             auto& members = userTypes.at(baseTypeName(lUnion)).members;
             llvm::Value* lTag = builder->CreateExtractValue(L, 0, "ltag");
+            llvm::Value* rTag = builder->CreateExtractValue(R, 0, "rtag");
             llvm::Value* lPayload = builder->CreateExtractValue(L, 1, "lpayload");
             llvm::Value* rPayload = builder->CreateExtractValue(R, 1, "rpayload");
-
+            const bool isBooleanResult = op == TokenType::EQ_TO || op == TokenType::NOT_EQ || op == TokenType::LESS || op == TokenType::MORE ||
+                                         op == TokenType::LESS_EQ || op == TokenType::MORE_EQ || op == TokenType::AND || op == TokenType::OR ||
+                                         op == TokenType::XOR;
+            llvm::Type* resultTy = isBooleanResult ? builder->getInt1Ty() : builder->getDoubleTy();
+            llvm::AllocaInst* resultAlloc = createEntryAlloca("union_op_result", resultTy);
+            llvm::BasicBlock* dispatchBB = llvm::BasicBlock::Create(context, "union_op_dispatch", currentFunction);
+            llvm::BasicBlock* badTagBB = llvm::BasicBlock::Create(context, "union_op_bad_tag", currentFunction);
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "union_op_end", currentFunction);
-            bool isComparison = op == TokenType::LESS || op == TokenType::MORE || op == TokenType::LESS_EQ || op == TokenType::MORE_EQ;
-            llvm::AllocaInst* resultAlloc = createEntryAlloca("union_op_result", isComparison ? builder->getInt1Ty() : builder->getDoubleTy());
-
-            llvm::SwitchInst* sw = builder->CreateSwitch(lTag, endBB, members.size());
-
-            for (size_t i = 0; i < members.size(); i++) {
+            llvm::Value* sameTag = builder->CreateICmpEQ(lTag, rTag, "union_same_tag");
+            builder->CreateCondBr(sameTag, dispatchBB, badTagBB);
+            builder->SetInsertPoint(badTagBB);
+            builder->CreateStore(isBooleanResult ? static_cast<llvm::Value*>(builder->getFalse())
+                                                 : static_cast<llvm::Value*>(llvm::ConstantFP::get(builder->getDoubleTy(), 0.0)),
+                                 resultAlloc);
+            builder->CreateBr(endBB);
+            builder->SetInsertPoint(dispatchBB);
+            llvm::SwitchInst* sw = builder->CreateSwitch(lTag, badTagBB, members.size());
+            for (size_t i = 0; i < members.size(); ++i) {
                 llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "union_op_case_" + std::to_string(i), currentFunction);
                 sw->addCase(builder->getInt32(i), caseBB);
                 builder->SetInsertPoint(caseBB);
-
                 std::string ts = members[i].type;
-                size_t c = ts.find(':');
-                if (c != std::string::npos) ts = ts.substr(0, c);
+                size_t colon = ts.find(':');
+                if (colon != std::string::npos) ts = ts.substr(0, colon);
                 llvm::Type* memberTy = llvmTypeFor(ts);
-
-                llvm::Value* lTypedPtr = builder->CreateBitCast(lPayload, llvm::PointerType::get(context, 0));
-                llvm::Value* rTypedPtr = builder->CreateBitCast(rPayload, llvm::PointerType::get(context, 0));
-                llvm::Value* lhsVal = builder->CreateLoad(memberTy, lTypedPtr, "lmember");
-                llvm::Value* rhsVal = builder->CreateLoad(memberTy, rTypedPtr, "rmember");
-
-                bool isFP = memberTy->isFloatingPointTy();
+                if (memberTy->isPointerTy() || memberTy->isArrayTy()) {
+                    cg_error((*bin)->op_tok.pos, "pointer arithmetic is not allowed on unions");
+                    return nullptr;
+                }
+                llvm::Value* lhsVal = builder->CreateLoad(memberTy, lPayload, "lmember");
+                llvm::Value* rhsVal = builder->CreateLoad(memberTy, rPayload, "rmember");
                 llvm::Value* res = nullptr;
-                switch (op) {
-                case TokenType::LESS: res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal) : builder->CreateICmpSLT(lhsVal, rhsVal); break;
-                case TokenType::MORE: res = isFP ? builder->CreateFCmpOGT(lhsVal, rhsVal) : builder->CreateICmpSGT(lhsVal, rhsVal); break;
-                case TokenType::LESS_EQ: res = isFP ? builder->CreateFCmpOLE(lhsVal, rhsVal) : builder->CreateICmpSLE(lhsVal, rhsVal); break;
-                case TokenType::MORE_EQ: res = isFP ? builder->CreateFCmpOGE(lhsVal, rhsVal) : builder->CreateICmpSGE(lhsVal, rhsVal); break;
-                case TokenType::PLUS: res = isFP ? builder->CreateFAdd(lhsVal, rhsVal) : builder->CreateAdd(lhsVal, rhsVal); break;
-                case TokenType::MINUS: res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
-                case TokenType::MUL: res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
-                case TokenType::DIV: res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
-                case TokenType::AMPERSAND: res = builder->CreateAnd(lhsVal, rhsVal); break;
-                case TokenType::PIPE: res = builder->CreateOr(lhsVal, rhsVal); break;
-                case TokenType::BITWISE_XOR: res = builder->CreateXor(lhsVal, rhsVal); break;
-                case TokenType::LSHIFT: res = builder->CreateShl(lhsVal, rhsVal); break;
-                case TokenType::RSHIFT: res = builder->CreateAShr(lhsVal, rhsVal); break;
-                case TokenType::LOGICAL_RSHIFT: res = builder->CreateLShr(lhsVal, rhsVal); break;
-                case TokenType::L_ROT:
-                case TokenType::R_ROT: {
-                    llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
-                    llvm::Function* rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module, id, {lhsVal->getType()});
-                    res = builder->CreateCall(rotFunc, {lhsVal, lhsVal, rhsVal});
-                    break;
+                if (auto* classTy = llvm::dyn_cast<llvm::StructType>(memberTy); classTy && classTy->hasName()) {
+                    std::string className = classTy->getName().str();
+                    std::string methodName = getOperatorMethodName(op);
+                    if (classTypes.contains(className) && !methodName.empty()) {
+                        llvm::Function* method = findMethodOverload(className, methodName, {rhsVal});
+                        if (method) {
+                            llvm::AllocaInst* self = createEntryAlloca("union_op_self", memberTy);
+                            builder->CreateStore(lhsVal, self);
+                            std::vector<llvm::Value*> args = {self, rhsVal};
+                            if (insideTry()) {
+                                auto* contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                res = builder->CreateInvoke(method, contBB, currentLandingPad(), args);
+                                builder->SetInsertPoint(contBB);
+                            } else {
+                                res = builder->CreateCall(method, args, "op_result");
+                            }
+                        }
+                    }
                 }
-                default: res = lhsVal; break;
-                }
+                if (!res && ts == "char" && (op == TokenType::PLUS || op == TokenType::MINUS)) {
+                    llvm::Value* pl = builder->CreateSExtOrTrunc(lhsVal, builder->getInt32Ty(), "char_lhs");
+                    llvm::Value* pr = builder->CreateSExtOrTrunc(rhsVal, builder->getInt32Ty(), "char_rhs");
 
-                llvm::Type* allocTy = resultAlloc->getAllocatedType();
-                if (res->getType() != allocTy) {
-                    if (allocTy->isDoubleTy() && res->getType()->isIntegerTy())
-                        res = builder->CreateSIToFP(res, allocTy);
-                    else if (allocTy->isDoubleTy() && res->getType()->isFloatTy())
-                        res = builder->CreateFPExt(res, allocTy);
+                    res = op == TokenType::PLUS ? builder->CreateAdd(pl, pr, "char_add") : builder->CreateSub(pl, pr, "char_sub");
+                }
+                if (!res) {
+                    const bool isFP = memberTy->isFloatingPointTy();
+                    switch (op) {
+                    case TokenType::AND:
+                    case TokenType::OR:
+                    case TokenType::XOR:
+                        lhsVal = toTruthiness(lhsVal, get_pos((*bin)->left_node));
+                        rhsVal = toTruthiness(rhsVal, get_pos((*bin)->right_node));
+                        if (op == TokenType::AND)
+                            res = builder->CreateAnd(lhsVal, rhsVal, "and");
+                        else if (op == TokenType::OR)
+                            res = builder->CreateOr(lhsVal, rhsVal, "or");
+                        else
+                            res = builder->CreateXor(lhsVal, rhsVal, "xor");
+                        break;
+                    case TokenType::EQ_TO: res = isFP ? builder->CreateFCmpOEQ(lhsVal, rhsVal) : builder->CreateICmpEQ(lhsVal, rhsVal); break;
+                    case TokenType::NOT_EQ: res = isFP ? builder->CreateFCmpONE(lhsVal, rhsVal) : builder->CreateICmpNE(lhsVal, rhsVal); break;
+                    case TokenType::LESS: res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal) : builder->CreateICmpSLT(lhsVal, rhsVal); break;
+                    case TokenType::MORE: res = isFP ? builder->CreateFCmpOGT(lhsVal, rhsVal) : builder->CreateICmpSGT(lhsVal, rhsVal); break;
+                    case TokenType::LESS_EQ: res = isFP ? builder->CreateFCmpOLE(lhsVal, rhsVal) : builder->CreateICmpSLE(lhsVal, rhsVal); break;
+                    case TokenType::MORE_EQ: res = isFP ? builder->CreateFCmpOGE(lhsVal, rhsVal) : builder->CreateICmpSGE(lhsVal, rhsVal); break;
+                    case TokenType::PLUS: res = isFP ? builder->CreateFAdd(lhsVal, rhsVal) : builder->CreateAdd(lhsVal, rhsVal); break;
+                    case TokenType::MINUS: res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
+                    case TokenType::MUL: res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
+                    case TokenType::DIV: res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
+                    case TokenType::MOD: res = isFP ? builder->CreateFRem(lhsVal, rhsVal) : builder->CreateSRem(lhsVal, rhsVal); break;
+                    case TokenType::AMPERSAND:
+                    case TokenType::PIPE:
+                    case TokenType::BITWISE_XOR:
+                        if (isFP) {
+                            cg_error((*bin)->op_tok.pos, "bitwise operation is not allowed "
+                                                         "on floating-point union members");
+                            return nullptr;
+                        }
+
+                        if (op == TokenType::AMPERSAND)
+                            res = builder->CreateAnd(lhsVal, rhsVal);
+                        else if (op == TokenType::PIPE)
+                            res = builder->CreateOr(lhsVal, rhsVal);
+                        else
+                            res = builder->CreateXor(lhsVal, rhsVal);
+                        break;
+                    case TokenType::LSHIFT:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                        if (isFP) {
+                            cg_error((*bin)->op_tok.pos, "shift operation is not allowed on "
+                                                         "floating-point union members");
+                            return nullptr;
+                        }
+                        if (op == TokenType::LSHIFT)
+                            res = builder->CreateShl(lhsVal, rhsVal);
+                        else if (op == TokenType::RSHIFT)
+                            res = builder->CreateAShr(lhsVal, rhsVal);
+                        else
+                            res = builder->CreateLShr(lhsVal, rhsVal);
+                        break;
+                    case TokenType::L_ROT:
+                    case TokenType::R_ROT: {
+                        if (isFP) {
+                            cg_error((*bin)->op_tok.pos, "rotation is not allowed on "
+                                                         "floating-point union members");
+                            return nullptr;
+                        }
+                        llvm::Intrinsic::ID id = op == TokenType::L_ROT ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
+                        llvm::Function* rotation = llvm::Intrinsic::getOrInsertDeclaration(module, id, {memberTy});
+                        res = builder->CreateCall(rotation, {lhsVal, lhsVal, rhsVal}, "union_rotate");
+                        break;
+                    }
+                    default: cg_error((*bin)->op_tok.pos, "unsupported operator for union member " + ts); return nullptr;
+                    }
+                }
+                if (res->getType() != resultTy) {
+                    if (resultTy->isDoubleTy()) {
+                        if (res->getType()->isIntegerTy()) {
+                            res = builder->CreateSIToFP(res, resultTy, "union_to_double");
+                        } else if (res->getType()->isFloatTy()) {
+                            res = builder->CreateFPExt(res, resultTy, "union_to_double");
+                        } else {
+                            cg_error((*bin)->op_tok.pos, "union operator must return a numeric "
+                                                         "value");
+                            return nullptr;
+                        }
+                    } else {
+                        cg_error((*bin)->op_tok.pos, "union boolean operator must return bool");
+                        return nullptr;
+                    }
                 }
                 builder->CreateStore(res, resultAlloc);
                 builder->CreateBr(endBB);
             }
-
             builder->SetInsertPoint(endBB);
-            return builder->CreateLoad(resultAlloc->getAllocatedType(), resultAlloc, "union_op_result");
+            return builder->CreateLoad(resultTy, resultAlloc, "union_op_result");
         }
         if (lIsUnion || rIsUnion) {
             std::string unionName = lIsUnion ? lUnion : rUnion;
@@ -7275,7 +7329,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* payload = builder->CreateExtractValue(unionVal, 1, "payload");
 
             llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "union_op_end", currentFunction);
-            bool isComparison = op == TokenType::LESS || op == TokenType::MORE || op == TokenType::LESS_EQ || op == TokenType::MORE_EQ;
+            bool isComparison = op == TokenType::EQ_TO || op == TokenType::NOT_EQ || op == TokenType::LESS || op == TokenType::MORE ||
+                                op == TokenType::LESS_EQ || op == TokenType::MORE_EQ || op == TokenType::AND || op == TokenType::OR ||
+                                op == TokenType::XOR;
             llvm::Type* resultTy = isComparison ? builder->getInt1Ty() : builder->getDoubleTy();
             llvm::AllocaInst* resultAlloc = createEntryAlloca("union_op_result", resultTy);
 
@@ -7291,15 +7347,79 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 size_t c = ts.find(':');
                 if (c != std::string::npos) ts = ts.substr(0, c);
                 llvm::Type* memberTy = llvmTypeFor(ts);
-
+                bool lhsChar = lIsUnion ? ts == "char" : getExpressionType((*bin)->left_node) == "char";
+                bool rhsChar = rIsUnion ? ts == "char" : getExpressionType((*bin)->right_node) == "char";
                 llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                 llvm::Value* memberVal = builder->CreateLoad(memberTy, typedPtr, "member");
 
                 llvm::Value* lhsVal = lIsUnion ? memberVal : otherVal;
                 llvm::Value* rhsVal = lIsUnion ? otherVal : memberVal;
+                llvm::StructType* classTy = llvm::dyn_cast<llvm::StructType>(lhsVal->getType());
+                llvm::Value* res = nullptr;
 
+                if (classTy && classTy->hasName()) {
+                    std::string className = classTy->getName().str();
+                    std::string methodName = getOperatorMethodName(op);
+
+                    if (classTypes.contains(className) && !methodName.empty()) {
+                        std::vector<llvm::Value*> args = {rhsVal};
+                        llvm::Function* method = findMethodOverload(className, methodName, args);
+                        if (method) {
+                            llvm::AllocaInst* self = createEntryAlloca("union_op_self", lhsVal->getType());
+                            builder->CreateStore(lhsVal, self);
+
+                            std::vector<llvm::Value*> callArgs = {self, rhsVal};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                res = builder->CreateInvoke(method, contBB, currentLandingPad(), callArgs);
+                                builder->SetInsertPoint(contBB);
+                            }
+                            res = builder->CreateCall(method, callArgs, "op_result");
+                        }
+                    }
+                } else {
+                    classTy = llvm::dyn_cast<llvm::StructType>(rhsVal->getType());
+                    if (classTy && classTy->hasName()) {
+                        std::string className = classTy->getName().str();
+                        std::string methodName = getRoperatorMethodName(op);
+
+                        if (classTypes.contains(className) && !methodName.empty()) {
+                            std::vector<llvm::Value*> args = {rhsVal};
+                            llvm::Function* method = findMethodOverload(className, methodName, args);
+                            if (method) {
+                                llvm::AllocaInst* self = createEntryAlloca("union_op_self", rhsVal->getType());
+                                builder->CreateStore(rhsVal, self);
+                                std::vector<llvm::Value*> callArgs = {self, lhsVal};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    res = builder->CreateInvoke(method, contBB, currentLandingPad(), callArgs);
+                                    builder->SetInsertPoint(contBB);
+                                }
+                                res = builder->CreateCall(method, callArgs, "op_result");
+                            }
+                        }
+                    }
+                }
                 llvm::Type* lTy = lhsVal->getType();
                 llvm::Type* rTy = rhsVal->getType();
+                if ((op == TokenType::PLUS || op == TokenType::MINUS) && (lhsChar || rhsChar)) {
+                    if (!lhsVal->getType()->isIntegerTy() || !rhsVal->getType()->isIntegerTy()) {
+                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands");
+                        return nullptr;
+                    }
+                    unsigned width = std::max(32u, std::max(lhsVal->getType()->getIntegerBitWidth(), rhsVal->getType()->getIntegerBitWidth()));
+                    llvm::Type* promotedTy = builder->getIntNTy(width);
+                    lhsVal = builder->CreateSExtOrTrunc(lhsVal, promotedTy);
+                    rhsVal = builder->CreateSExtOrTrunc(rhsVal, promotedTy);
+                    res = op == TokenType::PLUS ? builder->CreateAdd(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal);
+                }
+                bool lhsPtr = lhsVal->getType()->isPointerTy();
+                bool rhsPtr = rhsVal->getType()->isPointerTy();
+                if (lhsPtr || rhsPtr) {
+                    cg_error(get_pos(*bin), "Pointer arithmetic is not allow on unions. Consider extracting the value first.");
+                    return nullptr;
+                }
                 if (lTy != rTy) {
                     if (lTy->isDoubleTy() || rTy->isDoubleTy()) {
                         if (!lTy->isDoubleTy())
@@ -7324,55 +7444,87 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         rhsVal = builder->CreateSIToFP(rhsVal, lTy);
                     }
                 }
-
                 bool isFP = lhsVal->getType()->isFloatingPointTy();
-                llvm::Value* res = nullptr;
-                switch (op) {
-                case TokenType::LESS: res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal) : builder->CreateICmpSLT(lhsVal, rhsVal); break;
-                case TokenType::MORE: res = isFP ? builder->CreateFCmpOGT(lhsVal, rhsVal) : builder->CreateICmpSGT(lhsVal, rhsVal); break;
-                case TokenType::LESS_EQ: res = isFP ? builder->CreateFCmpOLE(lhsVal, rhsVal) : builder->CreateICmpSLE(lhsVal, rhsVal); break;
-                case TokenType::MORE_EQ: res = isFP ? builder->CreateFCmpOGE(lhsVal, rhsVal) : builder->CreateICmpSGE(lhsVal, rhsVal); break;
-                case TokenType::PLUS: res = isFP ? builder->CreateFAdd(lhsVal, rhsVal) : builder->CreateAdd(lhsVal, rhsVal); break;
-                case TokenType::MINUS: res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
-                case TokenType::MUL: res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
-                case TokenType::DIV: res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
-                case TokenType::AMPERSAND:
-                case TokenType::PIPE:
-                case TokenType::BITWISE_XOR:
-                case TokenType::LSHIFT:
-                case TokenType::RSHIFT:
-                case TokenType::LOGICAL_RSHIFT:
-                    if (isFP) {
-                        cg_error((*bin)->op_tok.pos, "bitwise operations not allowed on "
-                                                     "floating-point union members");
-                        return nullptr;
+                if (res == nullptr) {
+                    switch (op) {
+                    case TokenType::AND:
+                    case TokenType::OR:
+                    case TokenType::XOR:
+                        lhsVal = toTruthiness(lhsVal, get_pos((*bin)->left_node));
+                        rhsVal = toTruthiness(rhsVal, get_pos((*bin)->right_node));
+                        if (op == TokenType::AND)
+                            res = builder->CreateAnd(lhsVal, rhsVal);
+                        else if (op == TokenType::OR)
+                            res = builder->CreateOr(lhsVal, rhsVal);
+                        else
+                            res = builder->CreateXor(lhsVal, rhsVal);
+                        break;
+                    case TokenType::NOT_EQ: res = isFP ? builder->CreateFCmpONE(lhsVal, rhsVal) : builder->CreateICmpNE(lhsVal, rhsVal); break;
+                    case TokenType::EQ: res = isFP ? builder->CreateFCmpOEQ(lhsVal, rhsVal) : builder->CreateICmpEQ(lhsVal, rhsVal); break;
+                    case TokenType::MOD: res = isFP ? builder->CreateFRem(lhsVal, rhsVal) : builder->CreateSRem(lhsVal, rhsVal); break;
+                    case TokenType::LESS: res = isFP ? builder->CreateFCmpOLT(lhsVal, rhsVal) : builder->CreateICmpSLT(lhsVal, rhsVal); break;
+                    case TokenType::MORE: res = isFP ? builder->CreateFCmpOGT(lhsVal, rhsVal) : builder->CreateICmpSGT(lhsVal, rhsVal); break;
+                    case TokenType::LESS_EQ: res = isFP ? builder->CreateFCmpOLE(lhsVal, rhsVal) : builder->CreateICmpSLE(lhsVal, rhsVal); break;
+                    case TokenType::MORE_EQ: res = isFP ? builder->CreateFCmpOGE(lhsVal, rhsVal) : builder->CreateICmpSGE(lhsVal, rhsVal); break;
+                    case TokenType::PLUS: res = isFP ? builder->CreateFAdd(lhsVal, rhsVal) : builder->CreateAdd(lhsVal, rhsVal); break;
+                    case TokenType::MINUS: res = isFP ? builder->CreateFSub(lhsVal, rhsVal) : builder->CreateSub(lhsVal, rhsVal); break;
+                    case TokenType::MUL: res = isFP ? builder->CreateFMul(lhsVal, rhsVal) : builder->CreateMul(lhsVal, rhsVal); break;
+                    case TokenType::DIV: res = isFP ? builder->CreateFDiv(lhsVal, rhsVal) : builder->CreateSDiv(lhsVal, rhsVal); break;
+                    case TokenType::AMPERSAND:
+                    case TokenType::PIPE:
+                    case TokenType::BITWISE_XOR:
+                    case TokenType::LSHIFT:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                        if (isFP) {
+                            cg_error((*bin)->op_tok.pos, "bitwise operations not allowed on "
+                                                         "floating-point union members");
+                            return nullptr;
+                        }
+                        if (op == TokenType::AMPERSAND)
+                            res = builder->CreateAnd(lhsVal, rhsVal);
+                        else if (op == TokenType::PIPE)
+                            res = builder->CreateOr(lhsVal, rhsVal);
+                        else if (op == TokenType::BITWISE_XOR)
+                            res = builder->CreateXor(lhsVal, rhsVal);
+                        else if (op == TokenType::LSHIFT)
+                            res = builder->CreateShl(lhsVal, rhsVal);
+                        else if (op == TokenType::RSHIFT)
+                            res = builder->CreateAShr(lhsVal, rhsVal);
+                        else
+                            res = builder->CreateLShr(lhsVal, rhsVal);
+                        break;
+                    case TokenType::L_ROT:
+                    case TokenType::R_ROT: {
+                        if (isFP) {
+                            cg_error((*bin)->op_tok.pos, "rotation not allowed on floating-point union "
+                                                         "members");
+                            return nullptr;
+                        }
+                        llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
+                        llvm::Function* rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module, id, {lhsVal->getType()});
+                        res = builder->CreateCall(rotFunc, {lhsVal, lhsVal, rhsVal});
+                        break;
                     }
-                    if (op == TokenType::AMPERSAND)
-                        res = builder->CreateAnd(lhsVal, rhsVal);
-                    else if (op == TokenType::PIPE)
-                        res = builder->CreateOr(lhsVal, rhsVal);
-                    else if (op == TokenType::BITWISE_XOR)
-                        res = builder->CreateXor(lhsVal, rhsVal);
-                    else if (op == TokenType::LSHIFT)
-                        res = builder->CreateShl(lhsVal, rhsVal);
-                    else if (op == TokenType::RSHIFT)
-                        res = builder->CreateAShr(lhsVal, rhsVal);
-                    else
-                        res = builder->CreateLShr(lhsVal, rhsVal);
-                    break;
-                case TokenType::L_ROT:
-                case TokenType::R_ROT: {
-                    if (isFP) {
-                        cg_error((*bin)->op_tok.pos, "rotation not allowed on floating-point union "
-                                                     "members");
-                        return nullptr;
+                    default: res = memberVal; break;
                     }
-                    llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
-                    llvm::Function* rotFunc = llvm::Intrinsic::getOrInsertDeclaration(module, id, {lhsVal->getType()});
-                    res = builder->CreateCall(rotFunc, {lhsVal, lhsVal, rhsVal});
-                    break;
                 }
-                default: res = memberVal; break;
+                bool isCharArithmetic = (lhsChar || rhsChar) && (op == TokenType::PLUS || op == TokenType::MINUS);
+                if (isCharArithmetic) {
+                    if (!lhsVal->getType()->isIntegerTy() || !rhsVal->getType()->isIntegerTy()) {
+                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands");
+                        return nullptr;
+                    }
+                    bool mixedChar = lhsChar != rhsChar;
+                    llvm::Type* promotedTy = builder->getInt32Ty();
+                    llvm::Value* promotedL = builder->CreateSExtOrTrunc(lhsVal, promotedTy, "char_lhs");
+                    llvm::Value* promotedR = builder->CreateSExtOrTrunc(rhsVal, promotedTy, "char_rhs");
+                    switch (op) {
+                    case TokenType::PLUS: res = builder->CreateAdd(promotedL, promotedR, "char_add"); break;
+                    case TokenType::MINUS: res = builder->CreateSub(promotedL, promotedR, "char_sub"); break;
+                    default: break;
+                    }
+                    if (mixedChar) { res = builder->CreateTrunc(res, builder->getInt8Ty(), "truncate_to_char"); }
                 }
                 llvm::Type* allocTy = resultAlloc->getAllocatedType();
                 if (res->getType() != allocTy) {
@@ -7448,7 +7600,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         bool isCharOperation = false;
-        if ((lTyStr == "char" || rTyStr == "char") && (op == TokenType::PLUS || op == TokenType::MINUS)) {
+        if ((lTyStr == "char" || rTyStr == "char") && (lty->isIntegerTy() && rty->isIntegerTy()) &&
+            (op == TokenType::PLUS || op == TokenType::MINUS)) {
             bool lIsChar = lTyStr == "char";
             bool rIsChar = rTyStr == "char";
             if (lIsChar && rIsChar) {
@@ -7755,22 +7908,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if ((lty->isFloatingPointTy() && rty->isFloatingPointTy())) {
                 return (op == TokenType::EQ_TO) ? builder->CreateFCmpOEQ(L, R, "fcmpeq") : builder->CreateFCmpONE(L, R, "fcmpne");
             }
+            auto isStringLike = [](const std::string& type) { return type == "string" || type == "char*"; };
             if (lty->isPointerTy() && rty->isPointerTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
-
-                if (lType.ends_with("*") || rType.ends_with("*") || lType == "@nullptr" || rType == "@nullptr") {
-                    if (op == TokenType::EQ_TO) {
-                        return builder->CreateICmpEQ(L, R, "ptr_eq");
-                    } else {
-                        return builder->CreateICmpNE(L, R, "ptr_ne");
+                if (isStringLike(lType) && isStringLike(rType)) {
+                    llvm::Function* stringEq = module->getFunction("qc_string_eq");
+                    if (!stringEq) {
+                        auto* ptrTy = llvm::PointerType::get(context, 0);
+                        auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {ptrTy, ptrTy}, false);
+                        stringEq = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_string_eq", module);
                     }
-                } else {
-                    llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
-                    llvm::Value* result = builder->CreateCall(strcmp_fn, {L, R});
-                    if (op == TokenType::NOT_EQ) { result = builder->CreateNot(result); }
-                    return result;
+                    llvm::Value* equal = builder->CreateCall(stringEq, {L, R}, "str_eq");
+                    return op == TokenType::NOT_EQ ? builder->CreateNot(equal, "str_ne") : equal;
                 }
+                return op == TokenType::EQ_TO ? builder->CreateICmpEQ(L, R, "ptr_eq") : builder->CreateICmpNE(L, R, "ptr_ne");
             }
             if (op == TokenType::EQ_TO) {
                 return builder->getInt1(0);
@@ -8041,6 +8193,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         std::string saved_qc_type = qcType;
         qcType = resolveTypeName(qcType);
+        if ((*va)->is_foreign) {
+            llvm::GlobalVariable* global = module->getGlobalVariable(name);
+            if (!global) {
+                global = new llvm::GlobalVariable(*module, llvmTypeFor(qcType), false, llvm::GlobalValue::ExternalLinkage, nullptr, name);
+                globals[name] = global;
+                varTypes[name] = qcType;
+                volatileVars[name] = isVolatile;
+            }
+            return nullptr;
+        }
         if (genericClasses.count(qcType) && genericClasses[qcType]) {
             std::string savedest_qc_type = saved_qc_type;
             std::string inner = saved_qc_type.substr(saved_qc_type.find('<') + 1, saved_qc_type.size() - saved_qc_type.find('<') - 2);
@@ -8744,8 +8906,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             }
         }
-
-        builder->CreateStore(rhs, alloc, isVolatile);
+        if (llvm::isa<llvm::ConstantAggregateZero>(rhs) && srcTy->isArrayTy()) {
+            uint64_t bytes = module->getDataLayout().getTypeAllocSize(srcTy);
+            builder->CreateMemSet(alloc, builder->getInt8(0), bytes, llvm::MaybeAlign(), isVolatile);
+        } else {
+            builder->CreateStore(rhs, alloc, isVolatile);
+        }
         return nullptr;
     } else if (auto acc = std::get_if<VarAccessNode*>(&node)) {
         std::string name = (*acc)->var_name_tok.value;
@@ -9330,11 +9496,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         return nullptr;
                     }
-                    std::sort(candidates.begin(), candidates.end(),
-                              [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
-                    if (candidates[0].score > 0) {
-                        cg_note(get_pos(*acc), "closest matching overload: " + candidates[0].method->print());
-                    }
+                    std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) { return a.score > b.score; });
+                    if (candidates[0].score > 0) { cg_note(get_pos(*acc), "closest matching overload: " + candidates[0].method->print()); }
                     if (candidates.size() <= 5) {
                         std::string note = "available overloads:";
                         for (auto& candidate : candidates) { note += "\n  - " + candidate.method->print(); }
@@ -9368,7 +9531,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::LROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
         case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
         default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator."); return nullptr;
-        } 
+        }
         builder->CreateStore(newVal, alloc, resolveVolatileVar(name));
         return newVal;
     } else if (auto unary = std::get_if<UnaryOpNode*>(&node)) {
@@ -12800,14 +12963,9 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     auto* func = module->getFunction(name);
     functionSignatures[name] = {fTy, {}};
     if (func) {
-        if (func->getFunctionType() != fTy) {
-            cg_warn(fn.getPos(), "conflicting declaration for function " + name);
-        }
-        if (fn.is_foreign || fn.is_header)
-            return func;
-        if (!func->empty()) {
-            cg_warn(fn.getPos(), "redefinition of function " + name);
-        }
+        if (func->getFunctionType() != fTy) { cg_warn(fn.getPos(), "conflicting declaration for function " + name); }
+        if (fn.is_foreign || fn.is_header) return func;
+        if (!func->empty()) { cg_warn(fn.getPos(), "redefinition of function " + name); }
         func->setLinkage(linkage);
     } else {
         func = llvm::Function::Create(fTy, linkage, name, module);
@@ -13708,20 +13866,47 @@ void LLVMCompiler::emitStmt(AnyNode node) {
     } else if (auto arrDecl = safe_get<ArrayDeclNode>(node)) {
         std::string name = arrDecl->var_name_tok.value;
         std::string elemType = arrDecl->type_tok.value;
-        arrayTypeStrings[name] = elemType;
+        bool isVolatile = false;
+        if (elemType.starts_with("volatile ")) {
+            isVolatile = true;
+            elemType.erase(0, 9);
+        }
         llvm::Type* elemTy = llvmTypeFor(elemType);
+        if (!elemTy) {
+            cg_error(arrDecl->type_tok.pos, "unknown array element type: " + elemType);
+            return;
+        }
+        arrayTypeStrings[name] = elemType;
         if (!std::holds_alternative<ArrayLiteralNode*>(arrDecl->value) && !std::holds_alternative<std::monostate>(arrDecl->value)) {
 
             llvm::Value* arrPtr = emitExpr(arrDecl->value);
             if (!arrPtr) return;
 
             llvm::AllocaInst* alloc = createEntryAlloca(name, arrPtr->getType());
-            builder->CreateStore(arrPtr, alloc);
+            builder->CreateStore(arrPtr, alloc, isVolatile);
             locals[name] = alloc;
-
+            volatileVars[name] = isVolatile;
             return;
         }
         if (auto arrLit = std::get_if<ArrayLiteralNode*>(&arrDecl->value)) {
+            if ((*arrLit)->elements.empty()) {
+                llvm::Value* lengthValue = emitExpr((*arrLit)->length);
+                auto* lengthConstant = llvm::dyn_cast<llvm::ConstantInt>(lengthValue);
+                if (!lengthConstant) {
+                    cg_error(get_pos(*arrLit), "array length must be constant");
+                    return;
+                }
+                uint64_t length = lengthConstant->getZExtValue();
+                auto* arrTy = llvm::ArrayType::get(elemTy, length);
+                auto* alloc = createEntryAlloca(name, arrTy);
+                uint64_t bytes = module->getDataLayout().getTypeAllocSize(arrTy).getFixedValue();
+                builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(bytes), llvm::MaybeAlign(1), isVolatile);
+                locals[name] = alloc;
+                arrayTypeStrings[name] = elemType;
+                arrayLengths[name] = length;
+                volatileVars[name] = isVolatile;
+                return;
+            }
             bool hasSpread = false;
             for (auto& elem : (*arrLit)->elements) {
                 if (std::holds_alternative<SpreadNode*>(elem)) {
@@ -13757,10 +13942,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     runtimeArraySizes[name] = sizeAlloc;
                 }
                 llvm::AllocaInst* alloc = createEntryAlloca(name, arrPtr->getType());
-                builder->CreateStore(arrPtr, alloc);
+                builder->CreateStore(arrPtr, alloc, isVolatile);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = alloc;
                 arrayTypeStrings[fullName] = elemType;
+                volatileVars[fullName] = isVolatile;
                 return;
             }
             auto [isJagged, depth] = checkJagged(arrDecl->value);
@@ -13786,9 +13972,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* jaggedArr = createJaggedArray(arrDecl->value, elemTypeCode, depth - 1);
                 llvm::Type* ptrTy = llvm::PointerType::get(context, 0);
                 llvm::AllocaInst* alloc = createEntryAlloca(name, ptrTy);
-                builder->CreateStore(jaggedArr, alloc);
+                builder->CreateStore(jaggedArr, alloc, isVolatile);
                 std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
                 locals[fullName] = alloc;
+                volatileVars[fullName] = isVolatile;
                 jaggedArrays[fullName] = {elemTypeCode, depth};
                 return;
             }
@@ -13825,13 +14012,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* arrPtr = builder->CreateBitCast(mallocCall, llvm::PointerType::get(context, 0), "arr_cast");
 
                 alloc = createEntryAlloca(name, llvm::PointerType::get(context, 0));
-                builder->CreateStore(arrPtr, alloc);
+                builder->CreateStore(arrPtr, alloc, isVolatile);
                 arrayTypeStrings[name] = elemType;
             } else {
                 alloc = createEntryAlloca(name, arrTy);
             }
             std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = alloc;
+            volatileVars[fullName] = isVolatile;
             std::function<void(llvm::Value*, llvm::Type*, AnyNode&, std::vector<uint64_t>&)> initArray;
             initArray = [&](llvm::Value* ptr, llvm::Type* ty, AnyNode& node, std::vector<uint64_t>& indices) {
                 if (auto lit = std::get_if<ArrayLiteralNode*>(&node)) {
@@ -13869,12 +14057,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (std::holds_alternative<std::monostate>(arrDecl->value)) {
                 llvm::ArrayType* arrTy = llvm::ArrayType::get(elemTy, arraySize);
                 llvm::AllocaInst* alloc = createEntryAlloca(name, arrTy);
-                llvm::Value* zeroInit = llvm::ConstantAggregateZero::get(arrTy);
-                builder->CreateStore(zeroInit, alloc);
+                const llvm::DataLayout& dl = module->getDataLayout();
+                uint64_t sizeBytes = dl.getTypeAllocSize(arrTy).getFixedValue();
+                builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(sizeBytes), llvm::MaybeAlign(1), isVolatile);
                 locals[name] = alloc;
                 arrayTypeStrings[name] = elemType;
                 arrayLengths[name] = arraySize;
-
+                volatileVars[name] = isVolatile;
                 return;
             }
         }
@@ -13934,7 +14123,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
                         std::vector<llvm::Value*> indices = {builder->getInt32(0), builder->getInt32(i)};
                         llvm::Value* idxPtr = builder->CreateInBoundsGEP(indicesArrTy, indicesAlloc, indices);
-                        builder->CreateStore(indexVal, idxPtr);
+                        builder->CreateStore(indexVal, idxPtr, hasVolatileVar(name) ? findVolatileVar(name)->second : false);
                     }
 
                     llvm::Function* getFn = module->getFunction("qc_jagged_array_get");
@@ -13967,7 +14156,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     }
 
                     llvm::Value* typedPtr = builder->CreateBitCast(elemPtr, llvm::PointerType::get(context, 0));
-                    builder->CreateStore(valueVal, typedPtr);
+                    builder->CreateStore(valueVal, typedPtr, hasVolatileVar(name) ? findVolatileVar(name)->second : false);
 
                     return;
                 }
@@ -13986,17 +14175,17 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* valueVal = emitExpr(arrAssign->value);
                 if (!valueVal) return;
                 if (arrTy->isPointerTy()) {
-                    llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, "arr_ptr");
+                    llvm::Value* ptr = builder->CreateLoad(arrTy, arrAlloc, hasVolatileVar(name) ? findVolatileVar(name)->second : false, "arr_ptr");
                     llvm::Type* elemTy = valueVal->getType();
 
                     llvm::Value* elemPtr = builder->CreateGEP(elemTy, ptr, indexVal, "arr_elem_ptr");
 
-                    builder->CreateStore(valueVal, elemPtr);
+                    builder->CreateStore(valueVal, elemPtr, hasVolatileVar(name) ? findVolatileVar(name)->second : false);
                 } else if (arrTy->isArrayTy()) {
                     std::vector<llvm::Value*> indices = {builder->getInt32(0), indexVal};
                     llvm::Value* elemPtr = builder->CreateInBoundsGEP(arrTy, arrAlloc, indices, "arr_elem_ptr");
 
-                    builder->CreateStore(valueVal, elemPtr);
+                    builder->CreateStore(valueVal, elemPtr, hasVolatileVar(name) ? findVolatileVar(name)->second : false);
                 }
             }
         }
@@ -14015,7 +14204,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::Value* collVal;
         if (auto varAccess = std::get_if<VarAccessNode*>(&foreach->collection)) {
             collName = (*varAccess)->var_name_tok.value;
-            collTypeName = varTypes[collName];
+            collTypeName = resolveVarType(collName);
             llvm::Value* alloc = getVarAddress(collName);
             if (alloc) {
                 llvm::Type* allocTy = getPointeeType(collName);
@@ -14106,6 +14295,8 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             namespaceStack = oldNamespaceStack;
         }
         enterScope();
+        llvm::BasicBlock* savedBreakBB = currentBreakBB;
+        llvm::BasicBlock* savedContinueBB = currentContinueBB;
         llvm::Type* elemTy = llvmTypeFor(foreach->elem_type.value);
         llvm::AllocaInst* iterAlloc = createEntryAlloca(iterName, builder->getInt32Ty());
         llvm::AllocaInst* elemAlloc = createEntryAlloca(elemName, elemTy);
@@ -14116,9 +14307,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateStore(builder->getInt32(0), iterAlloc);
         llvm::BasicBlock* condBB = llvm::BasicBlock::Create(context, "foreach.cond", currentFunction);
         llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(context, "foreach.body", currentFunction);
-        llvm::BasicBlock* incBB = llvm::BasicBlock::Create(context, "foreach.inc", currentFunction);
+        llvm::BasicBlock* incBB = nullptr;
+        if (isArray) incBB = llvm::BasicBlock::Create(context, "foreach.inc", currentFunction);
         llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "foreach.end", currentFunction);
-        builder->CreateBr(condBB);
+        if (isIterator)
+            currentContinueBB = condBB;
+        else
+            currentContinueBB = incBB;
+        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(condBB); }
         builder->SetInsertPoint(condBB);
         if (isArray) {
             llvm::Value* iVal = builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
@@ -14131,6 +14327,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
 
         builder->SetInsertPoint(bodyBB);
+        currentBreakBB = endBB;
         llvm::Value* elemVal = nullptr;
         if (isArray && arrayAlloc) {
             llvm::Value* iVal = builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
@@ -14148,7 +14345,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
             builder->CreateStore(elemVal, elemAlloc);
             emitStmt(foreach->body);
-            builder->CreateBr(incBB);
+            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(incBB); }
             builder->SetInsertPoint(incBB);
             llvm::Value* iVal2 = builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
             llvm::Value* incVal = builder->CreateAdd(iVal2, builder->getInt32(1), "i_inc");
@@ -14160,13 +14357,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             llvm::Value* cur = emitMethodCall(nextFn, iterObjAlloc, {}, "_next");
             builder->CreateStore(cur, elemAlloc);
             emitStmt(foreach->body);
-            builder->CreateBr(condBB);
+            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(condBB); }
         }
         builder->SetInsertPoint(endBB);
         exitScope();
         locals.erase(iterName);
         locals.erase(elemName);
-
+        currentBreakBB = savedBreakBB;
+        currentContinueBB = savedContinueBB;
         return;
     } else if (auto stmts = safe_get<StatementsNode>(node)) {
         for (auto& stmt : stmts->statements) { emitStmt(stmt); }
@@ -14297,19 +14495,23 @@ std::vector<CTError> LLVMCompiler::compile(
         }
     }
     createUserTypes();
+    auto createGlobal = [&](VarAssignNode* va) {
+        const bool foreign = va->is_foreign;
+        std::string name = foreign || getCurrentNamespace().empty() ? va->var_name_tok.value : getCurrentNamespace() + "::" + va->var_name_tok.value;
+        llvm::Type* ty = llvmTypeFor(va->type_tok.value);
+        llvm::GlobalVariable* gv = module->getGlobalVariable(name);
+        if (!gv) {
+            llvm::Constant* initializer = foreign ? nullptr : llvm::Constant::getNullValue(ty);
+            gv = new llvm::GlobalVariable(*module, ty, false, llvm::GlobalValue::ExternalLinkage, initializer, name);
+        }
+        globals[name] = gv;
+        varTypes[name] = va->type_tok.value;
+    };
     std::function<void(NamespaceNode&)> createGlobals = [&](NamespaceNode& ns) {
         namespaceStack.push_back(ns.name);
         for (auto& decl : ns.body) {
             if (auto va = std::get_if<VarAssignNode*>(&decl)) {
-                std::string fullName = getCurrentNamespace().empty() ? (*va)->var_name_tok.value
-                                                                     : getCurrentNamespace() + "::" + (*va)->var_name_tok.value;
-                llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
-                auto* gv = module->getGlobalVariable(fullName);
-                if (!gv) {
-                    gv = new llvm::GlobalVariable(*module, ty, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(ty), fullName);
-                }
-                globals[fullName] = gv;
-                varTypes[fullName] = (*va)->type_tok.value;
+                createGlobal(*va);
             } else if (auto nested = std::get_if<NamespaceNode*>(&decl)) {
                 createGlobals(**nested);
             }
@@ -14320,14 +14522,7 @@ std::vector<CTError> LLVMCompiler::compile(
         if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
             createGlobals(**ns);
         } else if (auto va = std::get_if<VarAssignNode*>(&stmt)) {
-            std::string name = (*va)->var_name_tok.value;
-            llvm::Type* ty = llvmTypeFor((*va)->type_tok.value);
-            auto* gv = module->getGlobalVariable(name);
-            if (!gv) {
-                gv = new llvm::GlobalVariable(*module, ty, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(ty), name);
-            }
-            globals[name] = gv;
-            varTypes[name] = (*va)->type_tok.value;
+            createGlobal(*va);
         }
     }
     std::function<void(NamespaceNode&)> scanGenericFunctions = [&](NamespaceNode& ns) {
@@ -15476,8 +15671,9 @@ Token Lexer::make_identifier() {
         id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || id == "const" || id == "default" || id == "class" || id == "struct" ||
         id == "enum" || id == "long" || id == "short" || id == "fn" || id == "continue" || id == "auto" || id == "foreach" || id == "do" ||
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
-        id == "function" || id == "namespace" || id == "roperator" || id == "operator" || id == "abstract" || id == "final" || id == "try" || id == "catch" ||
-        id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" || id == "nibble") {
+        id == "function" || id == "namespace" || id == "roperator" || id == "operator" || id == "abstract" || id == "final" || id == "try" ||
+        id == "catch" || id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" ||
+        id == "nibble") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }

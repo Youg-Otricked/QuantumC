@@ -1,0 +1,9 @@
+int float double bool case string qbool void
+char break if else while for switch return
+qif qelse qelif qswitch const default class struct
+enum long short fn continue auto foreach do
+in type foreign public protected private extern
+function namespace roperator operator abstract final try
+catch nullptr addr_t out inout volatile restrict byte
+nibble true false qtrue qfalse both none sizeof throw
+

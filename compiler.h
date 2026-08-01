@@ -571,8 +571,9 @@ class VarAssignNode {
     Token var_name_tok;
     AnyNode value_node;
     Position getPos() { return var_name_tok.pos; }
-    VarAssignNode(bool is_const, Token type, Token name, AnyNode value) : is_const(is_const), type_tok(type), var_name_tok(name), value_node(value) {}
-
+    VarAssignNode(bool is_const, Token type, Token name, AnyNode value, bool is_foreign = false)
+        : is_const(is_const), is_foreign(is_foreign), type_tok(type), var_name_tok(name), value_node(value) {}
+    bool is_foreign;
     std::string print() const;
 };
 
@@ -719,7 +720,8 @@ class FuncDefNode {
     bool is_volatile = false;
     bool is_header = true;
     FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, StatementsNode* func_body,
-                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false, bool is_header = false)
+                std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false,
+                bool is_header = false)
         : return_types(ret_types), name_tok(name), params(parameters), body(func_body), namespace_path(ns) {
         this->is_extern = is_ex;
         this->is_foreign = is_f;
@@ -1681,6 +1683,7 @@ class LLVMCompiler {
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
                 if (type.ends_with("*") && strip) { type.pop_back(); }
             }
+            if ((*unaryOp)->op_tok.type == TokenType::AMPERSAND) { return type + "*"; }
             if ((*unaryOp)->op_tok.type == TokenType::SIZEOF) { return "addr_t"; }
             return type;
         } else if (auto binOp = std::get_if<BinOpNode*>(&node)) {
@@ -1722,6 +1725,10 @@ class LLVMCompiler {
             if (hasArrayType(varName)) { return substituteGenerics(findArrayType(varName)->second) + "[]"; }
         } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
             std::string baseType = getExpressionType((*arrAcc)->base);
+            if (baseType.ends_with(']')) {
+                const size_t open = baseType.rfind('[');
+                if (open != std::string::npos) { return baseType.substr(0, open); }
+            }
             if (baseType.ends_with("*")) {
                 return baseType.substr(0, baseType.size() - 1);
             } else if (baseType == "string") {
@@ -1729,7 +1736,7 @@ class LLVMCompiler {
             } else {
                 if (auto varAcc = std::get_if<VarAccessNode*>(&(*arrAcc)->base)) {
                     std::string name = (*varAcc)->var_name_tok.value;
-                    if (hasArrayType(name)) { return findArrayType(name)->second; }
+                    if (auto arrayType = resolveArrayType(name)) { return *arrayType; }
                 }
             }
             std::string className = baseTypeName(baseType);
@@ -2065,6 +2072,19 @@ class LLVMCompiler {
                 llvm::Value* base = emitExpr((*arrAcc)->base);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
                 return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_ptr_arr_addr");
+            }
+            if (ptrTy.ends_with("[]")) {
+                llvm::Value* slot = emitLValue((*arrAcc)->base);
+                llvm::Value* index = emitExpr((*arrAcc)->indices[0]);
+                if (!slot || !index) return nullptr;
+                std::string elementName = ptrTy.substr(0, ptrTy.size() - 2);
+                llvm::Type* elementTy = llvmTypeFor(elementName);
+                if (!elementTy) {
+                    cg_error(get_pos((*arrAcc)->base), "invalid array element type: " + elementName);
+                    return nullptr;
+                }
+                llvm::Value* dataPtr = builder->CreateLoad(builder->getPtrTy(), slot, "array_data");
+                return builder->CreateInBoundsGEP(elementTy, dataPtr, index, "lval_arr_addr");
             }
             if (ptrTy.ends_with("]")) {
                 llvm::Value* base = emitLValue((*arrAcc)->base);
@@ -2832,14 +2852,33 @@ class LLVMCompiler {
     }
     std::vector<llvm::Value*> prepareArgs(ClassMethodInfo* info, std::vector<AnyNode>& argNodes) {
         std::vector<llvm::Value*> args;
-        for (size_t i = 0; i < argNodes.size(); i++) {
-            bool isRef = info && i < info->params.size() && info->params[i].type.value.ends_with("&");
-            if (isRef) {
-                args.push_back(emitLValue(argNodes[i]));
-            } else {
-                args.push_back(emitExpr(argNodes[i]));
+        for (size_t i = 0; i < argNodes.size(); ++i) {
+            llvm::Type* paramTy = nullptr;
+            bool isRef = false;
+            if (info && i < info->params.size()) {
+                const std::string& typeName = info->params[i].type.value;
+                isRef = typeName.ends_with("&");
+                paramTy = llvmTypeFor(typeName);
             }
+            llvm::Value* value = nullptr;
+            if (isRef) {
+                value = emitLValue(argNodes[i]);
+            } else if (paramTy && paramTy->isPointerTy()) {
+                value = emitExpr(argNodes[i]);
+            } else {
+                value = emitExpr(argNodes[i]);
+            }
+            if (!value) {
+                cg_error(get_pos(argNodes[i]), "failed to emit method argument");
+                return {};
+            }
+            if (paramTy) {
+                value = adaptArgumentForParam(value, argNodes[i], paramTy, i);
+                if (!value) return {};
+            }
+            args.push_back(value);
         }
+
         return args;
     }
     llvm::Value* emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args, const std::string& name);
@@ -2966,6 +3005,15 @@ class LLVMCompiler {
     }
     llvm::Value* decayArrayToPointer(llvm::Value* v) {
         if (!v) return nullptr;
+        if (auto* load = llvm::dyn_cast<llvm::LoadInst>(v)) {
+            if (auto* arrayTy = llvm::dyn_cast<llvm::ArrayType>(load->getType())) {
+                llvm::Value* address = load->getPointerOperand();
+                llvm::Value* result = builder->CreateInBoundsGEP(arrayTy, address, {builder->getInt32(0), builder->getInt32(0)}, "decayptr");
+                if (load->use_empty()) load->eraseFromParent();
+
+                return result;
+            }
+        }
         if (auto* global = llvm::dyn_cast<llvm::GlobalVariable>(v)) {
             auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(global->getValueType());
             if (arrTy) { return builder->CreateInBoundsGEP(arrTy, global, {builder->getInt32(0), builder->getInt32(0)}, "decayptr"); }
@@ -2979,7 +3027,7 @@ class LLVMCompiler {
             llvm::AllocaInst* tmp = builder->CreateAlloca(arrTy);
             llvm::Value* srcPtr = builder->CreateAlloca(arrTy);
             builder->CreateStore(v, srcPtr);
-            builder->CreateMemCpy(tmp, llvm::MaybeAlign(), srcPtr, llvm::MaybeAlign(), arrTy->getPrimitiveSizeInBits() / 8);
+            builder->CreateMemCpy(tmp, llvm::MaybeAlign(), srcPtr, llvm::MaybeAlign(), module->getDataLayout().getTypeAllocSize(arrTy));
             return builder->CreateInBoundsGEP(arrTy, tmp, {builder->getInt32(0), builder->getInt32(0)});
         }
         if (v->getType()->isPointerTy()) return v;
@@ -3133,8 +3181,9 @@ class LLVMCompiler {
         }
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
-        if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
-        else if (!userTypes[baseTypeName(className)].namespace_path.empty()) {
+        if (nsSep != std::string::npos) {
+            namespaceStack = {specializedName.substr(0, nsSep)};
+        } else if (!userTypes[baseTypeName(className)].namespace_path.empty()) {
             namespaceStack = {userTypes[baseTypeName(className)].namespace_path};
         }
         enterScope();
@@ -3408,17 +3457,8 @@ class LLVMCompiler {
         return fn;
     }
     llvm::GlobalVariable* getOrCreateVtable(const std::string& name, llvm::ArrayType* type, llvm::Constant* initializer) {
-        if (auto* existing = module->getNamedGlobal(name)) {
-            return existing;
-        }
-        return new llvm::GlobalVariable(
-            *module,
-            type,
-            true,
-            llvm::GlobalValue::ExternalLinkage,
-            initializer,
-            name
-        );
+        if (auto* existing = module->getNamedGlobal(name)) { return existing; }
+        return new llvm::GlobalVariable(*module, type, true, llvm::GlobalValue::ExternalLinkage, initializer, name);
     }
     llvm::Value* packVariadicArgs(const std::vector<llvm::Value*>& var_vals) {
         llvm::Value* args_cnt = builder->getInt32(var_vals.size());
@@ -3764,6 +3804,18 @@ class LLVMCompiler {
         }
         if (hasVolatileVar(name)) return findVolatileVar(name)->second;
         return false;
+    }
+    std::optional<std::string> resolveArrayType(const std::string& name) {
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string fullName = current.empty() ? name : current + "::" + name;
+            if (hasArrayType(fullName)) { return findArrayType(fullName)->second; }
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = pos == std::string::npos ? "" : current.substr(0, pos);
+        }
+        if (hasArrayType(name)) { return findArrayType(name)->second; }
+        return std::nullopt;
     }
     llvm::Value* getVarAddress(const std::string& name) {
         llvm::Value* addr = resolveVariable(name);

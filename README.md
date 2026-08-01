@@ -114,7 +114,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.24.31 = ".hqc files so you can include from .so files instead of undefined errors""
+Current Version: x0.24.32 = "Various bugfixes"
 Next Version: x0.25.0 = "Token/(maybe)Ident primitive types"
 
 # Current Version Highlights
@@ -133,7 +133,7 @@ Minor
 └─ .hqc
 
 Patch
-└─ Wow that was a stupid bug
+└─ Various bug-fixes
 ```
 
 # Recent Deprecations / Breaking Changes
@@ -167,7 +167,6 @@ No Deprecations!
 | **Future**          | Stdlib Part 3                                                          | Planned     |
 |                     | Concurrency functions                                                  | Planned     |
 |                     | Inline ASM                                                             | Done        |
-|                     | HTTP                                                                   | Planned     |
 |                     | Generics                                                               | Done        |
 |                     |     Classes                                                            | Done        |
 |                     |     Structs                                                            | Done        |

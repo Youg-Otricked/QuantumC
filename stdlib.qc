@@ -119,7 +119,6 @@ namespace Array {
             this.size = 0;
         }
         void operator[]=(T* data, int length) {
-            `free(this.data);
             if (S == 0) {
                 this.size = length;
             } else {
@@ -144,7 +143,7 @@ namespace Array {
             this.data = nullptr;
             this.size = -1;
         }
-        Arr<T, S> operator=(Arr<T, S> other) {
+        Arr<T, S>& operator=(Arr<T, S> other) {
             if (other.size != this.size) {
                 return Arr();
             }
@@ -242,7 +241,6 @@ namespace Vector {
             this.reserve(this.size);
         }
         void operator[]=(T* data, int length) {
-            `free(this.data);
             this.capacity = length;
             this.size = length;
             this.data = `malloc(sizeof "T" * this.capacity);
@@ -265,7 +263,7 @@ namespace Vector {
             this.size = -1;
             this.capacity = -1;
         }
-        Vec<T> operator=(Vec<T> other) {
+        Vec<T>& operator=(Vec<T> other) {
             if (other.capacity != this.capacity) {
                 this.reserve(other.capacity);
             }
@@ -453,12 +451,13 @@ namespace List {
             return node.data;
         }
         void operator[]=(T* data, int length) {
-            this.clear();
+            this.head = nullptr;
+            this.tail = nullptr;
             for (int i = 0; i < length; i++) {
                 this.pushBack(data[i]);
             }
         }
-        List<T> operator=(List<T> other) {
+        List<T>& operator=(List<T> other) {
             this.clear();
 
             Node<T>* current = other.head;
@@ -508,7 +507,7 @@ namespace Utils {
                 mov r10, $2r
                 syscall
                 mov $0=r, rax
-            )", result, &req[0], &(rem.rem_sec), "~{rax}~{rdi}~{rsi}~{rdx}~{r10}~{rcx}~{r11}");
+            )", result, &(req[0]), &(rem.rem_sec), "~{rax}~{rdi}~{rsi}~{rdx}~{r10}~{rcx}~{r11}");
             if (result == 0) {
                 break;
             }
