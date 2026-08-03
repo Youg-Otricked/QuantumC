@@ -9828,7 +9828,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             }
             llvm::Value* structVal = llvm::ConstantAggregateZero::get(structTy);
-            auto structInfo = userTypes.find(baseTypeName((*mapLit)->struct_type))->second;
+            auto structInfo = userTypes.find(baseTypeName((*arrLit)->type))->second;
             for (size_t i = 0; i < (*arrLit)->elements.size(); i++) {
                 std::string fieldType = structInfo.fields[i].type;
                 auto fieldTypeIt = userTypes.find(fieldType);
@@ -11719,7 +11719,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::string type = memberIt->second.type;
                     std::string value = memberIt->second.value;
 
-                    llvm::StructType* enumTy = enumTypes[baseName];
+                    llvm::StructType* enumTy = enumTypes[resolved];
                     llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
 
                     enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
@@ -15684,13 +15684,10 @@ Token Lexer::make_string() {
     std::string str = "";
     Position start_pos = this->pos.copy();
     bool escape_character = false;
-
     this->advance();
-
     while (this->current_char != '\0' && (this->current_char != '"' || escape_character)) {
         if (escape_character) {
             switch (this->current_char) {
-            case '0': str += '\0'; break;
             case 'a': str += '\a'; break;
             case 'b': str += '\b'; break;
             case 't': str += '\t'; break;
@@ -15698,11 +15695,13 @@ Token Lexer::make_string() {
             case 'v': str += '\v'; break;
             case 'f': str += '\f'; break;
             case 'r': str += '\r'; break;
+            case 'e': str += '\x1B'; break;
             case '\\': str += '\\'; break;
             case '"': str += '"'; break;
             case 'x': {
+                escape_character = false;
                 this->advance();
-                if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
+                if (!std::isxdigit(static_cast<unsigned char>(this->current_char))) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
                 std::string hex = "";
                 while (std::isxdigit(this->current_char) && hex.size() < 2) {
                     hex += this->current_char;
@@ -15711,10 +15710,21 @@ Token Lexer::make_string() {
                 if (hex.size() != 2) { throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos); }
 
                 str += static_cast<char>(std::stoi(hex, nullptr, 16));
-
-                break;
+                continue;
             }
-            default: str += this->current_char; break;
+            default:
+                if (this->current_char >= '0' && this->current_char <= '7') {
+                    escape_character = false;
+                    std::string octal;
+                    for (int i = 0; i < 3 && this->current_char >= '0' && this->current_char <= '7'; ++i) {
+                        octal += this->current_char;
+                        this->advance();
+                    }
+                    str += static_cast<char>(std::stoi(octal, nullptr, 8));
+                    continue;
+                }
+                str += this->current_char;
+                break;
             }
             escape_character = false;
         } else {
@@ -15738,12 +15748,12 @@ Token Lexer::make_string() {
 Token Lexer::make_char() {
     Position start_pos = this->pos.copy();
     this->advance();
-
+    bool already_advanced = false;
     std::string val = "";
     if (this->current_char == '\\') {
         this->advance();
         switch (this->current_char) {
-        case '0': val = std::string(1, '\0'); break;
+        case 'e': val = std::string(1, '\x1B'); break;
         case 'a': val = std::string(1, '\a'); break;
         case 'b': val = std::string(1, '\b'); break;
         case 't': val = std::string(1, '\t'); break;
@@ -15756,19 +15766,36 @@ Token Lexer::make_char() {
         case '"': val = std::string(1, '"'); break;
         case 'x': {
             this->advance();
-            std::string hex = "";
-            for (int i = 0; i < 2; i++) {
-                if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC01: Invalid hex escape", this->pos); }
+            std::string hex;
+
+            for (int i = 0; i < 2; ++i) {
+                if (!std::isxdigit(static_cast<unsigned char>(this->current_char))) {
+                    throw IllegalCharError("QC-IC01: Invalid hex escape", this->pos);
+                }
+
                 hex += this->current_char;
                 this->advance();
             }
-            int byte = std::stoi(hex, nullptr, 16);
-            val = std::string(1, static_cast<char>(byte));
+
+            val = std::string(1, static_cast<char>(std::stoi(hex, nullptr, 16)));
+            already_advanced = true;
             break;
         }
-        default: val = std::string(1, this->current_char); break;
+        default:
+            if (this->current_char >= '0' && this->current_char <= '7') {
+                std::string octal;
+                for (int i = 0; i < 3 && this->current_char >= '0' && this->current_char <= '7'; ++i) {
+                    octal += this->current_char;
+                    this->advance();
+                }
+                already_advanced = true;
+                val = std::string(1, static_cast<char>(std::stoi(octal, nullptr, 8)));
+            } else {
+                val = std::string(1, this->current_char);
+                break;
+            }
         }
-        this->advance();
+        if (!already_advanced) this->advance();
     } else {
         val = std::string(1, this->current_char);
         this->advance();
@@ -15791,7 +15818,7 @@ Token Lexer::make_fstring() {
     while (this->current_char != '\0' && (this->current_char != '"' || escape)) {
         if (escape) {
             switch (this->current_char) {
-            case '0': current += '\0'; break;
+            case 'e': current += '\x1B'; break;
             case 'a': current += '\a'; break;
             case 'b': current += '\b'; break;
             case 't': current += '\t'; break;
@@ -15802,6 +15829,7 @@ Token Lexer::make_fstring() {
             case '\\': current += '\\'; break;
             case '"': current += '"'; break;
             case 'x': {
+                escape = false;
                 this->advance();
                 if (!std::isxdigit(this->current_char)) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
                 std::string hex = "";
@@ -15810,12 +15838,22 @@ Token Lexer::make_fstring() {
                     this->advance();
                 }
                 if (hex.size() != 2) { throw IllegalCharError("QC-IC02: Expected two hex digits after \\x", this->pos); }
-
                 current += static_cast<char>(std::stoi(hex, nullptr, 16));
-
-                break;
+                continue;
             }
-            default: current += this->current_char; break;
+            default:
+                escape = false;
+                if (this->current_char >= '0' && this->current_char <= '7') {
+                    std::string octal;
+                    for (int i = 0; i < 3 && this->current_char >= '0' && this->current_char <= '7'; ++i) {
+                        octal += this->current_char;
+                        this->advance();
+                    }
+                    current += static_cast<char>(std::stoi(octal, nullptr, 8));
+                    continue;
+                }
+                current += this->current_char;
+                break;
             }
             escape = false;
             this->advance();
