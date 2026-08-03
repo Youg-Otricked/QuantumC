@@ -77,6 +77,8 @@ std::string strip(const std::string& s) {
     return r;
 }
 bool loose;
+std::vector<std::string> to_link;
+std::vector<std::string> to_link_dir;
 std::unordered_map<std::string, std::string> aliases;
 std::unordered_map<std::string, std::string> dir_aliases;
 std::string entrypointName = "main";
@@ -14516,13 +14518,14 @@ std::vector<CTError> LLVMCompiler::compile(
         }
         namespaceStack.pop_back();
     };
-    for (auto& stmt : root->statements) {
-        if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
-            createGlobals(**ns);
-        } else if (auto va = std::get_if<VarAssignNode*>(&stmt)) {
-            createGlobal(*va);
+    if (root)
+        for (auto& stmt : root->statements) {
+            if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
+                createGlobals(**ns);
+            } else if (auto va = std::get_if<VarAssignNode*>(&stmt)) {
+                createGlobal(*va);
+            }
         }
-    }
     std::function<void(NamespaceNode&)> scanGenericFunctions = [&](NamespaceNode& ns) {
         namespaceStack.push_back(ns.name);
 
@@ -14541,17 +14544,18 @@ std::vector<CTError> LLVMCompiler::compile(
         namespaceStack.pop_back();
     };
 
-    for (auto& stmt : root->statements) {
-        if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
-            scanGenericFunctions(**ns);
-        } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
-            auto fnPtr = std::get<FuncDefNode*>(stmt);
-            if (!fnPtr->name_tok.has_value()) continue;
-            std::string funcName = fnPtr->name_tok.value().value;
-            if (funcName == entrypointName && !this->is_main) { continue; }
-            functionDefs[funcName] = fnPtr;
+    if (root)
+        for (auto& stmt : root->statements) {
+            if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
+                scanGenericFunctions(**ns);
+            } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
+                auto fnPtr = std::get<FuncDefNode*>(stmt);
+                if (!fnPtr->name_tok.has_value()) continue;
+                std::string funcName = fnPtr->name_tok.value().value;
+                if (funcName == entrypointName && !this->is_main) { continue; }
+                functionDefs[funcName] = fnPtr;
+            }
         }
-    }
     std::function<void(NamespaceNode&)> compileNamespaceFunctions = [&](NamespaceNode& ns) {
         namespaceStack.push_back(ns.name);
 
@@ -14572,18 +14576,19 @@ std::vector<CTError> LLVMCompiler::compile(
         namespaceStack.pop_back();
     };
 
-    for (auto& stmt : root->statements) {
-        if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
-            compileNamespaceFunctions(**ns);
-        } else if (auto va = std::get_if<VarAssignNode*>(&stmt)) {
-            emitExpr(stmt);
-        } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
-            auto fnPtr = std::get<FuncDefNode*>(stmt);
-            if (!fnPtr->name_tok.has_value()) continue;
-            if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) { continue; }
-            if (fnPtr->generics.empty()) { emitFuncDef(*fnPtr); }
+    if (root)
+        for (auto& stmt : root->statements) {
+            if (auto ns = std::get_if<NamespaceNode*>(&stmt)) {
+                compileNamespaceFunctions(**ns);
+            } else if (auto va = std::get_if<VarAssignNode*>(&stmt)) {
+                emitExpr(stmt);
+            } else if (std::holds_alternative<FuncDefNode*>(stmt)) {
+                auto fnPtr = std::get<FuncDefNode*>(stmt);
+                if (!fnPtr->name_tok.has_value()) continue;
+                if (fnPtr->name_tok.value().value == entrypointName && !this->is_main) { continue; }
+                if (fnPtr->generics.empty()) { emitFuncDef(*fnPtr); }
+            }
         }
-    }
     for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class || !info.generics.empty()) continue;
 
@@ -15442,10 +15447,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
             std::string link_cmd = "gcc " + obj_file + " -o " + final_exe;
+            for (const auto& path : to_link_dir) { link_cmd += " -L\"" + path + "\""; }
+            for (const auto& lib : to_link) {
+                if (lib.ends_with(".a") || lib.ends_with(".so") || lib.ends_with(".dylib")) {
+                    link_cmd += " \"" + lib + "\"";
+                } else {
+                    link_cmd += " -l" + lib;
+                }
+            }
             for (const auto& path : config.library_search_paths) { link_cmd += " -L\"" + path + "\""; }
             for (const auto& lib : config.libraries) {
                 if (lib.ends_with(".a") || lib.ends_with(".so") || lib.ends_with(".dylib")) {
-                    link_cmd += " -l\"" + lib + "\"";
+                    link_cmd += " \"" + lib + "\"";
                 } else {
                     link_cmd += " -l" + lib;
                 }
@@ -15701,7 +15714,9 @@ Token Lexer::make_string() {
             case 'x': {
                 escape_character = false;
                 this->advance();
-                if (!std::isxdigit(static_cast<unsigned char>(this->current_char))) { throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos); }
+                if (!std::isxdigit(static_cast<unsigned char>(this->current_char))) {
+                    throw IllegalCharError("QC-IC02: Expected hex digit after \\x", this->pos);
+                }
                 std::string hex = "";
                 while (std::isxdigit(this->current_char) && hex.size() < 2) {
                     hex += this->current_char;
@@ -16357,6 +16372,91 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         if (!in_string) { no_main = true; }
     }
     size_t pos = 0;
+    while ((pos = source.find("#link", pos)) != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check - 1] != '\\')) { in_string = !in_string; }
+        }
+        if (in_string) {
+            pos++;
+            continue;
+        }
+        size_t start = source.find('<', pos);
+        size_t end = source.find('>', start);
+        std::string directive = source.substr(start + 1, end - start - 1);
+        std::vector<std::string> file_paths = {};
+        size_t item_start = 0;
+        pos = end + 1;
+        while (item_start <= directive.size()) {
+            size_t comma = directive.find(',', item_start);
+            std::string path = trim(directive.substr(item_start, comma == std::string::npos ? std::string::npos : comma - item_start));
+            if (!path.empty()) {
+                if (path.front() == '"') path.erase(0, 1);
+                if (!path.empty() && path.back() == '"') path.pop_back();
+                std::string full_path;
+                size_t slash = path.find('/');
+                std::string alias = path.substr(0, slash);
+                bool looks_like_path = path.find('/') != std::string::npos || path.find('\\') != std::string::npos || path.starts_with(".") ||
+                                       std::filesystem::path(path).has_extension();
+                if (aliases.contains(path)) {
+                    full_path = resolve_path(current_file, aliases[path]);
+                } else if (dir_aliases.contains(alias)) {
+                    std::string rest = slash == std::string::npos ? "" : path.substr(slash + 1);
+                    full_path = resolve_path(current_file, (std::filesystem::path(dir_aliases[alias]) / rest).string());
+                } else if (looks_like_path) {
+                    full_path = resolve_path(current_file, path);
+                } else {
+                    full_path = path;
+                }
+                to_link.push_back(full_path);
+            }
+
+            if (comma == std::string::npos) break;
+            item_start = comma + 1;
+        }
+    }
+    pos = 0;
+    while ((pos = source.find("#searchdir", pos)) != std::string::npos) {
+        bool in_string = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check - 1] != '\\')) { in_string = !in_string; }
+        }
+        if (in_string) {
+            pos++;
+            continue;
+        }
+        size_t start = source.find('<', pos);
+        size_t end = source.find('>', start);
+        std::string directive = source.substr(start + 1, end - start - 1);
+        std::vector<std::string> file_paths = {};
+        size_t item_start = 0;
+        pos = end + 1;
+        while (item_start <= directive.size()) {
+            size_t comma = directive.find(',', item_start);
+            std::string path = trim(directive.substr(item_start, comma == std::string::npos ? std::string::npos : comma - item_start));
+            if (!path.empty()) {
+                if (path.front() == '"') path.erase(0, 1);
+                if (!path.empty() && path.back() == '"') path.pop_back();
+                std::string full_path;
+                size_t slash = path.find('/');
+                std::string alias = path.substr(0, slash);
+                if (aliases.contains(path)) {
+                    full_path = resolve_path(current_file, aliases[path]);
+                } else if (dir_aliases.contains(alias)) {
+                    std::string rest = slash == std::string::npos ? "" : path.substr(slash + 1);
+
+                    full_path = resolve_path(current_file, (std::filesystem::path(dir_aliases[alias]) / rest).string());
+                } else {
+                    full_path = resolve_path(current_file, path);
+                }
+                to_link_dir.push_back(full_path);
+            }
+
+            if (comma == std::string::npos) break;
+            item_start = comma + 1;
+        }
+    }
+    pos = 0;
     while ((pos = source.find("#depends", pos)) != std::string::npos) {
         bool in_string = false;
         for (size_t check = 0; check < pos; check++) {
@@ -16459,6 +16559,34 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         pos = last_pos;
     }
     result += source.substr(last_pos);
+    pos = 0;
+    while ((pos = result.find("#link", pos)) != std::string::npos) {
+        bool in_str = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+        }
+        if (!in_str) {
+            size_t line_end = result.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result.size();
+            result.erase(pos, line_end - pos + 1);
+        } else {
+            pos++;
+        }
+    }
+    pos = 0;
+    while ((pos = result.find("#searchdir", pos)) != std::string::npos) {
+        bool in_str = false;
+        for (size_t check = 0; check < pos; check++) {
+            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+        }
+        if (!in_str) {
+            size_t line_end = result.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result.size();
+            result.erase(pos, line_end - pos + 1);
+        } else {
+            pos++;
+        }
+    }
     pos = 0;
     while ((pos = result.find("#entrypoint", pos)) != std::string::npos) {
         bool in_str = false;

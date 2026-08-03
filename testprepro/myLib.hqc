@@ -1,0 +1,6 @@
+#nomain
+#link<mylib>
+
+namespace Math {
+    int add(int a, int b);
+}
