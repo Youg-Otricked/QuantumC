@@ -4307,6 +4307,7 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         UserTypeInfo info;
+        info.baseFile = this->current_tok.pos.Filename;
         info.kind = UserTypeKind::Struct;
         info.fields = fields;
         info.generics = generics;
@@ -4492,6 +4493,7 @@ Prs Parser::statement() {
             info.kind = UserTypeKind::Union;
             info.members = members;
         }
+        info.baseFile = this->current_tok.pos.Filename;
         info.generics = generics;
         info.namespace_path = currentNamespace;
         user_types[base_type_name(full_key)] = info;
@@ -4568,6 +4570,7 @@ Prs Parser::statement() {
         }
         UserTypeInfo info;
         info.kind = UserTypeKind::Enum;
+        info.baseFile = this->current_tok.pos.Filename;
         info.members = members;
         info.enumEntries = entries;
         info.namespace_path = currentNamespace;
