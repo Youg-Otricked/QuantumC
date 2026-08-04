@@ -9763,7 +9763,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return nullptr;
                 }
             } else {
-                size = dl.getTypeAllocSize(emitExpr(operand->getType());
+                size = dl.getTypeAllocSize(operand->getType());
             }
             unsigned ptrBitWidth = dl.getPointerSizeInBits();
             llvm::IntegerType* addrType = llvm::IntegerType::get(context, ptrBitWidth);
