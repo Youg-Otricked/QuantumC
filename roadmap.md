@@ -42,9 +42,7 @@ Z proves Serializable with_proof {
 - Methos with code blocks
 - Operator.
 - Function pointers
-- Friend (allows other classes to access)
 - Private/Protected inheritance
-- Static
 - Modifier user type:
 ```cpp
 modifier async type function {
@@ -118,16 +116,15 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - atomics
 - defer
 TOP PRIORITY:
-1. Static and Friend
-2. Defer
-3. Codeblocks.
-4. Concepts
-5. Modifier (x1.0.0)
-6. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
-7. Variadics on generics
-8. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-9. Other stuff + Variadic Generics
-10. Metadata
+1. Defer
+2. Codeblocks.
+3. Concepts
+4. Modifier (x1.0.0)
+5. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
+6. Variadics on generics
+7. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+8. Other stuff (private/protected inheritance) + Variadic Generics
+9. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -149,7 +146,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-11. Preproccessers
+10. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -158,5 +155,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-12. User-Defined metadata
-13. User-Defined macro _functions_ (the only good thing in rust)
+11. User-Defined metadata
+12. User-Defined macro _functions_ (the only good thing in rust)

@@ -475,6 +475,8 @@ struct ClassField {
     std::string name;
     std::string type;
     std::string access;
+    bool isStatic;
+    AnyNode defaultValue;
 };
 
 class ClassMethodInfo {
@@ -487,6 +489,7 @@ class ClassMethodInfo {
     std::string access;
     bool is_final = false;
     bool is_volatile = false;
+    bool is_static = false;
     std::vector<GenericType> generics;
     std::string print() {
         std::string res = is_volatile ? "volatile " : "";
@@ -518,6 +521,8 @@ struct UserTypeInfo {
     std::vector<EnumEntry> enumEntries;
     std::vector<ClassField> classFields;
     std::vector<ClassMethodInfo> classMethods;
+    std::vector<std::string> friendClasses;
+    std::vector<std::string> friendlyClasses;
     std::string baseClassName = "";
     std::string namespace_path;
     bool is_abstract_class = false;
@@ -2634,12 +2639,19 @@ class LLVMCompiler {
         return {"", "public"};
     }
     bool canAccessField(const std::string& callerClass, const std::string& fieldOwnerClass, const std::string& access) {
+        auto userTypeIt = userTypes.find(resolveTypeName(fieldOwnerClass));
+        UserTypeInfo usertype;
+        if (userTypeIt != userTypes.end()) { usertype = userTypeIt->second; }
+        bool isFriend = usertype.kind == UserTypeKind::Class && std::ranges::any_of(usertype.friendClasses, [&](const std::string& friendName) {
+                            return resolveTypeName(friendName, false) == resolveTypeName(callerClass, false);
+                        });
+        bool isFriendly = usertype.kind == UserTypeKind::Class && std::ranges::any_of(usertype.friendlyClasses, [&](const std::string& friendName) {
+                              return resolveTypeName(friendName, false) == resolveTypeName(callerClass, false);
+                          });
         if (access == "public") return true;
-
-        if (access == "private") { return callerClass == fieldOwnerClass; }
-
+        if (access == "private") { return callerClass == fieldOwnerClass || isFriend; }
         if (access == "protected") {
-            if (callerClass == fieldOwnerClass) return true;
+            if (callerClass == fieldOwnerClass || isFriend || isFriendly) return true;
             std::string current = callerClass;
             while (!current.empty()) {
                 if (current == fieldOwnerClass) return true;
@@ -2647,7 +2659,6 @@ class LLVMCompiler {
             }
             return false;
         }
-
         return true;
     }
     std::vector<std::string> namespaceStack;
@@ -2673,6 +2684,12 @@ class LLVMCompiler {
     MethodCallNode* methodCallFromCall(CallNode* call, std::string name) {
         return new MethodCallNode(call->node_to_call, Token(TokenType::IDENTIFIER, name, get_pos(call)),
                                   std::vector<AnyNode>(call->arg_nodes.begin(), call->arg_nodes.end()));
+    }
+    FuncDefNode* funcDefFromClassMethod(const ClassMethodInfo& method, const std::string& className) {
+        std::string mangledName = className + "::" + method.name_tok.value;
+        Token nameTok(TokenType::IDENTIFIER, mangledName, method.name_tok.pos);
+        return new FuncDefNode(method.return_types, nameTok, std::list(method.params.begin(), method.params.end()), method.body, "", false, false,
+                               method.generics, false);
     }
     std::unordered_map<std::string, std::unordered_map<std::string, llvm::Function*>> genericisedMethods;
     llvm::Value* tryHandleSpecialized(const std::string& className, const std::string& methodName, MethodCallNode* node, llvm::Value* thisPtr) {

@@ -1733,20 +1733,102 @@ Prs Parser::atom() {
     } else if (tok.type == TokenType::IDENTIFIER) {
         std::string name = tok.value;
         Position pos = tok.pos;
-
         this->advance();
-
-        while (this->current_tok.type == TokenType::SCOPE) {
-            this->advance();
-
-            if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(new InvalidSyntaxError("QC-N001: Expected identifier or namespace name after '::'", this->current_tok.pos));
-                return res.to_prs();
+        bool generic_failed = false;
+        while (true) {
+            if (this->current_tok.type == TokenType::SCOPE) {
+                this->advance();
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(new InvalidSyntaxError("QC-N001: Expected identifier or namespace name after '::'", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                name += "::" + this->current_tok.value;
+                pos = this->current_tok.pos;
+                this->advance();
             }
-
-            name += "::" + this->current_tok.value;
-            pos = this->current_tok.pos;
-            this->advance();
+            if (this->current_tok.type == TokenType::LESS) {
+                size_t oldId = this->index;
+                std::string oldName = name;
+                this->advance();
+                name += "<";
+                int depth = 1;
+                if (this->current_tok.type == TokenType::MORE) {
+                    name = oldName;
+                    this->index = oldId;
+                    this->current_tok = this->tokens[this->index];
+                    depth = 0;
+                    generic_failed = true;
+                }
+                bool next_comma = false;
+                bool just_incremented = true;
+                while (depth > 0) {
+                    if (next_comma) {
+                        if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::LESS &&
+                            this->current_tok.type != TokenType::MORE) {
+                            this->index = oldId;
+                            name = oldName;
+                            generic_failed = true;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
+                    } else {
+                        if (this->current_tok.type == TokenType::COMMA) {
+                            this->index = oldId;
+                            generic_failed = true;
+                            name = oldName;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
+                    }
+                    if (!(std::unordered_set<TokenType>(
+                              {TokenType::COMMA, TokenType::KEYWORD, TokenType::IDENTIFIER, TokenType::STRING, TokenType::INT, TokenType::DOUBLE,
+                               TokenType::FLOAT, TokenType::CHAR, TokenType::ADDR_T, TokenType::BOOL, TokenType::QBOOL, TokenType::LONG_INT,
+                               TokenType::SHORT_INT, TokenType::LONG_DOUBLE, TokenType::LESS, TokenType::MORE, TokenType::BYTE, TokenType::NIBBLE})
+                              .contains(this->current_tok.type))) {
+                        this->index = oldId;
+                        name = oldName;
+                        generic_failed = true;
+                        this->current_tok = this->tokens[this->index];
+                        break;
+                    }
+                    if (this->current_tok.type == TokenType::EOFT) {
+                        res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                        return res.to_prs();
+                    }
+                    if (this->current_tok.type == TokenType::LESS) {
+                        if (just_incremented) {
+                            this->index = oldId;
+                            name = oldName;
+                            generic_failed = true;
+                            this->current_tok = this->tokens[this->index];
+                            break;
+                        }
+                        just_incremented = true;
+                        depth++;
+                        if (depth > 128) {
+                            res.failure(new InvalidSyntaxError(
+                                "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." +
+                                    "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
+                                    "compiler is not a Matryoshka doll. It has feelings too.",
+                                pos));
+                            return res.to_prs();
+                        }
+                    } else if (this->current_tok.type == TokenType::MORE) {
+                        depth--;
+                        if (depth == 0) {
+                            this->advance();
+                            break;
+                        }
+                    } else {
+                        just_incremented = false;
+                    }
+                    if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
+                    name += this->current_tok.value;
+                    this->advance();
+                }
+                if (this->index != oldId && name != oldName) name += ">";
+            }
+            if (generic_failed || this->current_tok.type != TokenType::SCOPE && this->current_tok.type != TokenType::LESS) { break; }
         }
         if (this->current_tok.type == TokenType::LESS) {
             size_t oldId = this->index;
@@ -2475,9 +2557,7 @@ Prs Parser::atom() {
             }
             if (res.error) return res.to_prs();
         }
-        if (is_known_type(tok.value)) {
-            return res.success(TypeValueNode(tok));
-        }
+        if (is_known_type(name)) { return res.success(TypeValueNode(Token(TokenType::KEYWORD, name, tok.pos))); }
         return res.success(base);
     } else if (tok.type == TokenType::LPAREN) {
         this->advance();
@@ -2729,7 +2809,7 @@ Prs Parser::atom() {
         return res.success(fn_node);
     } else if (tok.type == TokenType::KEYWORD) {
         return res.success(TypeValueNode(Token(TokenType::KEYWORD, this->parseTypeString(), tok.pos)));
-    } 
+    }
     return res.success(std::monostate{});
 }
 
@@ -2931,21 +3011,12 @@ Prs Parser::assignment_expr() {
         this->current_tok.type == TokenType::RROT_EQ || this->current_tok.type == TokenType::LROT_EQ ||
         this->current_tok.type == TokenType::BIT_X_EQ || this->current_tok.type == TokenType::BIT_O_EQ ||
         this->current_tok.type == TokenType::BIT_A_EQ) {
-
         bool is_var = std::holds_alternative<VarAccessNode*>(left);
         bool is_array_access = std::holds_alternative<ArrayAccessNode*>(left);
         bool is_prop = std::holds_alternative<PropertyAccessNode*>(left);
         bool is_deref = std::holds_alternative<UnaryOpNode*>(left) && std::get<UnaryOpNode*>(left)->op_tok.type == TokenType::MUL;
-        if (!is_var && !is_array_access && !is_prop && !is_deref) {
-            res.failure(new InvalidSyntaxError("QC-S056: Left side of assignment must be a variable, struct "
-                                               "field, "
-                                               "array access, or *pointer",
-                                               this->current_tok.pos));
-            return res.to_prs();
-        }
         Token op_tok = this->current_tok;
         this->advance();
-
         AnyNode right;
         if (op_tok.type == TokenType::EQ) {
             size_t next_i = index + 1;
@@ -3155,9 +3226,23 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     this->advance();
     if (this->current_tok.type == TokenType::ARROW) {
         this->advance();
-        while (this->current_tok.type == TokenType::SCOPE) {
-            this->advance();
-            this->advance();
+        while (true) {
+            if (this->current_tok.type == TokenType::SCOPE) {
+                this->advance();
+                if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) { this->advance(); }
+            } else if (this->current_tok.type == TokenType::LESS) {
+                int depth = 1;
+                this->advance();
+                while (depth > 0 && this->current_tok.type != TokenType::EOFT) {
+                    if (this->current_tok.type == TokenType::LESS)
+                        depth++;
+                    else if (this->current_tok.type == TokenType::MORE)
+                        depth--;
+                    this->advance();
+                }
+            } else {
+                break;
+            }
         }
         if (this->current_tok.type == TokenType::KEYWORD || is_known_type(this->current_tok.value) > 0) {
             this->parse_parameter(true);
@@ -3606,6 +3691,7 @@ Prs Parser::statement() {
             std::string access = "public";
             bool is_final_method = false;
             bool is_volatile_method = false;
+            bool is_static = false;
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "final") {
                 is_final_method = true;
                 this->advance();
@@ -3615,6 +3701,10 @@ Prs Parser::statement() {
                 access = this->current_tok.value;
                 this->advance();
             }
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "static") {
+                is_static = true;
+                this->advance();
+            }
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "final") {
                 is_final_method = true;
                 this->advance();
@@ -3622,6 +3712,26 @@ Prs Parser::statement() {
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
                 is_volatile_method = true;
                 this->advance();
+            }
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "friend") {
+                this->advance();
+                info.friendClasses.push_back(parseTypeString());
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(new InvalidSyntaxError("expected ; after friend class name", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                continue;
+            }
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "friendly") {
+                this->advance();
+                info.friendlyClasses.push_back(parseTypeString());
+                if (this->current_tok.type != TokenType::SEMICOLON) {
+                    res.failure(new InvalidSyntaxError("expected ; after friendly class name", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                this->advance();
+                continue;
             }
             if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value == class_name.value) {
 
@@ -4055,6 +4165,7 @@ Prs Parser::statement() {
                 mi.access = access;
                 mi.is_volatile = is_volatile_method;
                 mi.generics = genericsM;
+                mi.is_static = is_static;
                 info.classMethods.push_back(mi);
                 continue;
             }
@@ -4078,7 +4189,12 @@ Prs Parser::statement() {
                 field_type += "]";
                 this->advance();
             }
-
+            AnyNode default_value = std::monostate{};
+            if (this->current_tok.type == TokenType::EQ) {
+                this->advance();
+                default_value = res.reg(this->logical_or());
+                if (res.error) return res.to_prs();
+            }
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(new InvalidSyntaxError("Expected ';' after field declaration", this->current_tok.pos));
                 return res.to_prs();
@@ -4089,6 +4205,8 @@ Prs Parser::statement() {
             cf.name = name_tok.value;
             cf.type = field_type;
             cf.access = access;
+            cf.isStatic = is_static;
+            cf.defaultValue = default_value;
             info.classFields.push_back(cf);
         }
 
@@ -5319,7 +5437,23 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                         while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
                     }
                 }
-                fieldTypes.push_back(llvmTypeFor(resolvedType));
+                if (field.isStatic) {
+                    llvm::Type* fieldTy = llvmTypeFor(resolvedType);
+                    std::string mangledName = mangled_class_name + "::" + field.name;
+                    if (!module->getNamedGlobal(mangledName)) {
+                        llvm::Constant* initVal = !std::holds_alternative<std::monostate>(field.defaultValue)
+                                                      ? llvm::dyn_cast<llvm::Constant>(emitExpr(field.defaultValue))
+                                                      : llvm::Constant::getNullValue(fieldTy);
+
+                        if (!initVal) { initVal = llvm::Constant::getNullValue(fieldTy); }
+                        globals[mangledName] = new llvm::GlobalVariable(*module, fieldTy, false, llvm::GlobalValue::ExternalLinkage, initVal,
+                                                                        mangledName);
+                        varTypes[mangledName] = resolvedType;
+                        volatileVars[mangledName] = false;
+                    }
+                } else {
+                    fieldTypes.push_back(llvmTypeFor(resolvedType));
+                }
             }
         };
     std::unordered_map<std::string, std::string> rootSubs;
@@ -5346,6 +5480,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     for (auto& method : classInfo.classMethods) { nameCounts[method.name_tok.value]++; }
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
+        if (method.is_static) continue;
         if (method.is_constructor && classInfo.is_abstract_class) {
             cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
             continue;
@@ -5393,6 +5528,36 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     vtables[mangled_class_name] = vtable;
     for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
         auto& method = classInfo.classMethods[methodIdx];
+        if (!method.is_static) continue;
+        std::string mangledName = mangled_class_name + "::" + method.name_tok.value;
+        if (nameCounts[method.name_tok.value] > 1) {
+            for (auto& param : method.params) { mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
+        }
+        llvm::FunctionType* fnTy = llvmFuncTypeFor(method.return_types, method.params);
+        llvm::Function* fn = module->getFunction(mangledName);
+        if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module); }
+        llvm::SmallVector<llvm::Metadata*, 4> retTypes;
+        for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
+        if (method.is_volatile) {
+            fn->addFnAttr(llvm::Attribute::NoInline);
+            fn->addFnAttr(llvm::Attribute::OptimizeNone);
+            fn->addFnAttr("noipa");
+        }
+        fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
+        for (size_t i = 0; i < method.params.size(); i++) {
+            if (method.params[i].type.value.starts_with("out ")) {
+                fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
+            } else if (method.params[i].type.value.starts_with("inout ")) {
+                fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
+            }
+            if (method.params[i].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
+        }
+        functionDefs[mangledName] = funcDefFromClassMethod(method, mangled_class_name);
+    }
+    for (size_t methodIdx = 0; methodIdx < classInfo.classMethods.size(); methodIdx++) {
+        auto& method = classInfo.classMethods[methodIdx];
+        if (method.is_static) continue;
         if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) !=
             genericMethodIndices[baseTypeName(className)].end()) {
             continue;
@@ -5974,7 +6139,27 @@ void LLVMCompiler::createUserTypes() {
                                 while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
                             }
                         }
-                        fieldTypes.push_back(llvmTypeFor(resolvedType));
+                        if (field.isStatic) {
+                            llvm::Type* fieldTy = llvmTypeFor(resolvedType);
+                            std::string mangledName = cname + "::" + field.name;
+                            if (!module->getNamedGlobal(mangledName)) {
+                                llvm::Constant* initVal = !std::holds_alternative<std::monostate>(field.defaultValue)
+                                                              ? llvm::dyn_cast<llvm::Constant>(emitExpr(field.defaultValue))
+                                                              : llvm::Constant::getNullValue(fieldTy);
+
+                                if (!initVal) { initVal = llvm::Constant::getNullValue(fieldTy); }
+
+                                globals[mangledName] = new llvm::GlobalVariable(*module, fieldTy, false, llvm::GlobalValue::ExternalLinkage, initVal,
+                                                                                mangledName);
+                                varTypes[mangledName] = resolvedType;
+                                volatileVars[mangledName] = false;
+                            }
+                        } else {
+                            if (!std::holds_alternative<std::monostate>(field.defaultValue)) {
+                                cg_warn(get_pos(field.defaultValue), "default values do not exist on non-static members");
+                            }
+                            fieldTypes.push_back(llvmTypeFor(resolvedType));
+                        }
                     }
                 };
             collectFields(mapKey, {});
@@ -6039,8 +6224,41 @@ void LLVMCompiler::createUserTypes() {
         std::vector<std::string> slotOrder;
         std::unordered_map<std::string, int> nameCounts;
         for (auto& method : info.classMethods) { nameCounts[method.name_tok.value]++; }
+        for (auto& [mapKey, info] : userTypes) {
+            if (info.kind != UserTypeKind::Class || !info.generics.empty()) continue;
+            for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
+                auto& method = info.classMethods[methodIdx];
+                if (!method.is_static) continue;
+                std::string mangledName = mapKey + "::" + method.name_tok.value;
+                if (nameCounts[method.name_tok.value] > 1) {
+                    for (auto& param : method.params) { mangledName += "_" + (param.signature.has_value() ? std::string("fn") : param.type.value); }
+                }
+                llvm::FunctionType* fnTy = llvmFuncTypeFor(method.return_types, method.params);
+                llvm::Function* fn = module->getFunction(mangledName);
+                if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module); }
+                llvm::SmallVector<llvm::Metadata*, 4> retTypes;
+                for (auto& ret : method.return_types) { retTypes.push_back(llvm::MDString::get(context, ret.value)); }
+                if (method.is_volatile) {
+                    fn->addFnAttr(llvm::Attribute::NoInline);
+                    fn->addFnAttr(llvm::Attribute::OptimizeNone);
+                    fn->addFnAttr("noipa");
+                }
+                fn->setMetadata("qc.return_types", llvm::MDNode::get(context, retTypes));
+                for (size_t i = 0; i < method.params.size(); i++) {
+                    if (method.params[i].type.value.starts_with("out ")) {
+                        fn->addParamAttr(i, llvm::Attribute::WriteOnly);
+                        fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
+                    } else if (method.params[i].type.value.starts_with("inout ")) {
+                        fn->addParamAttr(i, llvm::Attribute::getWithCaptureInfo(context, llvm::CaptureInfo::none()));
+                    }
+                    if (method.params[i].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
+                }
+                functionDefs[mangledName] = funcDefFromClassMethod(method, mapKey);
+            }
+        }
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
+            if (method.is_static) continue;
             if (method.is_constructor && info.is_abstract_class) {
                 cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
                 continue;
@@ -9748,14 +9966,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             const llvm::DataLayout& dl = module->getDataLayout();
             uint64_t size;
             if (StringNode* val = std::get_if<StringNode>(&(*unary)->node)) {
-                llvm::Type *ty = llvmTypeFor(val->tok.value);
+                llvm::Type* ty = llvmTypeFor(val->tok.value);
                 if (ty) {
                     size = dl.getTypeAllocSize(ty);
                 } else {
                     size = dl.getTypeAllocSize(operand->getType());
                 }
             } else if (TypeValueNode* t = std::get_if<TypeValueNode>(&(*unary)->node)) {
-                llvm::Type *ty = llvmTypeFor(t->tok.value);
+                llvm::Type* ty = llvmTypeFor(t->tok.value);
                 if (ty) {
                     size = dl.getTypeAllocSize(ty);
                 } else {
@@ -11329,7 +11547,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         StringNode* expectedType = std::get_if<StringNode>(&call.arg_nodes.back());
                         TypeValueNode* otherExpType = std::get_if<TypeValueNode>(&call.arg_nodes.back());
                         if (!expectedType && !otherExpType) {
-                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a string storing the type or the type. (" + funcName + ")");
+                            cg_error((*varAccess)->var_name_tok.pos,
+                                     "argument two must be a string storing the type or the type. (" + funcName + ")");
                             return nullptr;
                         }
                         llvm::Value* ConvertedValue = nullptr;
@@ -14520,6 +14739,7 @@ std::vector<CTError> LLVMCompiler::compile(
     std::unordered_map<std::string, std::string> visibleVarTypes, std::unordered_map<std::string, llvm::AllocaInst*> visibleRuntimeArraySizes,
     std::unordered_map<std::string, llvm::FunctionType*> visibleLambdaTypes, std::map<std::string, llvm::Function*> visibleSpecializedFunctions,
     std::unordered_map<std::string, llvm::GlobalVariable*> visibleGlobals) {
+    this->volatileVarsStack = {{}};
     this->functionSignatures = visibleFunctionSignatures;
     this->functionDefs = visibleFunctionDefs;
     this->globals = visibleGlobals;
@@ -14534,7 +14754,7 @@ std::vector<CTError> LLVMCompiler::compile(
         if (info.kind != UserTypeKind::Class) continue;
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
             auto& method = info.classMethods[methodIdx];
-            if (!method.generics.empty()) { genericMethodIndices[className].push_back(methodIdx); }
+            if (!method.generics.empty() && !method.is_static) { genericMethodIndices[className].push_back(methodIdx); }
         }
     }
     createUserTypes();
@@ -14634,6 +14854,14 @@ std::vector<CTError> LLVMCompiler::compile(
         }
     for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class || !info.generics.empty()) continue;
+        for (auto& method : info.classMethods) {
+            if (!method.is_static || !method.generics.empty()) continue;
+            std::string mangledName = className + "::" + method.name_tok.value;
+            if (functionDefs.count(mangledName)) { emitFuncDef(*functionDefs[mangledName]); }
+        }
+    }
+    for (auto& [className, info] : userTypes) {
+        if (info.kind != UserTypeKind::Class || !info.generics.empty()) continue;
 
         auto oldNamespaceStack = namespaceStack;
         namespaceStack.clear();
@@ -14658,9 +14886,10 @@ std::vector<CTError> LLVMCompiler::compile(
             if (!method.generics.empty()) continue;
             llvm::Function* fn = nullptr;
             auto& overloads = classMethods[className][method.name_tok.value];
-
+            bool isStatic = method.is_static;
+            size_t expectedParamOffset = isStatic ? 0 : 1;
             for (auto* overload : overloads) {
-                if (overload->arg_size() - 1 == method.params.size()) {
+                if (overload->arg_size() - expectedParamOffset == method.params.size()) {
                     bool matches = true;
                     for (size_t i = 0; i < method.params.size(); i++) {
                         auto& param = method.params[i];
@@ -14671,8 +14900,7 @@ std::vector<CTError> LLVMCompiler::compile(
                             std::string resolvedType = resolveTypeName(param.type.value);
                             expectedType = llvmTypeFor(resolvedType);
                         }
-
-                        llvm::Type* actualType = overload->getFunctionType()->getParamType(i + 1);
+                        llvm::Type* actualType = overload->getFunctionType()->getParamType(i + expectedParamOffset);
                         if (expectedType != actualType && param.type.value != "...") {
                             matches = false;
                             break;
@@ -14684,26 +14912,26 @@ std::vector<CTError> LLVMCompiler::compile(
                     }
                 }
             }
-
             if (!fn || !fn->empty()) continue;
             if (isHeader || info.baseFile.ends_with(".hqc")) continue;
             llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
             builder->SetInsertPoint(entry);
-
             auto oldThis = currentThis;
             auto oldClassName = currentClassName;
             auto oldFunction = currentFunction;
             enterScope();
-            currentThis = fn->getArg(0);
-            varTypes["this"] = className;
+            if (!isStatic) {
+                currentThis = fn->getArg(0);
+                varTypes["this"] = className;
+            } else {
+                currentThis = nullptr;
+            }
             currentClassName = className;
             currentFunction = fn;
-
             for (size_t i = 0; i < method.params.size(); i++) {
                 auto& param = method.params[i];
                 llvm::Type* paramTy;
                 std::string typeDescriptor;
-
                 if (param.signature.has_value()) {
                     paramTy = llvm::PointerType::get(context, 0);
                     typeDescriptor = "fn";
@@ -14713,7 +14941,8 @@ std::vector<CTError> LLVMCompiler::compile(
                     paramTy = llvmTypeFor(typeDescriptor);
                 }
                 llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
-                builder->CreateStore(fn->getArg(i + 1), alloc);
+                llvm::Value* argVal = fn->getArg(i + expectedParamOffset);
+                builder->CreateStore(argVal, alloc);
                 locals[param.name.value] = alloc;
                 varTypes[param.name.value] = typeDescriptor;
             }
@@ -14753,11 +14982,9 @@ std::vector<CTError> LLVMCompiler::compile(
                     }
                 }
             }
-
             if (method.body) {
                 for (size_t i = bodyStartIdx; i < method.body->statements.size(); i++) { emitStmt(method.body->statements[i]); }
             }
-
             if (!builder->GetInsertBlock()->getTerminator()) {
                 if (fn->getReturnType()->isVoidTy()) {
                     builder->CreateRetVoid();
@@ -15727,7 +15954,7 @@ Token Lexer::make_identifier() {
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
         id == "function" || id == "namespace" || id == "roperator" || id == "operator" || id == "abstract" || id == "final" || id == "try" ||
         id == "catch" || id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" ||
-        id == "nibble") {
+        id == "nibble" || id == "friend" || id == "friendly" || id == "static") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }
