@@ -303,6 +303,8 @@ AnyNode clone_node(const AnyNode& node) {
                 return BoolNode(arg.tok);
             } else if constexpr (std::is_same_v<T, QBoolNode>) {
                 return QBoolNode(arg.tok);
+            } else if constexpr (std::is_same_v<T, TypeValueNode>) {
+                return TypeValueNode(arg.tok);
             } else if constexpr (std::is_same_v<T, QInNode>) {
                 return QInNode();
             } else if constexpr (std::is_same_v<T, NullptrNode>) {
@@ -354,6 +356,10 @@ std::string printAny(const AnyNode& node) {
             } else if constexpr (std::is_same_v<T, QBoolNode>) {
                 return arg.print();
             } else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
+                return arg.print();
+            } else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
+                return arg.print();
+            } else if constexpr (std::is_same_v<T, TypeValueNode>) {
                 return arg.print();
             } else if constexpr (std::is_same_v<T, NullptrNode>) {
                 return arg.print();
@@ -463,6 +469,12 @@ std::string StringNode::print() const {
 StringNode::StringNode(Token tok) {
     this->tok = tok;
 }
+std::string TypeValueNode::print() const {
+    return "(" + this->tok.print() + ")";
+}
+TypeValueNode::TypeValueNode(Token tok) {
+    this->tok = tok;
+}
 BoolNode::BoolNode(Token tok) {
     this->tok = tok;
 }
@@ -528,6 +540,8 @@ Prs ParseResult::success(AnyNode node) {
             } else if constexpr (std::is_same_v<T, BoolNode>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, RefVarDeclNode>) {
+                return Prs{arg};
+            } else if constexpr (std::is_same_v<T, TypeValueNode>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, NullptrNode>) {
                 return Prs{arg};
@@ -1892,7 +1906,6 @@ Prs Parser::atom() {
 
             base = new ArrayAccessNode(base, indices);
         }
-
         while (this->current_tok.type == TokenType::DOT || this->current_tok.type == TokenType::ARROW) {
 
             if (this->current_tok.type == TokenType::ARROW) {
@@ -2462,6 +2475,9 @@ Prs Parser::atom() {
             }
             if (res.error) return res.to_prs();
         }
+        if (is_known_type(tok.value)) {
+            return res.success(TypeValueNode(tok));
+        }
         return res.success(base);
     } else if (tok.type == TokenType::LPAREN) {
         this->advance();
@@ -2663,9 +2679,7 @@ Prs Parser::atom() {
         }
 
         return res.success(result);
-    }
-
-    if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
+    } else if (tok.type == TokenType::KEYWORD && tok.value == "fn") {
         this->advance();
 
         if (this->current_tok.type != TokenType::LPAREN) {
@@ -2713,7 +2727,9 @@ Prs Parser::atom() {
         if (this->current_tok.type == TokenType::LPAREN) return this->call(fn_node);
 
         return res.success(fn_node);
-    }
+    } else if (tok.type == TokenType::KEYWORD) {
+        return res.success(TypeValueNode(Token(TokenType::KEYWORD, this->parseTypeString(), tok.pos)));
+    } 
     return res.success(std::monostate{});
 }
 
@@ -6349,6 +6365,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::vector<llvm::Constant*> indices = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
                                                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0)};
         return llvm::ConstantExpr::getInBoundsGetElementPtr(strConstant->getType(), globalStr, indices);
+    } else if (auto tv = std::get_if<TypeValueNode>(&node)) {
+        llvm::Constant* strConstant = llvm::ConstantDataArray::getString(context, tv->tok.value, true);
+        llvm::GlobalVariable* globalStr = new llvm::GlobalVariable(*module, strConstant->getType(), true, llvm::GlobalValue::PrivateLinkage,
+                                                                   strConstant, ".str");
+        std::vector<llvm::Constant*> indices = {llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+                                                llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0)};
+        return llvm::ConstantExpr::getInBoundsGetElementPtr(strConstant->getType(), globalStr, indices);
     } else if (auto bin = std::get_if<BinOpNode*>(&node)) {
         TokenType op = (*bin)->op_tok.type;
         if (op == TokenType::RSHIFT) {
@@ -9663,7 +9686,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         if ((*unary)->op_tok.type == TokenType::INCREMENT || (*unary)->op_tok.type == TokenType::DECREMENT) {
             bool isPostfix = (*unary)->is_postfix;
-            llvm::Value* lhsVal = emitExpr((*unary)->node);
+            llvm::Value* lhsVal = operand;
             llvm::Value* lhs = emitLValue((*unary)->node);
             llvm::Type* type = lhsVal->getType();
             std::string ptrTy = getExpressionType((*unary)->node);
@@ -9706,7 +9729,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if ((*unary)->op_tok.type == TokenType::MUL) {
             std::string name = std::get_if<VarAccessNode*>(&(*unary)->node) ? (*(std::get_if<VarAccessNode*>(&(*unary)->node)))->var_name_tok.value
                                                                             : "";
-            llvm::Value* val = emitExpr((*unary)->node);
+            llvm::Value* val = operand;
             std::string type = getExpressionType((*unary)->node);
             if (!type.ends_with("*") && !type.ends_with("[]") && type != "string") {
                 cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
@@ -9725,9 +9748,22 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             const llvm::DataLayout& dl = module->getDataLayout();
             uint64_t size;
             if (StringNode* val = std::get_if<StringNode>(&(*unary)->node)) {
-                size = dl.getTypeAllocSize(llvmTypeFor(val->tok.value));
+                llvm::Type *ty = llvmTypeFor(val->tok.value);
+                if (ty) {
+                    size = dl.getTypeAllocSize(ty);
+                } else {
+                    size = dl.getTypeAllocSize(operand->getType());
+                }
+            } else if (TypeValueNode* t = std::get_if<TypeValueNode>(&(*unary)->node)) {
+                llvm::Type *ty = llvmTypeFor(t->tok.value);
+                if (ty) {
+                    size = dl.getTypeAllocSize(ty);
+                } else {
+                    cg_error(t->getPos(), "unknown type `" + t->tok.value + "`");
+                    return nullptr;
+                }
             } else {
-                size = dl.getTypeAllocSize(emitExpr((*unary)->node)->getType());
+                size = dl.getTypeAllocSize(emitExpr(operand->getType());
             }
             unsigned ptrBitWidth = dl.getPointerSizeInBits();
             llvm::IntegerType* addrType = llvm::IntegerType::get(context, ptrBitWidth);
@@ -11291,8 +11327,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return nullptr;
                         }
                         StringNode* expectedType = std::get_if<StringNode>(&call.arg_nodes.back());
-                        if (!expectedType) {
-                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a string storing the type: " + funcName);
+                        TypeValueNode* otherExpType = std::get_if<TypeValueNode>(&call.arg_nodes.back());
+                        if (!expectedType && !otherExpType) {
+                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a string storing the type or the type. (" + funcName + ")");
                             return nullptr;
                         }
                         llvm::Value* ConvertedValue = nullptr;
@@ -11305,8 +11342,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* VariableAddr = resolveVariable(var_name);
                         llvm::Value* RawSlot = builder->CreateCall(nextElem, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"),
                                                                    "variadc_arg");
-
-                        llvm::Type* TargetType = llvmTypeFor(expectedType->tok.value);
+                        llvm::Type* TargetType = llvmTypeFor(expectedType ? expectedType->tok.value : otherExpType->tok.value);
+                        if (!TargetType) {
+                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a valid type");
+                            return nullptr;
+                        }
                         if (TargetType->isIntegerTy()) {
                             ConvertedValue = builder->CreatePtrToInt(RawSlot, TargetType, "vararg_int");
                         } else if (TargetType->isPointerTy()) {

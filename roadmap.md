@@ -1,12 +1,40 @@
 - Concepts
 ```
-concept X {
-...
+concept Serializable {
+    one_of {
+        string serialize();
+        string serialize(Self self);
+    }
+    default {
+        string serialize() {
+            return "No special implementation";
+        }
+    }
+    all_of {...}
+    at_least_one_of {
+        ...
+    }
+    all_of {
+        one_of {
+            ...
+        }
+        all_of {
+            ...
+        }
+    } // maybe
 } 
 class Y {
  ... 
 } 
-Y proves X;
+Y proves Serializable;
+struct Z {
+    ...
+}
+type T = int | string;
+T proves Serializable;
+Z proves Serializable with_proof {
+    ...
+} // provides bonus impl. Concepts are the only way to add methods to structs enums or unions and cannot have special methods / operator overloads.
 ```
 - Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
@@ -89,19 +117,17 @@ __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version bui
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 - atomics
 - defer
-- #link
 TOP PRIORITY:
-1. #link: Links a .so/.a/.o file
-2. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
-3. Static and Friend
-4. Defer
-5. Codeblocks.
-6. Concepts
-7. Modifier (x1.0.0)
-8. Variadics on generics
-9. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-10. Other stuff + Variadic Generics
-11. Metadata
+1. Static and Friend
+2. Defer
+3. Codeblocks.
+4. Concepts
+5. Modifier (x1.0.0)
+6. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
+7. Variadics on generics
+8. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+9. Other stuff + Variadic Generics
+10. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -123,7 +149,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-12. Preproccessers
+11. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -132,5 +158,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-13. User-Defined metadata
-14. User-Defined macro _functions_ (the only good thing in rust)
+12. User-Defined metadata
+13. User-Defined macro _functions_ (the only good thing in rust)

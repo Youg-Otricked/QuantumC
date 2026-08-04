@@ -108,11 +108,13 @@ class MapLiteralNode;
 class TryCatchNode;
 class RefVarDeclNode;
 class NullptrNode;
+class TypeValueNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
-                             SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*>;
+                             SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*,
+                             TypeValueNode>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -381,6 +383,13 @@ class NullptrNode {
     NullptrNode(Position p) : pos(p) {}
     Position getPos() { return this->pos; }
     std::string print() const { return "nullptr"; }
+};
+class TypeValueNode {
+  public:
+    Token tok;
+    TypeValueNode(Token tok);
+    Position getPos() { return this->tok.pos; }
+    std::string print() const;
 };
 class RefVarDeclNode {
   public:
@@ -944,7 +953,7 @@ using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, Ch
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
                          QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode,
-                         NullptrNode>;
+                         NullptrNode, TypeValueNode>;
 
 class ParseResult {
   public:
