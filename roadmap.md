@@ -117,14 +117,15 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - defer
 TOP PRIORITY:
 1. Defer
-2. Codeblocks.
-3. Concepts
-4. Modifier (x1.0.0)
-5. Ident (maybe)/Type direct primitive type (parser refactor), make sizeof and next take a REAL TYPE! instead of a string
-6. Variadics on generics
-7. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-8. Other stuff (private/protected inheritance) + Variadic Generics
-9. Metadata
+2. Scope blocks
+3. Codeblocks.
+4. Concepts
+5. Modifier (x1.0.0)
+6. Ident (maybe)/Type direct primitive type (parser refactor)
+7. Variadics on generics
+8. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+9. Other stuff (private/protected inheritance) + Variadic Generics
+10. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -146,7 +147,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-10. Preproccessers
+11. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -155,5 +156,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-11. User-Defined metadata
-12. User-Defined macro _functions_ (the only good thing in rust)
+12. User-Defined metadata
+13. User-Defined macro _functions_ (the only good thing in rust)

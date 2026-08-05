@@ -14,24 +14,14 @@ namespace AdvQBool {
         int FalseLevel;
         AQB(int truth) {
             if (truth > 100 || truth < 0) {
-                //throw("Cannot make a advanced qbool more than 100 percent true or more than 100% false.");
-                if (truth > 100) {
-                    truth = 100;
-                } else {
-                    truth = 0;
-                }
+                throw "Cannot make a advanced qbool more than 100 percent true or more than 100% false.";
             }
             this.TruthLevel = truth;
             this.FalseLevel = 100 - truth;
         }
         void operator=(int other) {
             if (other > 100 || other < 0) {
-                //throw("Cannot make a advanced qbool more than 100 percent true.");
-                if (other > 100) {
-                    other = 100;
-                } else {
-                    other = 0;
-                }
+                throw "Cannot make a advanced qbool more than 100 percent true.";
             }
             this.TruthLevel = other;
             this.FalseLevel = 100 - other;
@@ -619,8 +609,7 @@ namespace Math {
     }
     double log(double x) {
         if (x <= 0) {
-            //throw("log: x must be positive");
-            return 0.0;
+            throw "log: x must be positive";
         }
         double log2 = 0.693147180559945309417;
         int n = 0;

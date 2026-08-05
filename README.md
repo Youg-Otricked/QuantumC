@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.25.0 = "`static`, `friend`, and `friendly`"
-Next Version: x0.26.0 = "`defer`"
+Current Version: x0.26.0 = "`defer`"
+Next Version: x0.26.1 = "scope blocks"
 
 # Current Version Highlights
 
@@ -127,10 +127,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Class Stuff
+└─ Scope
 
 Minor
-└─ `static`, `friend`, `friendly`
+└─ `defer`
 
 Patch
 └─ N/A
@@ -697,6 +697,37 @@ namespace Array
     }
 }
 ```
+
+## Try/Catch and Error Returns
+
+C^4 supports both `try`/`catch` exception handling and multireturn/unions for error handling. You are encouraged to use both, or combine them where appropriate. Just document if you throw or not.
+Example:
+```qc
+int main() {
+    try {
+        throw 123;
+    } catch (int e) {
+        ...
+    }
+}
+```
+Or for union-based:
+```qc
+struct myerror {
+    ...
+}
+type MyResult = int | myerror;
+MyResult myThing() {
+    return myerror{...};
+}
+```
+
+## Defer
+
+C^4 has `defer`, similarly to Go and Zig.
+Unlike Go's `defer`, C^4 `defer` does **not** participate in stack unwinding. Deferred code is not automatically executed when an exception propagates out of a scope.
+This behavior is intentional: making `defer` participate in stack unwinding would introduce additional runtime overhead.
+`defer` should not be considered a destructor mechanism. It is a scope-exit convenience feature, not RAII.
 
 ## Simple File Example
 

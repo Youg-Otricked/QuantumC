@@ -109,12 +109,13 @@ class TryCatchNode;
 class RefVarDeclNode;
 class NullptrNode;
 class TypeValueNode;
+class DeferNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
                              SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*,
-                             TypeValueNode>;
+                             TypeValueNode, DeferNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -599,6 +600,14 @@ class VarAccessNode {
 
     std::string print() const;
 };
+class DeferNode {
+  public:
+    StatementsNode* block;
+    Position getPos() { return get_pos(block); }
+    DeferNode(StatementsNode* block)
+        : block(block) {}
+    std::string print() const;
+};
 
 class IfNode {
   public:
@@ -958,7 +967,7 @@ using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, Ch
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
                          QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode,
-                         NullptrNode, TypeValueNode>;
+                         NullptrNode, TypeValueNode, DeferNode*>;
 
 class ParseResult {
   public:
@@ -1125,6 +1134,7 @@ class Parser {
     Prs atom();
     Prs power();
     Prs if_expr();
+    Prs defer_expr();
     Prs return_stmt();
     Prs bin_op(std::function<Prs()> func, std::initializer_list<TokenType> ops);
     Prs logical_and();
@@ -1531,8 +1541,12 @@ class LLVMCompiler {
         llvm::BasicBlock* landingPad;
         llvm::BasicBlock* continuation;
         std::vector<EHHandler> handlers;
+        size_t deferDepth;
     };
     std::vector<EHScope> ehScopes;
+
+    std::vector<std::vector<StatementsNode*>> defersStack = {{}};
+#define defers defersStack.back()
     bool insideTry() { return !ehScopes.empty(); }
     llvm::BasicBlock* currentLandingPad() { return ehScopes.back().landingPad; }
     llvm::Value* copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex, llvm::Type* elemTy,
@@ -1605,7 +1619,6 @@ class LLVMCompiler {
     std::vector<std::unordered_map<std::string, std::pair<int, int>>> jaggedArraysStack;
     std::vector<std::unordered_map<std::string, std::string>> arrayTypeStringsStack;
     std::vector<std::unordered_map<std::string, int>> arrayLengthsStack;
-    std::vector<std::unordered_map<std::string, std::pair<int, int>>> mapsStack;
     std::vector<std::unordered_map<std::string, std::string>> varTypesStack;
     std::vector<std::unordered_map<std::string, llvm::AllocaInst*>> localsStack;
     std::vector<std::unordered_map<std::string, bool>> volatileVarsStack;
@@ -1630,7 +1643,6 @@ class LLVMCompiler {
 #define hasVolatileVar(name) foundInStack(volatileVarsStack, name)
 #define volatileVars (volatileVarsStack.back())
 #define arrayLengths (arrayLengthsStack.back())
-#define maps (mapsStack.back())
 #define locals (localsStack.back())
 #define jaggedArrays (jaggedArraysStack.back())
 #define varTypes (varTypesStack.back())
@@ -1642,23 +1654,41 @@ class LLVMCompiler {
 #define findJaggedArray(name) findInStack(jaggedArraysStack, name)
 #define findArrayType(name) findInStack(arrayTypeStringsStack, name)
     void enterScope() {
+        defersStack.push_back({});
         localsStack.push_back({});
         jaggedArraysStack.push_back({});
         arrayTypeStringsStack.push_back({});
         arrayLengthsStack.push_back({});
-        mapsStack.push_back({});
         varTypesStack.push_back({});
         volatileVarsStack.push_back({});
     }
 
     void exitScope() {
+        auto *currentBlock = builder->GetInsertBlock();
+        if (currentBlock && !currentBlock->getTerminator()) {
+            emitDefersDownTo(defersStack.size());
+        }
+        defersStack.pop_back();
         localsStack.pop_back();
         volatileVarsStack.pop_back();
         jaggedArraysStack.pop_back();
         arrayTypeStringsStack.pop_back();
         arrayLengthsStack.pop_back();
-        mapsStack.pop_back();
         varTypesStack.pop_back();
+    }
+    size_t targetDeferDepth = 0;
+    std::vector<size_t> loopStack;
+    void emitDefersDownTo(size_t targetDepth) {
+        if (defersStack.empty()) return;
+        int first = std::max(0, (int)targetDepth - 1);
+        for (int i = (int)defersStack.size() - 1; i >= first; --i) {
+            auto defersToRun = defersStack[i]; 
+            for (auto it = defersToRun.rbegin(); it != defersToRun.rend(); ++it) {
+                enterScope();
+                emitStmt(*it);
+                exitScope();
+            }
+        }
     }
     llvm::Value* getCollectionLength(llvm::Value* collVal, AnyNode& collExpr);
     llvm::Value* expandSpreadIntoArrays(llvm::Value* collVal, AnyNode& collExpr, llvm::AllocaInst* argsArray, llvm::AllocaInst* typesArray,

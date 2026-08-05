@@ -375,6 +375,8 @@ std::string printAny(const AnyNode& node) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, AssignExprNode*>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, DeferNode*>) {
+                return arg->print();
             } else if constexpr (std::is_same_v<T, IfNode*>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, TryCatchNode*>) {
@@ -487,6 +489,11 @@ QBoolNode::QBoolNode(Token tok) {
 std::string QBoolNode::print() const {
     return "(" + this->tok.print() + ")";
 }
+std::string DeferNode::print() const {
+    std::string res = "(defer ";
+    res += this->block->print();
+    return res + ")";
+}
 std::string IfNode::print() const {
     std::string res = "(if ";
     if (init.has_value()) { res += "init=" + printAny(init.value()) + "; "; }
@@ -556,6 +563,8 @@ Prs ParseResult::success(AnyNode node) {
             } else if constexpr (std::is_same_v<T, AssignExprNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, StatementsNode*>) {
+                return Prs{arg};
+            } else if constexpr (std::is_same_v<T, DeferNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, IfNode*>) {
                 return Prs{arg};
@@ -648,6 +657,8 @@ Prs ParseResult::to_prs() {
             } else if constexpr (std::is_same_v<T, AssignExprNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, StatementsNode*>) {
+                return Prs{arg};
+            } else if constexpr (std::is_same_v<T, DeferNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, IfNode*>) {
                 return Prs{arg};
@@ -937,6 +948,19 @@ Prs Parser::qif_expr() {
     }
     return res.success(new QIfNode(std::nullopt, condition, then_branch, qelif_branches, qelse_branch));
 }
+Prs Parser::defer_expr() {
+    ParseResult res;
+    if (!(this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "defer")) {
+        res.failure(new InvalidSyntaxError("QC-S009: Expected 'defer'", this->current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    StatementsNode* deferBlock;
+    if (!parse_block_into(deferBlock, res)) return res.to_prs();
+    auto defernode = new DeferNode(deferBlock);
+    return res.success(defernode);
+}
+
 Prs Parser::if_expr() {
     auto has_semicolon_before_closing_paren = [this]() -> bool {
         size_t idx = index;
@@ -2557,7 +2581,7 @@ Prs Parser::atom() {
             }
             if (res.error) return res.to_prs();
         }
-        if (is_known_type(name)) { return res.success(TypeValueNode(Token(TokenType::KEYWORD, name, tok.pos))); }
+        if (is_known_type(name) && std::holds_alternative<VarAccessNode*>(base)) { return res.success(TypeValueNode(Token(TokenType::KEYWORD, name, tok.pos))); }
         return res.success(base);
     } else if (tok.type == TokenType::LPAREN) {
         this->advance();
@@ -3415,6 +3439,7 @@ Prs Parser::statement() {
         if (this->current_tok.type == TokenType::SEMICOLON) this->advance();
         return res.success(fn_node);
     }
+    if (tok.type == TokenType::KEYWORD && tok.value == "defer") { return this->defer_expr(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "if") { return this->if_expr(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "try") { return this->try_catch_expr(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "qif") { return this->qif_expr(); }
@@ -9996,7 +10021,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Function* createFn = module->getFunction("__qc_create_exception");
             llvm::Value* exception = builder->CreateCall(createFn, {type, value}, "exception");
             llvm::Function* throwFn = module->getFunction("__qc_throw");
-            builder->CreateCall(throwFn, {exception});
+            if (insideTry()) {
+                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                builder->CreateInvoke(throwFn, contBB, currentLandingPad(), {exception});
+                builder->SetInsertPoint(contBB);
+            } else {
+                builder->CreateCall(throwFn, {exception});
+            }
             builder->CreateUnreachable();
             return nullptr;
         }
@@ -13252,6 +13283,8 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         if (it->type.value.ends_with("restrict")) { func->addParamAttr(i, llvm::Attribute::NoAlias); }
     }
     if (fn.is_foreign || fn.is_header) return func;
+    auto savedDefers = defersStack;
+    defersStack.clear();
     enterScope();
     auto savedLambdaTypes = lambdaTypes;
     llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
@@ -13338,6 +13371,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     functions[name] = func;
     lambdaTypes = savedLambdaTypes;
     exitScope();
+    defersStack = savedDefers;
     return func;
 }
 std::string LLVMCompiler::mangleName(const FuncDefNode& fn) {
@@ -13358,14 +13392,19 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         std::holds_alternative<MethodCallNode*>(node) || std::holds_alternative<SpreadNode*>(node) ||
         std::holds_alternative<FieldAssignNode*>(node) || std::holds_alternative<RefVarDeclNode>(node)) {
         emitExpr(node);
-    } else if (auto mret = safe_get<MultiReturnNode>(node)) {
+        return;
+    }
+    if (builder->GetInsertBlock()->getTerminator()) {
+        cg_error(get_pos(node), "internal error: attempted to emit into terminated basic block");
+        return;
+    }
+    if (auto mret = safe_get<MultiReturnNode>(node)) {
         llvm::Type* retTy = currentFunction->getReturnType();
-
         if (!retTy->isStructTy()) {
             cg_error(mret->pos, "multi-return in non-multi-return function");
             return;
         }
-
+        emitDefersDownTo(0);
         llvm::Value* agg = llvm::ConstantAggregateZero::get(retTy);
         llvm::StructType* retStructTy = llvm::cast<llvm::StructType>(retTy);
         for (size_t i = 0; i < mret->values.size(); ++i) {
@@ -13505,6 +13544,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateRet(agg);
         return;
     } else if (auto ret = std::get_if<ReturnNode*>(&node)) {
+        emitDefersDownTo(0);
         if (auto varAccess = std::get_if<VarAccessNode*>(&(*ret)->value)) {
             std::string name = (*varAccess)->var_name_tok.value;
             llvm::Value* alloc = getVarAddress(name);
@@ -13712,7 +13752,8 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
 
         return;
-    } else if (auto if_node = safe_get<IfNode>(node)) {
+    } else if (auto if_node = safe_get<IfNode>(node)) { // need to add the defer emmission to if no break bb to if qif qswitch switch
+        size_t outerDepth = defersStack.size();
         enterScope();
         if (if_node->init.has_value()) { emitStmt(if_node->init.value()); }
         llvm::Value* cond = emitExpr(if_node->condition);
@@ -13747,8 +13788,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(thenBB);
         enterScope();
         for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
+        if (!builder->GetInsertBlock()->getTerminator()) { 
+            emitDefersDownTo(outerDepth + 2);
+            builder->CreateBr(mergeBB); 
+        }
         exitScope();
-        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         for (size_t i = 0; i < elifBlocks.size(); i++) {
             builder->SetInsertPoint(elifBlocks[i].first);
             llvm::Value* elifCond = emitExpr(if_node->elif_branches[i].first);
@@ -13759,19 +13803,27 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->SetInsertPoint(elifBlocks[i].second);
             enterScope();
             for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 2);
+                builder->CreateBr(mergeBB); 
+            }
             exitScope();
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         }
         if (elseBB) {
             builder->SetInsertPoint(elseBB);
             enterScope();
             for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 2);
+                builder->CreateBr(mergeBB);
+            }
             exitScope();
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(mergeBB); }
         }
         exitScope();
         builder->SetInsertPoint(mergeBB);
     } else if (auto while_node = safe_get<WhileNode>(node)) {
+        size_t outerDepth = defersStack.size();
+        loopStack.push_back(outerDepth);
         enterScope();
         llvm::BasicBlock* condBB = llvm::BasicBlock::Create(context, "while.cond", currentFunction);
         llvm::BasicBlock* bodyBB = llvm::BasicBlock::Create(context, "while.body", currentFunction);
@@ -13800,24 +13852,32 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
         for (auto& stmt : while_node->body->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(condBB); }
+        if (!builder->GetInsertBlock()->getTerminator()) { 
+            emitDefersDownTo(outerDepth + 1);
+            builder->CreateBr(condBB); 
+        }
         currentBreakBB = oldBreakBB;
         currentContinueBB = oldContinueBB;
         exitScope();
+        loopStack.pop_back();
         builder->SetInsertPoint(endBB);
     } else if (std::holds_alternative<BreakNode*>(node)) {
         if (currentBreakBB) {
+            emitDefersDownTo(loopStack.back()); 
             builder->CreateBr(currentBreakBB);
         } else {
             cg_error(get_pos(node), "break outside of loop/switch");
         }
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
+            emitDefersDownTo(loopStack.back()); 
             builder->CreateBr(currentContinueBB);
         } else {
             cg_error(get_pos(node), "continue outside of loop");
         }
     } else if (auto for_node = safe_get<ForNode>(node)) {
+        size_t outerDepth = defersStack.size();
+        loopStack.push_back(outerDepth);
         enterScope();
         if (for_node->init.has_value()) { emitStmt(for_node->init.value()); }
         llvm::BasicBlock* condBB = llvm::BasicBlock::Create(context, "for.cond", currentFunction);
@@ -13848,15 +13908,20 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
         for (auto& stmt : for_node->body->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(incBB); }
+        if (!builder->GetInsertBlock()->getTerminator()) { 
+            emitDefersDownTo(outerDepth + 1);
+            builder->CreateBr(incBB); 
+        }
         builder->SetInsertPoint(incBB);
         if (for_node->update.has_value()) { emitStmt(for_node->update.value()); }
         builder->CreateBr(condBB);
         currentBreakBB = oldBreakBB;
         currentContinueBB = oldContinueBB;
         exitScope();
+        loopStack.pop_back();
         builder->SetInsertPoint(endBB);
     } else if (auto switch_node = safe_get<SwitchNode>(node)) {
+        size_t outerDepth = defersStack.size();
         enterScope();
         llvm::Value* switchVal = emitExpr(switch_node->value);
         if (!switchVal) return;
@@ -13961,9 +14026,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             for (auto& stmt : switch_node->sections[i].body->statements) { emitStmt(stmt); }
 
             if (!builder->GetInsertBlock()->getTerminator()) {
+                
                 if (i + 1 < sectionBlocks.size()) {
                     builder->CreateBr(sectionBlocks[i + 1]);
                 } else {
+                    emitDefersDownTo(outerDepth + 1);
                     builder->CreateBr(endBB);
                 }
             }
@@ -13972,7 +14039,8 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         currentBreakBB = oldBreakBB;
         exitScope();
         builder->SetInsertPoint(endBB);
-    } else if (auto qif_node = safe_get<QIfNode>(node)) {
+    } else if (auto qif_node = safe_get<QIfNode>(node)) { 
+        size_t outerDepth = defersStack.size();
         enterScope();
         if (qif_node->init.has_value()) { emitStmt(qif_node->init.value()); }
         llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "qif.end", currentFunction);
@@ -14000,9 +14068,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateCondBr(qif_is_true, qifBodyBB, nextBB);
 
         builder->SetInsertPoint(qifBodyBB);
+        enterScope();
         for (auto& stmt : qif_node->then_branch->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
-
+        if (!builder->GetInsertBlock()->getTerminator()) { 
+            emitDefersDownTo(outerDepth + 2);
+            builder->CreateBr(endBB); 
+        }
+        exitScope();
         for (size_t i = 0; i < qif_node->qelif_branches.size(); i++) {
             builder->SetInsertPoint(nextBB);
 
@@ -14016,11 +14088,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                                                : endBB;
 
             builder->CreateCondBr(elif_is_true, elifBodyBB, nextElifBB);
-
             builder->SetInsertPoint(elifBodyBB);
+            enterScope();
             for (auto& stmt : qif_node->qelif_branches[i].second->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
-
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 2);
+                builder->CreateBr(endBB); 
+            }
+            exitScope();
             nextBB = nextElifBB;
         }
 
@@ -14039,12 +14114,18 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->CreateCondBr(all_false, qelseBodyBB, endBB);
 
             builder->SetInsertPoint(qelseBodyBB);
+            enterScope();
             for (auto& stmt : qif_node->qelse_branch->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                emitDefersDownTo(outerDepth + 2);
+                builder->CreateBr(endBB);
+            }
+            exitScope();
         }
         exitScope();
         builder->SetInsertPoint(endBB);
     } else if (auto qsw = safe_get<QSwitchNode>(node)) {
+        size_t outerDepth = defersStack.size();
         enterScope();
         llvm::Value* qb_val = emitExpr(qsw->value);
         if (!qb_val) {
@@ -14104,24 +14185,36 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (case_t_block && qsw->case_t) {
             builder->SetInsertPoint(case_t_block);
             for (auto& stmt : qsw->case_t->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(qswitch_end); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(qswitch_end); 
+            }
         }
 
         if (case_f_block && qsw->case_f) {
             builder->SetInsertPoint(case_f_block);
             for (auto& stmt : qsw->case_f->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(qswitch_end); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(qswitch_end);
+            }
         }
 
         if (case_n_block && qsw->case_n) {
             builder->SetInsertPoint(case_n_block);
             for (auto& stmt : qsw->case_n->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(qswitch_end); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(qswitch_end); 
+            }
         }
         if (case_b_block && qsw->case_b) {
             builder->SetInsertPoint(case_b_block);
             for (auto& stmt : qsw->case_b->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(qswitch_end); }
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(qswitch_end); 
+            }
         }
         exitScope();
         builder->SetInsertPoint(qswitch_end);
@@ -14454,6 +14547,8 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
         return;
     } else if (auto foreach = safe_get<ForeachNode>(node)) {
+        size_t outerDepth = defersStack.size();
+        loopStack.push_back(outerDepth);
         std::string elemName = foreach->elem_name.value;
         std::string iterName = "__foreach_i_" + elemName;
         llvm::Value* lengthVal = nullptr;
@@ -14607,7 +14702,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
             builder->CreateStore(elemVal, elemAlloc);
             emitStmt(foreach->body);
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(incBB); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(incBB);
+            }
             builder->SetInsertPoint(incBB);
             llvm::Value* iVal2 = builder->CreateLoad(builder->getInt32Ty(), iterAlloc, iterName);
             llvm::Value* incVal = builder->CreateAdd(iVal2, builder->getInt32(1), "i_inc");
@@ -14619,10 +14717,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             llvm::Value* cur = emitMethodCall(nextFn, iterObjAlloc, {}, "_next");
             builder->CreateStore(cur, elemAlloc);
             emitStmt(foreach->body);
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(condBB); }
+            if (!builder->GetInsertBlock()->getTerminator()) { 
+                emitDefersDownTo(outerDepth + 1);
+                builder->CreateBr(condBB); 
+            }
         }
         builder->SetInsertPoint(endBB);
         exitScope();
+        loopStack.pop_back();
         locals.erase(iterName);
         locals.erase(elemName);
         currentBreakBB = savedBreakBB;
@@ -14638,6 +14740,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
         return;
     } else if (auto trycatch = safe_get<TryCatchNode>(node)) {
+        size_t outerScope = defersStack.size();
         enterScope();
         auto* tryBB = llvm::BasicBlock::Create(context, "try.start", currentFunction);
         auto* landingPadBB = llvm::BasicBlock::Create(context, "catch.landing", currentFunction);
@@ -14648,6 +14751,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             .landingPad = landingPadBB,
             .continuation = endBB,
             .handlers = {},
+            .deferDepth = outerScope + 1,
         };
         for (size_t i = 0; i < trycatch->catch_bodys.size(); ++i) {
             auto* catchBB = llvm::BasicBlock::Create(context, "catch." + std::to_string(i), currentFunction);
@@ -14660,8 +14764,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         ehScopes.push_back(std::move(thisScope));
         builder->CreateBr(tryBB);
         builder->SetInsertPoint(tryBB);
+        enterScope();
         emitStmt(trycatch->try_body);
-        if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
+        if (!builder->GetInsertBlock()->getTerminator()) {
+            emitDefersDownTo(outerScope + 2);
+            builder->CreateBr(endBB);
+        }
+        exitScope();
         builder->SetInsertPoint(landingPadBB);
         auto* exceptionType = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty()});
         std::vector<EHHandler> visibleHandlers;
@@ -14688,6 +14797,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             const auto& c = savedScope.handlers[i].body;
             auto* catchBB = savedScope.handlers[i].block;
             builder->SetInsertPoint(catchBB);
+            enterScope();
             if (!c.var_name.empty()) {
                 std::string name = getCurrentNamespace().empty() ? c.var_name : getCurrentNamespace() + c.var_name;
                 auto* payloadPtr = builder->CreateStructGEP(exceptionType, exception, 1, "exception.value.ptr");
@@ -14699,12 +14809,16 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 locals[name] = alloc;
             }
             emitStmt(c.body);
-            if (!builder->GetInsertBlock()->getTerminator()) { builder->CreateBr(endBB); }
+            if (!builder->GetInsertBlock()->getTerminator()) { emitDefersDownTo(outerScope + 2); builder->CreateBr(endBB); }
+            exitScope();
         }
         builder->SetInsertPoint(noMatchBB);
         builder->CreateResume(lp);
         exitScope();
         builder->SetInsertPoint(endBB);
+    } else if (auto defer = safe_get<DeferNode>(node)) {
+        defers.push_back(defer->block);
+        return;
     }
 }
 std::pair<bool, int> LLVMCompiler::checkJagged(AnyNode& node) {
@@ -15954,7 +16068,7 @@ Token Lexer::make_identifier() {
         id == "in" || id == "type" || id == "foreign" || id == "public" || id == "protected" || id == "private" || id == "extern" ||
         id == "function" || id == "namespace" || id == "roperator" || id == "operator" || id == "abstract" || id == "final" || id == "try" ||
         id == "catch" || id == "nullptr" || id == "addr_t" || id == "out" || id == "inout" || id == "volatile" || id == "restrict" || id == "byte" ||
-        id == "nibble" || id == "friend" || id == "friendly" || id == "static") {
+        id == "nibble" || id == "friend" || id == "friendly" || id == "static" || id == "defer") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }
