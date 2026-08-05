@@ -412,8 +412,9 @@ class StatementsNode {
   public:
     std::vector<AnyNode> statements;
     bool is_block = false;
+    bool is_scoped = false;
     Position getPos() { return statements.empty() ? Position("", "", 0, 0, 0) : get_pos(statements[0]); }
-    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false) : statements(stmts), is_block(is_block) {}
+    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false, bool is_scoped = false) : statements(stmts), is_block(is_block), is_scoped(is_scoped) {}
     std::string print() const;
 };
 

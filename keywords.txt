@@ -6,7 +6,7 @@ in type foreign public protected private extern
 function namespace roperator operator abstract final try
 catch nullptr addr_t out inout volatile restrict byte
 nibble true false qtrue qfalse both none sizeof throw
-friend friendly static
+friend friendly static defer
 
 to add:
 concept proves with_proof modifier attributes Type Ident macro

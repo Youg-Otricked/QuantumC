@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.26.0 = "`defer`"
-Next Version: x0.26.1 = "scope blocks"
+Current Version: x0.26.1 = "Scope Blocks"
+Next Version: x0.27.0 = "Concepts"
 
 # Current Version Highlights
 
@@ -130,7 +130,7 @@ Moderate
 └─ Scope
 
 Minor
-└─ `defer`
+└─ Scope Blocks
 
 Patch
 └─ N/A
@@ -138,7 +138,7 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.22.* -> x0.24.*`)
+These are deprecations in the past 3 moderate versions (`x0.24.* -> x0.26.*`)
 
 No Deprecations!
 

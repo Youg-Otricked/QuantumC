@@ -4736,6 +4736,12 @@ Prs Parser::statement() {
         user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
+    if (this->current_tok.type == TokenType::LBRACE) {
+        StatementsNode *block;
+        if (!parse_block_into(block, res)) return res.to_prs();
+        block->is_scoped = true;
+        return res.success(block);
+    }
     if (tok.type == TokenType::KEYWORD || tok.type == TokenType::IDENTIFIER && tok.value != "this") {
         if (tok.type == TokenType::IDENTIFIER) {
             Token saved_tok = this->current_tok;
@@ -14731,7 +14737,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         currentContinueBB = savedContinueBB;
         return;
     } else if (auto stmts = safe_get<StatementsNode>(node)) {
+        if (stmts->is_scoped) enterScope();
         for (auto& stmt : stmts->statements) { emitStmt(stmt); }
+        if (stmts->is_scoped) exitScope();
         return;
     } else if (auto ns = safe_get<NamespaceNode>(node)) {
         namespaceStack.push_back(ns->name);

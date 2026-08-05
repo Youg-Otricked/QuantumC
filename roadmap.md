@@ -106,7 +106,6 @@ void loop(void) code {
 - `__attributes__((...))`
 - const params/returns and const correct methods
 - Copy VS Move assignment (no move only, im not rust), to make things faster.
-- Scoping blocks ({ })
 - more error stuff if i feel like it
 __qc_commit_hash() — exact git commit the compiler/runtime was built from, invaluable for bug reports since version numbers alone often don't pin down exactly which state of the code produced a binary
 __qc_build_date() — timestamp of the build
@@ -116,16 +115,14 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - atomics
 - defer
 TOP PRIORITY:
-1. Defer
-2. Scope blocks
-3. Codeblocks.
-4. Concepts
-5. Modifier (x1.0.0)
-6. Ident (maybe)/Type direct primitive type (parser refactor)
-7. Variadics on generics
-8. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-9. Other stuff (private/protected inheritance) + Variadic Generics
-10. Metadata
+1. Concepts
+2. Codeblocks
+3. Modifier (x1.0.0)
+4. Ident (maybe)/Type direct primitive type (parser refactor)
+5. Variadics on generics
+6. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+7. Other stuff (private/protected inheritance) + Variadic Generics
+8. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -147,7 +144,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-11. Preproccessers
+9. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -156,5 +153,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-12. User-Defined metadata
-13. User-Defined macro _functions_ (the only good thing in rust)
+10. User-Defined metadata
+11. User-Defined macro _functions_ (the only good thing in rust)
