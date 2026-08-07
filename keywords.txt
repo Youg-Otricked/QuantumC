@@ -7,6 +7,7 @@ function namespace roperator operator abstract final try
 catch nullptr addr_t out inout volatile restrict byte
 nibble true false qtrue qfalse both none sizeof throw
 friend friendly static defer
+concept proves with_proof _of all_of at_least
 
 to add:
-concept proves with_proof modifier attributes Type Ident macro
+modifier attributes Type Ident macro

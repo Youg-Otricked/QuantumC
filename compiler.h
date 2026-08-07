@@ -508,17 +508,59 @@ class ClassMethodInfo {
         return res;
     }
 };
-
-enum class UserTypeKind { Struct, Alias, Union, Enum, Class };
+class ConceptInfo {
+  public:
+    class FunctionSignature {
+      public:
+        Token name;
+        std::vector<Token> return_types;
+        std::vector<Parameter> params;
+        std::vector<GenericType> generics;
+        std::string print() const {
+            std::string res = this->name.value;
+            for (size_t i = 0; i < params.size(); i++) {
+                res += params[i].toString();
+                if (i + 1 != params.size()) res += ", ";
+            }
+            res += ") -> ";
+            if (return_types.empty())
+                res += "void";
+            else
+                for (size_t i = 0; i < return_types.size(); i++) {
+                    res += return_types[i].value;
+                    if (i + 1 != return_types.size()) res += ", ";
+                }
+            return res;
+        }
+    };
+    struct Block {
+        std::vector<FunctionSignature> signatures;
+        std::vector<Block> subblocks;
+        std::vector<Token> requiredConcepts;
+        Token constraint;
+    };
+    struct DefaultBlock {
+        std::vector<std::pair<Token, ClassMethodInfo>> definitions;
+    };
+    std::vector<std::pair<Block, std::optional<DefaultBlock>>> blocks;
+};
+enum class UserTypeKind { Struct, Alias, Union, Enum, Class, Concept };
 
 struct UnionMember {
     std::string type;
 };
-
+class ProvedConcepts {
+  public:
+    Token conceptName;
+    std::vector<ClassMethodInfo> additionalProof;
+};
 struct UserTypeInfo {
+    Position pos;
     UserTypeKind kind;
+    std::vector<ProvedConcepts> provedConcepts;
     std::vector<StructField> fields;
     std::string aliasTarget;
+    ConceptInfo conceptInfo;
     std::vector<UnionMember> members;
     std::vector<EnumEntry> enumEntries;
     std::vector<ClassField> classFields;
@@ -1378,7 +1420,7 @@ class LLVMCompiler {
     void generateStructReprFunctions();
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
     void createUserTypes();
-    llvm::Value* convertToString(llvm::Value* val, AnyNode& expr);
+    llvm::Value* convertToString(llvm::Value* val, AnyNode& expr, Position pos);
     LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& userTys, llvm::Module* mod, llvm::LLVMContext& ctx, bool is_main = false);
     std::vector<CTError> compile(
         StatementsNode* root, std::unordered_map<std::string, FunctionSignature> visibleFunctionSignatures,
@@ -1526,6 +1568,8 @@ class LLVMCompiler {
     std::unordered_map<std::string, bool> genericStructs;
     std::unordered_map<std::string, bool> genericAliases;
     std::unordered_map<std::string, bool> genericUnions;
+    std::unordered_map<std::string, bool> genericConcepts;
+    std::unordered_map<std::string, ConceptInfo> concepts;
     std::unordered_map<std::string, UserTypeInfo> substitutedUnions;
     std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
     std::unordered_map<std::string, std::string> currentGenericTypeStrings;
@@ -1610,6 +1654,8 @@ class LLVMCompiler {
     llvm::Value* createRuntimeSizedArray(std::vector<AnyNode>& elements, llvm::Value* totalSize);
     void expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExpr, std::vector<llvm::Value*>& elements);
     llvm::Value* emitSpreadFunctionCall(llvm::Value* calleeVal, llvm::FunctionType* fnTy, CallNode& call);
+    bool fulfillsGenericConstraints(std::vector<GenericType> generics, std::vector<std::string> genericParams, Position pos = Position());
+    ConceptInfo generateGenericConcept(std::string conceptName, UserTypeInfo conceptInfo, std::vector<std::string> genericParams);
     llvm::StructType* generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams);
     llvm::StructType* generateGenericStruct(std::string structName, UserTypeInfo structInfo, std::vector<std::string> genericParams);
     UserTypeInfo generateGenericUnion(std::string unionName, UserTypeInfo unionInfo, std::vector<std::string> genericParams);
@@ -2169,7 +2215,7 @@ class LLVMCompiler {
         }
         return {inner, ""};
     }
-    llvm::Value* emitPrimitiveConversion(llvm::Value* arg, const std::string& target) {
+    llvm::Value* emitPrimitiveConversion(llvm::Value* arg, const std::string& target, Position pos = Position()) {
         if (!arg) return nullptr;
 
         llvm::Type* ty = arg->getType();
@@ -2275,7 +2321,7 @@ class LLVMCompiler {
         }
 
         if (fnName.empty() || !retTy) {
-            cg_error(Position(), "Cannot convert to " + target);
+            cg_error(pos, "Cannot convert to " + target);
             return nullptr;
         }
 
@@ -2298,7 +2344,7 @@ class LLVMCompiler {
 
         return "";
     }
-    llvm::Value* emitBuiltinConversion(llvm::Value* rawArg, const std::string& target) {
+    llvm::Value* emitBuiltinConversion(llvm::Value* rawArg, const std::string& target, Position pos = Position()) {
         if (!rawArg) return nullptr;
 
         std::string unionName;
@@ -2330,7 +2376,7 @@ class LLVMCompiler {
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
-                cg_error(Position(), "Unknown conversion target: " + target);
+                cg_error(pos, "Unknown conversion target: " + target);
                 return nullptr;
             }
 
@@ -2353,7 +2399,7 @@ class LLVMCompiler {
                 llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                 llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_loaded");
 
-                llvm::Value* converted = emitPrimitiveConversion(loaded, target);
+                llvm::Value* converted = emitPrimitiveConversion(loaded, target, pos);
                 if (!converted) return nullptr;
 
                 incoming.push_back({builder->GetInsertBlock(), converted});
@@ -2398,7 +2444,7 @@ class LLVMCompiler {
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
-                cg_error(Position(), "Unknown conversion target: " + target);
+                cg_error(pos, "Unknown conversion target: " + target);
                 return nullptr;
             }
 
@@ -2421,7 +2467,7 @@ class LLVMCompiler {
                 llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
                 llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_enum_loaded");
 
-                llvm::Value* converted = emitPrimitiveConversion(loaded, target);
+                llvm::Value* converted = emitPrimitiveConversion(loaded, target, pos);
                 if (!converted) return nullptr;
 
                 incoming.push_back({builder->GetInsertBlock(), converted});
@@ -2437,7 +2483,7 @@ class LLVMCompiler {
             return phi;
         }
 
-        return emitPrimitiveConversion(rawArg, target);
+        return emitPrimitiveConversion(rawArg, target, pos);
     }
     llvm::Value* adaptArgumentForParam(llvm::Value* v, AnyNode& argNode, llvm::Type* paramTy, size_t argIndex) {
         if (!v) return nullptr;
@@ -2716,8 +2762,8 @@ class LLVMCompiler {
         return new MethodCallNode(call->node_to_call, Token(TokenType::IDENTIFIER, name, get_pos(call)),
                                   std::vector<AnyNode>(call->arg_nodes.begin(), call->arg_nodes.end()));
     }
-    FuncDefNode* funcDefFromClassMethod(const ClassMethodInfo& method, const std::string& className) {
-        std::string mangledName = className + "::" + method.name_tok.value;
+    FuncDefNode* funcDefFromClassMethod(const ClassMethodInfo& method, const std::string& className, std::string delim = "::") {
+        std::string mangledName = className + delim + method.name_tok.value;
         Token nameTok(TokenType::IDENTIFIER, mangledName, method.name_tok.pos);
         return new FuncDefNode(method.return_types, nameTok, std::list(method.params.begin(), method.params.end()), method.body, "", false, false,
                                method.generics, false);
@@ -2734,84 +2780,11 @@ class LLVMCompiler {
             auto oldNonTypeGenerics = currentNonTypeGenericValues;
             if (!genericParams.empty()) {
                 auto classInfo = userTypes[baseTypeName(className)];
-                for (int i = 0; i < classInfo.generics.size(); i++) {
-                    GenericType generic = classInfo.generics[i];
-                    if (genericParams.size() <= i) {
-                        if (generic.defaultValue.empty()) {
-                            cg_error(get_pos(node), "too few generic params for class " + className);
-                            return nullptr;
-                        }
-                    }
-                    std::string value;
-                    if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
-                        value = generic.defaultValue;
-                    } else {
-                        value = genericParams[i];
-                    }
-                    if (!generic.isNonType && !generic.isVariadic) {
-                        if (generic.constraint == "pointer") {
-                            if (!(value.ends_with("*"))) {
-                                cg_error(get_pos(node), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
-                                return nullptr;
-                            }
-                        } else if (generic.constraint == "numeric") {
-                            if (!(std::unordered_set<std::string>(
-                                      {"int", "double", "float", "addr_t", "byte", "nibble", "long double", "short int", "long int"})
-                                      .contains(value))) {
-                                cg_error(get_pos(node), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
-                                return nullptr;
-                            }
-                        } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                            static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "addr_t",   "byte",
-                                                                                         "nibble", "long double", "short int", "long int", "char",
-                                                                                         "bool",   "qbool",       "string"};
-                            auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
-                            if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
-                                if (generic.constraint == "usertype") {
-                                    cg_error(get_pos(node), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
-                                    return nullptr;
-                                }
-                            } else {
-                                if (generic.constraint == "primitive") {
-                                    cg_error(get_pos(node), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
-                                    return nullptr;
-                                }
-                            }
-                        }
-                        if (!generic.subconstraints.empty()) {
-                            if (generic.negated) {
-                                for (std::string subconstraint : generic.subconstraints) {
-                                    if (value == subconstraint) {
-                                        cg_error(get_pos(node),
-                                                 "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
-                                        return nullptr;
-                                    }
-                                }
-                            } else {
-                                bool is_valid = false;
-                                for (std::string subconstraint : generic.subconstraints) {
-                                    if (value == subconstraint) { is_valid = true; }
-                                }
-                                if (!is_valid) {
-                                    cg_error(get_pos(node), "Generic constrait " + generic.name + " does not except type " + value);
-                                    return nullptr;
-                                }
-                            }
-                        }
-                        currentGenericTypes[generic.name] = llvmTypeFor(value);
-                        currentGenericTypeStrings[generic.name] = value;
-                    } else if (generic.isNonType) {
-                        GenericType generic = classInfo.generics[i];
-                        if (genericParams.size() <= i) {
-                            if (generic.defaultValue.empty()) {
-                                cg_error(get_pos(node), "Too few generic params for class " + className);
-                                return nullptr;
-                            }
-                        }
-                        std::string gname = generic.name;
-                        generic.name = genericParams[i];
-                        currentNonTypeGenericValues[gname] = generic;
-                    }
+                if (!fulfillsGenericConstraints(classInfo.generics, genericParams, classInfo.pos)) {
+                    this->currentGenericTypes = oldGenericTypes;
+                    currentGenericTypeStrings = oldGenericTypeStrings;
+                    currentNonTypeGenericValues = oldNonTypeGenerics;
+                    return nullptr;
                 }
             }
             size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
@@ -3157,85 +3130,12 @@ class LLVMCompiler {
         auto oldNonTypeGenerics = currentNonTypeGenericValues;
         auto genericParams = genericParamsFromName(specializedName);
         auto& method = userTypes[baseTypeName(className)].classMethods[methodIdx];
-        for (int i = 0; i < method.generics.size(); i++) {
-            GenericType generic = method.generics[i];
-            if (genericParams.size() <= i) {
-                if (generic.defaultValue.empty()) {
-                    cg_error(method.name_tok.pos, "Too few generic params for function " + method.name_tok.value);
-                    return nullptr;
-                }
-            }
-            std::string value;
-            if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
-                value = generic.defaultValue;
-            } else {
-                value = genericParams[i];
-            }
-            if (!generic.isNonType && !generic.isVariadic) {
-                if (generic.constraint == "pointer") {
-                    if (!(value.ends_with("*"))) {
-                        cg_error(method.name_tok.pos, "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
-                        return nullptr;
-                    }
-                } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>(
-                              {"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
-                              .contains(value))) {
-                        cg_error(method.name_tok.pos, "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
-                        return nullptr;
-                    }
-                } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "byte",     "nibble",
-                                                                                 "addr_t", "long double", "short int", "long int", "char",
-                                                                                 "bool",   "qbool",       "string"};
-                    auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
-                    if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
-                        if (generic.constraint == "usertype") {
-                            cg_error(method.name_tok.pos, "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
-                            return nullptr;
-                        }
-                    } else {
-                        if (generic.constraint == "primitive") {
-                            cg_error(method.name_tok.pos, "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
-                            return nullptr;
-                        }
-                    }
-                }
-                if (!generic.subconstraints.empty()) {
-                    if (generic.negated) {
-                        for (std::string subconstraint : generic.subconstraints) {
-                            if (value == subconstraint) {
-                                cg_error(method.name_tok.pos,
-                                         "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
-                                return nullptr;
-                            }
-                        }
-                    } else {
-                        bool is_valid = false;
-                        for (std::string subconstraint : generic.subconstraints) {
-                            if (value == subconstraint) { is_valid = true; }
-                        }
-                        if (!is_valid) {
-                            cg_error(method.name_tok.pos, "Generic constrait " + generic.name + " does not except type " + value);
-                            return nullptr;
-                        }
-                    }
-                }
-                currentGenericTypes[generic.name] = llvmTypeFor(value);
-                currentGenericTypeStrings[generic.name] = value;
-            } else if (generic.isNonType) {
-                GenericType generic = method.generics[i];
-                if (genericParams.size() <= i) {
-                    if (generic.defaultValue.empty()) {
-                        cg_error(method.name_tok.pos, "Too few generic params for method " + method.name_tok.value);
-                        return nullptr;
-                    }
-                }
-                std::string gname = generic.name;
-                generic.name = genericParams[i];
-                currentNonTypeGenericValues[gname] = generic;
-            }
-        }
+        if (!fulfillsGenericConstraints(method.generics, genericParams, method.name_tok.pos)) {
+            this->currentGenericTypes = oldGenericTypes;
+            currentGenericTypeStrings = oldGenericTypeStrings;
+            currentNonTypeGenericValues = oldNonTypeGenerics;
+            return nullptr;
+        }        
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) {
@@ -3335,85 +3235,12 @@ class LLVMCompiler {
         auto oldGenericTypeStrings = currentGenericTypeStrings;
         auto oldNonTypeGenerics = currentNonTypeGenericValues;
         auto genericParams = genericParamsFromName(specializedName);
-        for (int i = 0; i < funcDef->generics.size(); i++) {
-            GenericType generic = funcDef->generics[i];
-            if (genericParams.size() <= i) {
-                if (generic.defaultValue.empty()) {
-                    cg_error(get_pos(funcDef), "Too few generic params for function " + funcDef->name_tok.value().value);
-                    return nullptr;
-                }
-            }
-            std::string value;
-            if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
-                value = generic.defaultValue;
-            } else {
-                value = genericParams[i];
-            }
-            if (!generic.isNonType && !generic.isVariadic) {
-                if (generic.constraint == "pointer") {
-                    if (!(value.ends_with("*"))) {
-                        cg_error(get_pos(funcDef), "Pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
-                        return nullptr;
-                    }
-                } else if (generic.constraint == "numeric") {
-                    if (!(std::unordered_set<std::string>(
-                              {"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
-                              .contains(value))) {
-                        cg_error(get_pos(funcDef), "Numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
-                        return nullptr;
-                    }
-                } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                    static const std::unordered_set<std::string> native_types = {"int",    "double",      "float",     "byte",     "nibble",
-                                                                                 "addr_t", "long double", "short int", "long int", "char",
-                                                                                 "bool",   "qbool",       "string"};
-                    auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
-                    if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
-                        if (generic.constraint == "usertype") {
-                            cg_error(get_pos(funcDef), "Usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
-                            return nullptr;
-                        }
-                    } else {
-                        if (generic.constraint == "primitive") {
-                            cg_error(get_pos(funcDef), "Primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
-                            return nullptr;
-                        }
-                    }
-                }
-                if (!generic.subconstraints.empty()) {
-                    if (generic.negated) {
-                        for (std::string subconstraint : generic.subconstraints) {
-                            if (value == subconstraint) {
-                                cg_error(get_pos(funcDef),
-                                         "Generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
-                                return nullptr;
-                            }
-                        }
-                    } else {
-                        bool is_valid = false;
-                        for (std::string subconstraint : generic.subconstraints) {
-                            if (value == subconstraint) { is_valid = true; }
-                        }
-                        if (!is_valid) {
-                            cg_error(get_pos(funcDef), "Generic constrait " + generic.name + " does not except type " + value);
-                            return nullptr;
-                        }
-                    }
-                }
-                currentGenericTypes[generic.name] = llvmTypeFor(value);
-                currentGenericTypeStrings[generic.name] = value;
-            } else if (generic.isNonType) {
-                GenericType generic = funcDef->generics[i];
-                if (genericParams.size() <= i) {
-                    if (generic.defaultValue.empty()) {
-                        cg_error(get_pos(funcDef), "Too few generic params for class " + funcDef->name_tok.value().value);
-                        return nullptr;
-                    }
-                }
-                std::string gname = generic.name;
-                generic.name = genericParams[i];
-                currentNonTypeGenericValues[gname] = generic;
-            }
-        }
+        if (!fulfillsGenericConstraints(funcDef->generics, genericParams, get_pos(funcDef))) {
+            this->currentGenericTypes = oldGenericTypes;
+            currentGenericTypeStrings = oldGenericTypeStrings;
+            currentNonTypeGenericValues = oldNonTypeGenerics;
+            return nullptr;
+        }    
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
@@ -3641,6 +3468,272 @@ class LLVMCompiler {
         builder->CreateRet(result);
         if (savedBB) { builder->SetInsertPoint(savedBB); }
     }
+    void proveConceptsForTypeInfo(std::string mapKey, UserTypeInfo info) {
+        if (info.provedConcepts.empty()) return;
+        for (auto& proof : info.provedConcepts) {
+            std::string conceptName = proof.conceptName.value;
+            auto [conceptInfo, exists] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
+            if (!exists) {
+                cg_error(proof.conceptName.pos, "Unknown concept '" + conceptName + "'");
+                continue;
+            }
+            std::unordered_set<std::string> additionalProofNames;
+            for (auto& proofMethod : proof.additionalProof) {
+                additionalProofNames.insert(proofMethod.name_tok.value);
+            }
+            auto alreadyDefd = [&](const std::string& methodName, const std::vector<Parameter>& sigParams) -> bool {
+                std::string mangledName = mapKey + "_" + methodName;
+                auto it = functionDefs.find(mangledName);
+                if (it == functionDefs.end()) {
+                    return false;
+                }
+                FuncDefNode* funcNode = it->second;
+                if (!funcNode) return false;
+                if (funcNode->params.size() != sigParams.size()) {
+                    return false;
+                }
+                auto actualParamIt = funcNode->params.begin();
+                for (size_t i = 0; i < sigParams.size(); ++i, ++actualParamIt) {
+                    std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey : sigParams[i].type.value;
+                    std::string actualType = actualParamIt->type.value;
+                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ProvedConcepts& proof) -> bool {
+                std::string methodName = sig.name.value;
+                auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
+                    if (sigParams.size() != targetParams.size()) return false;
+                    for (size_t i = 0; i < sigParams.size(); ++i) {
+                        std::string sigParamTy = (sigParams[i].type.value == "Self") ? mapKey : sigParams[i].type.value;
+                        std::string targetParamTy = targetParams[i].type.value;
+                        if (resolveTypeName(sigParamTy, false) != resolveTypeName(targetParamTy, false)) return false;
+                    }
+                    return true;
+                };
+                for (auto& method : targetType.classMethods) {
+                    if (method.name_tok.value == methodName && matchesParams(sig.params, method.params)) {
+                        return true;
+                    }
+                }
+                for (auto& proofMethod : proof.additionalProof) {
+                    if (proofMethod.name_tok.value == methodName && matchesParams(sig.params, proofMethod.params)) {
+                        return true;
+                    }
+                }
+                if (alreadyDefd(methodName, sig.params)) {
+                    return true;
+                }
+                return false;
+            };
+            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock = 
+            [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
+                auto b = block.first;
+                std::vector<std::pair<Position, std::optional<std::string>>> failedConstraints;
+                std::vector<Position> passedConstraints;
+                for (const Token& requiredConcept : b.requiredConcepts) {
+                    if (!std::ranges::any_of(info.provedConcepts, [&](const ProvedConcepts& c) {
+                            return resolveTypeName(requiredConcept.value, false) == resolveTypeName(c.conceptName.value, false);
+                        })) {
+                        failedConstraints.push_back({requiredConcept.pos, "missing required concept proof: " + requiredConcept.value});
+                    } else {
+                        passedConstraints.push_back(requiredConcept.pos);
+                    }
+                }
+                for (const auto& sig : b.signatures) {
+                    if (!matchesSignature(sig, info, proof)) {
+                        failedConstraints.push_back({sig.name.pos, "missing matching method: " + sig.print()});
+                    } else {
+                        passedConstraints.push_back(sig.name.pos);
+                    }
+                }
+                for (const auto& sub : b.subblocks) {
+                    if (!verifyBlock(std::pair(sub, std::nullopt))) {
+                        failedConstraints.push_back({sub.constraint.pos, "nested block constraint failed"});
+                    } else {
+                        passedConstraints.push_back(sub.constraint.pos);
+                    }
+                }
+                bool failed = false;
+                bool isAtLeast = false;
+                int requiredCount = -1;
+                if (b.constraint.value == "all_of") {
+                    failed = !failedConstraints.empty();
+                } else if (b.constraint.value.ends_with("_of")) {
+                    std::string val = b.constraint.value;
+                    if (val.starts_with("at_least ")) {
+                        isAtLeast = true;
+                        val = val.substr(std::string("at_least ").length());
+                    }
+                    size_t pos = val.find("_of");
+                    if (pos != std::string::npos) {
+                        std::string numStr = val.substr(0, pos);
+                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) {
+                            requiredCount = std::stoi(numStr);
+                        }
+                    }
+                    if (isAtLeast) failed = (int)passedConstraints.size() < requiredCount;
+                    else failed = (int)passedConstraints.size() != requiredCount;
+                }
+                if (failed && !block.second.has_value()) {
+                    if (requiredCount >= 0) {
+                        cg_error(proof.conceptName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_note(block.first.constraint.pos, "due to this constraint block");
+                        cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled" :
+                            "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) + "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size() == 0 ? 0 : passedConstraints.size() - 1) + ")");
+                        cg_note(proof.conceptName.pos, "failed constraints were:"); 
+                        for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
+                            cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
+                        }
+                        cg_note(proof.conceptName.pos, "passed constraints were:"); 
+                        for (auto& passedConstraintPos : passedConstraints) {
+                            cg_note(passedConstraintPos, "");
+                        }
+
+                    } else {
+                        cg_error(proof.conceptName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_note(block.first.constraint.pos, "due to this constraint block");
+                        cg_note(proof.conceptName.pos, "failed constraints were:"); 
+                        for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
+                            cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
+                        }
+                    }
+                }
+                if (block.second.has_value()) return false;
+                return true;
+            };
+            for (std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block : conceptInfo.blocks) {
+                bool blockPassed = verifyBlock(block);
+                if (blockPassed || block.second.has_value()) {
+                    if (info.kind == UserTypeKind::Class) {
+                        for (auto& proofMethod : proof.additionalProof) {
+                            info.classMethods.push_back(proofMethod);
+                            size_t newIdx = info.classMethods.size() - 1;
+                            if (!proofMethod.generics.empty()) {
+                                if (!proofMethod.is_static) {
+                                    genericMethodIndices[mapKey].push_back(newIdx);
+                                }
+                            } else {
+                                std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
+                                std::vector<llvm::Type*> paramTypes;
+                                paramTypes.push_back(llvm::PointerType::get(context, 0));
+                                llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(proofMethod.return_types, proofMethod.params);
+                                for (auto* paramTy : baseFuncTy->params()) { 
+                                    paramTypes.push_back(paramTy); 
+                                }
+                                llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                                llvm::Function* fn = module->getFunction(methodName);
+                                if (!fn) {
+                                    fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module);
+                                }
+                                classMethods[mapKey][proofMethod.name_tok.value].push_back(fn);
+                                functionDefs[methodName] = funcDefFromClassMethod(proofMethod, mapKey, "_");
+                            }
+                        }
+                    } else {
+                        for (auto& proofMethod : proof.additionalProof) {
+                            std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
+                            ClassMethodInfo concreteMethod = proofMethod;
+                            for (auto& param : concreteMethod.params) {
+                                if (param.type.value == "Self") {
+                                    param.type.value = mapKey;
+                                }
+                            }
+                            for (auto& ret : concreteMethod.return_types) {
+                                if (ret.value == "Self") {
+                                    ret.value = mapKey;
+                                }
+                            }
+                            FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                            functionDefs[methodName] = funcNode;
+                            if (!concreteMethod.generics.empty()) {
+                                continue;
+                            }
+                            emitFuncDef(*funcNode);                       
+                        }
+                    }
+                }
+                if (!blockPassed) {
+                    if (block.second.has_value()) {
+                        auto& defaultBlock = block.second.value();
+                        std::string targetModifier = (info.kind == UserTypeKind::Class) ? "class" : "else";
+                        for (auto& [modifierTok, defaultMethod] : defaultBlock.definitions) {
+                            if (modifierTok.value == targetModifier) {
+                                std::string methodName = defaultMethod.name_tok.value;
+                                bool alreadyProvided = alreadyDefd(methodName, defaultMethod.params);
+                                if (!alreadyProvided) {
+                                    for (auto& proofMethod : proof.additionalProof) {
+                                        if (proofMethod.name_tok.value == methodName) {
+                                            alreadyProvided = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!alreadyProvided) {
+                                    ClassMethodInfo concreteMethod = defaultMethod;
+                                    for (auto& param : concreteMethod.params) {
+                                        if (param.type.value == "Self") {
+                                            param.type.value = mapKey;
+                                        }
+                                    }
+                                    for (auto& ret : concreteMethod.return_types) {
+                                        if (ret.value == "Self") {
+                                            ret.value = mapKey;
+                                        }
+                                    }
+                                    if (info.kind == UserTypeKind::Class) {
+                                        info.classMethods.push_back(concreteMethod);
+                                        size_t newIdx = info.classMethods.size() - 1;
+                                        if (!concreteMethod.generics.empty()) {
+                                            if (!concreteMethod.is_static) {
+                                                genericMethodIndices[mapKey].push_back(newIdx);
+                                            }
+                                        } else {
+                                            std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
+                                            std::vector<llvm::Type*> paramTypes;
+                                            paramTypes.push_back(llvm::PointerType::get(context, 0));
+                                            llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(concreteMethod.return_types, concreteMethod.params);
+                                            for (auto* paramTy : baseFuncTy->params()) {
+                                                paramTypes.push_back(paramTy);
+                                            }
+                                            llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                                            llvm::Function* fn = module->getFunction(mangledName);
+                                            if (!fn) {
+                                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module);
+                                            }
+                                            classMethods[mapKey][concreteMethod.name_tok.value].push_back(fn);
+                                            functionDefs[mangledName] = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                        }
+                                    } else {
+                                        std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
+                                        FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                        functionDefs[mangledName] = funcNode;
+                                        if (!concreteMethod.generics.empty()) {
+                                            continue;
+                                        }
+                                        emitFuncDef(*funcNode);
+                                    }                            
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::pair<ConceptInfo, bool> genericiseOrFindConcept(const std::string& baseName) {
+        const auto base = baseTypeName(baseName);
+        if (genericConcepts.contains(base) && genericConcepts.at(base)) {
+            if (auto it = concepts.find(baseName); it != concepts.end()) { return std::make_pair(it->second, true); }
+            auto userIt = userTypes.find(base);
+            if (userIt == userTypes.end()) { return std::make_pair(ConceptInfo{}, false); }
+            return std::make_pair(generateGenericConcept(base, userIt->second, genericParamsFromName(baseName)), true);
+        }
+        if (auto it = concepts.find(baseName); it != concepts.end()) { return std::make_pair(it->second, true); }
+        return std::make_pair(ConceptInfo{}, false);
+    }
     llvm::StructType* genericiseOrFindClass(const std::string& baseName) {
         const auto base = baseTypeName(baseName);
         if (genericClasses.contains(base) && genericClasses.at(base)) {
@@ -3658,7 +3751,7 @@ class LLVMCompiler {
             llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
                                                                genericParamsFromName(baseName));
             if (structTy == nullptr) {
-                cg_error(Position(), "Failed to create specialized version of struct " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of struct " + baseTypeName(baseName));
                 return nullptr;
             }
             return structTy;
@@ -3670,7 +3763,7 @@ class LLVMCompiler {
             if (unionTypes.count(baseName)) return substitutedUnions[baseName];
             UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (static_cast<int>(unionInfo.kind) == 0) {
-                cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName));
                 return {};
             }
             return unionInfo;
@@ -3682,7 +3775,7 @@ class LLVMCompiler {
             if (typeAliases.count(baseName)) return resolveTypeName(typeAliases[baseName]);
             std::string newAlias = generateGenericAlias(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (newAlias == "") {
-                cg_error(Position(), "Failed to create specialized version of union " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName));
                 return "";
             }
             return resolveTypeName(newAlias);
@@ -3723,6 +3816,8 @@ class LLVMCompiler {
             if (enumTypes.find(savedName) != enumTypes.end()) return finish(strip ? name : savedName);
             if (unionTypes.find(savedName) != unionTypes.end()) return finish(strip ? name : savedName);
             if (typeAliases.find(savedName) != typeAliases.end()) return finish(strip ? name : savedName);
+            if (concepts.find(savedName) != concepts.end()) return finish(strip ? name : savedName);
+            if (genericConcepts.find(savedName) != genericConcepts.end()) return finish(strip ? name : savedName);
         }
 
         std::string current = getCurrentNamespace();
@@ -3731,7 +3826,8 @@ class LLVMCompiler {
             std::string fullName = current.empty() ? name : current + "::" + name;
             std::string fullSavedName = current.empty() ? savedName : current + "::" + savedName;
             std::string result = strip ? fullName : fullSavedName;
-
+            if (concepts.count(fullSavedName)) return finish(result);
+            if (genericConcepts.count(fullName)) return finish(result);
             if (typeAliases.count(fullSavedName)) return finish(result);
             if (classTypes.count(fullSavedName)) return finish(result);
             if (genericClasses.count(fullName)) return finish(result);
@@ -3741,12 +3837,10 @@ class LLVMCompiler {
             if (enumTypes.count(fullSavedName)) return finish(result);
             if (unionTypes.count(fullSavedName)) return finish(result);
             if (hasArrayType(fullSavedName)) return finish(result);
-
             if (current.empty()) break;
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
         }
-
         return finish(name);
     }
     llvm::Type* getPointeeType(const std::string& name) {

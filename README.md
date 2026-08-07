@@ -114,8 +114,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.26.1 = "Scope Blocks"
-Next Version: x0.27.0 = "Concepts"
+Current Version: x0.27.0 = "Concepts"
+Next Version: x0.28.0 = "Codeblocks"
 
 # Current Version Highlights
 
@@ -127,10 +127,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Scope
+└─ Concepts
 
 Minor
-└─ Scope Blocks
+└─ N/A
 
 Patch
 └─ N/A
@@ -138,7 +138,7 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.24.* -> x0.26.*`)
+These are deprecations in the past 3 moderate versions (`x0.25.* -> x0.27.*`)
 
 No Deprecations!
 
@@ -165,7 +165,6 @@ No Deprecations!
 |                     | Random Number Generation                                               | Done        |
 |                     | Stdlib Part 1 & 2                                                      | Done        |
 | **Future**          | Stdlib Part 3                                                          | Planned     |
-|                     | Concurrency functions                                                  | Planned     |
 |                     | Inline ASM                                                             | Done        |
 |                     | Generics                                                               | Done        |
 |                     |     Classes                                                            | Done        |
@@ -728,6 +727,62 @@ C^4 has `defer`, similarly to Go and Zig.
 Unlike Go's `defer`, C^4 `defer` does **not** participate in stack unwinding. Deferred code is not automatically executed when an exception propagates out of a scope.
 This behavior is intentional: making `defer` participate in stack unwinding would introduce additional runtime overhead.
 `defer` should not be considered a destructor mechanism. It is a scope-exit convenience feature, not RAII.
+
+## Concepts
+
+It's hard to explain.
+```qc
+concept Printable {
+    1_of {
+        void print();
+        void print(Self self);
+    }
+    default {
+class:
+        void print() {
+            `qout("Printing. . .");
+        }
+else:
+        void print(Self self) {
+            `qout ("Printing. . .");
+        }
+    }
+}
+class PDF {
+    string data;
+    PDF(string data) {
+        this.data = data;
+    }
+    void print() {
+        `qout("%s", this.data);
+    }
+}
+class ASCII {
+    string data;
+    ASCII(string data) {
+        this.data = data;
+    }
+}
+struct Paper {
+    string data;
+}
+type File = PDF | ASCII;
+/// Print would print PDFs data
+PDF proves Printable;
+/// Print would print "Printing. . ."
+ASCII proves Printable;
+/// Print would print the papers data
+Paper proves Printable with_proof { // with_proof block to add additional definitions, like impl in rust
+    void print(Self self) {
+        `qout("%s", self.data);
+    }
+}
+/// Would print "Printing. . ."
+File proves Printable;
+```
+
+Self arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being pod_. Concepts only allow methods on structs because its better for dry than having 50 functions with simillar names.
+Operator overloads are not allowed for concepts.
 
 ## Simple File Example
 

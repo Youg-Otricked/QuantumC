@@ -3205,7 +3205,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
             }
         } else {
             this->advance();
-            p.name = Token(TokenType::IDENTIFIER, "<varadic>", this->current_tok.pos);
+            p.name = Token(TokenType::IDENTIFIER, "<varadic>", Position());
         }
     }
     if (!type_only) {
@@ -3697,7 +3697,6 @@ Prs Parser::statement() {
         info.baseClassName = baseName;
         info.is_final_class = is_final_class;
         info.kind = UserTypeKind::Class;
-        info.pos = class_name.pos;
         info.baseFile = this->current_tok.pos.Filename;
         dummy.is_abstract_class = is_abstract_class;
         info.is_abstract_class = is_abstract_class;
@@ -4470,7 +4469,6 @@ Prs Parser::statement() {
         info.baseFile = this->current_tok.pos.Filename;
         info.kind = UserTypeKind::Struct;
         info.fields = fields;
-        info.pos = struct_name.pos;
         info.generics = generics;
         info.namespace_path = currentNamespace;
         user_types[base_type_name(full_key)] = info;
@@ -4654,7 +4652,6 @@ Prs Parser::statement() {
             info.kind = UserTypeKind::Union;
             info.members = members;
         }
-        info.pos = type_name.pos;
         info.baseFile = this->current_tok.pos.Filename;
         info.generics = generics;
         info.namespace_path = currentNamespace;
@@ -4731,7 +4728,6 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         UserTypeInfo info;
-        info.pos = enum_name.pos;
         info.kind = UserTypeKind::Enum;
         info.baseFile = this->current_tok.pos.Filename;
         info.members = members;
@@ -4834,10 +4830,9 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        int defNumber = 0;
         std::vector<ConceptInfo::Block> blocks;
-        std::vector<std::pair<int, ConceptInfo::DefaultBlock>> defaultBlocks;
-        std::function<void(std::vector<ConceptInfo::Block>&)> fn = [&](std::vector<ConceptInfo::Block>& blockList) {
+        std::vector<ConceptInfo::DefaultBlock> defaultBlocks;
+        std::function<void(std::vector<ConceptInfo::Block>)> fn = [&](std::vector<ConceptInfo::Block> blockList) {
             ConceptInfo::Block block;
             bool is_at_least = false;
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "at_least") {
@@ -4849,16 +4844,13 @@ Prs Parser::statement() {
                 num = this->current_tok.value;
                 this->advance();
             }
-            if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "all_of" || this->current_tok.value == "_of")) {
-                if (is_at_least) block.constraint = this->current_tok;
+            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "_of") {
                 std::vector<ConceptInfo::Block> subblocks;
-                block.constraint.value += ((this->current_tok.value == "_of") ? " " + num + "_of" : "all_of");
                 this->advance();
                 if (this->current_tok.type != TokenType::LBRACE) {
                     res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept name", this->current_tok.pos));
                     return;
                 }
-                this->advance();
                 while(this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
                     if (this->current_tok.type == TokenType::KEYWORD && std::unordered_set<std::string>({"at_least", "default", "all_of"}).contains(this->current_tok.value) || 
                         this->current_tok.type == TokenType::INT) {
@@ -4873,7 +4865,6 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
                         this->advance();
                         block.requiredConcepts.push_back(Token(TokenType::IDENTIFIER, parseTypeString(), this->current_tok.pos));
-                        this->advance();
                         continue;
                     }
                     std::vector<Token> type_list;
@@ -4988,165 +4979,7 @@ Prs Parser::statement() {
                         continue;
                     }
                 }
-                if (this->current_tok.type != TokenType::RBRACE) {
-                    res.failure(new InvalidSyntaxError("QC-S003: Expected '}' after concept block", this->current_tok.pos));
-                    return;
-                }
-                this->advance();
                 block.subblocks = subblocks;
-                blockList.push_back(block);
-            }
-            if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "default")) {
-                ConceptInfo::DefaultBlock defBlock;
-                this->advance();
-                if (this->current_tok.type != TokenType::LBRACE) {
-                    res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept block name", this->current_tok.pos));
-                    return;
-                }
-                this->advance();
-                std::string modifier = "else";
-                while(this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
-                    if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "class") {
-                        modifier = "class";
-                        this->advance();
-                        this->advance();
-                    }
-                    if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "else") {
-                        modifier = "else";
-                        this->advance();
-                        this->advance();
-                    }
-                    if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected method type in default block", this->current_tok.pos));
-                        return;
-                    }
-                    std::vector<Token> type_list;
-                    auto parse_one_type_into = [&](Token& out_tok) -> bool {
-                        std::string field_type = parseTypeString();
-                        out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
-                        return true;
-                    };
-                    {
-                        Token t;
-                        if (!parse_one_type_into(t)) return;
-                        type_list.push_back(t);
-                    }
-                    while (this->current_tok.type == TokenType::COMMA) {
-                        this->advance();
-                        Token t;
-                        if (!parse_one_type_into(t)) return;
-                        type_list.push_back(t);
-                    }
-                    Token name_tok;
-                    if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
-                        name_tok = this->current_tok;
-                        this->advance();
-                    } else {
-                        res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
-                        return;
-                    }
-                    std::vector<GenericType> genericsM;
-                    if (this->current_tok.type == TokenType::LESS) {
-                        this->advance();
-                        while (true) {
-                            GenericType curr;
-                            if (this->current_tok.type != TokenType::IDENTIFIER) {
-                                if (this->current_tok.type == TokenType::KEYWORD &&
-                                    std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
-                                        .contains(this->current_tok.value)) {
-                                    curr.isNonType = true;
-                                    curr.nonTypeKind = this->current_tok.value;
-                                } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
-                                    std::string prev = this->current_tok.value;
-                                    this->advance();
-                                    if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                        res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
-                                        return;
-                                    }
-                                    curr.isNonType = true;
-                                    curr.nonTypeKind = prev + " " + this->current_tok.value;
-                                } else {
-                                    res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                       this->current_tok.pos));
-                                    return;
-                                }
-                                this->advance();
-                            }
-                            curr.name = this->current_tok.value;
-                            this->advance();
-                            if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
-                                this->advance();
-                                if (this->current_tok.type != TokenType::COLON) {
-                                    if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                        (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                         this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                         this->current_tok.value == "pointer")) {
-                                        curr.constraint = this->current_tok.value;
-                                    } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
-                                                                           this->current_tok.pos));
-                                        return;
-                                    }
-                                    this->advance();
-                                } else {
-                                    curr.constraint = "";
-                                }
-                                this->advance();
-                                if (this->current_tok.type == TokenType::NOT) {
-                                    curr.negated = true;
-                                    this->advance();
-                                }
-                                while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
-                                    curr.subconstraints.push_back(this->current_tok.value);
-                                    this->advance();
-                                    if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
-                                }
-                                if (this->current_tok.type != TokenType::RPAREN) {
-                                    res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
-                                    return;
-                                }
-                                this->advance();
-                            }
-                            if (this->current_tok.type == TokenType::EQ) {
-                                this->advance();
-                                curr.defaultValue = this->current_tok.value;
-                                this->advance();
-                            }
-                            if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                                res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
-                                return;
-                            }
-                            genericsM.push_back(curr);
-                            if (this->current_tok.type == TokenType::MORE) {
-                                this->advance();
-                                break;
-                            }
-                            this->advance();
-                        }
-                    }
-                    if (this->current_tok.type == TokenType::LPAREN) {
-                        ClassMethodInfo mi;
-                        mi.name_tok = name_tok;
-                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
-                        if (std::holds_alternative<Error*>(m_pr)) return;
-                        auto fn = std::get<FuncDefNode*>(m_pr);
-                        mi.params.clear();
-                        mi.params.reserve(fn->params.size());
-                        for (auto it = fn->params.begin(); it != fn->params.end(); ++it) { mi.params.push_back(*it); }
-                        mi.return_types = fn->return_types;
-                        mi.body = fn->body;
-                        mi.is_constructor = false;
-                        mi.generics = genericsM;
-                        defBlock.definitions.push_back(std::make_pair(Token(TokenType::IDENTIFIER, modifier, this->current_tok.pos), mi));
-                        continue;
-                    }
-                }
-                if (this->current_tok.type != TokenType::RBRACE) {
-                    res.failure(new InvalidSyntaxError("QC-S003: Expected '}' after concept block", this->current_tok.pos));
-                    return;
-                }
-                this->advance();
-                defaultBlocks.push_back(std::make_pair(blocks.size() - 1, defBlock));
             }
         };
         while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
@@ -5165,24 +4998,10 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         UserTypeInfo info;
-        info.pos = name.pos;
         info.baseFile = this->current_tok.pos.Filename;
-        info.kind = UserTypeKind::Concept;
+        info.kind = UserTypeKind::Struct;
         info.generics = generics;
         info.namespace_path = currentNamespace;
-        ConceptInfo ci;
-        for (auto& b : blocks) {
-            ci.blocks.push_back({b, std::nullopt});
-        }
-        for (auto& [blockIdx, defBlock] : defaultBlocks) {
-            if (blockIdx >= 0 && blockIdx < (int)ci.blocks.size()) {
-                ci.blocks[blockIdx].second = defBlock;
-            } else {
-                ConceptInfo::Block emptyBlock;
-                ci.blocks.push_back({emptyBlock, defBlock});
-            }
-        }
-        info.conceptInfo = ci;
         user_types[base_type_name(full_key)] = info;
         this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
@@ -5270,162 +5089,6 @@ Prs Parser::statement() {
         std::string type_str = parseTypeString();
         if (type_str.empty()) return res.to_prs();
         Token type_tok(TokenType::KEYWORD, type_str, type_pos);
-        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
-            Position& proved_pos = this->current_tok.pos;
-            this->advance();
-            std::string conceptName = parseTypeString();
-            if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "with_proof") {
-                ProvedConcepts proof;
-                this->advance();
-                if (this->current_tok.type != TokenType::LBRACE) {
-                    res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after with_proof", this->current_tok.pos));
-                    return res.to_prs();
-                }
-                this->advance();
-                while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
-                    if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected method return type(s)", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    std::vector<Token> type_list;
-                    auto parse_one_type_into = [&](Token& out_tok) -> bool {
-                        std::string field_type = parseTypeString();
-                        out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
-                        return true;
-                    };
-                    {
-                        Token t;
-                        if (!parse_one_type_into(t)) return res.to_prs();
-                        type_list.push_back(t);
-                    }
-                    while (this->current_tok.type == TokenType::COMMA) {
-                        this->advance();
-                        Token t;
-                        if (!parse_one_type_into(t)) return res.to_prs();
-                        type_list.push_back(t);
-                    }
-                    Token name_tok;
-                    if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
-                        name_tok = this->current_tok;
-                        this->advance();
-                    } else {
-                        res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
-                        return res.to_prs();
-                    }
-                    std::vector<GenericType> genericsM;
-                    if (this->current_tok.type == TokenType::LESS) {
-                        this->advance();
-                        while (true) {
-                            GenericType curr;
-                            if (this->current_tok.type != TokenType::IDENTIFIER) {
-                                if (this->current_tok.type == TokenType::KEYWORD &&
-                                    std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
-                                        .contains(this->current_tok.value)) {
-                                    curr.isNonType = true;
-                                    curr.nonTypeKind = this->current_tok.value;
-                                } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
-                                    std::string prev = this->current_tok.value;
-                                    this->advance();
-                                    if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                        res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
-                                        return res.to_prs();
-                                    }
-                                    curr.isNonType = true;
-                                    curr.nonTypeKind = prev + " " + this->current_tok.value;
-                                } else {
-                                    res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                       this->current_tok.pos));
-                                    return res.to_prs();
-                                }
-                                this->advance();
-                            }
-                            curr.name = this->current_tok.value;
-                            this->advance();
-                            if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
-                                this->advance();
-                                if (this->current_tok.type != TokenType::COLON) {
-                                    if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                        (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                         this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                         this->current_tok.value == "pointer")) {
-                                        curr.constraint = this->current_tok.value;
-                                    } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
-                                                                           this->current_tok.pos));
-                                        return res.to_prs();
-                                    }
-                                    this->advance();
-                                } else {
-                                    curr.constraint = "";
-                                }
-                                this->advance();
-                                if (this->current_tok.type == TokenType::NOT) {
-                                    curr.negated = true;
-                                    this->advance();
-                                }
-                                while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
-                                    curr.subconstraints.push_back(this->current_tok.value);
-                                    this->advance();
-                                    if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
-                                }
-                                if (this->current_tok.type != TokenType::RPAREN) {
-                                    res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
-                                    return res.to_prs();
-                                }
-                                this->advance();
-                            }
-                            if (this->current_tok.type == TokenType::EQ) {
-                                this->advance();
-                                curr.defaultValue = this->current_tok.value;
-                                this->advance();
-                            }
-                            if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                                res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
-                                return res.to_prs();
-                            }
-                            genericsM.push_back(curr);
-                            if (this->current_tok.type == TokenType::MORE) {
-                                this->advance();
-                                break;
-                            }
-                            this->advance();
-                        }
-                    }
-                    if (this->current_tok.type == TokenType::LPAREN) {
-                        ClassMethodInfo mi;
-                        mi.name_tok = name_tok;
-                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
-                        if (std::holds_alternative<Error*>(m_pr)) return m_pr;
-                        auto fn = std::get<FuncDefNode*>(m_pr);
-                        mi.params.clear();
-                        mi.params.reserve(fn->params.size());
-                        for (auto it = fn->params.begin(); it != fn->params.end(); ++it) { mi.params.push_back(*it); }
-                        mi.return_types = fn->return_types;
-                        mi.body = fn->body;
-                        mi.is_constructor = false;
-                        mi.generics = genericsM;
-                        proof.additionalProof.push_back(mi);
-                    }
-                }
-                this->advance();
-                proof.conceptName = Token(TokenType::IDENTIFIER, conceptName, proved_pos);
-                auto it = user_types.find(base_type_name(type_str));
-                if (it != user_types.end()) {
-                    it->second.provedConcepts.push_back(proof);
-                }
-            } else {
-                auto it = user_types.find(base_type_name(type_str));
-                if (it != user_types.end()) {
-                    it->second.provedConcepts.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos)});
-                }
-            }
-            if (this->current_tok.type != TokenType::SEMICOLON) {
-                res.failure(new InvalidSyntaxError("Expected ';' after proves statement", this->current_tok.pos));
-                return res.to_prs();
-            }
-            this->advance();
-            return res.success(std::monostate{});
-        }
         bool is_reference = type_str.ends_with("&");
         bool is_array = type_str.find("[]") != std::string::npos;
         if (type_str.find("[][]") != std::string::npos) {
@@ -5858,12 +5521,12 @@ Aer Parser::parse() {
                         break;
                     }
                 }
-                if (!found) { throw InvalidSyntaxError("Base class '" + ut.baseClassName + "' not found", ut.pos); }
+                if (!found) { throw InvalidSyntaxError("Base class '" + ut.baseClassName + "' not found", Position()); }
             }
 
             auto it = user_types.find(base_type_name(baseKey));
             if (it == user_types.end() || it->second.kind != UserTypeKind::Class) {
-                throw InvalidSyntaxError("class inherits from non-class or non-existent object", ut.pos);
+                throw InvalidSyntaxError("class inherits from non-class or non-existent object", Position());
             }
         }
     }
@@ -5930,182 +5593,6 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (type == "void") return builder->getVoidTy();
     return nullptr;
 }
-bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics, std::vector<std::string> genericParams, Position pos) {
-    for (int i = 0; i < generics.size(); i++) {
-        GenericType generic = generics[i];
-        if (genericParams.size() <= i) {
-            if (generic.defaultValue.empty()) {
-                cg_error(pos, "too few generic params");
-                return false;
-            }
-        }
-        std::string value;
-        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
-            value = generic.defaultValue;
-        } else {
-            value = genericParams[i];
-        }
-        if (!generic.isNonType && !generic.isVariadic) {
-            if (generic.constraint == "pointer") {
-                if (!(value.ends_with("*"))) {
-                    cg_error(pos, "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
-                    return false;
-                }
-            } else if (generic.constraint == "numeric") {
-                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
-                          .contains(value))) {
-                    cg_error(pos, "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
-                    return false;
-                }
-            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
-                static const std::unordered_set<std::string> native_types = {
-                    "int", "double", "float", "addr_t", "long double", "short int", "long int", "char", "bool", "byte", "nibble", "qbool", "string"};
-                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
-                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
-                    if (generic.constraint == "usertype") {
-                        cg_error(pos, "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
-                        return false;
-                    }
-                } else {
-                    if (generic.constraint == "primitive") {
-                        cg_error(pos, "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
-                        return false;
-                    }
-                }
-            } else if (!generic.constraint.empty()) {
-                if (userTypes.count(baseTypeName(generic.constraint))) {
-                    if (!userTypes.count(baseTypeName(value)) || !std::ranges::any_of(userTypes[baseTypeName(value)].provedConcepts, [&](const ProvedConcepts concpt) {
-                            return resolveTypeName(concpt.conceptName.value, false) == resolveTypeName(generic.constraint, false);
-                        })) {
-                        cg_error(pos, "concept generic constrain " + generic.name + " expects passed type to prove concept " + generic.constraint + ", got " + value);
-                        return false;
-                    }
-                }
-            }
-            if (!generic.subconstraints.empty()) {
-                if (generic.negated) {
-                    for (std::string subconstraint : generic.subconstraints) {
-                        if (value == subconstraint) {
-                            cg_error(pos, "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
-                            return false;
-                        }
-                    }
-                } else {
-                    bool is_valid = false;
-                    for (std::string subconstraint : generic.subconstraints) {
-                        if (value == subconstraint) { is_valid = true; }
-                    }
-                    if (!is_valid) {
-                        cg_error(pos, "generic constrait " + generic.name + " does not except type " + value);
-                        return false;
-                    }
-                }
-            }
-            currentGenericTypes[generic.name] = llvmTypeFor(value);
-            currentGenericTypeStrings[generic.name] = value;
-        } else if (generic.isNonType) {
-            GenericType generic = generics[i];
-            if (genericParams.size() <= i) {
-                if (generic.defaultValue.empty()) {
-                    cg_error(pos, "too few generic params");
-                    return false;
-                }
-            }
-            std::string gname = generic.name;
-            generic.name = genericParams[i];
-            currentNonTypeGenericValues[gname] = generic;
-        }
-    }
-    return true;
-};
-ConceptInfo LLVMCompiler::generateGenericConcept(std::string conceptName, UserTypeInfo conceptInfo, std::vector<std::string> genericParams) {
-    std::string mangled_concept_name = conceptName + "<";
-    for (int j = 0; j < conceptInfo.generics.size(); j++) {
-        std::string val;
-        if (genericParams.size() <= j) {
-            val = conceptInfo.generics[j].defaultValue;
-        } else {
-            val = genericParams[j];
-        }
-        mangled_concept_name += val;
-        if (j != conceptInfo.generics.size() - 1) { mangled_concept_name += ","; }
-    }
-    mangled_concept_name += ">";
-    if (inProgressGenerics.count(mangled_concept_name)) return {};
-    if (concepts.find(mangled_concept_name) != concepts.end()) { return genericiseOrFindConcept(mangled_concept_name).first; }
-    inProgressGenerics.insert(mangled_concept_name);
-    auto oldGenericTypes = this->currentGenericTypes;
-    auto oldGenericTypeStrings = currentGenericTypeStrings;
-    auto oldNonTypeGenerics = currentNonTypeGenericValues;
-    if (!fulfillsGenericConstraints(conceptInfo.generics, genericParams, conceptInfo.pos)) {
-        this->currentGenericTypes = oldGenericTypes;
-        currentGenericTypeStrings = oldGenericTypeStrings;
-        currentNonTypeGenericValues = oldNonTypeGenerics;
-        return {};
-    }
-    auto oldNamespaceStack = namespaceStack;
-    namespaceStack.clear();
-    if (!conceptInfo.namespace_path.empty()) {
-        size_t start = 0;
-        size_t pos;
-        while ((pos = conceptInfo.namespace_path.find("::", start)) != std::string::npos) {
-            namespaceStack.push_back(conceptInfo.namespace_path.substr(start, pos - start));
-            start = pos + 2;
-        }
-        namespaceStack.push_back(conceptInfo.namespace_path.substr(start));
-    }
-    auto substituteSignature = [&](ConceptInfo::FunctionSignature sig) -> ConceptInfo::FunctionSignature {
-        for (auto& retToken : sig.return_types) {
-            retToken.value = substituteGenerics(retToken.value);
-        }
-        for (auto& param : sig.params) {
-            param.type.value = substituteGenerics(param.type.value);
-        }
-        return sig;
-    };
-    std::function<ConceptInfo::Block(ConceptInfo::Block)> substituteBlock = 
-    [&](ConceptInfo::Block block) -> ConceptInfo::Block {
-        for (auto& sig : block.signatures) {
-            sig = substituteSignature(sig);
-        }
-        for (auto& reqConceptTok : block.requiredConcepts) {
-            reqConceptTok.value = substituteGenerics(reqConceptTok.value);
-        }
-        for (auto& sub : block.subblocks) {
-            sub = substituteBlock(sub);
-        }
-        return block;
-    };
-    auto substituteMethodInfo = [&](ClassMethodInfo method) -> ClassMethodInfo {
-        for (auto& param : method.params) {
-            param.type.value = substituteGenerics(param.type.value);
-        }
-        for (auto& ret : method.return_types) {
-            ret.value = substituteGenerics(ret.value);
-        }
-        return method;
-    };
-    ConceptInfo specializedConcept;
-    for (const auto& [block, optDefault] : conceptInfo.conceptInfo.blocks) {
-        ConceptInfo::Block substitutedBlock = substituteBlock(block);
-        std::optional<ConceptInfo::DefaultBlock> substitutedDefault = std::nullopt;
-        if (optDefault.has_value()) {
-            ConceptInfo::DefaultBlock defBlock;
-            for (const auto& [modifierTok, defaultMethod] : optDefault->definitions) {
-                defBlock.definitions.push_back({modifierTok, substituteMethodInfo(defaultMethod)});
-            }
-            substitutedDefault = defBlock;
-        }
-        specializedConcept.blocks.push_back({substitutedBlock, substitutedDefault});
-    }
-    concepts[mangled_concept_name] = specializedConcept;
-    namespaceStack = oldNamespaceStack;
-    this->currentGenericTypes = oldGenericTypes;
-    this->currentGenericTypeStrings = oldGenericTypeStrings;
-    currentNonTypeGenericValues = oldNonTypeGenerics;
-    inProgressGenerics.erase(mangled_concept_name);
-    return {};
-}
 llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, UserTypeInfo classInfo, std::vector<std::string> genericParams) {
     std::string mangled_class_name = className + "<";
     for (int j = 0; j < classInfo.generics.size(); j++) {
@@ -6129,11 +5616,81 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     auto oldGenericTypes = this->currentGenericTypes;
     auto oldGenericTypeStrings = currentGenericTypeStrings;
     auto oldNonTypeGenerics = currentNonTypeGenericValues;
-    if (!fulfillsGenericConstraints(classInfo.generics, genericParams, classInfo.pos)) {
-        this->currentGenericTypes = oldGenericTypes;
-        currentGenericTypeStrings = oldGenericTypeStrings;
-        currentNonTypeGenericValues = oldNonTypeGenerics;
-        return nullptr;
+    for (int i = 0; i < classInfo.generics.size(); i++) {
+        GenericType generic = classInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "too few generic params for class " + className);
+                return nullptr;
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "addr_t", "long double", "short int", "long int", "char", "bool", "byte", "nibble", "qbool", "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return nullptr;
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return nullptr;
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = classInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "too few generic params for class " + className);
+                    return nullptr;
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
     }
     auto oldNamespaceStack = namespaceStack;
     namespaceStack.clear();
@@ -6419,7 +5976,6 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         currentFunction = oldFunction;
         exitScope();
     }
-    proveConceptsForTypeInfo(mangled_class_name, classInfo);
     namespaceStack = oldNamespaceStack;
     this->currentGenericTypes = oldGenericTypes;
     this->currentGenericTypeStrings = oldGenericTypeStrings;
@@ -6449,11 +6005,81 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     auto oldGenericTypes = this->currentGenericTypes;
     auto oldGenericTypeStrings = currentGenericTypeStrings;
     auto oldNonTypeGenerics = currentNonTypeGenericValues;
-    if (!fulfillsGenericConstraints(structInfo.generics, genericParams, structInfo.pos)) {
-        this->currentGenericTypes = oldGenericTypes;
-        currentGenericTypeStrings = oldGenericTypeStrings;
-        currentNonTypeGenericValues = oldNonTypeGenerics;
-        return nullptr;
+    for (int i = 0; i < structInfo.generics.size(); i++) {
+        GenericType generic = structInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "too few generic params for struct " + structName);
+                return nullptr;
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return nullptr;
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return nullptr;
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return nullptr;
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
+                        return nullptr;
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = structInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "too few generic params for struct " + structName);
+                    return nullptr;
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
     }
     auto oldNamespaceStack = namespaceStack;
     namespaceStack.clear();
@@ -6471,7 +6097,6 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
         llvm::Type* ty = llvmTypeFor(field.type);
         fieldTypes.push_back(ty);
     }
-    proveConceptsForTypeInfo(mangled_struct_name, structInfo);
     structTypes[mangled_struct_name]->setBody(fieldTypes);
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_struct_name);
@@ -6503,7 +6128,82 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
     auto oldGenericTypes = this->currentGenericTypes;
     auto oldGenericTypeStrings = currentGenericTypeStrings;
     auto oldNonTypeGenerics = currentNonTypeGenericValues;
-    if (!fulfillsGenericConstraints(unionInfo.generics, genericParams, unionInfo.pos)) return {};
+    for (int i = 0; i < unionInfo.generics.size(); i++) {
+        GenericType generic = unionInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "too few generic params for struct " + unionName);
+                return {};
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return {};
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return {};
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return {};
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return {};
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return {};
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
+                        return {};
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = unionInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "too few generic params for struct " + unionName);
+                    return {};
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
+    }
     auto oldNamespaceStack = namespaceStack;
     namespaceStack.clear();
     if (!unionInfo.namespace_path.empty()) {
@@ -6525,7 +6225,6 @@ UserTypeInfo LLVMCompiler::generateGenericUnion(std::string unionName, UserTypeI
         }
         genericisedInfo.members.push_back({substituteGenerics(resolveTypeName(substituteGenerics(member.type)))});
     }
-    proveConceptsForTypeInfo(mangled_union_name, unionInfo);
     substitutedUnions[mangled_union_name] = genericisedInfo;
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_union_name);
@@ -6553,8 +6252,82 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
     auto oldGenericTypes = this->currentGenericTypes;
     auto oldGenericTypeStrings = currentGenericTypeStrings;
     auto oldNonTypeGenerics = currentNonTypeGenericValues;
-    if (!fulfillsGenericConstraints(aliasInfo.generics, genericParams, aliasInfo.pos)) return "";
-    proveConceptsForTypeInfo(mangled_alias_name, aliasInfo);
+    for (int i = 0; i < aliasInfo.generics.size(); i++) {
+        GenericType generic = aliasInfo.generics[i];
+        if (genericParams.size() <= i) {
+            if (generic.defaultValue.empty()) {
+                cg_error(Position(), "too few generic params for alias " + aliasName);
+                return "";
+            }
+        }
+        std::string value;
+        if ((!generic.defaultValue.empty()) && genericParams.size() <= i) {
+            value = generic.defaultValue;
+        } else {
+            value = genericParams[i];
+        }
+        if (!generic.isNonType && !generic.isVariadic) {
+            if (generic.constraint == "pointer") {
+                if (!(value.ends_with("*"))) {
+                    cg_error(Position(), "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    return "";
+                }
+            } else if (generic.constraint == "numeric") {
+                if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
+                          .contains(value))) {
+                    cg_error(Position(), "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    return "";
+                }
+            } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
+                static const std::unordered_set<std::string> native_types = {
+                    "int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int", "char", "bool", "qbool", "string"};
+                auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
+                if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
+                    if (generic.constraint == "usertype") {
+                        cg_error(Position(), "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        return "";
+                    }
+                } else {
+                    if (generic.constraint == "primitive") {
+                        cg_error(Position(), "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        return "";
+                    }
+                }
+            }
+            if (!generic.subconstraints.empty()) {
+                if (generic.negated) {
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) {
+                            cg_error(Position(), "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            return "";
+                        }
+                    }
+                } else {
+                    bool is_valid = false;
+                    for (std::string subconstraint : generic.subconstraints) {
+                        if (value == subconstraint) { is_valid = true; }
+                    }
+                    if (!is_valid) {
+                        cg_error(Position(), "generic constrait " + generic.name + " does not except type " + value);
+                        return "";
+                    }
+                }
+            }
+            currentGenericTypes[generic.name] = llvmTypeFor(value);
+            currentGenericTypeStrings[generic.name] = value;
+        } else if (generic.isNonType) {
+            GenericType generic = aliasInfo.generics[i];
+            if (genericParams.size() <= i) {
+                if (generic.defaultValue.empty()) {
+                    cg_error(Position(), "too few generic params for alias " + aliasName);
+                    return "";
+                }
+            }
+            std::string gname = generic.name;
+            generic.name = genericParams[i];
+            currentNonTypeGenericValues[gname] = generic;
+        }
+    }
     std::string substituted = substituteGenerics(aliasInfo.aliasTarget);
     typeAliases[mangled_alias_name] = substituted;
     inProgressGenerics.erase(mangled_alias_name);
@@ -6569,16 +6342,6 @@ void LLVMCompiler::createUserTypes() {
         if (info.namespace_path.empty()) { return name; }
         return info.namespace_path + "::" + name;
     };
-    for (auto& [mapKey, info] : userTypes) {
-        if (info.kind == UserTypeKind::Concept) {
-            if (!info.generics.empty()) {
-                genericConcepts[mapKey] = true;
-                continue;
-            }
-            genericConcepts[mapKey] = false;
-            concepts[mapKey] = info.conceptInfo;
-        }
-    }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Enum) {
             size_t lastColon = mapKey.rfind("::");
@@ -6627,7 +6390,7 @@ void LLVMCompiler::createUserTypes() {
             if (!info.baseClassName.empty()) {
                 auto base_it = userTypes.find(baseTypeName(info.baseClassName));
                 if (base_it != userTypes.end() && base_it->second.is_final_class) {
-                    cg_error(info.pos, "cannot inherit from final class '" + info.baseClassName + "'");
+                    cg_error(Position(), "cannot inherit from final class '" + info.baseClassName + "'");
                     continue;
                 }
             }
@@ -6868,10 +6631,6 @@ void LLVMCompiler::createUserTypes() {
             structTypes[mapKey]->setBody(fieldTypes);
             namespaceStack = oldNamespaceStack;
         }
-    }
-    for (auto& [mapKey, info] : userTypes) {
-        if (info.provedConcepts.empty() || !info.generics.empty()) continue;
-        proveConceptsForTypeInfo(mapKey, info);
     }
     if (this->config.use_runtime) { generateStructReprFunctions(); }
 }
@@ -11724,68 +11483,68 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
-                    return convertToString(arg, argNode, get_pos(*callPtr));
+                    return convertToString(arg, argNode);
                 }
                 if (funcName == "`to_long_int" && !call.arg_nodes.empty()) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "long int", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "long int");
                 }
                 if (funcName == "`to_short_int" && !call.arg_nodes.empty()) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "short int", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "short int");
                 }
                 if (funcName == "`to_qbool" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "qbool", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "qbool");
                 }
                 if (funcName == "`to_int" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "int", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "int");
                 }
 
                 if (funcName == "`to_float" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "float", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "float");
                 }
 
                 if (funcName == "`to_double" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "double", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "double");
                 }
 
                 if (funcName == "`to_bool" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "bool", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "bool");
                 }
 
                 if (funcName == "`to_char" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "char", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "char");
                 }
                 if (funcName == "`to_addr_t" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "addr_t", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "addr_t");
                 }
                 if (funcName == "`to_byte" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "byte", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "byte");
                 }
                 if (funcName == "`to_nibble" && !call.arg_nodes.empty()) {
                     llvm::Value* arg = emitExpr(call.arg_nodes.front());
                     if (!arg) return nullptr;
-                    return emitBuiltinConversion(arg, "nibble", get_pos(*callPtr));
+                    return emitBuiltinConversion(arg, "nibble");
                 }
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
@@ -13185,78 +12944,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target"), nullptr);
-        if (userTypes.count(targetClass) && userTypes.at(targetClass).kind != UserTypeKind::Class) {
-            std::string funcName = targetClass + "_" + methodName;
-            std::vector<llvm::Value*> callArgs;
-            if (thisPtr) {
-                llvm::Value* selfVal = thisPtr;
-                if (thisPtr->getType()->isPointerTy()) {
-                    llvm::Type* targetType = llvmTypeFor(targetClass);
-                    if (targetType && !targetType->isPointerTy()) {
-                        selfVal = builder->CreateLoad(targetType, thisPtr, "self_val");
-                    }
-                }
-                callArgs.push_back(selfVal);
-            }
-            auto funcDefIt = functionDefs.find(baseTypeName(funcName));
-            if (funcDefIt != functionDefs.end()) {
-                FuncDefNode* funcDef = funcDefIt->second;
-                std::vector<llvm::Value*> argValues;
-                auto paramIt = funcDef->params.begin();
-                bool hasSpread = false;
-                for (auto& argNode : (*call)->args) {
-                    if (std::holds_alternative<SpreadNode*>(argNode)) { hasSpread = true; }
-                    std::string ptype = (paramIt != funcDef->params.end()) ? paramIt->type.value : "...";
-                    llvm::Value* argVal;
-                    if (ptype.ends_with("&")) {
-                        argVal = emitLValue(argNode);
-                    } else {
-                        argVal = emitExpr(argNode);
-                    }
-                    argValues.push_back(argVal);
-                    if (paramIt != funcDef->params.end()) ++paramIt;
-                }
-                if (hasSpread) {
-                    cg_error(get_pos(*call), "spread is no longer allowed in function calls.");
-                    return nullptr;
-                }
-                if (!funcDef->generics.empty()) { 
-                    funcName = fixMangling(funcName);
-                    if (specializedFunctions.find(funcName) == specializedFunctions.end()) {
-                        llvm::Function* specializedFn = generateSpecializedFunction(funcDef, funcName);
-                        if (!specializedFn) return nullptr;
-                        specializedFunctions[funcName] = specializedFn;
-                    }
-                    llvm::Function* fn = specializedFunctions[funcName];
-                    if (funcDef->params.size() > 0 && funcDef->params.back().type.value == "...") {
-                        size_t fixedCount = funcDef->params.size() - 1;
-                        std::vector<llvm::Value*> varVals(argValues.begin() + fixedCount, argValues.end());
-                        argValues.resize(fixedCount);
-                        argValues.push_back(packVariadicArgs(varVals));
-                    }
-                    if (insideTry()) {
-                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
-                        llvm::InvokeInst* invoke = builder->CreateInvoke(fn, contBB, currentLandingPad(), argValues);
-                        builder->SetInsertPoint(contBB);
-                        return invoke;
-                    } else {
-                        return builder->CreateCall(fn, argValues);
-                    }
-                }
-                llvm::Function* fn = module->getFunction(funcName);
-                if (!fn) {
-                    cg_error((*call)->method_name.pos, "method '" + methodName + "' not found on type '" + targetClass + "'");
-                    return nullptr;
-                }
-                if (insideTry()) {
-                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
-                    llvm::Value* invoke = builder->CreateInvoke(fn->getFunctionType(), fn, contBB, currentLandingPad(), argValues);
-                    builder->SetInsertPoint(contBB);
-                    return invoke;
-                }
-                return builder->CreateCall(fn, argValues);
-            } 
-        }
         if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, *call, thisPtr)) { return specializedCall; }
         ClassMethodInfo* info = nullptr;
         std::string searchClass = baseTypeName(targetClass);
@@ -13563,7 +13250,7 @@ void LLVMCompiler::generateStructReprFunctions() {
     }
     if (savedBB) { builder->SetInsertPoint(savedBB); }
 }
-llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr, Position pos) {
+llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr) {
     llvm::Type* ty = val->getType();
 
     if (ty->isPointerTy()) {
@@ -13600,7 +13287,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr, Posi
     else if (ty->isIntegerTy(8))
         fnName = "qc_to_string_char";
     else {
-        cg_error(pos, "cannot convert type to string");
+        cg_error(Position(), "cannot convert type to string");
         return nullptr;
     }
 
@@ -13902,7 +13589,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                     pos = t.find("[]", pos + 2);
                 }
                 if (dims > 0 && name != entrypointName) {
-                    cg_warn(param.type.pos, "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                    cg_warn(Position(), "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
                                             size_t pos = 0;
                                             while ((pos = str.find("[]", pos)) != std::string::npos) {
                                                 str.replace(pos, 2, "*");

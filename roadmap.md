@@ -1,41 +1,3 @@
-- Concepts
-```
-concept Serializable {
-    one_of {
-        string serialize();
-        string serialize(Self self);
-    }
-    default {
-        string serialize() {
-            return "No special implementation";
-        }
-    }
-    all_of {...}
-    at_least_one_of {
-        ...
-    }
-    all_of {
-        one_of {
-            ...
-        }
-        all_of {
-            ...
-        }
-    } // maybe
-} 
-class Y {
- ... 
-} 
-Y proves Serializable;
-struct Z {
-    ...
-}
-type T = int | string;
-T proves Serializable;
-Z proves Serializable with_proof {
-    ...
-} // provides bonus impl. Concepts are the only way to add methods to structs enums or unions and cannot have special methods / operator overloads.
-```
 - Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
 - Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
 - Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
@@ -115,14 +77,13 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - atomics
 - defer
 TOP PRIORITY:
-1. Concepts
-2. Codeblocks
-3. Modifier (x1.0.0)
-4. Ident (maybe)/Type direct primitive type (parser refactor)
-5. Variadics on generics
-6. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-7. Other stuff (private/protected inheritance) + Variadic Generics
-8. Metadata
+1. Codeblocks
+2. Modifier (x1.0.0)
+3. Ident (maybe)/Type direct primitive type (parser refactor)
+4. Variadics on generics
+5. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+6. Other stuff (private/protected inheritance) + Variadic Generics
+7. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -144,7 +105,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-9. Preproccessers
+8. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -153,5 +114,5 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-10. User-Defined metadata
-11. User-Defined macro _functions_ (the only good thing in rust)
+9. User-Defined metadata
+10. User-Defined macro _functions_ (the only good thing in rust)
