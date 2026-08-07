@@ -17,6 +17,7 @@ Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://lea
 Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
 
 **More Powerful Than Explosives™**/j
+
 C⁴ combines explicitness and simplicity to produce readable code, improving both DX and UX. Code should still make sense next week, even to the person who wrote it.
 
 ---
@@ -41,7 +42,7 @@ Go to the [docs](https://youg-otricked.github.io/QuantumC/)
 
 ## Quick Start
 
-Just install the binaries from the github, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager) OR
+Just install the binaries from the github, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
 
 ### Installation
 
@@ -85,7 +86,7 @@ qc [flags]
 
 QuantumC uses the following versioning scheme:
 `cMa.Mo.MiP`
-Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
+, where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
 For the version
 `x1.2.34`
 `c` = `x`

@@ -78,6 +78,14 @@ int main() {
 
 [Custom Runtimes](./runtimes.md)
 
+[Concepts](./concepts.md)
+
+[Defer](./defer.md)
+
+[New Number Types](./newNums.md)
+
+[Try/Catch](./trycatch.md)
+
 ## 'Philosophy'
 
 - No hidden behavior
