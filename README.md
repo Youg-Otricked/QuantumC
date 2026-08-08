@@ -42,7 +42,7 @@ Go to the [docs](https://youg-otricked.github.io/QuantumC/)
 
 ## Quick Start
 
-Just install the binaries from the github, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
+Install the binaries from the github, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
 
 ### Installation
 
@@ -86,7 +86,7 @@ qc [flags]
 
 QuantumC uses the following versioning scheme:
 `cMa.Mo.MiP`
-, where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
+, where `c` is critical, for massive additions, such as the compiler being added, `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
 For the version
 `x1.2.34`
 `c` = `x`
@@ -173,7 +173,7 @@ No Deprecations!
 |                     |     Unions                                                             | Done        |
 |                     |     Functions & Methods                                                | Done        |
 |                     | Variadic Generic Arguments                                             | Planned     |
-|                     | Passable code blocks, eg `void example() code { code.eval() }`         | Planned     |
+|                     | Passable code blocks, e.g. `void example() code { code.eval() }`       | Planned     |
 |                     | `restrict`, `out`, `inout`, `volatile`                                 | Done        |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |
@@ -193,25 +193,6 @@ Want to contribute? PRs welcome!
 ## License
 
 MIT License - See [LICENSE](./LICENSE.txt) for details
-
----
-
-# (Semi) FAQ
-
-### Q: Why “C^4”?
-
----
-
-#### A:
-
-Because it's the 4th evolution of C:
-
-C - The original
-C++ - Object-oriented and sharpened to a point (also added tons more features)
-C# - Managed & modern (also by microsoft)
-C⁴ - All of the above, none of the pain
-There are 2 other meanings that would take too much space to explain.
-Now Turing complete!
 
 ---
 
@@ -288,7 +269,7 @@ Based on the last reliable benchmark results, QuantumC showed performance in the
 
 ## Conventions
 
-QuantumC has rather unique naming conventions:
+QuantumC has unusual naming conventions:
 
 | **Type**                               | **Convention**         | **Why?**                                                                                                                     |
 | -------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -307,12 +288,12 @@ QuantumC has rather unique naming conventions:
 | **Compiler Reserved**                  | `_qc_, __qc_ and qc_`  | Unique, hard to use accidently                                                                                               |
 | **Compiler Intrinsics**                | \` + `snake_case`      | Unique, impossible to use accidently                                                                                         |
 
-Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace (not a strict rule, just a ideal, no need to follow), and namespaces should fit the following rules:
+Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace (not a strict rule, just an ideal, no need to follow), and namespaces should fit the following rules:
 
 1. Namespaces should do one thing well, similar to the UNIX philosophy, 
 2. Namespaces should have either:
 
-        1. one type (or group of TIGHTLY related types, eg bigints) and their core helpers,
+        1. one type or group of tightly related types such as bigints and their core helpers,
         2. above + namespaces containing extra helpers
         3. helper functions / utility functions (think a `Math` namespace with log, cos...)
         4. OR anything if directly mapping  C/C++/Zig/Rust code to C^4
@@ -325,14 +306,14 @@ namespace Array {
     }
 }
 ```
-Pointer asterisks bind to the type rather than the variable. The final * belongs to the declarator, unless its a function return type. Then its all on the type.
+Pointer asterisks bind to the type rather than the variable. The final * belongs to the declarator, unless it's a function return type. Then it's all on the type.
 ```
 int** *x;
 int* ptr_add(int *p) ...
 ```
-Files are `kebab-case` (optional, sometimes I dont follow this)
+Files are `kebab-case`. This is optional.
 QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
-My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or miss-type, unlike C/C++ where every single library uses entirely different conventions.
+My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or miss-type, unlike C/C++ where every library uses entirely different conventions.
 
 Example:
 ```
@@ -352,11 +333,11 @@ namespace Not_Embezzeling { // Intentionally formatted as a non-inclusion namesp
 ```
 ## Ideals
 
-QuantumC follows 4 core rules:
+QuantumC follows four core rules:
 
 - Forced Cleanliness: QuantumC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
 - Your Memory, Your Problem: QuantumC does not prevent dangerous code. It expects the programmer to understand the consequences. If you want, you can write a segfault handler with a segfault in it. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
-- No Hiding: QuantumC is an explicit language: Your code does what it looks like it does. Nothing is hidden inside the parser yet pretends to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
+- No Hiding: QuantumC is an explicit language, so your code does what it looks like it does. Nothing is hidden inside the parser while pretending stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
 
 ## Compiler Architecture
@@ -459,9 +440,10 @@ void doSomePointer(int *restrict ptr, int *other) {
     *ptr = 10;
     *other = 20; // Undefined behavior if other points to the same memory as ptr
 }
+```
 3. `out`
 Out tells the compiler that this paramater is write-only, and this memory address will not be copied. It also only exists for optimization purposes.
-```
+```qc
 void writeOnly(out int p) {
     p = 123; // OK
     int x = p; // ILLEGAL. Breaks contract.
@@ -470,7 +452,7 @@ void writeOnly(out int p) {
 ```
 4. `inout`
 Inout tells the compiler that this paramater will be read and wrote from but its address will not be copied.
-```
+```qc
 void rw(inout int p) {
     p = 123; // OK
     int x = p; // OK
@@ -518,11 +500,11 @@ QuantumC also has a special operator for _logical_ right shift: :>. This is beca
 2 more unique bitwise things QuantumC does:
 
 1. Builtin rotations: `<<<` and `|>>` and `LROT` and `RROT`, allowing 1 instruction rotations instead of 6+.
-2. I did what we were all thinking and too scared to say: + and - should have lower priority than shifts. `3 << 3 + 2 == 26` 
+2. + and - have lower priority than shifts. `3 << 3 + 2 == 26`. This is because the shift expression `l << r` is equivelant to `l * 2 ^ r`. If r was 2 + 2, that would be `l * 2 ^ 2 + 2`, which would be l * 4 + 2.
     
 ## Generics
 
-QuantumC generics have rather simple syntax:
+QuantumC generics have simple syntax:
 ```
 class C<T> {
     T x;
@@ -596,9 +578,10 @@ And in Zig:
 Iterators work as follows:
 The class you want to iterate must define the following method:
 ```qc
-MyIterator _begin() // Returns a iterator to the begining of the class
+MyIterator _begin() // Returns an iterator to the begining of the class
+
 ```
-`_end` is optional, and returns a iterator to the end of the class.
+`_end` is optional, and returns an iterator to the end of the class.
 The iterator itself MUST define the following 2 methods:
 ```qc
 bool _atEnd() // Returns true if there is nothing left to iterate
@@ -609,7 +592,7 @@ and may define the following recommended extra methods:
 bool _atStart() // Returns true if the itertor is currently at index 0
 T _prev() // Returns the element at current index -- and decrements current index
 void _moveTo(whateveryouwant idx) // sets index to idx
-MyIterator<T> _map(fn(T elem) -> T) // preforms a operation on every element
+MyIterator<T> _map(fn(T elem) -> T) // preforms an operation on every element
 MyClass<T> _collect() // returns the class that this iterator iterates
 ```
 
@@ -724,7 +707,7 @@ MyResult myThing() {
 
 ## Defer
 
-C^4 has `defer`, similarly to Go and Zig.
+C^4 has `defer`, like Go and Zig.
 Unlike Go's `defer`, C^4 `defer` does **not** participate in stack unwinding. Deferred code is not automatically executed when an exception propagates out of a scope.
 This behavior is intentional: making `defer` participate in stack unwinding would introduce additional runtime overhead.
 `defer` should not be considered a destructor mechanism. It is a scope-exit convenience feature, not RAII.
@@ -782,7 +765,7 @@ Paper proves Printable with_proof { // with_proof block to add additional defini
 File proves Printable;
 ```
 
-Self arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being pod_. Concepts only allow methods on structs because its better for dry than having 50 functions with simillar names.
+The `Self` arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being pod_. Concepts only allow methods on structs because it's better for dry than having 50 functions with simillar names.
 Operator overloads are not allowed for concepts.
 
 ## Simple File Example
@@ -801,7 +784,7 @@ int main() {
 
 ---
 ## Self Hosted Runtime
-There is currently a unknown bug with the selfhosted runtime.
+There is currently an unknown bug with the selfhosted runtime.
 
 ## Performance Comparison
 
