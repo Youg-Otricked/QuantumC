@@ -1,4 +1,4 @@
-# QuantumC (C⁴/C^4)
+ QuantumC (C⁴/C^4)
 
 ### The 4th Evolution of C
 
@@ -115,7 +115,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.27.03 = "Concepts"
+Current Version: x0.27.04 = "Concepts"
 Next Version: x0.28.0 = "Codeblocks"
 
 # Current Version Highlights
@@ -134,7 +134,7 @@ Minor
 └─ N/A
 
 Patch
-└─ Using `char[]` as string
+└─ Missing null checks
 ```
 
 # Recent Deprecations / Breaking Changes

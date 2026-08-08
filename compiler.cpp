@@ -11450,7 +11450,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     return nullptr;
                                 }
                             } else {
-                                if (!cVal->getType()->isIntegerTy(8)) {
+                                if (!cVal || !cVal->getType()->isIntegerTy(8)) {
                                     cg_error((*varAccess)->var_name_tok.pos, "c formater takes a char: " + funcName);
                                     return nullptr;
                                 }
@@ -11789,7 +11789,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
-                    if (!(val->getType()->isIntegerTy())) {
+                    if (!val || !(val->getType()->isIntegerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer: " + funcName);
                         return nullptr;
                     }
@@ -11808,7 +11808,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 if (funcName == "`to_address" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
-                    if (!(val->getType()->isPointerTy())) {
+                    if (!val || !(val->getType()->isPointerTy())) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a pointer: " + funcName);
                         return nullptr;
                     }
@@ -11822,7 +11822,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     auto it = std::next(call.arg_nodes.begin(), 1);
                     llvm::Value* is_tr = emitExpr(*it);
                     llvm::Value* is_fl = emitExpr(call.arg_nodes.back());
-                    if (is_tr->getType() != is_fl->getType()) {
+                    if (!is_tr || !is_fl || is_tr->getType() != is_fl->getType()) {
                         cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must be the same type: " + funcName);
                         return nullptr;
                     }
