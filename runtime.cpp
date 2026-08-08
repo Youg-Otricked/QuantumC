@@ -10,13 +10,13 @@
 #include <unwind.h>
 extern "C" {
 const char* __qc_version() { // self hosted
-    return "x0.18.3";
+    return "x0.27.03";
 }
 int __qc_llvm_ver() { // self hosted
     return 21;
 }
 void __qc_release_notes() { // self hosted
-    printf("Added generic functions & methods, deprecated `auto` functions");
+    printf("Made arrays more useable");
 }
 void* qc_malloc(size_t size) {
     return malloc(size);

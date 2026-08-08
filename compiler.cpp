@@ -8442,7 +8442,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
 
-                if ((lType == "string" || lType == "char*") && (rType == "string" || rType == "char*")) {
+                if ((lType == "string" || lType == "char*" || lType == "char[]") && (rType == "string" || rType == "char*" || rType == "[]")) {
+                    if (lType == "char[]") {
+                        L = decayArrayToPointer(L);
+                    }
+                    if (rType == "char[]") {
+                        R = decayArrayToPointer(R);
+                    }
                     llvm::Function* concatFn = module->getFunction("qc_string_concat");
                     if (!concatFn) {
                         llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
@@ -8696,11 +8702,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if ((lty->isFloatingPointTy() && rty->isFloatingPointTy())) {
                 return (op == TokenType::EQ_TO) ? builder->CreateFCmpOEQ(L, R, "fcmpeq") : builder->CreateFCmpONE(L, R, "fcmpne");
             }
-            auto isStringLike = [](const std::string& type) { return type == "string" || type == "char*"; };
+            auto isStringLike = [](const std::string& type) { return type == "string" || type == "char*" || type == "char[]"; };
             if (lty->isPointerTy() && rty->isPointerTy()) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
                 if (isStringLike(lType) && isStringLike(rType)) {
+                    if (lType == "char[]") L = decayArrayToPointer(L);
+                    if (rType == "char[]") R = decayArrayToPointer(L);
                     llvm::Function* stringEq = module->getFunction("qc_string_eq");
                     if (!stringEq) {
                         auto* ptrTy = llvm::PointerType::get(context, 0);

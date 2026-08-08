@@ -2599,7 +2599,9 @@ class LLVMCompiler {
                 if (!v) return {};
             } else {
             }
-
+            if (v->getType()->isArrayTy() && i < fnTy->getNumParams() && fnTy->getParamType(i)->isPointerTy()) {
+                v = decayArrayToPointer(v);
+            }
             args.push_back(v);
         }
         return args;
