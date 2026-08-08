@@ -485,7 +485,7 @@ void printf(char* fmt, ...);
 
 ## Bitwise logic
 
-QuantumC has all the standard bitwise logic operators; however. it has a non-standard XOR and Right-Shift token.
+QuantumC has all the standard bitwise logic operators; however, it has a non-standard XOR and Right-Shift token.
 The Bitwise XOR operator in C^4 is `$`. It is `$` because ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
 The same logic applies for right-shift: `|>` is the right-shift token, because it allows the parser to immediately determine:
 ```
