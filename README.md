@@ -42,7 +42,7 @@ Go to the [docs](https://youg-otricked.github.io/QuantumC/)
 
 ## Quick Start
 
-Install the binaries from the github, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
+Install the binaries from GitHub, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
 
 ### Installation
 
@@ -52,7 +52,7 @@ You must have `clang` installed (or the path /usr/lib/clang/<VERSION>/include/un
 
 ---
 
-After cloning the repo to your machine, run
+After cloning the repo to your machine, run.
 
 ```bash
 cd QuantumC
@@ -86,7 +86,7 @@ qc [flags]
 
 QuantumC uses the following versioning scheme:
 `cMa.Mo.MiP`
-, where `c` is critical, for massive additions, such as the compiler being added, `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
+, where `c` is critical, for massive additions, such as the compiler being added, `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme, and `P` being the patch version. 
 For the version
 `x1.2.34`
 `c` = `x`
@@ -95,7 +95,7 @@ For the version
 `Mi` = `3`
 `P` = `4`
 
-P is ommited if it is 0.
+P is omitted if it is 0.
 Critical versions represent the largest generational milestones in QuantumC's development.
 
 v = Interpreter
@@ -181,7 +181,7 @@ No Deprecations!
 |                     | Try/Catch and `throw`                                                  | Done        |
 |                     | Error message quality and helpfulness upgrade                          | Done        |
 
-See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md)
+See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md).
 # Contributing
 
 Found a bug? Have a feature request? Open an [Issue!](https://github.com/Youg-Otricked/QuantumC/issues)!
@@ -249,7 +249,7 @@ namespace x { /* uses y::Something internally */ }
 namespace y { /* ... */ }
 ```
 
-Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuantumC/include.html)
+Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuantumC/include.html).
 
 ---
 ## Why QuantumC?
@@ -263,7 +263,7 @@ Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/
 | **Multi-return**            | Structs              | Tuples           | Tuples           | **Native**          |
 | **Generics**                | Templates + Concepts | Type as Argument | Trait Based      | Constraint-Based    |
 
-Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig. Current benchmarks are being improved and results should be considered preliminary.
+Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig. Current benchmarks are being improved, and results should be considered preliminary.
 
 ---
 
@@ -288,7 +288,7 @@ QuantumC has unusual naming conventions:
 | **Compiler Reserved**                  | `_qc_, __qc_ and qc_`  | Unique, hard to use accidently                                                                                               |
 | **Compiler Intrinsics**                | \` + `snake_case`      | Unique, impossible to use accidently                                                                                         |
 
-Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace (not a strict rule, just an ideal, no need to follow), and namespaces should fit the following rules:
+Max line size is around 120 _relative to your starting indentation_, tabs or spaces, lf newlines, comments are `//`, doc comments are `///`, and top-level doc comments are `//!`. File paths are unquoted, everything other than main should go in a namespace when applicable, and namespaces should fit the following rules:
 
 1. Namespaces should do one thing well, similar to the UNIX philosophy, 
 2. Namespaces should have either:
@@ -313,7 +313,7 @@ int* ptr_add(int *p) ...
 ```
 Files are `kebab-case`. This is optional.
 QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
-My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or miss-type, unlike C/C++ where every library uses entirely different conventions.
+My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or mis-type, unlike C/C++ where every library uses entirely different conventions.
 
 Example:
 ```
@@ -335,9 +335,9 @@ namespace Not_Embezzeling { // Intentionally formatted as a non-inclusion namesp
 
 QuantumC follows four core rules:
 
-- Forced Cleanliness: QuantumC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent, it is self-explanatory.
+- Forced Cleanliness: QuantumC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent; it is self-explanatory.
 - Your Memory, Your Problem: QuantumC does not prevent dangerous code. It expects the programmer to understand the consequences. If you want, you can write a segfault handler with a segfault in it. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
-- No Hiding: QuantumC is an explicit language, so your code does what it looks like it does. Nothing is hidden inside the parser while pretending stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
+- No Hiding: QuantumC is an explicit language, so your code does what it looks like it does. Nothing is hidden inside the parser while pretending to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
 
 ## Compiler Architecture
@@ -442,7 +442,7 @@ void doSomePointer(int *restrict ptr, int *other) {
 }
 ```
 3. `out`
-Out tells the compiler that this paramater is write-only, and this memory address will not be copied. It also only exists for optimization purposes.
+Out tells the compiler that this parameter is write-only, and this memory address will not be copied. It also only exists for optimization purposes.
 ```qc
 void writeOnly(out int p) {
     p = 123; // OK
@@ -451,7 +451,7 @@ void writeOnly(out int p) {
 }
 ```
 4. `inout`
-Inout tells the compiler that this paramater will be read and wrote from but its address will not be copied.
+Inout tells the compiler that this parameter will be read and written from, but its address will not be copied.
 ```qc
 void rw(inout int p) {
     p = 123; // OK
@@ -472,9 +472,9 @@ int add_all(...args) {
     return res;
 }
 ```
-`args` is a variadic argument (hence the `...`), which can be passed any amount of parameters.
-`is_empty` is a runtime compiler intrinsic that takes a variadic arg-list and returns if it is empty.
-`next` is a runtime compiler intrinsic that takes a variadic arg-list and a string holding the stringified expected type and returns the next element in the arg list casted to that type.
+`args` is a variadic argument (hence the `...`), which can be passed any number of parameters.
+`is_empty` is a runtime compiler intrinsic that takes a variadic arg-list and returns whether it is empty.
+`next` is a runtime compiler intrinsic that takes a variadic arg-list and the expected type and returns the next element in the arg list cast to that type.
 
 You may use C-Style variadic arguments too, but _only in foreign blocks_.
 ```cpp
@@ -485,21 +485,21 @@ void printf(char* fmt, ...);
 
 ## Bitwise logic
 
-QuantumC has all the standard bitwise logic operators, however it has a non-standard XOR, and Right-Shift token.
-The Bitwise XOR operator in C^4 is `$`. It is `$` becuase ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
-The same logic applys for right-shift: `|>` is the right-shift token, becuase it allows the parser to immediately determine:
+QuantumC has all the standard bitwise logic operators; however. it has a non-standard XOR and Right-Shift token.
+The Bitwise XOR operator in C^4 is `$`. It is `$` because ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
+The same logic applies for right-shift: `|>` is the right-shift token, because it allows the parser to immediately determine:
 ```
 Node<Vector<X>> // Is this RSHIFT or ending generics?
 ```
-This is easy to determine (becuase it would be illegal for rshift to be there), however using this non-normal rshift operator allows it to be instant because:
+This is easy to determine (because it would be illegal for rshift to be there); however, using this non-normal rshift operator allows it to be instant because:
 ```
 Node<Vector<X>> // This is unrelated to RSHIFT
 ```
-QuantumC also has a special operator for _logical_ right shift: :>. This is because it allows avoiding constantly casting between signed and unsigned integer types unlike C++'s "arithmetic if signed, logical if unsigned"
+QuantumC also has a special operator for _logical_ right shift: :>. This is because it allows avoiding constantly casting between signed and unsigned integer types, unlike C++'s "arithmetic if signed, logical if unsigned"
 
 2 more unique bitwise things QuantumC does:
 
-1. Builtin rotations: `<<<` and `|>>` and `LROT` and `RROT`, allowing 1 instruction rotations instead of 6+.
+1. Built-in rotations: `<<<` and `|>>` and `LROT` and `RROT`, allowing 1 instruction rotations instead of 6+.
 2. + and - have lower priority than shifts. `3 << 3 + 2 == 26`. This is because the shift expression `l << r` is equivelant to `l * 2 ^ r`. If r was 2 + 2, that would be `l * 2 ^ 2 + 2`, which would be l * 4 + 2.
     
 ## Generics
@@ -516,7 +516,7 @@ int main() {
 }
 ```
 Generics are allowed on `struct`s, `class`es, unions, aliases, functions, and methods.
-The unique thing about QuantumC's generics are its constraint system:
+The unique thing about QuantumC's generics is its constraint system:
 The constraint system follows this syntax:
 ```
 <T([constraint]:[[!]<[typename]'|'...>]>
@@ -532,13 +532,13 @@ So
 ```
 <T(numeric:)>
 ```
-Can be any number type.
+Can be any numeric type.
 The subconstraint system is like this:
 ```
 <T(:!int|string)>
 ```
 This means "T can be any type other than int or string".
-The ! means not anything in this set and the type|type means these types.
+The ! means not anything in this set, and the type|type means these types.
 QuantumC also has non-type generic parameters.
 ```
 <int S> // S is a non-type generic parameter (a compile time int)
@@ -578,7 +578,7 @@ And in Zig:
 Iterators work as follows:
 The class you want to iterate must define the following method:
 ```qc
-MyIterator _begin() // Returns an iterator to the begining of the class
+MyIterator _begin() // Returns an iterator to the beginning of the class
 
 ```
 `_end` is optional, and returns an iterator to the end of the class.
@@ -589,7 +589,7 @@ T _next() // Returns the current value then moves to the next
 ```
 and may define the following recommended extra methods:
 ```qc
-bool _atStart() // Returns true if the itertor is currently at index 0
+bool _atStart() // Returns true if the iterator is currently at index 0
 T _prev() // Returns the element at current index -- and decrements current index
 void _moveTo(whateveryouwant idx) // sets index to idx
 MyIterator<T> _map(fn(T elem) -> T) // preforms an operation on every element
@@ -714,7 +714,7 @@ This behavior is intentional: making `defer` participate in stack unwinding woul
 
 ## Concepts
 
-It's hard to explain.
+C^4's concepts are like a combination of Typescript interfaces, Rust traits, and C++ concepts.
 ```qc
 concept Printable {
     1_of {
@@ -755,8 +755,8 @@ type File = PDF | ASCII;
 PDF proves Printable;
 /// Print would print "Printing. . ."
 ASCII proves Printable;
-/// Print would print the papers data
-Paper proves Printable with_proof { // with_proof block to add additional definitions, like impl in rust
+/// Print would print the paper's data
+Paper proves Printable with_proof { // with_proof block to add additional definitions, like impl in Rust
     void print(Self self) {
         `qout("%s", self.data);
     }
@@ -765,7 +765,7 @@ Paper proves Printable with_proof { // with_proof block to add additional defini
 File proves Printable;
 ```
 
-The `Self` arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being pod_. Concepts only allow methods on structs because it's better for dry than having 50 functions with simillar names.
+The `Self` arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being POD_. Concepts only allow methods on structs because it's better for DRY than having 50 functions with similar names.
 Operator overloads are not allowed for concepts.
 
 ## Simple File Example
@@ -784,15 +784,15 @@ int main() {
 
 ---
 ## Self Hosted Runtime
-There is currently an unknown bug with the selfhosted runtime.
+There is currently an unknown bug with the self-hosted runtime.
 
 ## Performance Comparison
 
-Benchmarks are currently unreliable and show significant fluctuations between runs, or things like 0 millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
+Benchmarks are currently unreliable and show significant fluctuations between runs, or things like a 0-millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
 
 ## Known Limitations
 
-&& and || do not shortcircut on unions.
+&& and || do not short-circuit on unions.
 Volatile does not exist on structs or class fields, and does not work on property accesses. In general, volatile is not 100%.
 
 ## Standard Library Namespaces:
