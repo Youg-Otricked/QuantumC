@@ -619,11 +619,7 @@ void qc_close(int fd) {
     close(fd);
 } // self hosted
 ssize_t qc_read(int fd, char* buffer, size_t size) {
-    if (size == 0) return 0;
-    ssize_t n = read(fd, buffer, size - 1);
-    if (n <= 0) return n;
-    buffer[n] = '\0';
-    return n;
+    return read(fd, buffer, size);
 }
 void qc_write(int fd, const char* data) {
     if (!data) return;
