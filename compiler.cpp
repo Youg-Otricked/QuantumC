@@ -10401,15 +10401,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if ((*unary)->op_tok.type == TokenType::NOT) {
-            if (operand->getType() == builder->getInt1Ty()) {
-                return builder->CreateNot(operand, "not");
-            } else if (operand->getType()->isPointerTy()) {
-                llvm::Value* NullPtr = llvm::ConstantPointerNull::get(llvm::cast<llvm::PointerType>(operand->getType()));
-                return builder->CreateICmpEQ(operand, NullPtr, "isnull");
-            } else {
-                cg_error((*unary)->op_tok.pos, "! requires bool operand");
-                return nullptr;
-            }
+            return builder->CreateNot(toTruthiness(operand, (*unary)->op_tok.pos), "not");
         }
         if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
             llvm::Type* ty = operand->getType();

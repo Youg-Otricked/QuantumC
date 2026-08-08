@@ -438,11 +438,9 @@ uint8_t qc_to_qbool_from_string(const char* str) {
 char* qc_qin() {
     fflush(stdout);
     fflush(stderr);
-    fflush(stdin);
     char buffer[1024];
     int result = scanf("%s", buffer);
     fflush(stderr);
-    fflush(stdin);
     if (result == 1) { return strdup(buffer); }
     return strdup("");
 } // self hosted
