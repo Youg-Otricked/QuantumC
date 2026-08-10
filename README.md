@@ -116,7 +116,8 @@ Unlike semantic versioning, QuantumC versions describe the scale and category of
 # Development Status
 
 Current Version: x0.27.05 = "Concepts"
-Next Version: x0.28.0 = "Codeblocks"
+Next Version: x0.28.0 = "Modifiers"
+After: x1.0.0 = "Major bugfixes: version 1.0"
 
 # Current Version Highlights
 
@@ -175,7 +176,6 @@ Concepts as constraints must start with `proves`
 |                     |     Unions                                                             | Done        |
 |                     |     Functions & Methods                                                | Done        |
 |                     | Variadic Generic Arguments                                             | Planned     |
-|                     | Passable code blocks, e.g. `void example() code { code.eval() }`       | Planned     |
 |                     | `restrict`, `out`, `inout`, `volatile`                                 | Done        |
 |                     | Extern                                                                 | Done        |
 |                     | Bitwise Logic                                                          | Done        |

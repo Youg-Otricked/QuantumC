@@ -1,7 +1,4 @@
 - Variadic Generics (`class VaradicTypes<...Tys> { Tys elems; ...`) (not decided on syntax) 
-- Code block functions (`void myKey() code { code.eval }; int main() { myKey () { …. } }`)
-- Operator{} (code block in class, eg `<T> operator{}() code ()`, then `classinst { codeblock}`)
-- Methos with code blocks
 - Operator.
 - Function pointers
 - Private/Protected inheritance
@@ -52,16 +49,6 @@ typedef struct {
 ```
 - Constexpr
 - Debug
-- Void in () which means dont call with params or () and only for code block functions
-```cpp
-void loop(void) code {
-    while (true) {
-      code.eval();
-    }
-}
-```
-- Builtin Keyword, Identifier, and Type type that are basically just strings but let you type the raw token/ident/type
-- Handlers for break continue and return in codeblocks
 - Cqb lib in stl. Ci and build.
 - qcheck (QC Lint(qc linter. duh)
 - qconform (QC Formatter)
@@ -75,15 +62,28 @@ __qc_target_triple() — what platform/arch this runtime was compiled for (x86_6
 __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
 - atomics
-- defer
+- destructuring (eg `Pair {abc, def} = ...`, operator{} which is your destructure handler (multi return baby!) (maybe))
+- tuples (like zig/rust tuples, .0 .1 .2 .3)
+- user defined literals (macros baby!)
+- user defined macro functions
+- user defined metadata tags
+- Compile-time assertions (assert, static_assert)
+- Decltype (get type of expr)
+- noexcept (funciton modifier) (same update as const on functions and stuff)
+- change parent constructor and delegeating constructors
+- compile_error("My error")
+- compile_log("My msg")
+- dynamic field access
+- has field, has method
+
 TOP PRIORITY:
-1. Codeblocks
-2. Modifier (x1.0.0)
-3. Ident (maybe)/Type direct primitive type (parser refactor)
-4. Variadics on generics
-5. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
-6. Other stuff (private/protected inheritance) + Variadic Generics
-7. Metadata
+1. Modifier (x1.0.0)
+2. Variadics on generics
+3. Tuples + Destruturing
+3. Function Pointers
+3. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
+5. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -105,7 +105,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-8. Preproccessers
+6. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -114,5 +114,6 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-9. User-Defined metadata
-10. User-Defined macro _functions_ (the only good thing in rust)
+7. User-Defined metadata
+8. User-Defined macro _functions_ (the only good thing in rust)
+9. User defined literals
