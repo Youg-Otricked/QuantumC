@@ -3586,16 +3586,14 @@ Prs Parser::statement() {
                 if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
-                        if (this->current_tok.type == TokenType::IDENTIFIER &&
-                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
-                            curr.constraint = this->current_tok.value;
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -3809,17 +3807,14 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                             this->advance();
                             if (this->current_tok.type != TokenType::COLON) {
-                                if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                    (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                     this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                     this->current_tok.value == "pointer")) {
-                                    curr.constraint = this->current_tok.value;
+                                if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                    curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                                 } else {
                                     res.failure(new InvalidSyntaxError(
-                                        "Expected : or usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
+                                        "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                     return res.to_prs();
                                 }
-                                this->advance();
+                                if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                             } else {
                                 curr.constraint = "";
                             }
@@ -4111,17 +4106,14 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                         this->advance();
                         if (this->current_tok.type != TokenType::COLON) {
-                            if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                 this->current_tok.value == "pointer")) {
-                                curr.constraint = this->current_tok.value;
+                            if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                    this->current_tok.pos));
                                 return res.to_prs();
                             }
-                            this->advance();
+                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                         } else {
                             curr.constraint = "";
                         }
@@ -4357,16 +4349,14 @@ Prs Parser::statement() {
                 if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
-                        if (this->current_tok.type == TokenType::IDENTIFIER &&
-                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
-                            curr.constraint = this->current_tok.value;
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4519,16 +4509,14 @@ Prs Parser::statement() {
                 if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
-                        if (this->current_tok.type == TokenType::IDENTIFIER &&
-                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
-                            curr.constraint = this->current_tok.value;
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4781,16 +4769,14 @@ Prs Parser::statement() {
                 if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
-                        if (this->current_tok.type == TokenType::IDENTIFIER &&
-                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
-                            curr.constraint = this->current_tok.value;
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4852,7 +4838,8 @@ Prs Parser::statement() {
             if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "all_of" || this->current_tok.value == "_of")) {
                 if (is_at_least) block.constraint = this->current_tok;
                 std::vector<ConceptInfo::Block> subblocks;
-                block.constraint.value += ((this->current_tok.value == "_of") ? " " + num + "_of" : "all_of");
+                block.constraint.pos = this->current_tok.pos;
+                block.constraint.value += ((this->current_tok.value == "_of") ? (is_at_least ? " " : "") + num + "_of" : "all_of");
                 this->advance();
                 if (this->current_tok.type != TokenType::LBRACE) {
                     res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept name", this->current_tok.pos));
@@ -4933,17 +4920,14 @@ Prs Parser::statement() {
                             if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
-                                    if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                        (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                         this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                         this->current_tok.value == "pointer")) {
-                                        curr.constraint = this->current_tok.value;
+                                    if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                            this->current_tok.pos));
                                         return;
                                     }
-                                    this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5077,17 +5061,14 @@ Prs Parser::statement() {
                             if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
-                                    if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                        (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                         this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                         this->current_tok.value == "pointer")) {
-                                        curr.constraint = this->current_tok.value;
+                                    if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                            this->current_tok.pos));
                                         return;
                                     }
-                                    this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5344,17 +5325,14 @@ Prs Parser::statement() {
                             if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
-                                    if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                        (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                         this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                         this->current_tok.value == "pointer")) {
-                                        curr.constraint = this->current_tok.value;
+                                    if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                            this->current_tok.pos));
                                         return res.to_prs();
                                     }
-                                    this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5467,17 +5445,14 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                         this->advance();
                         if (this->current_tok.type != TokenType::COLON) {
-                            if (this->current_tok.type == TokenType::IDENTIFIER &&
-                                (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                                 this->current_tok.value == "callable" || this->current_tok.value == "numeric" ||
-                                 this->current_tok.value == "pointer")) {
-                                curr.constraint = this->current_tok.value;
+                            if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                                res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                    this->current_tok.pos));
                                 return res.to_prs();
                             }
-                            this->advance();
+                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                         } else {
                             curr.constraint = "";
                         }
@@ -5607,16 +5582,14 @@ Prs Parser::statement() {
                 if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
-                        if (this->current_tok.type == TokenType::IDENTIFIER &&
-                            (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                             this->current_tok.value == "callable" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer")) {
-                            curr.constraint = this->current_tok.value;
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or usertype:, primitive:, or callable: before generic constraint list",
+                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
                                                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -5973,13 +5946,167 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     }
                 }
             } else if (!generic.constraint.empty()) {
-                if (userTypes.count(baseTypeName(generic.constraint))) {
-                    if (!userTypes.count(baseTypeName(value)) || !std::ranges::any_of(userTypes[baseTypeName(value)].provedConcepts, [&](const ProvedConcepts concpt) {
-                            return resolveTypeName(concpt.conceptName.value, false) == resolveTypeName(generic.constraint, false);
-                        })) {
-                        cg_error(pos, "concept generic constrain " + generic.name + " expects passed type to prove concept " + generic.constraint + ", got " + value);
+                auto provesConcept = [&](const std::string& typeName,
+                                         const std::string& conceptName) -> bool {
+                    std::string resolvedConcept =
+                        resolveTypeName(conceptName, false);
+                    if (!concepts.count(resolvedConcept)) {
+                        cg_error(
+                            pos,
+                            "concept " + conceptName + " is not defined"
+                        );
                         return false;
                     }
+                    std::string base = baseTypeName(typeName);
+                    if (!userTypes.count(base)) {
+                        return false;
+                    }
+                    return std::ranges::any_of(
+                        userTypes[base].provedConcepts,
+                        [&](const ProvedConcepts& proved) {
+                            return resolveTypeName(
+                                proved.conceptName.value,
+                                false
+                            ) == resolvedConcept;
+                        }
+                    );
+                };
+                std::vector<std::string> tokens;
+                {
+                    std::string current;
+                    for (size_t i = 0; i < generic.constraint.size(); ++i) {
+                        char c = generic.constraint[i];
+                        if (std::isspace(static_cast<unsigned char>(c))) {
+                            if (!current.empty()) {
+                                tokens.push_back(current);
+                                current.clear();
+                            }
+                            continue;
+                        }
+                        if (c == '!') {
+                            if (!current.empty()) {
+                                tokens.push_back(current);
+                                current.clear();
+                            }
+                            tokens.push_back("!");
+                            continue;
+                        }
+                        if (c == '&') {
+                            if (!current.empty()) {
+                                tokens.push_back(current);
+                                current.clear();
+                            }
+                            if (i + 1 < generic.constraint.size() &&
+                                generic.constraint[i + 1] == '&') {
+                                tokens.push_back("&&");
+                                ++i;
+                            } else {
+                                cg_error(pos, "expected '&&' in generic constraint");
+                                return false;
+                            }
+                            continue;
+                        }
+                        if (c == '|') {
+                            if (!current.empty()) {
+                                tokens.push_back(current);
+                                current.clear();
+                            }
+                            if (i + 1 < generic.constraint.size() &&
+                                generic.constraint[i + 1] == '|') {
+                                tokens.push_back("||");
+                                ++i;
+                            } else {
+                                cg_error(pos, "expected '||' in generic constraint");
+                                return false;
+                            }
+                            continue;
+                        }
+                        current += c;
+                    }
+                    if (!current.empty()) {
+                        tokens.push_back(current);
+                    }
+                }
+                size_t index = 0;
+                std::function<bool()> parseNot;
+                std::function<bool()> parseAnd;
+                std::function<bool()> parseOr;
+                parseNot = [&]() -> bool {
+                    if (index < tokens.size() && tokens[index] == "!") {
+                        ++index;
+                        if (index >= tokens.size()) {
+                            cg_error(
+                                pos,
+                                "expected concept after '!' in generic constraint"
+                            );
+                            return false;
+                        }
+                        return !parseNot();
+                    }
+                    if (index >= tokens.size()) {
+                        cg_error(
+                            pos,
+                            "expected concept in generic constraint"
+                        );
+                        return false;
+                    }
+                    std::string conceptName = tokens[index++];
+                    if (conceptName == "&&" ||
+                        conceptName == "||" ||
+                        conceptName == "!") {
+                        cg_error(
+                            pos,
+                            "expected concept, got '" + conceptName + "'"
+                        );
+                        return false;
+                    }
+                    return provesConcept(value, conceptName);
+                };
+                parseAnd = [&]() -> bool {
+                    bool result = parseNot();
+                    while (index < tokens.size() && tokens[index] == "&&") {
+                        ++index;
+                        bool rhs = parseNot();
+                        result = result && rhs;
+                    }
+                    return result;
+                };
+                parseOr = [&]() -> bool {
+                    bool result = parseAnd();
+                    while (index < tokens.size() && tokens[index] == "||") {
+                        ++index;
+                        bool rhs = parseAnd();
+                        result = result || rhs;
+                    }
+                    return result;
+                };
+                if (tokens.empty()) {
+                    cg_error(
+                        pos,
+                        "empty generic concept constraint"
+                    );
+                    return false;
+                }
+                bool satisfiesConstraint = parseOr();
+                if (index != tokens.size()) {
+                    cg_error(
+                        pos,
+                        "invalid generic concept constraint: " +
+                        generic.constraint
+                    );
+                    return false;
+                }
+                if (!satisfiesConstraint) {
+                    cg_error(
+                        pos,
+                        "concept generic constraint " +
+                        generic.name +
+                        " expects passed type to satisfy " +
+                        generic.constraint +
+                        ", got " +
+                        value
+                    );
+                    return false;
                 }
             }
             if (!generic.subconstraints.empty()) {
@@ -6345,7 +6472,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         enterScope();
         currentThis = fn->getArg(0);
         volatileVars["this"] = false;
-        varTypes["this"] = mangled_class_name;
+        varTypes["this"] = mangled_class_name + "*";
         currentClassName = mangled_class_name;
         currentFunction = fn;
 
@@ -9770,112 +9897,21 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
             if (auto varAccess = std::get_if<VarAccessNode*>(&*(*propAccess)->base)) {
                 std::string varName = (*varAccess)->var_name_tok.value;
-                if (varName == "this" && currentThis && !currentClassName.empty()) {
-                    llvm::StructType* classTy = genericiseOrFindClass(currentClassName);
-                    int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), fieldName);
-                    if (fieldIdx == -1) {
-                        cg_error((*propAccess)->property_name.pos, "field not found: " + fieldName);
-                        return nullptr;
-                    }
-                    std::string resolvedFieldType;
-                    std::function<bool(const std::string&)> findFieldType = [&](const std::string& cname) -> bool {
-                        auto& ci = userTypes.at(baseTypeName(baseTypeName(cname)));
-                        if (!ci.baseClassName.empty() && findFieldType(ci.baseClassName)) return true;
-                        for (auto& field : ci.classFields) {
-                            if (field.name == fieldName) {
-                                resolvedFieldType = field.type;
-                                return true;
-                            }
-                        }
-                        return false;
-                    };
-                    findFieldType(baseTypeName(currentClassName));
-                    llvm::Type* fieldTy = llvmTypeFor(resolvedFieldType);
-                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx);
-                    llvm::Value* rhsVal = emitExpr((*asn)->value);
-                    if (!rhsVal) return nullptr;
-                    TokenType op = (*asn)->op_tok.type;
-                    if (op != TokenType::EQ) {
-                        llvm::Value* oldVal = builder->CreateLoad(fieldTy, fieldPtr);
-                        bool isFloat = fieldTy->isFloatingPointTy();
-                        if (op == TokenType::PLUS_EQ && (resolvedFieldType == "char*" || resolvedFieldType == "string") &&
-                            std::unordered_set<std::string>({"string", "char*"}).contains(getExpressionType((*asn)->value))) {
-                            llvm::Value* concatedString = callStringConcat(oldVal, rhsVal);
-                            builder->CreateStore(concatedString, fieldPtr);
-                            return concatedString;
-                        }
-                        if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
-                            if (!rhsVal->getType()->isIntegerTy()) {
-                                cg_error((*asn)->op_tok.pos, "pointer offset must be integer");
-                                return nullptr;
-                            }
-                            llvm::Value* offset = rhsVal;
-                            if (op == TokenType::MINUS_EQ) { offset = builder->CreateNeg(offset, "neg_offset"); }
-                            std::string baseType = resolvedFieldType;
-                            baseType.pop_back();
-                            llvm::Type* elementTy = resolvedFieldType == "string" ? builder->getInt8Ty() : llvmTypeFor(baseType);
-                            llvm::Value* newPtr = builder->CreateGEP(elementTy, oldVal, offset, "ptr_add");
-                            builder->CreateStore(newPtr, fieldPtr);
-                            return newPtr;
-                        }
-                        switch (op) {
-                        case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
-
-                        case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
-
-                        case TokenType::MUL_EQ: rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal); break;
-
-                        case TokenType::DIV_EQ: rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal); break;
-
-                        case TokenType::MOD_EQ: rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal); break;
-
-                        case TokenType::RSH_EQ: rhsVal = builder->CreateAShr(oldVal, rhsVal); break;
-
-                        case TokenType::LSH_EQ: rhsVal = builder->CreateShl(oldVal, rhsVal); break;
-
-                        case TokenType::LRSH_EQ: rhsVal = builder->CreateLShr(oldVal, rhsVal); break;
-
-                        case TokenType::BIT_A_EQ: rhsVal = builder->CreateAnd(oldVal, rhsVal); break;
-
-                        case TokenType::BIT_O_EQ: rhsVal = builder->CreateOr(oldVal, rhsVal); break;
-
-                        case TokenType::BIT_X_EQ: rhsVal = builder->CreateXor(oldVal, rhsVal); break;
-
-                        case TokenType::LROT_EQ:
-                            rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
-                            break;
-
-                        case TokenType::RROT_EQ:
-                            rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
-                            break;
-
-                        default: break;
-                        }
-                    }
-
-                    builder->CreateStore(rhsVal, fieldPtr);
-                    return rhsVal;
-                }
                 llvm::Value* locAlloc = getVarAddress(varName);
                 if (!locAlloc) {
                     cg_error(get_pos(*varAccess), "unknown variable: " + varName);
                     return nullptr;
                 }
-
                 llvm::Type* allocTy = getPointeeType(varName);
-
                 auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
                 if (!structTy) {
                     cg_error(get_pos(*varAccess), "not a struct");
                     return nullptr;
                 }
-
                 std::string structName = structTy->getName().str();
                 int fieldIdx = getFlattenedFieldIndex(structName, fieldName);
-
                 llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, locAlloc, fieldIdx);
                 llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
-
                 llvm::Value* rhsVal = emitExpr((*asn)->value);
                 TokenType op = (*asn)->op_tok.type;
                 std::string resolvedFieldType;
@@ -9916,31 +9952,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     switch (op) {
                     case TokenType::PLUS_EQ: rhsVal = isFloat ? builder->CreateFAdd(oldVal, rhsVal) : builder->CreateAdd(oldVal, rhsVal); break;
-
                     case TokenType::MINUS_EQ: rhsVal = isFloat ? builder->CreateFSub(oldVal, rhsVal) : builder->CreateSub(oldVal, rhsVal); break;
-
                     case TokenType::MUL_EQ: rhsVal = isFloat ? builder->CreateFMul(oldVal, rhsVal) : builder->CreateMul(oldVal, rhsVal); break;
-
                     case TokenType::DIV_EQ: rhsVal = isFloat ? builder->CreateFDiv(oldVal, rhsVal) : builder->CreateSDiv(oldVal, rhsVal); break;
-
                     case TokenType::MOD_EQ: rhsVal = isFloat ? builder->CreateFRem(oldVal, rhsVal) : builder->CreateSRem(oldVal, rhsVal); break;
-
                     case TokenType::RSH_EQ: rhsVal = builder->CreateAShr(oldVal, rhsVal); break;
-
                     case TokenType::LSH_EQ: rhsVal = builder->CreateShl(oldVal, rhsVal); break;
-
                     case TokenType::LRSH_EQ: rhsVal = builder->CreateLShr(oldVal, rhsVal); break;
-
                     case TokenType::BIT_A_EQ: rhsVal = builder->CreateAnd(oldVal, rhsVal); break;
-
                     case TokenType::BIT_O_EQ: rhsVal = builder->CreateOr(oldVal, rhsVal); break;
-
                     case TokenType::BIT_X_EQ: rhsVal = builder->CreateXor(oldVal, rhsVal); break;
-
                     case TokenType::LROT_EQ:
                         rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
                         break;
-
                     case TokenType::RROT_EQ:
                         rhsVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal});
                         break;
@@ -9948,7 +9972,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     default: break;
                     }
                 }
-
                 builder->CreateStore(rhsVal, fieldPtr);
                 return rhsVal;
             }
@@ -10501,7 +10524,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             if (type.ends_with("]")) type.pop_back();
             std::string baseType = type == "string" ? "char" : type.substr(0, type.size() - 1);
-            if (classTypes.count(baseType)) { return val; }
             return builder->CreateLoad(llvmTypeFor(baseType), val, resolveVolatileVar(name), "deref");
         }
         if ((*unary)->op_tok.type == TokenType::SIZEOF) {
@@ -12347,7 +12369,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return nullptr;
             }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
-            if (!value->getType()->isIntegerTy()) {
+            if (!value || !value->getType()->isIntegerTy()) {
                 cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a non-integer value.");
                 return nullptr;
             }
@@ -12487,38 +12509,6 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         bool isEnum = false;
         if (auto varAccess = std::get_if<VarAccessNode*>(&*(*propAccess)->base)) {
             baseName = (*varAccess)->var_name_tok.value;
-            if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
-                int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), propName);
-
-                if (fieldIdx == -1) {
-                    cg_error(get_pos(*varAccess), "unknown property: " + propName);
-                    if (propName.length() > 3) {
-                        std::vector<std::pair<int, std::string>> suggestions;
-                        for (auto& field : userTypes[baseTypeName(currentClassName)].classFields) {
-                            int distance = levenshteinDistance(propName, field.name);
-                            if (distance <= 2) { suggestions.push_back({distance, field.name}); }
-                        }
-                        std::sort(suggestions.begin(), suggestions.end());
-                        if (!suggestions.empty()) {
-                            std::string note = "similar fields:";
-                            for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
-                            cg_note(get_pos(*varAccess), note);
-                        }
-                    }
-                    return nullptr;
-                }
-
-                auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(currentClassName), propName);
-                if (!canAccessField(baseTypeName(currentClassName), fieldOwnerClass, fieldAccess)) {
-                    cg_error(get_pos(*varAccess), "cannot access " + fieldAccess + " field " + propName + " on " + baseTypeName(currentClassName));
-                    return nullptr;
-                }
-
-                llvm::StructType* classTy = genericiseOrFindClass(currentClassName);
-                llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
-                llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, currentThis, fieldIdx);
-                return builder->CreateLoad(fieldTy, fieldPtr, propName);
-            }
             std::string resolved = resolveTypeName(baseName);
             auto enumIt = enumTypes.find(resolved);
             if (enumIt != enumTypes.end()) {
@@ -13187,21 +13177,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target"), nullptr);
         if (userTypes.count(targetClass) && userTypes.at(targetClass).kind != UserTypeKind::Class) {
             std::string funcName = targetClass + "_" + methodName;
-            std::vector<llvm::Value*> callArgs;
-            if (thisPtr) {
-                llvm::Value* selfVal = thisPtr;
-                if (thisPtr->getType()->isPointerTy()) {
-                    llvm::Type* targetType = llvmTypeFor(targetClass);
-                    if (targetType && !targetType->isPointerTy()) {
-                        selfVal = builder->CreateLoad(targetType, thisPtr, "self_val");
-                    }
-                }
-                callArgs.push_back(selfVal);
-            }
             auto funcDefIt = functionDefs.find(baseTypeName(funcName));
             if (funcDefIt != functionDefs.end()) {
                 FuncDefNode* funcDef = funcDefIt->second;
-                std::vector<llvm::Value*> argValues;
+                std::vector<llvm::Value*> argValues = {thisPtr};
                 auto paramIt = funcDef->params.begin();
                 bool hasSpread = false;
                 for (auto& argNode : (*call)->args) {
@@ -13212,6 +13191,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         argVal = emitLValue(argNode);
                     } else {
                         argVal = emitExpr(argNode);
+                    }
+                    if (auto paramTy = llvmTypeFor(resolveTypeName(ptype, false))) {
+                        argVal = adaptArgumentForParam(argVal, (*call)->args[std::distance(funcDef->params.begin(), paramIt)], paramTy, std::distance(funcDef->params.begin(), paramIt));
                     }
                     argValues.push_back(argVal);
                     if (paramIt != funcDef->params.end()) ++paramIt;
@@ -15031,6 +15013,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     return;
                 }
                 llvm::Value* value = emitExpr(arrAcc->indices[0]);
+                if (!value) {
+                    cg_error(get_pos(arrAcc->indices[0]), "failed to emit index for pointer index.");
+                    return;
+                }
                 ptrTy.pop_back();
                 llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy), emitExpr(arrAcc->base), value, "ptr_arr_asi");
                 llvm::Value* valToStore = emitExpr(arrAssign->value);
@@ -15627,7 +15613,7 @@ std::vector<CTError> LLVMCompiler::compile(
             enterScope();
             if (!isStatic) {
                 currentThis = fn->getArg(0);
-                varTypes["this"] = className;
+                varTypes["this"] = className + "*";
             } else {
                 currentThis = nullptr;
             }

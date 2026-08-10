@@ -1202,6 +1202,93 @@ class Parser {
     bool in_foreign = false;
     std::string parseTypeString() {
         std::string type = "";
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
+            this->advance();
+            auto parse_constraint_type = [&]() -> std::string {
+                if (this->current_tok.type != TokenType::KEYWORD &&
+                    this->current_tok.type != TokenType::IDENTIFIER) {
+                    return "";
+                }
+                std::string result = this->current_tok.value;
+                this->advance();
+                while (this->current_tok.type == TokenType::SCOPE) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::KEYWORD &&
+                        this->current_tok.type != TokenType::IDENTIFIER) {
+                        return "";
+                    }
+                    result += "::" + this->current_tok.value;
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::LESS) {
+                    this->advance();
+                    result += "<";
+                    int depth = 1;
+                    while (depth > 0) {
+                        if (this->current_tok.type == TokenType::EOFT) {
+                            return "";
+                        }
+                        if (this->current_tok.type == TokenType::LESS) {
+                            depth++;
+                        } else if (this->current_tok.type == TokenType::MORE) {
+                            depth--;
+                            if (depth == 0) {
+                                this->advance();
+                                break;
+                            }
+                        }
+                        result += this->current_tok.value;
+                        this->advance();
+                    }
+                    result += ">";
+                }
+                return result;
+            };
+            auto parse_not = [&]() -> std::string {
+                std::string result;
+                if (this->current_tok.type == TokenType::NOT) {
+                    result += "!";
+                    this->advance();
+                }
+                std::string type = parse_constraint_type();
+                if (type.empty()) {
+                    return "";
+                }
+                result += type;
+                return result;
+            };
+            auto parse_and = [&]() -> std::string {
+                std::string result = parse_not();
+                if (result.empty()) {
+                    return "";
+                }
+                while (this->current_tok.type == TokenType::AND) {
+                    result += " && ";
+                    this->advance();
+                    std::string rhs = parse_not();
+                    if (rhs.empty()) {
+                        return "";
+                    }
+                    result += rhs;
+                }
+                return result;
+            };
+            std::string constraint = parse_and();
+            if (constraint.empty()) {
+                return "";
+            }
+            while (this->current_tok.type == TokenType::OR) {
+                constraint += " || ";
+                this->advance();
+                std::string rhs = parse_and();
+                if (rhs.empty()) {
+                    return "";
+                }
+                constraint += rhs;
+            }
+            type += constraint;
+            return type;
+        }
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
             type += "volatile ";
             this->advance();
@@ -1772,7 +1859,7 @@ class LLVMCompiler {
         } else if (auto unaryOp = std::get_if<UnaryOpNode*>(&node)) {
             std::string type = getExpressionType((*unaryOp)->node, strip);
             if ((*unaryOp)->op_tok.type == TokenType::MUL) {
-                if (type.ends_with("*") && strip) { type.pop_back(); }
+                if (type.ends_with("*")) { type.pop_back(); }
             }
             if ((*unaryOp)->op_tok.type == TokenType::AMPERSAND) { return type + "*"; }
             if ((*unaryOp)->op_tok.type == TokenType::SIZEOF) { return "addr_t"; }
@@ -3496,8 +3583,8 @@ class LLVMCompiler {
                 }
                 auto actualParamIt = funcNode->params.begin();
                 for (size_t i = 0; i < sigParams.size(); ++i, ++actualParamIt) {
-                    std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey : sigParams[i].type.value;
-                    std::string actualType = actualParamIt->type.value;
+                    std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
+                    std::string actualType = (actualParamIt->type.value == "Self") ? mapKey + "*" : actualParamIt->type.value;
                     if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) {
                         return false;
                     }
@@ -3509,8 +3596,8 @@ class LLVMCompiler {
                 auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
                     if (sigParams.size() != targetParams.size()) return false;
                     for (size_t i = 0; i < sigParams.size(); ++i) {
-                        std::string sigParamTy = (sigParams[i].type.value == "Self") ? mapKey : sigParams[i].type.value;
-                        std::string targetParamTy = targetParams[i].type.value;
+                        std::string sigParamTy = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
+                        std::string targetParamTy = (targetParams[i].type.value == "Self") ? mapKey + "*" : targetParams[i].type.value;
                         if (resolveTypeName(sigParamTy, false) != resolveTypeName(targetParamTy, false)) return false;
                     }
                     return true;
@@ -3584,7 +3671,7 @@ class LLVMCompiler {
                         cg_error(proof.conceptName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled" :
-                            "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) + "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size() == 0 ? 0 : passedConstraints.size() - 1) + ")");
+                            "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) + "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
                         cg_note(proof.conceptName.pos, "failed constraints were:"); 
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
@@ -3640,12 +3727,12 @@ class LLVMCompiler {
                             ClassMethodInfo concreteMethod = proofMethod;
                             for (auto& param : concreteMethod.params) {
                                 if (param.type.value == "Self") {
-                                    param.type.value = mapKey;
+                                    param.type.value = mapKey + "*";
                                 }
                             }
                             for (auto& ret : concreteMethod.return_types) {
                                 if (ret.value == "Self") {
-                                    ret.value = mapKey;
+                                    ret.value = mapKey + "*";
                                 }
                             }
                             FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
@@ -3677,12 +3764,12 @@ class LLVMCompiler {
                                     ClassMethodInfo concreteMethod = defaultMethod;
                                     for (auto& param : concreteMethod.params) {
                                         if (param.type.value == "Self") {
-                                            param.type.value = mapKey;
+                                            param.type.value = mapKey + "*";
                                         }
                                     }
                                     for (auto& ret : concreteMethod.return_types) {
                                         if (ret.value == "Self") {
-                                            ret.value = mapKey;
+                                            ret.value = mapKey + "*";
                                         }
                                     }
                                     if (info.kind == UserTypeKind::Class) {
@@ -3896,6 +3983,7 @@ class LLVMCompiler {
         return nullptr;
     }
     llvm::Value* resolveVariable(const std::string& name) {
+        if (name == "this" && currentThis && !currentClassName.empty()) return currentThis;
         if (name.find("::") != std::string::npos) {
             if (hasLocal(name)) return findLocal(name)->second;
             if (globals.count(name)) return globals[name];

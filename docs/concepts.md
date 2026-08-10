@@ -103,9 +103,18 @@ concept Printable {
     ...
 }
 class Printer {
-    void print<T(Printable:)>(T data) {
+    void print<T(proves Printable:)>(T data) {
         data.print();
     }
+}
+```
+
+You can also use logical operations on it.
+
+```qc
+...
+class ...<T(proves !Z && X && Y:)> {
+    ...
 }
 ```
 

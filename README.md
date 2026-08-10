@@ -115,7 +115,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.27.04 = "Concepts"
+Current Version: x0.27.05 = "Concepts"
 Next Version: x0.28.0 = "Codeblocks"
 
 # Current Version Highlights
@@ -134,14 +134,16 @@ Minor
 └─ N/A
 
 Patch
-└─ Missing null checks
+└─ Multiple concepts in generic constraints
 ```
 
 # Recent Deprecations / Breaking Changes
 
 These are deprecations in the past 3 moderate versions (`x0.25.* -> x0.27.*`)
 
-No Deprecations!
+Self parameter is now a pointer.
+This now requires explicit dereference (must use `->` instead of `.`)
+Concepts as constraints must start with `proves`
 
 ## Feature Roadmap
 
@@ -515,7 +517,7 @@ int main() {
     C<int> thing = C();
 }
 ```
-Generics are allowed on `struct`s, `class`es, unions, aliases, functions, and methods.
+Generics are allowed on `struct`s, `class`es, `concept`s, unions, aliases, functions, and methods.
 The unique thing about QuantumC's generics is its constraint system:
 The constraint system follows this syntax:
 ```

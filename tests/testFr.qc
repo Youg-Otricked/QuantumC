@@ -6,7 +6,7 @@ class Vault {
 class CasualFriend {
     Vault v;
     void test_friendly() {
-        this.v.shared_data = 100;
+        this->v.shared_data = 100;
         //this.v.super_secret = 500;
     }
 }
