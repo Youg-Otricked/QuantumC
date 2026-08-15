@@ -14550,14 +14550,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(endBB);
     } else if (std::holds_alternative<BreakNode*>(node)) {
         if (currentBreakBB) {
-            emitDefersDownTo(loopStack.back()); 
+            if (!loopStack.empty()) emitDefersDownTo(loopStack.back()); 
             builder->CreateBr(currentBreakBB);
         } else {
             cg_error(get_pos(node), "break outside of loop/switch");
         }
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
-            emitDefersDownTo(loopStack.back()); 
+            if (!loopStack.empty()) emitDefersDownTo(loopStack.back()); 
             builder->CreateBr(currentContinueBB);
         } else {
             cg_error(get_pos(node), "continue outside of loop");
