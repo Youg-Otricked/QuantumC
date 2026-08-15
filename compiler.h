@@ -2079,6 +2079,8 @@ class LLVMCompiler {
             currentGenericTypeStrings = std::move(originalGenericMap);
 
             return foundReturnType;
+        } else if (TypeValueNode* typeValue = std::get_if<TypeValueNode>(&node)) {
+            return resolveTypeName(typeValue->tok.value, false);
         }
         return "unknown";
     }
@@ -2900,6 +2902,39 @@ class LLVMCompiler {
             return emitMethodCall(fn, thisPtr, args, methodName);
         }
         return nullptr;
+    }
+    void addTypeNotes(const std::string& typeName, Position pos) {
+        std::vector<std::string> types;
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string prefix = current.empty() ? "" : current + "::";
+            for (auto& [name, _] : userTypes) {
+                if (!name.starts_with(prefix)) continue;
+                std::string relative = name.substr(prefix.size());
+                types.push_back(relative);
+            }
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+        }
+        std::vector<std::pair<int, std::string>> matches;
+        if (typeName.size() >= 3) {
+            for (auto& tname : types) {
+                int distance = levenshteinDistance(typeName, tname);
+                if (distance <= 2) { matches.push_back({distance, tname}); }
+            }
+        }
+        std::sort(matches.begin(), matches.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+        if (!matches.empty()) {
+            std::string note = "did you mean ";
+            size_t count = std::min<size_t>(3, matches.size());
+            for (size_t i = 0; i < count; i++) {
+                if (i != 0) note += ", ";
+                note += "`" + matches[i].second + "`";
+            }
+            note += "?";
+            cg_note(pos, note);
+        }
     }
     void addConstructorNotes(const std::string& className, const std::vector<llvm::Value*>& args, Position pos) {
         auto& methods = userTypes[baseTypeName(className)].classMethods;

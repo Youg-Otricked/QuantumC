@@ -109,6 +109,7 @@ namespace Array {
             this->size = 0;
         }
         void operator[]=(T* data, int length) {
+            if (this->size != 0) `free(this->data);
             if (S == 0) {
                 this->size = length;
             } else {
@@ -231,6 +232,7 @@ namespace Vector {
             this->reserve(this->size);
         }
         void operator[]=(T* data, int length) {
+            if (this->size != 0) `free(this->data);
             this->capacity = length;
             this->size = length;
             this->data = `malloc(sizeof "T" * this->capacity);
@@ -441,6 +443,7 @@ namespace List {
             return node.data;
         }
         void operator[]=(T* data, int length) {
+            while (this->size != 0) this->popBack();
             this->head = nullptr;
             this->tail = nullptr;
             for (int i = 0; i < length; i++) {

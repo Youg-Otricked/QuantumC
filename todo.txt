@@ -1,1 +1,4 @@
-Fixsimple bugs.
+proved_by binop so 
+if (allocated proved_by T) {
+    ...
+}

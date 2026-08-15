@@ -832,7 +832,6 @@ std::string Parser::qualify_name(const std::string& name) {
     q += name;
     return q;
 }
-// EDIT FOR NEW STUFF VVVVVVVVVVVVVVVVVVVV
 Prs Parser::qif_expr() {
     ParseResult res;
     this->advance();
@@ -2940,7 +2939,14 @@ Prs Parser::comparison() {
     ParseResult res;
     AnyNode left = res.reg(this->expr());
     if (res.error) return res.to_prs();
-
+    if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proved_by") {
+        Token op_tok = this->current_tok;
+        this->advance();
+        AnyNode right = res.reg(this->expr());
+        if (res.error) return res.to_prs();
+        left = new BinOpNode(left, op_tok, right);
+        return res.success(left);
+    }
     while (this->current_tok.type == TokenType::EQ_TO || this->current_tok.type == TokenType::NOT_EQ || this->current_tok.type == TokenType::LESS ||
            this->current_tok.type == TokenType::LESS_EQ || this->current_tok.type == TokenType::MORE ||
            this->current_tok.type == TokenType::MORE_EQ || this->current_tok.type == TokenType::QEQEQ || this->current_tok.type == TokenType::QNEQ ||
@@ -7261,6 +7267,26 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         return llvm::ConstantExpr::getInBoundsGetElementPtr(strConstant->getType(), globalStr, indices);
     } else if (auto bin = std::get_if<BinOpNode*>(&node)) {
         TokenType op = (*bin)->op_tok.type;
+        if (op == TokenType::KEYWORD) {
+            if ((*bin)->op_tok.value == "proved_by") {
+                std::string lType = getExpressionType((*bin)->left_node);
+                std::string rType = getExpressionType((*bin)->right_node);
+                if (!userTypes.count(lType) || userTypes[lType].kind != UserTypeKind::Concept) {
+                    cg_error(get_pos((*bin)->left_node), "No such concept `" + lType + "`");
+                    if (!userTypes.count(lType)) addTypeNotes(lType, get_pos((*bin)->left_node));
+                    return nullptr;
+                }
+                if (auto it = userTypes.find(rType); it != userTypes.end()) {
+                    return builder->getInt1(std::ranges::any_of(it->second.provedConcepts, [&](const ProvedConcepts& provedConcept) {
+                            return resolveTypeName(provedConcept.conceptName.value, false) == resolveTypeName(lType, false);
+                        }));
+                } else {
+                    cg_error(get_pos((*bin)->right_node), "No such user type `" + rType + "`");
+                    addTypeNotes(rType, get_pos((*bin)->right_node));
+                    return nullptr;
+                }
+            }
+        }
         if (op == TokenType::RSHIFT) {
             llvm::Value* leftResult = nullptr;
             if (startsWithQIn((*bin)->left_node)) {
@@ -9233,7 +9259,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             locals[fullName] = instance;
             volatileVars[fullName] = isVolatile;
             varTypes[fullName] = buildMangledName(qcType, genericParams);
-            return nullptr; // do this for every single type.
+            return nullptr;
         }
         auto userTypeIt = userTypes.find(qcType);
         if (genericStructs.count(qcType) && genericStructs[qcType]) {
@@ -13812,7 +13838,9 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm:
         return reinterpret_cast<llvm::AllocaInst*>(gv);
     }
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(), currentFunction->getEntryBlock().begin());
-    return tmp.CreateAlloca(ty, nullptr, name);
+    llvm::AllocaInst* alloc = tmp.CreateAlloca(ty, nullptr, name);
+    builder->CreateMemSet(alloc, builder->getInt8(0), module->getDataLayout().getTypeAllocSize(ty), alloc->getAlign());
+    return 0;
 }
 llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     std::string name;
@@ -14323,7 +14351,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
 
         return;
-    } else if (auto if_node = safe_get<IfNode>(node)) { // need to add the defer emmission to if no break bb to if qif qswitch switch
+    } else if (auto if_node = safe_get<IfNode>(node)) {
         size_t outerDepth = defersStack.size();
         enterScope();
         if (if_node->init.has_value()) { emitStmt(if_node->init.value()); }
@@ -16659,7 +16687,7 @@ Token Lexer::make_identifier() {
         /* class stuff */ id == "friend" || id == "friendly" || id == "static" || id == "abstract" || id == "final" ||
         /* more  class stuff */  id == "public" || id == "protected" || id == "private" || 
         /* defer */ id == "defer" ||
-        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of") {
+        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" || id == "proved_by") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }

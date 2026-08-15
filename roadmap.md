@@ -75,12 +75,22 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - compile_log("My msg")
 - dynamic field access
 - has field, has method
-
+- _generic- manal overloading
+- rust like tags for enums
 TOP PRIORITY:
 1. Modifier (x1.0.0)
+2. Expressions in concepts, kinda like C++, allong with allowing concepts on non-usertypes.
+    concept Pointer {
+        all_of {
+            *ptr;
+            ...
+        }
+    }
+    int* proves Pointer, _ discard value
 2. Variadics on generics
 3. Tuples + Destruturing
 3. Function Pointers
+3. Tagged enums
 3. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
 4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
 5. Metadata

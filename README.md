@@ -1,4 +1,4 @@
- QuantumC (C⁴/C^4)
+# QuantumC (C⁴/C^4)
 
 ### The 4th Evolution of C
 
@@ -49,6 +49,7 @@ Install the binaries from GitHub, use the [Package & Version Manager](https://gi
 #### Dependencies
 
 You must have `clang` installed (or the path /usr/lib/clang/<VERSION>/include/unwind.h must exist)
+Also, if cloning a binary and not building from source, you must have the current latest libstdc++ (if on linux).
 
 ---
 
@@ -115,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.27.05 = "Concepts"
+Current Version: x0.27.06 = "Concepts"
 Next Version: x0.28.0 = "Modifiers"
 After: x1.0.0 = "Major bugfixes: version 1.0"
 
@@ -135,7 +136,7 @@ Minor
 └─ N/A
 
 Patch
-└─ Multiple concepts in generic constraints
+└─ Proved_by for concepts
 ```
 
 # Recent Deprecations / Breaking Changes
