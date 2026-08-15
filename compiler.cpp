@@ -4847,6 +4847,31 @@ Prs Parser::statement() {
                 block.constraint.pos = this->current_tok.pos;
                 block.constraint.value += ((this->current_tok.value == "_of") ? (is_at_least ? " " : "") + num + "_of" : "all_of");
                 this->advance();
+                std::vector<std::pair<std::string, std::string>> params;
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    this->advance();
+                    while (this->current_tok.type != TokenType::RPAREN && this->current_tok.type != TokenType::EOFT) {
+                        std::string type = parseTypeString();
+                        if (this->current_tok.type != TokenType::IDENTIFIER) {
+                            res.failure(new InvalidSyntaxError("QC-C002: Expected parameter name in concept block", this->current_tok.pos));
+                            return;
+                        }
+                        params.push_back(std::make_pair(type, this->current_tok.value));
+                        this->advance();
+                        if (this->current_tok.type == TokenType::COMMA) {
+                            this->advance();
+                        } else if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(new InvalidSyntaxError("QC-C003: Expected ',' or ')' after parameter", this->current_tok.pos));
+                            return;
+                        }
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("QC-C004: Expected ')' closing parameter list", this->current_tok.pos));
+                        return;
+                    }
+                    this->advance();
+                }
+                block.params = params;
                 if (this->current_tok.type != TokenType::LBRACE) {
                     res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept name", this->current_tok.pos));
                     return;
@@ -4859,9 +4884,15 @@ Prs Parser::statement() {
                         if (res.error) return;
                         continue;
                     }
-                    if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected type, other concept, or subblock in concept block", this->current_tok.pos));
-                        return;
+                    if (!is_known_type(this->current_tok.value) && !is_primitive_type(this->current_tok.value)) {
+                        block.nodes.push_back(res.reg(this->logical_or()));
+                        if (res.error) return;
+                        if (this->current_tok.type != TokenType::SEMICOLON) {
+                            res.failure(new InvalidSyntaxError("QC-C001: Expected ; after concept expression", this->current_tok.pos));
+                            return;
+                        }
+                        this->advance();
+                        continue;
                     }
                     if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
                         this->advance();
@@ -5174,6 +5205,48 @@ Prs Parser::statement() {
         this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
     }
+    /*
+    if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "modifier") {
+        ModifierInfo modifierInfo;
+        this->advance();
+        if (this->current_tok.type != TokenType::IDENTIFIER) {
+            res.failure(new InvalidSyntaxError("QC-S080: Expected modifier name", this->current_tok.pos));
+            return res.to_prs();
+        }
+        Token modifier_name = this->current_tok;
+        this->advance();
+        if (this->current_tok.type != TokenType::LBRACE) {
+            res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after modifier name", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        while (this->current_tok.type == TokenType::KEYWORD) {
+            Token &name = this->current_tok;
+            StatementsNode *block;
+            if (!parse_block_into(block, res)) return res.to_prs();  
+            this->advance();
+            modifierInfo.handlers.push_back(std::make_pair(name, block));
+        }
+        if (this->current_tok.type != TokenType::RBRACE) {
+            res.failure(new InvalidSyntaxError("QC-S084: Expected '}' at end of modifier", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        std::string full_key = currentNamespace.empty() ? modifier_name.value : currentNamespace + "::" + modifier_name.value;
+        if (user_types.contains(base_type_name(full_key))) {
+            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + modifier_name.value + "'", modifier_name.pos));
+            return res.to_prs();
+        }
+        UserTypeInfo info;
+        info.pos = modifier_name.pos;
+        info.baseFile = this->current_tok.pos.Filename;
+        info.namespace_path = currentNamespace;
+        info.kind = UserTypeKind::Modifier;
+        info.modifierInfo = modifierInfo;
+        user_types[base_type_name(full_key)] = info;
+        return res.success(std::monostate{});
+    }
+    */
     if (this->current_tok.type == TokenType::LBRACE) {
         StatementsNode *block;
         if (!parse_block_into(block, res)) return res.to_prs();
@@ -5262,7 +5335,7 @@ Prs Parser::statement() {
             this->advance();
             std::string conceptName = parseTypeString();
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "with_proof") {
-                ProvedConcepts proof;
+                ConceptProvee proof;
                 this->advance();
                 if (this->current_tok.type != TokenType::LBRACE) {
                     res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after with_proof", this->current_tok.pos));
@@ -5392,15 +5465,36 @@ Prs Parser::statement() {
                     }
                 }
                 this->advance();
+                proof.proverName = Token(TokenType::IDENTIFIER, type_str, proved_pos);
                 proof.conceptName = Token(TokenType::IDENTIFIER, conceptName, proved_pos);
-                auto it = user_types.find(base_type_name(type_str));
-                if (it != user_types.end()) {
-                    it->second.provedConcepts.push_back(proof);
+                auto it = user_types.find(base_type_name(conceptName));
+                if (it == user_types.end()) {
+                    res.failure(new InvalidSyntaxError("QC-C005: Unknown concept '" + conceptName + "'", proved_pos));
+                    return res.to_prs();
                 }
-            } else {
-                auto it = user_types.find(base_type_name(type_str));
+                if (it->second.kind != UserTypeKind::Concept) {
+                    res.failure(new InvalidSyntaxError("QC-C006: '" + conceptName + "' is not a concept", proved_pos));
+                    return res.to_prs();
+                }
+                it->second.provees.push_back(proof);
+                it = user_types.find(base_type_name(type_str));
                 if (it != user_types.end()) {
-                    it->second.provedConcepts.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos)});
+                    it->second.provees.push_back(proof);
+                } 
+            } else {
+                auto it = user_types.find(base_type_name(conceptName));
+                if (it == user_types.end()) {
+                    res.failure(new InvalidSyntaxError("QC-C005: Unknown concept '" + conceptName + "'", proved_pos));
+                    return res.to_prs();
+                }
+                if (it->second.kind != UserTypeKind::Concept) {
+                    res.failure(new InvalidSyntaxError("QC-C006: '" + conceptName + "' is not a concept", proved_pos));
+                    return res.to_prs();
+                }
+                it->second.provees.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
+                it = user_types.find(base_type_name(type_str));
+                if (it != user_types.end()) {
+                    it->second.provees.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
                 }
             }
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -5968,8 +6062,8 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                         return false;
                     }
                     return std::ranges::any_of(
-                        userTypes[base].provedConcepts,
-                        [&](const ProvedConcepts& proved) {
+                        userTypes[base].provees,
+                        [&](const ConceptProvee& proved) {
                             return resolveTypeName(
                                 proved.conceptName.value,
                                 false
@@ -7003,8 +7097,8 @@ void LLVMCompiler::createUserTypes() {
         }
     }
     for (auto& [mapKey, info] : userTypes) {
-        if (info.provedConcepts.empty() || !info.generics.empty()) continue;
-        proveConceptsForTypeInfo(mapKey, info);
+        if (info.kind != UserTypeKind::Concept || !info.generics.empty()) continue;
+        proversFromConceptInfo(mapKey, info);
     }
     if (this->config.use_runtime) { generateStructReprFunctions(); }
 }
@@ -7276,15 +7370,9 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (!userTypes.count(lType)) addTypeNotes(lType, get_pos((*bin)->left_node));
                     return nullptr;
                 }
-                if (auto it = userTypes.find(rType); it != userTypes.end()) {
-                    return builder->getInt1(std::ranges::any_of(it->second.provedConcepts, [&](const ProvedConcepts& provedConcept) {
-                            return resolveTypeName(provedConcept.conceptName.value, false) == resolveTypeName(lType, false);
-                        }));
-                } else {
-                    cg_error(get_pos((*bin)->right_node), "No such user type `" + rType + "`");
-                    addTypeNotes(rType, get_pos((*bin)->right_node));
-                    return nullptr;
-                }
+                return builder->getInt1(std::ranges::any_of(userTypes[lType].provees, [&](const ConceptProvee& provedConcept) {
+                        return resolveTypeName(provedConcept.conceptName.value, false) == resolveTypeName(lType, false);
+                    }));
             }
         }
         if (op == TokenType::RSHIFT) {
@@ -13201,7 +13289,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         }
         if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target"), nullptr);
-        if (userTypes.count(targetClass) && userTypes.at(targetClass).kind != UserTypeKind::Class) {
+        if (userTypes.count(targetClass) && userTypes.at(targetClass).kind != UserTypeKind::Class || !userTypes.count(targetClass)) {
             std::string funcName = targetClass + "_" + methodName;
             auto funcDefIt = functionDefs.find(baseTypeName(funcName));
             if (funcDefIt != functionDefs.end()) {
@@ -13840,7 +13928,7 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm:
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(), currentFunction->getEntryBlock().begin());
     llvm::AllocaInst* alloc = tmp.CreateAlloca(ty, nullptr, name);
     builder->CreateMemSet(alloc, builder->getInt8(0), module->getDataLayout().getTypeAllocSize(ty), alloc->getAlign());
-    return 0;
+    return alloc;
 }
 llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     std::string name;
@@ -16687,7 +16775,8 @@ Token Lexer::make_identifier() {
         /* class stuff */ id == "friend" || id == "friendly" || id == "static" || id == "abstract" || id == "final" ||
         /* more  class stuff */  id == "public" || id == "protected" || id == "private" || 
         /* defer */ id == "defer" ||
-        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" || id == "proved_by") {
+        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" || id == "proved_by" ||
+        /* modifiers */ id == "modifier" || id == "on_call" || id == "on_return" || id == "on_use") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }

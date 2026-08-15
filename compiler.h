@@ -537,6 +537,8 @@ class ConceptInfo {
         std::vector<FunctionSignature> signatures;
         std::vector<Block> subblocks;
         std::vector<Token> requiredConcepts;
+        std::vector<AnyNode> nodes;
+        std::vector<std::pair<std::string, std::string>> params;
         Token constraint;
     };
     struct DefaultBlock {
@@ -544,20 +546,27 @@ class ConceptInfo {
     };
     std::vector<std::pair<Block, std::optional<DefaultBlock>>> blocks;
 };
-enum class UserTypeKind { Struct, Alias, Union, Enum, Class, Concept };
+/*
+struct ModifierInfo {
+    std::vector<std::pair<Token, StatementsNode*>> handlers;
+};*/
+enum class UserTypeKind { Struct, Alias, Union, Enum, Class, Concept, /*Modifier*/ };
 
 struct UnionMember {
     std::string type;
 };
-class ProvedConcepts {
+class ConceptProvee {
   public:
     Token conceptName;
+    Token proverName;
     std::vector<ClassMethodInfo> additionalProof;
 };
+
 struct UserTypeInfo {
     Position pos;
     UserTypeKind kind;
-    std::vector<ProvedConcepts> provedConcepts;
+    // ModifierInfo modifierInfo;
+    std::vector<ConceptProvee> provees;
     std::vector<StructField> fields;
     std::string aliasTarget;
     ConceptInfo conceptInfo;
@@ -1060,6 +1069,7 @@ class Parser {
     std::string currentNamespace;
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
+    bool is_primitive_type(std::string name) { return std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"}).contains(name); }
     bool is_known_type(std::string name) {
         std::string base = base_type_name(name);
         if (base.ends_with("&")) { base.pop_back(); }
@@ -3592,9 +3602,300 @@ class LLVMCompiler {
         builder->CreateRet(result);
         if (savedBB) { builder->SetInsertPoint(savedBB); }
     }
+    bool testExpression(AnyNode expr) {
+        auto saved_ip = builder->saveIP();
+        llvm::FunctionType *fnType = llvm::FunctionType::get(builder->getVoidTy(), false);
+        llvm::Function *dummy_fn = llvm::Function::Create(
+            fnType,
+            llvm::Function::InternalLinkage,
+            "__qc_concept_probe",
+            *module
+        );
+        llvm::BasicBlock *dummyBB = llvm::BasicBlock::Create(context, "concept_probe", dummy_fn);
+        builder->SetInsertPoint(dummyBB);
+        bool valid = false;
+        try {
+            size_t size = errors.size();
+            llvm::Value *val = emitExpr(expr);
+            valid = size == errors.size();
+        } catch (...) {
+            valid = false;
+        }
+        dummyBB->eraseFromParent();
+        builder->restoreIP(saved_ip);
+        return valid;
+    }
+    void proversFromConceptInfo(std::string conceptName, UserTypeInfo info) {
+        if (info.provees.empty()) return;
+        auto [conceptInfo, _] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
+        for (auto& proof : info.provees) {
+            std::string mapKey = proof.proverName.value;
+            std::unordered_set<std::string> additionalProofNames;
+            for (auto& proofMethod : proof.additionalProof) {
+                additionalProofNames.insert(proofMethod.name_tok.value);
+            }
+            auto alreadyDefd = [&](const std::string& methodName, const std::vector<Parameter>& sigParams) -> bool {
+                std::string mangledName = mapKey + "_" + methodName;
+                auto it = functionDefs.find(mangledName);
+                if (it == functionDefs.end()) return false;
+                FuncDefNode* funcNode = it->second;
+                if (!funcNode || funcNode->params.size() != sigParams.size()) return false;
+                auto actualParamIt = funcNode->params.begin();
+                for (size_t i = 0; i < sigParams.size(); ++i, ++actualParamIt) {
+                    std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
+                    std::string actualType = (actualParamIt->type.value == "Self") ? mapKey + "*" : actualParamIt->type.value;
+                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ConceptProvee& proof) -> bool {
+                std::string methodName = sig.name.value;
+                auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
+                    if (sigParams.size() != targetParams.size()) return false;
+                    for (size_t i = 0; i < sigParams.size(); ++i) {
+                        std::string sigParamTy = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
+                        std::string targetParamTy = (targetParams[i].type.value == "Self") ? mapKey + "*" : targetParams[i].type.value;
+                        if (resolveTypeName(sigParamTy, false) != resolveTypeName(targetParamTy, false)) return false;
+                    }
+                    return true;
+                };
+                for (auto& method : targetType.classMethods) {
+                    if (method.name_tok.value == methodName && matchesParams(sig.params, method.params)) return true;
+                }
+                for (auto& proofMethod : proof.additionalProof) {
+                    if (proofMethod.name_tok.value == methodName && matchesParams(sig.params, proofMethod.params)) return true;
+                }
+                return alreadyDefd(methodName, sig.params);
+            };
+            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock = 
+            [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
+                auto b = block.first;
+                std::vector<std::string> scopedParams;
+                for (auto& param : b.params) {
+                    std::string param_type_name = (param.first == "Proving") ? mapKey : (param.first == "Self")    ? mapKey + "*" : resolveTypeName(param.first, false);
+                    locals[param.second] = createEntryAlloca(param.second, llvmTypeFor(param_type_name));
+                    varTypes[param.second] = param_type_name;
+                    volatileVars[param.second] = false;
+                    scopedParams.push_back(param.second);
+                }
+                std::vector<std::pair<Position, std::optional<std::string>>> failedConstraints;
+                std::vector<Position> passedConstraints;
+                for (const Token& requiredConcept : b.requiredConcepts) {
+                    std::string reqConceptName = resolveTypeName(requiredConcept.value, false);
+                    std::string reqConceptBase = baseTypeName(reqConceptName);
+                    auto reqIt = userTypes.find(reqConceptBase);
+                    bool isProved = false;
+                    if (reqIt != userTypes.end() && reqIt->second.kind == UserTypeKind::Concept) {
+                        std::string resolvedCandidate = resolveTypeName(mapKey, false);
+                        isProved = std::ranges::any_of(reqIt->second.provees, [&](const ConceptProvee& c) {
+                            return resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                        });
+                    }
+                    if (!isProved) {
+                        failedConstraints.push_back({requiredConcept.pos, "missing required concept proof: " + requiredConcept.value});
+                    } else {
+                        passedConstraints.push_back(requiredConcept.pos);
+                    }
+                }
+                for (const auto& sig : b.signatures) {
+                    if (!matchesSignature(sig, info, proof)) {
+                        failedConstraints.push_back({sig.name.pos, "missing matching method: " + sig.print()});
+                    } else {
+                        passedConstraints.push_back(sig.name.pos);
+                    }
+                }
+                for (const auto& sub : b.subblocks) {
+                    if (!verifyBlock(std::pair(sub, std::nullopt))) {
+                        failedConstraints.push_back({sub.constraint.pos, "nested block constraint failed"});
+                    } else {
+                        passedConstraints.push_back(sub.constraint.pos);
+                    }
+                }
+                for (const auto& node : b.nodes) {
+                    if (!testExpression(node)) {
+                        failedConstraints.push_back({get_pos(node), "expression failed"});
+                    } else {
+                        passedConstraints.push_back(get_pos(node));
+                    }
+                }
+                for (const auto& name : scopedParams) {
+                    locals.erase(name);
+                    varTypes.erase(name);
+                    volatileVars.erase(name);
+                }
+                bool failed = false;
+                bool isAtLeast = false;
+                int requiredCount = -1;
+                if (b.constraint.value == "all_of") {
+                    failed = !failedConstraints.empty();
+                } else if (b.constraint.value.ends_with("_of")) {
+                    std::string val = b.constraint.value;
+                    if (val.starts_with("at_least ")) {
+                        isAtLeast = true;
+                        val = val.substr(std::string("at_least ").length());
+                    }
+                    size_t pos = val.find("_of");
+                    if (pos != std::string::npos) {
+                        std::string numStr = val.substr(0, pos);
+                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) {
+                            requiredCount = std::stoi(numStr);
+                        }
+                    }
+                    if (isAtLeast) failed = (int)passedConstraints.size() < requiredCount;
+                    else failed = (int)passedConstraints.size() != requiredCount;
+                }
+                if (failed && !block.second.has_value()) {
+                    if (requiredCount >= 0) {
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_note(block.first.constraint.pos, "due to this constraint block");
+                        cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfilled" :
+                            "the amount of fulfilled constraints was not equal to " + std::to_string(requiredCount)) + " (amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
+                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
+                            cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
+                        }
+                        cg_note(proof.proverName.pos, "passed constraints were:"); 
+                        for (auto& passedConstraintPos : passedConstraints) {
+                            cg_note(passedConstraintPos, "");
+                        }
+                    } else {
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_note(block.first.constraint.pos, "due to this constraint block");
+                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
+                            cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
+                        }
+                    }
+                }
+                if (block.second.has_value()) return !failed;
+                return !failed;
+            };
+            bool allConceptBlocksPassed = true;
+            for (std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block : conceptInfo.blocks) {
+                bool blockPassed = verifyBlock(block);
+                if (!blockPassed && !block.second.has_value()) {
+                    allConceptBlocksPassed = false;
+                }
+                if (blockPassed || block.second.has_value()) {
+                    if (info.kind == UserTypeKind::Class) {
+                        for (auto& proofMethod : proof.additionalProof) {
+                            info.classMethods.push_back(proofMethod);
+                            size_t newIdx = info.classMethods.size() - 1;
+                            if (!proofMethod.generics.empty()) {
+                                if (!proofMethod.is_static) {
+                                    genericMethodIndices[mapKey].push_back(newIdx);
+                                }
+                            } else {
+                                std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
+                                std::vector<llvm::Type*> paramTypes;
+                                paramTypes.push_back(llvm::PointerType::get(context, 0));
+                                llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(proofMethod.return_types, proofMethod.params);
+                                for (auto* paramTy : baseFuncTy->params()) { 
+                                    paramTypes.push_back(paramTy); 
+                                }
+                                llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                                llvm::Function* fn = module->getFunction(methodName);
+                                if (!fn) {
+                                    fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module);
+                                }
+                                classMethods[mapKey][proofMethod.name_tok.value].push_back(fn);
+                                functionDefs[methodName] = funcDefFromClassMethod(proofMethod, mapKey, "_");
+                            }
+                        }
+                    } else {
+                        for (auto& proofMethod : proof.additionalProof) {
+                            std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
+                            ClassMethodInfo concreteMethod = proofMethod;
+                            for (auto& param : concreteMethod.params) {
+                                if (param.type.value == "Self") {
+                                    param.type.value = mapKey + "*";
+                                }
+                            }
+                            for (auto& ret : concreteMethod.return_types) {
+                                if (ret.value == "Self") {
+                                    ret.value = mapKey + "*";
+                                }
+                            }
+                            FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                            functionDefs[methodName] = funcNode;
+                            if (!concreteMethod.generics.empty()) {
+                                continue;
+                            }
+                            emitFuncDef(*funcNode);                       
+                        }
+                    }
+                }
+                if (!blockPassed && block.second.has_value()) {
+                    auto& defaultBlock = block.second.value();
+                    std::string targetModifier = (info.kind == UserTypeKind::Class) ? "class" : "else";
+                    for (auto& [modifierTok, defaultMethod] : defaultBlock.definitions) {
+                        if (modifierTok.value == targetModifier) {
+                            std::string methodName = defaultMethod.name_tok.value;
+                            bool alreadyProvided = alreadyDefd(methodName, defaultMethod.params);
+                            if (!alreadyProvided) {
+                                for (auto& proofMethod : proof.additionalProof) {
+                                    if (proofMethod.name_tok.value == methodName) {
+                                        alreadyProvided = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!alreadyProvided) {
+                                ClassMethodInfo concreteMethod = defaultMethod;
+                                for (auto& param : concreteMethod.params) {
+                                    if (param.type.value == "Self") {
+                                        param.type.value = mapKey + "*";
+                                    }
+                                }
+                                for (auto& ret : concreteMethod.return_types) {
+                                    if (ret.value == "Self") {
+                                        ret.value = mapKey + "*";
+                                    }
+                                }
+                                if (info.kind == UserTypeKind::Class) {
+                                    info.classMethods.push_back(concreteMethod);
+                                    size_t newIdx = info.classMethods.size() - 1;
+                                    if (!concreteMethod.generics.empty()) {
+                                        if (!concreteMethod.is_static) {
+                                            genericMethodIndices[mapKey].push_back(newIdx);
+                                        }
+                                    } else {
+                                        std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
+                                        std::vector<llvm::Type*> paramTypes;
+                                        paramTypes.push_back(llvm::PointerType::get(context, 0));
+                                        llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(concreteMethod.return_types, concreteMethod.params);
+                                        for (auto* paramTy : baseFuncTy->params()) {
+                                            paramTypes.push_back(paramTy);
+                                        }
+                                        llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
+                                        llvm::Function* fn = module->getFunction(mangledName);
+                                        if (!fn) {
+                                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module);
+                                        }
+                                        classMethods[mapKey][concreteMethod.name_tok.value].push_back(fn);
+                                        functionDefs[mangledName] = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                    }
+                                } else {
+                                    std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
+                                    FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                    functionDefs[mangledName] = funcNode;
+                                    if (!concreteMethod.generics.empty()) {
+                                        continue;
+                                    }
+                                    emitFuncDef(*funcNode);
+                                }                            
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     void proveConceptsForTypeInfo(std::string mapKey, UserTypeInfo info) {
-        if (info.provedConcepts.empty()) return;
-        for (auto& proof : info.provedConcepts) {
+        if (info.provees.empty()) return;
+        for (auto& proof : info.provees) {
             std::string conceptName = proof.conceptName.value;
             auto [conceptInfo, exists] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
             if (!exists) {
@@ -3626,7 +3927,7 @@ class LLVMCompiler {
                 }
                 return true;
             };
-            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ProvedConcepts& proof) -> bool {
+            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ConceptProvee& proof) -> bool {
                 std::string methodName = sig.name.value;
                 auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
                     if (sigParams.size() != targetParams.size()) return false;
@@ -3655,12 +3956,34 @@ class LLVMCompiler {
             std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock = 
             [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
                 auto b = block.first;
+                for (auto& param : b.params) {
+                    std::string param_type_name;
+                    if (param.first == "Proving") {
+                        param_type_name = mapKey;
+                    } else if (param.first == "Self") {
+                        param_type_name = mapKey + "*";
+                    } else {
+                        param_type_name = resolveTypeName(param.first, false);
+                    }
+
+                    locals[param.second] = createEntryAlloca(param.second, llvmTypeFor(param_type_name));
+                    varTypes[param.second] = param_type_name;
+                    volatileVars[param.second] = false;
+                }
                 std::vector<std::pair<Position, std::optional<std::string>>> failedConstraints;
                 std::vector<Position> passedConstraints;
-                for (const Token& requiredConcept : b.requiredConcepts) {
-                    if (!std::ranges::any_of(info.provedConcepts, [&](const ProvedConcepts& c) {
-                            return resolveTypeName(requiredConcept.value, false) == resolveTypeName(c.conceptName.value, false);
-                        })) {
+                 for (const Token& requiredConcept : b.requiredConcepts) {
+                    std::string reqConceptName = resolveTypeName(requiredConcept.value, false);
+                    std::string reqConceptBase = baseTypeName(reqConceptName);
+                    auto reqIt = userTypes.find(reqConceptBase);
+                    bool isProved = false;
+                    if (reqIt != userTypes.end() && reqIt->second.kind == UserTypeKind::Concept) {
+                        std::string resolvedCandidate = resolveTypeName(mapKey, false);
+                        isProved = std::ranges::any_of(reqIt->second.provees, [&](const ConceptProvee& c) {
+                            return resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                        });
+                    }
+                    if (!isProved) {
                         failedConstraints.push_back({requiredConcept.pos, "missing required concept proof: " + requiredConcept.value});
                     } else {
                         passedConstraints.push_back(requiredConcept.pos);
@@ -3678,6 +4001,13 @@ class LLVMCompiler {
                         failedConstraints.push_back({sub.constraint.pos, "nested block constraint failed"});
                     } else {
                         passedConstraints.push_back(sub.constraint.pos);
+                    }
+                }
+                for (const auto& node : b.nodes) {
+                    if (!testExpression(node)) {
+                        failedConstraints.push_back({get_pos(node), "expression failed"});
+                    } else {
+                        passedConstraints.push_back(get_pos(node));
                     }
                 }
                 bool failed = false;
@@ -3703,23 +4033,23 @@ class LLVMCompiler {
                 }
                 if (failed && !block.second.has_value()) {
                     if (requiredCount >= 0) {
-                        cg_error(proof.conceptName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled" :
                             "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) + "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
-                        cg_note(proof.conceptName.pos, "failed constraints were:"); 
+                        cg_note(proof.proverName.pos, "failed constraints were:"); 
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }
-                        cg_note(proof.conceptName.pos, "passed constraints were:"); 
+                        cg_note(proof.proverName.pos, "passed constraints were:"); 
                         for (auto& passedConstraintPos : passedConstraints) {
                             cg_note(passedConstraintPos, "");
                         }
 
                     } else {
-                        cg_error(proof.conceptName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
-                        cg_note(proof.conceptName.pos, "failed constraints were:"); 
+                        cg_note(proof.proverName.pos, "failed constraints were:"); 
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }

@@ -40,6 +40,7 @@ at_least is a modifier for NUM_of that just makes it at least instead of strict 
 ## all_of
 all_of means everything in this block must be provided
 
+Blocks may contain signatures, expressions (+paramaters for expressions, exactly like C++ concepts), other proves, and other blocks
 ## Proving a concept
 
 A type proves a concept using the `proves` keyword.
@@ -117,6 +118,16 @@ class ...<T(proves !Z && X && Y:)> {
     ...
 }
 ```
+
+## Proved_By
+
+proved_by takes a concept name on the left and a type on the right and checks if the concept is proved by the type
+
+```
+Prinable proved_by Printer; // true
+```
+
+proved_by is compile-time (zero-cost baby!)
 
 ## Bad Practices
 

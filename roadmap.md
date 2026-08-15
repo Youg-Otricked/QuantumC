@@ -14,12 +14,6 @@ modifier async type function {
          ………………
     }
 }
-modifier await type multivalue {
-    use { // called when used
-                … x = mod.values[...]
-                …………..
-    }
-}
 modifier await type value {
     use { // called when used
                 … x = mod.value
@@ -77,9 +71,12 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - has field, has method
 - _generic- manal overloading
 - rust like tags for enums
+- 
+        on_write
+        on_read    on_type_decl
+    on_member_access hooks for modifiers
 TOP PRIORITY:
-1. Modifier (x1.0.0)
-2. Expressions in concepts, kinda like C++, allong with allowing concepts on non-usertypes.
+1. Expressions in concepts, kinda like C++, allong with allowing concepts on non-usertypes.
     concept Pointer {
         all_of {
             *ptr;
@@ -87,11 +84,12 @@ TOP PRIORITY:
         }
     }
     int* proves Pointer, _ discard value
+2. Modifiers, Atomics (x1.0)
 2. Variadics on generics
 3. Tuples + Destruturing
 3. Function Pointers
 3. Tagged enums
-3. CQB (depends on codeblocks HEAVILY. same for trycatch. not to sure about the other tsuff though. ).
+3. CQB
 4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
 5. Metadata
 ?likely? - likely marked
@@ -127,3 +125,4 @@ TOP PRIORITY:
 7. User-Defined metadata
 8. User-Defined macro _functions_ (the only good thing in rust)
 9. User defined literals
+10. co_await
