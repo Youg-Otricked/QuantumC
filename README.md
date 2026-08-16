@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.27.11 = "Concepts"
+Current Version: x0.27.2 = "Concepts"
 Next Version: x0.28.0 = "Modifiers"
 After: x1.0.0 = "Major bugfixes: version 1.0"
 
@@ -133,10 +133,10 @@ Moderate
 └─ Concepts
 
 Minor
-└─ Concepts on non-usertypes
+└─ MAJOR bugfixes
 
 Patch
-└─ Fixed break in switch
+└─ N/A
 ```
 
 # Recent Deprecations / Breaking Changes
@@ -204,9 +204,9 @@ MIT License - See [LICENSE](./LICENSE.txt) for details
 ```cpp
 qbool qb = both;
 qif (qb && qtrue /* evaluates to both */) {
-    `qout("True path");   // Executes!
+    `qout("True path");   // Executes
 } qelse {
-    `qout("False path");  // ALSO executes!
+    `qout("False path");
 }
 ```
 

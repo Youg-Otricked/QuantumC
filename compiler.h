@@ -110,7 +110,7 @@ class RefVarDeclNode;
 class NullptrNode;
 class TypeValueNode;
 class DeferNode;
-using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode, NullptrNode, BinOpNode*,
+using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode*, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
@@ -396,10 +396,10 @@ class RefVarDeclNode {
   public:
     Token type_tok;
     Token var_name_tok;
-    Token target_tok;
+    AnyNode target;
     Position pos;
     Position getPos() { return this->pos; }
-    RefVarDeclNode(Token type, Token name, Token target, Position p) : var_name_tok(name), target_tok(target), pos(p) {
+    RefVarDeclNode(Token type, Token name, AnyNode target, Position p) : var_name_tok(name), target(target), pos(p) {
         type.value.erase(type.value.find_last_not_of('&') + 1);
         this->type_tok = type;
     }
@@ -477,8 +477,8 @@ struct ClassField {
     std::string name;
     std::string type;
     std::string access;
-    bool isStatic;
-    AnyNode defaultValue;
+    bool isStatic = false;
+    AnyNode defaultValue = std::monostate{};
 };
 
 class ClassMethodInfo {
@@ -488,6 +488,7 @@ class ClassMethodInfo {
     std::vector<Token> return_types;
     StatementsNode* body;
     bool is_constructor = false;
+    CallNode *parentConstructorCall = nullptr;
     std::string access;
     bool is_final = false;
     bool is_volatile = false;
@@ -1018,7 +1019,7 @@ using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, Ch
                          VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
-                         QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode,
+                         QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode*,
                          NullptrNode, TypeValueNode, DeferNode*>;
 
 class ParseResult {
@@ -1069,7 +1070,8 @@ class Parser {
     std::string currentNamespace;
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
-    bool is_primitive_type(std::string name) { return std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"}).contains(name); }
+    bool is_primitive_type(std::string name) { return std::unordered_set<std::string>({
+            "void", "int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"}).contains(name); }
     bool is_known_type(std::string name) {
         std::string base = base_type_name(name);
         if (base.ends_with("&")) { base.pop_back(); }
@@ -1079,7 +1081,7 @@ class Parser {
             base.pop_back();
         }
         for (GenericType ty : current_generics) {
-            if (ty.name == base) { return true; }
+            if (ty.name == base && !ty.isNonType) { return true; }
         }
         if (user_types.count(base_type_name(base))) return true;
         std::string ns;
@@ -1964,6 +1966,21 @@ class LLVMCompiler {
         } else if (auto nullp = std::get_if<NullptrNode>(&node)) {
             return "@nullptr";
         } else if (auto propAcc = std::get_if<PropertyAccessNode*>(&node)) {
+            if (auto varAccess = std::get_if<VarAccessNode*>(&*(*propAcc)->base)) {
+                auto baseName = (*varAccess)->var_name_tok.value;
+                std::string resolved = resolveTypeName(baseName);
+                auto enumIt = enumTypes.find(resolved);
+                if (enumIt != enumTypes.end()) {
+                    bool isEnum = true;
+                    std::string fullName = resolved + "." + (*propAcc)->property_name.value;
+                    auto memberIt = enumMemberInfo.find(fullName);
+                    if (memberIt != enumMemberInfo.end()) {
+                        int tag = memberIt->second.tag;
+                        std::string type = memberIt->second.type;
+                        return type.substr(0, type.find(":"));
+                    }
+                }
+            }
             std::string currentType = getExpressionType(*((*propAcc)->base));
             if (currentType.ends_with("*") || currentType.ends_with("&")) { currentType.pop_back(); }
             std::string fieldName = (*propAcc)->property_name.value;
@@ -2028,12 +2045,39 @@ class LLVMCompiler {
                     auto node = *std::next((*callNode)->arg_nodes.begin());
                     if (auto str = std::get_if<StringNode>(&node)) {
                         return resolveTypeName(substituteGenerics(str->tok.value), false);
+                    } else if (auto ty = std::get_if<TypeValueNode>(&node)) {
+                        return resolveTypeName(substituteGenerics(ty->tok.value), false);
                     } else {
                         cg_error((*varAcc)->var_name_tok.pos, "arg 2 to `next is a comptime string");
                         cg_note((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
                         return "unknown";
                     }
                 }
+                if (funcName == "`extract") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `extract");
+                        cg_note((*varAcc)->var_name_tok.pos, "`extract expects 1 arguments");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.back(); 
+                    std::optional<EnumMatchInfo> matchInfo = matchValueToEnumMember(getExpressionType(node), (*callNode)->arg_nodes.back());
+                    if (!matchInfo.has_value()) return "unknown";
+                    return matchInfo->memberTypeStr;
+                }
+                if (funcName == "`cast") {
+                    if ((*callNode)->arg_nodes.size() < 2) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `cast");
+                        cg_note((*varAcc)->var_name_tok.pos, "`cast expects 2 arguments");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    if (auto n = std::get_if<TypeValueNode>(&node)) return n->tok.value;
+                    return "unknown";
+                }
+                if (funcName == "`float_bits") return "float";
+                if (funcName == "`double_bits") return "double";
                 if (classTypes.contains(resolveTypeName(funcName, false))) { return resolveTypeName(funcName, false); }
                 if (functionDefs.contains(funcName)) {
                     auto* def = functionDefs[funcName];
@@ -2116,6 +2160,9 @@ class LLVMCompiler {
     };
     */
     llvm::Value* derefIfReference(llvm::Value* val, AnyNode& argNode) {
+        if (val && isEnumType(val->getType())) {
+            return builder->CreateExtractValue(val, 0);
+        }
         if (!val || !val->getType()->isPointerTy()) return val;
         std::string qcType = substituteGenerics(getExpressionType(argNode, false));
         if (!qcType.ends_with("&")) return val;
@@ -3205,10 +3252,14 @@ class LLVMCompiler {
         std::string searchClass = baseTypeName(ty);
         while (!searchClass.empty() && !info) {
             for (auto& m : userTypes.at(baseTypeName(searchClass)).classMethods) {
-                if (m.name_tok.value == methodName && m.params.size() == args.size()) {
-                    info = &m;
-                    break;
+                if (m.name_tok.value != methodName || m.params.size() != args.size()) continue;
+                bool typesMatch = true;
+                for (size_t i = 0; i < m.params.size(); i++) {
+                    llvm::Type* declaredTy = llvmTypeFor(m.params[i].type.value);
+                    llvm::Type* actualTy = method->getFunctionType()->getParamType(i + 1);
+                    if (declaredTy != actualTy) { typesMatch = false; break; }
                 }
+                if (typesMatch) { info = &m; break; }
             }
             searchClass = userTypes.at(baseTypeName(searchClass)).baseClassName;
         }
@@ -4754,23 +4805,26 @@ class LLVMCompiler {
         if (match) { return match->tagIndex; }
         return -1;
     }
-    std::optional<EnumMatchInfo> matchValueToEnumMember(const std::string& enumName, AnyNode& valueNode, llvm::Value* val) {
+    std::optional<EnumMatchInfo> matchValueToEnumMember(const std::string& enumName, AnyNode& valueNode, llvm::Value* val = nullptr) {
+        if (auto* propNode = safe_get<PropertyAccessNode>(valueNode)) {
+            auto* baseVarNode = safe_get<VarAccessNode>(*propNode->base);
+            if (!baseVarNode) return std::nullopt;
+            std::string accessedEnumName = baseVarNode->var_name_tok.value;
+            std::string memberName = propNode->property_name.value;
+            auto it = enumMemberInfo.find(accessedEnumName + "." + memberName);
+            if (it == enumMemberInfo.end()) return std::nullopt;
+            return EnumMatchInfo{it->second.tag, it->second.type, it->second.value};
+        }
         auto typeIt = userTypes.find(enumName);
         if (typeIt == userTypes.end() || typeIt->second.kind != UserTypeKind::Enum) { return std::nullopt; }
-
         auto& entries = typeIt->second.enumEntries;
-
         for (size_t i = 0; i < entries.size(); i++) {
             auto& entry = entries[i];
-
             size_t colonPos = entry.typeAtom.find(':');
             if (colonPos == std::string::npos) continue;
-
             std::string type = entry.typeAtom.substr(0, colonPos);
             std::string value = entry.typeAtom.substr(colonPos + 1);
-
             bool matches = false;
-
             if (type == "int" || type == "float" || type == "double" || type == "addr_t" || type == "long int" || type == "short int" ||
                 type == "long double" || type == "nibble" || type == "byte") {
                 if (auto numNode = std::get_if<NumberNode>(&valueNode)) {

@@ -25,7 +25,7 @@ int main() {
     }
 }
 ```
-In the above code, it would print both, as flag is true AND false
+In the above code, it would print Flag is true
 
 qswitch syntax is as follows:
 ```cpp

@@ -60,7 +60,7 @@ int main() {
 }
 ```
 Constructors and init with inheritance
-If the base class has a constructor, the child can call it inside its own constructor (using your normal method call rules). If there is no constructor, init() on the parent/child is used for default initialization when you declare a variable without =.
+If the base class has a constructor, the child can call it inside its own constructor, by after the params putting : CONSTRUCTOR_CALL (using your normal method call rules). 
 
 Very roughly:
 ```cpp
@@ -69,24 +69,15 @@ class Base {
     Base(int x) {
         this.x = x;
     }
-    void init() {
-        x = 0;
-    }
 }
 
 class Child : Base {
     int y;
-    Child(int y, int x) {
-        Base(x);
+    Child(int y, int x) : Base(x) {
         this.y = y;
-    }
-    void init() {
-        Base(constructorargs)// Calls init or zero initlizes if you don't call constructor in constructor
-        y = 0;
     }
 }
 ```
-
 Overriding methods
 A child can define a method with the same name as the parent’s method to “override” it:
 ```cpp
