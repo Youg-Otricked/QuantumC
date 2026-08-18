@@ -18,7 +18,7 @@ In Quantum C you write:
 class Base {
     int x;
     Base(int x) {
-        this.x = x;
+        this->x = x;
     }
     void say_x() {
         `qout(f"Base x = {x}");
@@ -28,7 +28,7 @@ class Base {
 class Child : Base {
     int y;
     void say_xy() {
-        `qout(f"x = {this.x}, y = {this.y}");
+        `qout(f"x = {this->x}, y = {this->y}");
     }
 }
 ```
@@ -67,14 +67,14 @@ Very roughly:
 class Base {
     int x;
     Base(int x) {
-        this.x = x;
+        this->x = x;
     }
 }
 
 class Child : Base {
     int y;
     Child(int y, int x) : Base(x) {
-        this.y = y;
+        this->y = y;
     }
 }
 ```
@@ -146,19 +146,19 @@ class Base {
     protected int shared_value;
     
     Base(int val) {
-        this.shared_value = val;
+        this->shared_value = val;
     }
 }
 
 class Child : Base {
     void modify() {
-        this.shared_value = 100;
+        this->shared_value = 100;
     }
 }
 
 class GrandChild : Child {
     void change() {
-        this.shared_value = 200;
+        this->shared_value = 200;
     }
 }
 

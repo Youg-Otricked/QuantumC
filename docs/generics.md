@@ -29,7 +29,7 @@ class Box<T> {
     T value;
 
     Box(T value) {
-        this.value = value;
+        this->value = value;
     }
 }
 
@@ -46,8 +46,8 @@ class Pair<A, B> {
     B second;
 
     Pair(A first, B second) {
-        this.first = first;
-        this.second = second;
+        this->first = first;
+        this->second = second;
     }
 }
 
@@ -268,11 +268,11 @@ class Array<T, int S = 0> {
     T* data;
     int size;
     Array() {
-        this.data = nullptr;
-        this.size = 0;
+        this->data = nullptr;
+        this->size = 0;
     }
     T get(int index) {
-        return this.data[index];
+        return this->data[index];
     }
 }
 int main() {

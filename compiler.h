@@ -522,7 +522,7 @@ class ConceptInfo {
         std::vector<Parameter> params;
         std::vector<GenericType> generics;
         std::string print() const {
-            std::string res = this->name.value;
+            std::string res = this->name.value + "(";
             for (size_t i = 0; i < params.size(); i++) {
                 res += params[i].toString();
                 if (i + 1 != params.size()) res += ", ";
@@ -564,6 +564,7 @@ class ConceptProvee {
     Token conceptName;
     Token proverName;
     std::vector<ClassMethodInfo> additionalProof;
+    std::vector<std::string> namespacePath;
 };
 
 struct UserTypeInfo {
@@ -4001,7 +4002,15 @@ class LLVMCompiler {
         if (info.provees.empty()) return;
         auto [conceptInfo, _] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
         for (auto& proof : info.provees) {
+            auto oldNamespaceStack = std::move(namespaceStack);
+            namespaceStack = proof.namespacePath;
             std::string mapKey = proof.proverName.value;
+            auto userIt = userTypes.find(baseTypeName(resolveTypeName(mapKey)));
+            if (userIt == userTypes.end()) {
+                cg_error(proof.proverName.pos, "Failed to find type " + baseTypeName(resolveTypeName(mapKey)));
+                continue;
+            }
+            UserTypeInfo userInfo = userIt->second;
             std::unordered_set<std::string> additionalProofNames;
             for (auto& proofMethod : proof.additionalProof) { additionalProofNames.insert(proofMethod.name_tok.value); }
             auto alreadyDefd = [&](const std::string& methodName, const std::vector<Parameter>& sigParams) -> bool {
@@ -4036,7 +4045,8 @@ class LLVMCompiler {
                 for (auto& proofMethod : proof.additionalProof) {
                     if (proofMethod.name_tok.value == methodName && matchesParams(sig.params, proofMethod.params)) return true;
                 }
-                return alreadyDefd(methodName, sig.params);
+                bool res = alreadyDefd(methodName, sig.params);
+                return res;
             };
             std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock =
                 [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
@@ -4061,7 +4071,11 @@ class LLVMCompiler {
                     if (reqIt != userTypes.end() && reqIt->second.kind == UserTypeKind::Concept) {
                         std::string resolvedCandidate = resolveTypeName(mapKey, false);
                         isProved = std::ranges::any_of(reqIt->second.provees, [&](const ConceptProvee& c) {
-                            return resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                            auto oldNamespaceStck = std::move(namespaceStack);
+                            namespaceStack = c.namespacePath;
+                            bool res = resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                            namespaceStack = std::move(oldNamespaceStck);
+                            return res;
                         });
                     }
                     if (!isProved) {
@@ -4071,7 +4085,7 @@ class LLVMCompiler {
                     }
                 }
                 for (const auto& sig : b.signatures) {
-                    if (!matchesSignature(sig, info, proof)) {
+                    if (!matchesSignature(sig, userInfo, proof)) {
                         failedConstraints.push_back({sig.name.pos, "missing matching method: " + sig.print()});
                     } else {
                         passedConstraints.push_back(sig.name.pos);
@@ -4236,11 +4250,14 @@ class LLVMCompiler {
                     }
                 }
             }
+            namespaceStack = oldNamespaceStack;
         }
     }
     void proveConceptsForTypeInfo(std::string mapKey, UserTypeInfo info) {
         if (info.provees.empty()) return;
         for (auto& proof : info.provees) {
+            auto oldNamespaceStack = std::move(namespaceStack);
+            namespaceStack = proof.namespacePath;
             std::string conceptName = proof.conceptName.value;
             auto [conceptInfo, exists] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
             if (!exists) {
@@ -4312,7 +4329,11 @@ class LLVMCompiler {
                     if (reqIt != userTypes.end() && reqIt->second.kind == UserTypeKind::Concept) {
                         std::string resolvedCandidate = resolveTypeName(mapKey, false);
                         isProved = std::ranges::any_of(reqIt->second.provees, [&](const ConceptProvee& c) {
-                            return resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                            auto oldNamespaceStck = std::move(namespaceStack);
+                            namespaceStack = proof.namespacePath;
+                            bool res = resolveTypeName(c.proverName.value, false) == resolvedCandidate;
+                            namespaceStack = std::move(oldNamespaceStck);
+                            return res;
                         });
                     }
                     if (!isProved) {
@@ -4387,7 +4408,7 @@ class LLVMCompiler {
                         }
                     }
                 }
-                if (block.second.has_value()) return false;
+                if (block.second.has_value()) return !failed;
                 return true;
             };
             for (std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block : conceptInfo.blocks) {
@@ -4482,6 +4503,7 @@ class LLVMCompiler {
                     }
                 }
             }
+            namespaceStack = oldNamespaceStack;
         }
     }
     std::pair<ConceptInfo, bool> genericiseOrFindConcept(const std::string& baseName) {
@@ -4969,15 +4991,16 @@ class LLVMCompiler {
         currentFunction = proceedFunc;
         std::vector<llvm::Value*> callArgs;
         unsigned idx = 0;
+        auto paramIt = fn.params.begin();
         for (auto& arg : proceedFunc->args()) {
-            auto& param = *std::next(fn.params.begin(), idx);
+            if (paramIt == fn.params.end()) break;
+            auto& param = *paramIt++;
             arg.setName(param.name.value);
             auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
             builder->CreateStore(&arg, alloca);
             locals[param.name.value] = alloca;
             varTypes[param.name.value] = param.type.value;
             callArgs.push_back(&arg);
-            idx++;
         }
         llvm::Value* retVal = nullptr;
         if (fTy->getReturnType()->isVoidTy()) {

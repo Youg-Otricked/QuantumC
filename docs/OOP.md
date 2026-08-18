@@ -17,17 +17,17 @@ class class-name {
 }
 ```
 
-Another core part of classes are somthing called _constructors_. Constructors are things that you call to initilize a class. You make a constructor by making a function, with **_no return type_** and the name is the name of the class. You access fields inside the class with "this.". An full example class would be:
+Another core part of classes are somthing called _constructors_. Constructors are things that you call to initilize a class. You make a constructor by making a function, with **_no return type_** and the name is the name of the class. You access fields inside the class with "this->". An full example class would be:
 ```cpp
 class Vector2D {
     int x_pos;
     int y_pos;
     Vector2D(int x, int y) {
-        this.x_pos = x;
-        this.y_pos = y;
+        this->x_pos = x;
+        this->y_pos = y;
     }
     int[] get_pos() {
-        return [this.x_pos, this.y_pos];
+        return [this->x_pos, this->y_pos];
     }
 }
 ```
@@ -52,17 +52,17 @@ class PrivateAndPublic {
     public string public_field;
 
     PrivateAndPublic(int a, string b) {
-        this.private_field = a;
-        this.public_field = b;
+        this->private_field = a;
+        this->public_field = b;
     }
 
     private void private_changer() {
-        this.private_field += 1;
+        this->private_field += 1;
     }
 
     public void thing() {
-        this.private_changer();
-        this.public_field = "thing";
+        this->private_changer();
+        this->public_field = "thing";
     }
 }
 int main() {

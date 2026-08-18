@@ -4964,8 +4964,10 @@ Prs Parser::statement() {
         std::function<void(std::vector<ConceptInfo::Block>&)> fn = [&](std::vector<ConceptInfo::Block>& blockList) {
             ConceptInfo::Block block;
             bool is_at_least = false;
+            Token is_at_least_tok;
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "at_least") {
                 is_at_least = true;
+                is_at_least_tok = this->current_tok;
                 this->advance();
             }
             std::string num = "";
@@ -4974,7 +4976,7 @@ Prs Parser::statement() {
                 this->advance();
             }
             if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "all_of" || this->current_tok.value == "_of")) {
-                if (is_at_least) block.constraint = this->current_tok;
+                if (is_at_least) block.constraint = is_at_least_tok;
                 std::vector<ConceptInfo::Block> subblocks;
                 block.constraint.pos = this->current_tok.pos;
                 block.constraint.value += ((this->current_tok.value == "_of") ? (is_at_least ? " " : "") + num + "_of" : "all_of");
@@ -5826,6 +5828,7 @@ Prs Parser::statement() {
             std::string conceptName = parseTypeString();
             if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "with_proof") {
                 ConceptProvee proof;
+                proof.namespacePath = namespaceStack;
                 this->advance();
                 if (this->current_tok.type != TokenType::LBRACE) {
                     res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after with_proof", this->current_tok.pos));
@@ -6156,7 +6159,7 @@ Prs Parser::statement() {
                     return res.to_prs();
                 }
                 it->second.provees.push_back(
-                    {Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
+                    {Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos), {}, namespaceStack});
                 it = user_types.find(base_type_name(type_str));
                 if (it != user_types.end()) {
                     it->second.provees.push_back(
@@ -9474,7 +9477,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (lty->isIntegerTy() && rty->isIntegerTy()) {
                 unsigned lBits = lty->getIntegerBitWidth();
                 unsigned rBits = rty->getIntegerBitWidth();
-                if (lBits == 1 || rBits == 1 || lBits == 2 || rBits == 2 || lBits == 8 || rBits == 8) {
+                if (lBits == 1 || rBits == 1 || lBits == 2 || rBits == 2) {
                 } else {
                     if (lBits < rBits) {
                         L = builder->CreateSExt(L, rty, "promote_int");
@@ -13186,17 +13189,35 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*varAccess)->var_name_tok.pos, "must have exactly 3 args: " + funcName);
                         return nullptr;
                     }
-                    auto it = std::next(call.arg_nodes.begin(), 1);
-                    llvm::Value* is_tr = emitExpr(*it);
-                    llvm::Value* is_fl = emitExpr(call.arg_nodes.back());
-                    if (!is_tr || !is_fl || is_tr->getType() != is_fl->getType()) {
-                        cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must be the same type: " + funcName);
+                    auto condIt = call.arg_nodes.begin();
+                    auto trIt = std::next(condIt);
+                    auto flIt = std::next(trIt);
+                    llvm::Value* cond = emitExpr(*condIt);
+                    llvm::Value* is_tr = emitExpr(*trIt);
+                    llvm::Value* is_fl = emitExpr(*flIt);
+                    if (!cond || !is_tr || !is_fl) return nullptr;
+                    cond = toTruthiness(cond, get_pos(*condIt));
+                    if (!cond) return nullptr;
+                    if (!cond->getType()->isIntegerTy(1)) {
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
                         return nullptr;
                     }
-                    llvm::Value* val = toTruthiness(emitExpr(call.arg_nodes.front()), get_pos(call.arg_nodes.front()));
-                    if (val->getType()->isIntegerTy(1)) { return builder->CreateSelect(val, is_tr, is_fl, "select_val"); }
-                    cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
-                    return nullptr;
+                    llvm::Type* trTy = is_tr->getType();
+                    llvm::Type* flTy = is_fl->getType();
+                    if (trTy != flTy) {
+                        if (trTy->isIntegerTy() && flTy->isIntegerTy()) {
+                            unsigned trBits = trTy->getIntegerBitWidth();
+                            unsigned flBits = flTy->getIntegerBitWidth();
+                            unsigned commonBits = std::max(trBits, flBits);
+                            llvm::Type* commonTy = llvm::IntegerType::get(context, commonBits);
+                            if (trTy != commonTy) { is_tr = builder->CreateSExt(is_tr, commonTy, "ternary_tr_promote"); }
+                            if (flTy != commonTy) { is_fl = builder->CreateSExt(is_fl, commonTy, "ternary_fl_promote"); }
+                        } else {
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must have compatible types: " + funcName);
+                            return nullptr;
+                        }
+                    }
+                    return builder->CreateSelect(cond, is_tr, is_fl, "select_val");
                 }
                 if (funcName == "`inline" && !call.arg_nodes.empty()) {
                     StringNode* data = std::get_if<StringNode>(&call.arg_nodes.front());
@@ -17893,6 +17914,13 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 case 'z': optimization_level = llvm::OptimizationLevel::Oz; break;
                 default: optimization_level = llvm::OptimizationLevel::O2; break;
                 }
+                std::string errStr;
+                llvm::raw_string_ostream errStream(errStr);
+                if (llvm::verifyModule(*master_module, &errStream)) {
+                    llvm::errs() << "LLVM Error: Module verification failed: " << errStr << "\n";
+                    message = "Program exited with code: 1";
+                    return Mer{ast, resp, message, diagnostics};
+                }
                 MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
                 MPM.run(*master_module, MAM);
             }
@@ -18024,7 +18052,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        } else if (this->current_char == 'b') {
+        } else if (this->current_char == 'y') {
             this->advance();
             return Token(TokenType::BYTE, std::to_string(val), start_pos);
         } else if (this->current_char == 'n') {
@@ -18048,7 +18076,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        } else if (this->current_char == 'b') {
+        } else if (this->current_char == 'y') {
             this->advance();
             return Token(TokenType::BYTE, std::to_string(val), start_pos);
         } else if (this->current_char == 'n') {
@@ -18072,7 +18100,7 @@ Token Lexer::make_number() {
         } else if (this->current_char == 's') {
             this->advance();
             return Token(TokenType::SHORT_INT, std::to_string(val), start_pos);
-        } else if (this->current_char == 'b') {
+        } else if (this->current_char == 'y') {
             this->advance();
             return Token(TokenType::BYTE, std::to_string(val), start_pos);
         } else if (this->current_char == 'n') {
@@ -18081,7 +18109,7 @@ Token Lexer::make_number() {
         }
         return Token(TokenType::ADDR_T, std::to_string(val), start_pos);
     } else {
-        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsabn'")) {
+        while (this->current_char != '\0' && isCharInSet(this->current_char, DIGITS + ".flsayn'")) {
             if (this->current_char == '.') {
                 if (dot_count == 1 || is_hex || is_binary || is_octal) {
                     this->advance();
@@ -18106,7 +18134,7 @@ Token Lexer::make_number() {
                 is_addrt = true;
                 this->advance();
                 break;
-            } else if (this->current_char == 'b') {
+            } else if (this->current_char == 'y') {
                 this->advance();
                 is_byte = true;
                 break;

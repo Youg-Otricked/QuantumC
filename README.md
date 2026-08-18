@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.0 = "Modifiers & Atomics"
+Current Version: x1.0.1 = "Modifiers & Atomics"
 Next Version: x1.0.1 = "More Error Stuff"
 
 # Current Version Highlights
@@ -135,7 +135,7 @@ Minor
 └─ N/A
 
 Patch
-└─ N/A
+└─ Concepts were jank
 ```
 
 # Recent Deprecations / Breaking Changes
@@ -768,7 +768,6 @@ File proves Printable;
 ```
 
 The `Self` arguments are explicit for non-class methods added through concepts. This is to emphasize _structs are not classes, and should stick to being POD_. Concepts only allow methods on structs because it's better for DRY than having 50 functions with similar names.
-Operator overloads are not allowed for concepts.
 
 ## Simple File Example
 
