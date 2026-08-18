@@ -311,6 +311,8 @@ AnyNode clone_node(const AnyNode& node) {
                 return NullptrNode(arg.pos);
             } else if constexpr (std::is_same_v<T, RefVarDeclNode*>) {
                 return new RefVarDeclNode(arg->type_tok, arg->var_name_tok, arg->target, arg->pos);
+            } else if constexpr (std::is_same_v<T, ModifierNode*>) {
+                return new ModifierNode(arg->modifiers, clone_node(arg->node));
             } else if constexpr (std::is_same_v<T, VarAccessNode*>) {
                 return new VarAccessNode(arg->var_name_tok);
             } else if constexpr (std::is_same_v<T, UnaryOpNode*>) {
@@ -366,6 +368,8 @@ std::string printAny(const AnyNode& node) {
             } else if constexpr (std::is_same_v<T, UnaryOpNode*>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, StatementsNode*>) {
+                return arg->print();
+            } else if constexpr (std::is_same_v<T, ModifierNode*>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, VarAccessNode*>) {
                 return arg->print();
@@ -554,6 +558,8 @@ Prs ParseResult::success(AnyNode node) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, UnaryOpNode*>) {
                 return Prs{arg};
+            } else if constexpr (std::is_same_v<T, ModifierNode*>) {
+                return Prs{arg};
             } else if constexpr (std::is_same_v<T, VarAccessNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, VarAssignNode*>) {
@@ -647,6 +653,8 @@ Prs ParseResult::to_prs() {
             } else if constexpr (std::is_same_v<T, BinOpNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, UnaryOpNode*>) {
+                return Prs{arg};
+            } else if constexpr (std::is_same_v<T, ModifierNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, VarAccessNode*>) {
                 return Prs{arg};
@@ -840,7 +848,7 @@ Prs Parser::qif_expr() {
     }
     this->advance();
 
-    AnyNode condition = res.reg(this->logical_or());
+    AnyNode condition = res.reg(this->ternary());
     if (res.error) { return res.to_prs(); }
 
     if (this->current_tok.type != TokenType::RPAREN) {
@@ -882,7 +890,7 @@ Prs Parser::qif_expr() {
         }
         this->advance();
 
-        AnyNode qelif_cond = res.reg(this->logical_or());
+        AnyNode qelif_cond = res.reg(this->ternary());
         if (res.error) return res.to_prs();
 
         if (this->current_tok.type != TokenType::RPAREN) {
@@ -1056,7 +1064,7 @@ Prs Parser::if_expr() {
         }
     }
 
-    AnyNode condition = res.reg(this->logical_or());
+    AnyNode condition = res.reg(this->ternary());
     if (res.error) return res.to_prs();
 
     if (this->current_tok.type != TokenType::RPAREN) {
@@ -1080,7 +1088,7 @@ Prs Parser::if_expr() {
                 return res.to_prs();
             }
             this->advance();
-            AnyNode elif_cond = res.reg(this->logical_or());
+            AnyNode elif_cond = res.reg(this->ternary());
             if (res.error) return res.to_prs();
             if (this->current_tok.type != TokenType::RPAREN) {
                 res.failure(new InvalidSyntaxError("QC-S018: Expected ')' after 'else if' condition", this->current_tok.pos));
@@ -1174,7 +1182,7 @@ Prs Parser::switch_stmt() {
     }
     advance();
 
-    AnyNode value = res.reg(this->logical_or());
+    AnyNode value = res.reg(this->ternary());
     if (res.error) return res.to_prs();
 
     if (current_tok.type != TokenType::RPAREN) {
@@ -1206,7 +1214,7 @@ Prs Parser::switch_stmt() {
                 break;
             } else {
                 advance();
-                AnyNode case_expr = res.reg(this->logical_or());
+                AnyNode case_expr = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
 
                 if (current_tok.type != TokenType::COLON) {
@@ -1267,7 +1275,7 @@ Prs Parser::qswitch_stmt() {
     }
     this->advance();
 
-    AnyNode value = res.reg(this->logical_or());
+    AnyNode value = res.reg(this->ternary());
     if (res.error) return res.to_prs();
 
     if (this->current_tok.type != TokenType::RPAREN) {
@@ -1358,7 +1366,7 @@ Prs Parser::while_stmt() {
     }
     advance();
 
-    AnyNode cond = res.reg(this->logical_or());
+    AnyNode cond = res.reg(this->ternary());
     if (res.error) return res.to_prs();
 
     if (current_tok.type != TokenType::RPAREN) {
@@ -1397,11 +1405,11 @@ Prs Parser::for_stmt() {
             (this->current_tok.value == "const" || this->current_tok.value == "int" || this->current_tok.value == "float" ||
              this->current_tok.value == "double" || this->current_tok.value == "bool" || this->current_tok.value == "qbool" ||
              this->current_tok.value == "string" || this->current_tok.value == "char" || this->current_tok.value == "addr_t" ||
-             this->current_tok.value == "byte" || this->current_tok.value == "nibble")) {
+             this->current_tok.value == "byte" || this->current_tok.value == "nibble" || this->current_tok.value == "atomic")) {
 
             bool is_const = false;
             Token tok = current_tok;
-
+            if (tok.value == "atomic") { this->advance(); }
             if (tok.value == "const") {
                 is_const = true;
                 advance();
@@ -1463,7 +1471,7 @@ Prs Parser::for_stmt() {
     if (current_tok.type == TokenType::SEMICOLON) {
         condition = AnyNode{BoolNode(Token(TokenType::BOOL, "true", current_tok.pos))};
     } else {
-        condition = res.reg(this->logical_or());
+        condition = res.reg(this->ternary());
         if (res.error) return res.to_prs();
     }
 
@@ -1548,11 +1556,11 @@ Prs Parser::call(AnyNode node_to_call) {
         auto parse_arg = [&]() -> AnyNode {
             if (this->current_tok.type == TokenType::AT) {
                 this->advance();
-                AnyNode expr = res.reg(this->logical_or());
+                AnyNode expr = res.reg(this->ternary());
                 if (res.error) return AnyNode{};
                 return new SpreadNode(expr);
             } else {
-                return res.reg(this->logical_or());
+                return res.reg(this->ternary());
             }
         };
 
@@ -1579,7 +1587,7 @@ Prs Parser::call(AnyNode node_to_call) {
 }
 Prs Parser::qout_expr() {
     ParseResult res;
-    AnyNode left = res.reg(this->logical_or());
+    AnyNode left = res.reg(this->ternary());
     if (res.error) return res.to_prs();
 
     return res.success(left);
@@ -1606,12 +1614,12 @@ Prs Parser::array_literal() {
         } else {
             if (this->current_tok.type == TokenType::AT) {
                 this->advance();
-                AnyNode spread_expr = res.reg(this->logical_or());
+                AnyNode spread_expr = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
 
                 elements.push_back(new SpreadNode(spread_expr));
             } else {
-                AnyNode elem = res.reg(this->logical_or());
+                AnyNode elem = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
                 elements.push_back(elem);
             }
@@ -1621,12 +1629,12 @@ Prs Parser::array_literal() {
 
                 if (this->current_tok.type == TokenType::AT) {
                     this->advance();
-                    AnyNode spread_expr = res.reg(this->logical_or());
+                    AnyNode spread_expr = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
 
                     elements.push_back(new SpreadNode(spread_expr));
                 } else {
-                    AnyNode elem = res.reg(this->logical_or());
+                    AnyNode elem = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
                     elements.push_back(elem);
                 }
@@ -1647,6 +1655,12 @@ Prs Parser::array_literal() {
 }
 Prs Parser::atom() {
     ParseResult res;
+    std::vector<Token> modifiers;
+    if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+        user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+        modifiers.push_back(this->current_tok);
+        this->advance();
+    }
     Token tok = this->current_tok;
     if (tok.type == TokenType::LBRACE) {
         ParseResult res2;
@@ -1659,13 +1673,13 @@ Prs Parser::atom() {
             return res2.success(new MapLiteralNode(pairs, start_pos));
         }
 
-        auto first_key_expr = res2.reg(this->logical_or());
+        auto first_key_expr = res2.reg(this->ternary());
         if (res2.error) return res2.to_prs();
 
         if (this->current_tok.type == TokenType::COLON) {
             this->advance();
 
-            AnyNode first_val_expr = res2.reg(this->logical_or());
+            AnyNode first_val_expr = res2.reg(this->ternary());
             if (res2.error) return res2.to_prs();
 
             std::vector<std::pair<AnyNode, AnyNode>> pairs;
@@ -1674,7 +1688,7 @@ Prs Parser::atom() {
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
 
-                AnyNode key_expr = res2.reg(this->logical_or());
+                AnyNode key_expr = res2.reg(this->ternary());
                 if (res2.error) return res2.to_prs();
 
                 if (this->current_tok.type != TokenType::COLON) {
@@ -1683,7 +1697,7 @@ Prs Parser::atom() {
                 }
                 this->advance();
 
-                AnyNode val_expr = res2.reg(this->logical_or());
+                AnyNode val_expr = res2.reg(this->ternary());
                 if (res2.error) return res2.to_prs();
 
                 pairs.emplace_back(key_expr, val_expr);
@@ -1702,7 +1716,7 @@ Prs Parser::atom() {
 
             while (this->current_tok.type == TokenType::COMMA) {
                 this->advance();
-                AnyNode e2 = res2.reg(this->logical_or());
+                AnyNode e2 = res2.reg(this->ternary());
                 if (res2.error) return res2.to_prs();
                 elements.push_back(e2);
             }
@@ -1936,17 +1950,17 @@ Prs Parser::atom() {
                 std::vector<std::pair<AnyNode, AnyNode>> pairs;
                 return res.success(new MapLiteralNode(pairs, start_pos, name));
             }
-            auto first_key_expr = res.reg(this->logical_or());
+            auto first_key_expr = res.reg(this->ternary());
             if (res.error) return res.to_prs();
             if (this->current_tok.type == TokenType::COLON) {
                 this->advance();
-                AnyNode first_val_expr = res.reg(this->logical_or());
+                AnyNode first_val_expr = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
                 std::vector<std::pair<AnyNode, AnyNode>> pairs;
                 pairs.emplace_back(first_key_expr, first_val_expr);
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
-                    AnyNode key_expr = res.reg(this->logical_or());
+                    AnyNode key_expr = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
 
                     if (this->current_tok.type != TokenType::COLON) {
@@ -1954,7 +1968,7 @@ Prs Parser::atom() {
                         return res.to_prs();
                     }
                     this->advance();
-                    AnyNode val_expr = res.reg(this->logical_or());
+                    AnyNode val_expr = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
                     pairs.emplace_back(key_expr, val_expr);
                 }
@@ -1969,7 +1983,7 @@ Prs Parser::atom() {
                 elements.push_back(first_key_expr);
                 while (this->current_tok.type == TokenType::COMMA) {
                     this->advance();
-                    AnyNode e2 = res.reg(this->logical_or());
+                    AnyNode e2 = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
                     elements.push_back(e2);
                 }
@@ -1995,7 +2009,7 @@ Prs Parser::atom() {
 
             while (this->current_tok.type == TokenType::LBRACKET) {
                 this->advance();
-                AnyNode index = res.reg(this->logical_or());
+                AnyNode index = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
 
                 if (this->current_tok.type != TokenType::RBRACKET) {
@@ -2117,11 +2131,11 @@ Prs Parser::atom() {
                         while (true) {
                             if (this->current_tok.type == TokenType::AT) {
                                 this->advance();
-                                AnyNode expr = res.reg(this->logical_or());
+                                AnyNode expr = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(new SpreadNode(expr));
                             } else {
-                                AnyNode arg = res.reg(this->logical_or());
+                                AnyNode arg = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(arg);
                             }
@@ -2237,11 +2251,11 @@ Prs Parser::atom() {
                         while (true) {
                             if (this->current_tok.type == TokenType::AT) {
                                 this->advance();
-                                AnyNode expr = res.reg(this->logical_or());
+                                AnyNode expr = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(new SpreadNode(expr));
                             } else {
-                                AnyNode arg = res.reg(this->logical_or());
+                                AnyNode arg = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(arg);
                             }
@@ -2265,7 +2279,7 @@ Prs Parser::atom() {
                     std::vector<AnyNode> indices;
                     while (this->current_tok.type == TokenType::LBRACKET) {
                         this->advance();
-                        AnyNode index = res.reg(this->logical_or());
+                        AnyNode index = res.reg(this->ternary());
                         if (res.error) return res.to_prs();
                         if (this->current_tok.type != TokenType::RBRACKET) {
                             res.failure(new InvalidSyntaxError("QC-S049: Expected ']'", this->current_tok.pos));
@@ -2291,7 +2305,7 @@ Prs Parser::atom() {
                 std::vector<AnyNode> indices;
                 while (this->current_tok.type == TokenType::LBRACKET) {
                     this->advance();
-                    AnyNode index = res.reg(this->logical_or());
+                    AnyNode index = res.reg(this->ternary());
                     if (res.error) return res.to_prs();
                     if (this->current_tok.type != TokenType::RBRACKET) {
                         res.failure(new InvalidSyntaxError("QC-S049: Expected ']'", this->current_tok.pos));
@@ -2408,11 +2422,11 @@ Prs Parser::atom() {
                             while (true) {
                                 if (this->current_tok.type == TokenType::AT) {
                                     this->advance();
-                                    AnyNode expr = res.reg(this->logical_or());
+                                    AnyNode expr = res.reg(this->ternary());
                                     if (res.error) return res.to_prs();
                                     args.push_back(new SpreadNode(expr));
                                 } else {
-                                    AnyNode arg = res.reg(this->logical_or());
+                                    AnyNode arg = res.reg(this->ternary());
                                     if (res.error) return res.to_prs();
                                     args.push_back(arg);
                                 }
@@ -2528,11 +2542,11 @@ Prs Parser::atom() {
                             while (true) {
                                 if (this->current_tok.type == TokenType::AT) {
                                     this->advance();
-                                    AnyNode expr = res.reg(this->logical_or());
+                                    AnyNode expr = res.reg(this->ternary());
                                     if (res.error) return res.to_prs();
                                     args.push_back(new SpreadNode(expr));
                                 } else {
-                                    AnyNode arg = res.reg(this->logical_or());
+                                    AnyNode arg = res.reg(this->ternary());
                                     if (res.error) return res.to_prs();
                                     args.push_back(arg);
                                 }
@@ -2556,7 +2570,7 @@ Prs Parser::atom() {
                         std::vector<AnyNode> indices;
                         while (this->current_tok.type == TokenType::LBRACKET) {
                             this->advance();
-                            AnyNode index = res.reg(this->logical_or());
+                            AnyNode index = res.reg(this->ternary());
                             if (res.error) return res.to_prs();
                             if (this->current_tok.type != TokenType::RBRACKET) {
                                 res.failure(new InvalidSyntaxError("QC-S049: Expected ']'", this->current_tok.pos));
@@ -2578,11 +2592,14 @@ Prs Parser::atom() {
             }
             if (res.error) return res.to_prs();
         }
-        if (is_known_type(name) && std::holds_alternative<VarAccessNode*>(base)) { return res.success(TypeValueNode(Token(TokenType::KEYWORD, name, tok.pos))); }
-        return res.success(base);
+        if (is_known_type(name) && std::holds_alternative<VarAccessNode*>(base)) {
+            AnyNode node = TypeValueNode(Token(TokenType::KEYWORD, name, tok.pos));
+            return res.success(modifiers.empty() ? node : new ModifierNode(modifiers, node));
+        }
+        return res.success(modifiers.empty() ? base : new ModifierNode(modifiers, base));
     } else if (tok.type == TokenType::LPAREN) {
         this->advance();
-        AnyNode any_expr = res.reg(this->logical_or());
+        AnyNode any_expr = res.reg(this->ternary());
         if (res.error) return res.to_prs();
 
         if (this->current_tok.type == TokenType::RPAREN) {
@@ -2702,11 +2719,11 @@ Prs Parser::atom() {
                         while (true) {
                             if (this->current_tok.type == TokenType::AT) {
                                 this->advance();
-                                AnyNode expr = res.reg(this->logical_or());
+                                AnyNode expr = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(new SpreadNode(expr));
                             } else {
-                                AnyNode arg = res.reg(this->logical_or());
+                                AnyNode arg = res.reg(this->ternary());
                                 if (res.error) return res.to_prs();
                                 args.push_back(arg);
                             }
@@ -2727,7 +2744,7 @@ Prs Parser::atom() {
                 }
             }
 
-            return res.success(base);
+            return res.success(modifiers.empty() ? base : new ModifierNode(modifiers, base));
         } else {
             res.failure(new InvalidSyntaxError("QC-S050: Expected ')'", this->current_tok.pos));
             return res.to_prs();
@@ -2913,6 +2930,27 @@ Prs Parser::logical_or() {
 
     return res.success(left);
 }
+Prs Parser::ternary() {
+    ParseResult res;
+    AnyNode cond = res.reg(this->logical_or());
+    if (res.error) return res.to_prs();
+    if (this->current_tok.type == TokenType::QUESTION) {
+        Token question_mark = this->current_tok;
+        this->advance();
+        AnyNode left = res.reg(this->ternary());
+        if (res.error) return res.to_prs();
+        if (this->current_tok.type != TokenType::COLON) {
+            res.failure(new InvalidSyntaxError("Expected : after if-true value in ternary expression", this->current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        AnyNode right = res.reg(this->ternary());
+        if (res.error) return res.to_prs();
+        question_mark.value = "`ternary";
+        cond = new CallNode(new VarAccessNode(question_mark), {cond, left, right});
+    }
+    return res.success(cond);
+}
 Prs Parser::qin_expr() {
     ParseResult res;
 
@@ -3007,12 +3045,12 @@ Prs Parser::return_stmt() {
     }
 
     std::vector<AnyNode> values;
-    values.push_back(res.reg(this->logical_or()));
+    values.push_back(res.reg(this->ternary()));
     if (res.error) { return res.to_prs(); }
 
     while (this->current_tok.type == TokenType::COMMA) {
         this->advance();
-        values.push_back(res.reg(this->logical_or()));
+        values.push_back(res.reg(this->ternary()));
         if (res.error) return res.to_prs();
     }
 
@@ -3029,7 +3067,7 @@ Prs Parser::return_stmt() {
 Prs Parser::assignment_expr() {
     ParseResult res;
 
-    AnyNode left = res.reg(this->logical_or());
+    AnyNode left = res.reg(this->ternary());
 
     if (res.error) return res.to_prs();
 
@@ -3051,10 +3089,10 @@ Prs Parser::assignment_expr() {
             if (this->current_tok.type == TokenType::IDENTIFIER && next_i < tokens.size() && tokens[next_i].type == TokenType::EQ) {
                 right = res.reg(this->assignment_expr());
             } else {
-                right = res.reg(this->logical_or());
+                right = res.reg(this->ternary());
             }
         } else {
-            right = res.reg(this->logical_or());
+            right = res.reg(this->ternary());
         }
 
         if (res.error) return res.to_prs();
@@ -3219,14 +3257,14 @@ Parameter Parser::parse_parameter(bool type_only = false) {
         }
         if (this->current_tok.type == TokenType::EQ) {
             this->advance();
-            Prs val = this->logical_or();
+            Prs val = this->ternary();
             p.default_value = to_any_node(val);
         }
     }
     return p;
 }
 Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep,
-                           bool is_volatile) {
+                           bool is_volatile, std::vector<Token> modifiers) {
     ParseResult res;
     std::vector<GenericType> old_generics = this->current_generics;
     if (keep) {
@@ -3291,7 +3329,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
             std::vector<AnyNode> body;
             body.emplace_back(std::monostate{});
             return res.success(new FuncDefNode(return_types, func_name, params_list, new StatementsNode(body), currentNamespace, this->in_extern,
-                                               this->in_foreign, generics, is_volatile, true));
+                                               this->in_foreign, generics, is_volatile, true, modifiers));
         }
         res.failure(new InvalidSyntaxError("QC-S003: Expected '{' to start function body", this->current_tok.pos));
         return res.to_prs();
@@ -3333,8 +3371,8 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     this->advance();
     std::list<Parameter> params_list((params.begin()), (params.end()));
     this->current_generics = old_generics;
-    return res.success(
-        new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics, is_volatile));
+    return res.success(new FuncDefNode(return_types, func_name, params_list, body, currentNamespace, this->in_extern, this->in_foreign, generics,
+                                       is_volatile, false, modifiers));
 }
 Prs Parser::statement() {
     ParseResult res;
@@ -3479,7 +3517,7 @@ Prs Parser::statement() {
         }
         this->advance();
 
-        AnyNode collection = res.reg(this->logical_or());
+        AnyNode collection = res.reg(this->ternary());
         if (res.error) { return res.to_prs(); }
         if (this->current_tok.type != TokenType::RPAREN) {
             res.failure(new InvalidSyntaxError("QC-S016: Expected ')' after foreach", this->current_tok.pos));
@@ -3591,13 +3629,19 @@ Prs Parser::statement() {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
                         if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError(
+                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
+                            this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -3761,6 +3805,12 @@ Prs Parser::statement() {
                 this->advance();
                 continue;
             }
+            std::vector<Token> modifiers;
+            if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                modifiers.push_back(this->current_tok);
+                this->advance();
+            }
             if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value == class_name.value) {
 
                 if (is_abstract_class) {
@@ -3812,13 +3862,19 @@ Prs Parser::statement() {
                             this->advance();
                             if (this->current_tok.type != TokenType::COLON) {
                                 if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                    curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                    curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                               .contains(this->current_tok.value)
+                                                           ? this->current_tok.value
+                                                           : parseTypeString());
                                 } else {
                                     res.failure(new InvalidSyntaxError(
-                                        "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
+                                        "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                        this->current_tok.pos));
                                     return res.to_prs();
                                 }
-                                if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                                if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                    this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                    this->advance();
                             } else {
                                 curr.constraint = "";
                             }
@@ -3889,7 +3945,7 @@ Prs Parser::statement() {
                         this->advance();
                         Token tok = this->current_tok;
                         tok.value = this->parseTypeString();
-                        AnyNode node = res.reg(this->call(new VarAccessNode(tok))); 
+                        AnyNode node = res.reg(this->call(new VarAccessNode(tok)));
                         if (res.error) return res.to_prs();
                         mi.parentConstructorCall = *std::get_if<CallNode*>(&node);
                     }
@@ -3929,6 +3985,7 @@ Prs Parser::statement() {
                     mi.body = body;
                     mi.is_constructor = true;
                     mi.access = access;
+                    mi.modifiers = modifiers;
                     mi.is_volatile = is_volatile_method;
                     mi.generics = genericsM;
                     info.classMethods.push_back(mi);
@@ -4164,13 +4221,19 @@ Prs Parser::statement() {
                         this->advance();
                         if (this->current_tok.type != TokenType::COLON) {
                             if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                           .contains(this->current_tok.value)
+                                                       ? this->current_tok.value
+                                                       : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                                   this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError(
+                                    "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                    this->current_tok.pos));
                                 return res.to_prs();
                             }
-                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                this->advance();
                         } else {
                             curr.constraint = "";
                         }
@@ -4225,7 +4288,7 @@ Prs Parser::statement() {
                     }
                 }
 
-                auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
+                auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
                 if (std::holds_alternative<Error*>(m_pr)) return m_pr;
 
                 auto fn = std::get<FuncDefNode*>(m_pr);
@@ -4267,7 +4330,7 @@ Prs Parser::statement() {
             AnyNode default_value = std::monostate{};
             if (this->current_tok.type == TokenType::EQ) {
                 this->advance();
-                default_value = res.reg(this->logical_or());
+                default_value = res.reg(this->ternary());
                 if (res.error) return res.to_prs();
             }
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -4407,13 +4470,19 @@ Prs Parser::statement() {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
                         if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError(
+                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
+                            this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4567,13 +4636,19 @@ Prs Parser::statement() {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
                         if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError(
+                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
+                            this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4827,13 +4902,19 @@ Prs Parser::statement() {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
                         if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError(
+                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
+                            this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -4928,15 +5009,23 @@ Prs Parser::statement() {
                     return;
                 }
                 this->advance();
-                while(this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
-                    if (this->current_tok.type == TokenType::KEYWORD && std::unordered_set<std::string>({"at_least", "default", "all_of"}).contains(this->current_tok.value) || 
+                while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                    if (this->current_tok.type == TokenType::KEYWORD &&
+                            std::unordered_set<std::string>({"at_least", "default", "all_of"}).contains(this->current_tok.value) ||
                         this->current_tok.type == TokenType::INT) {
                         fn(subblocks);
                         if (res.error) return;
                         continue;
                     }
+                    std::vector<Token> modifiers;
+                    if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                        user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                        modifiers.push_back(this->current_tok);
+                        this->advance();
+                    }
                     if (!is_known_type(this->current_tok.value) && !is_primitive_type(this->current_tok.value)) {
-                        block.nodes.push_back(res.reg(this->logical_or()));
+                        auto node = res.reg(this->ternary());
+                        block.nodes.push_back(modifiers.empty() ? node : new ModifierNode(modifiers, node));
                         if (res.error) return;
                         if (this->current_tok.type != TokenType::SEMICOLON) {
                             res.failure(new InvalidSyntaxError("QC-C001: Expected ; after concept expression", this->current_tok.pos));
@@ -4972,6 +5061,168 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
                         name_tok = this->current_tok;
                         this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "operator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::PLUS:
+                        case TokenType::MINUS:
+                        case TokenType::MUL:
+                        case TokenType::DIV:
+                        case TokenType::EQ_TO:
+                        case TokenType::NOT_EQ:
+                        case TokenType::EQ:
+                        case TokenType::NOT:
+                        case TokenType::AND:
+                        case TokenType::OR:
+                        case TokenType::MORE:
+                        case TokenType::LESS:
+                        case TokenType::MORE_EQ:
+                        case TokenType::LESS_EQ:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::XOR:
+                        case TokenType::QNOT:
+                        case TokenType::QAND:
+                        case TokenType::QOR:
+                        case TokenType::QXOR:
+                        case TokenType::INCREMENT:
+                        case TokenType::DECREMENT:
+                        case TokenType::BITWISE_NOT:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT:
+                        case TokenType::BITWISE_XOR:
+                        case TokenType::PIPE:
+                        case TokenType::AMPERSAND:
+                        case TokenType::COLLAPSE_OR:
+                        case TokenType::PLUS_EQ:
+                        case TokenType::MINUS_EQ:
+                        case TokenType::MUL_EQ:
+                        case TokenType::DIV_EQ:
+                        case TokenType::MOD_EQ:
+                        case TokenType::BIT_X_EQ:
+                        case TokenType::BIT_A_EQ:
+                        case TokenType::BIT_O_EQ:
+                        case TokenType::LSH_EQ:
+                        case TokenType::RSH_EQ:
+                        case TokenType::LRSH_EQ:
+                        case TokenType::RROT_EQ:
+                        case TokenType::LROT_EQ:
+                        case TokenType::COLLAPSE_AND: break;
+                        case TokenType::LPAREN:
+                            this->advance();
+                            if (this->current_tok.type != TokenType::RPAREN) {
+                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                return;
+                            }
+                            break;
+                        case TokenType::LBRACKET:
+                            this->advance();
+                            if (this->current_tok.type == TokenType::RBRACKET) {
+                                long_ops[0] = this->current_tok;
+                                if (this->peek().type == TokenType::EQ) {
+                                    this->advance();
+                                    long_ops[1] = this->current_tok;
+                                    break;
+                                }
+                                long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
+                                break;
+                            } else {
+                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                return;
+                            }
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return;
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::PLUS: op_name = "operator+"; break;
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::MUL: op_name = "operator*"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::EQ_TO: op_name = "operator=="; break;
+                        case TokenType::NOT_EQ: op_name = "operator!="; break;
+                        case TokenType::EQ: op_name = "operator="; break;
+                        case TokenType::NOT: op_name = "operator!"; break;
+                        case TokenType::AND: op_name = "operator&&"; break;
+                        case TokenType::OR: op_name = "operator||"; break;
+                        case TokenType::MORE: op_name = "operator>"; break;
+                        case TokenType::LESS: op_name = "operator<"; break;
+                        case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                        case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                        case TokenType::MUL_EQ: op_name = "operator*="; break;
+                        case TokenType::DIV_EQ: op_name = "operator/="; break;
+                        case TokenType::MOD_EQ: op_name = "operator%="; break;
+                        case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                        case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                        case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                        case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                        case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                        case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                        case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                        case TokenType::LROT_EQ: op_name = "operator<<<="; break;
+                        case TokenType::MORE_EQ: op_name = "operator>="; break;
+                        case TokenType::LESS_EQ: op_name = "operator<="; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::XOR: op_name = "operator^"; break;
+                        case TokenType::QNOT: op_name = "operator!!"; break;
+                        case TokenType::QAND: op_name = "operator&&&"; break;
+                        case TokenType::QOR: op_name = "operator|||"; break;
+                        case TokenType::QXOR: op_name = "operator^^"; break;
+                        case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
+                        case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                        case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                        case TokenType::LPAREN: op_name = "operator()"; break;
+                        case TokenType::INCREMENT: op_name = "operator++"; break;
+                        case TokenType::DECREMENT: op_name = "operator--"; break;
+                        case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                        case TokenType::PIPE: op_name = "operator|"; break;
+                        case TokenType::AMPERSAND: op_name = "operator&"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::MINUS:
+                        case TokenType::DIV:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT: break;
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return;
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
                     } else {
                         res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
                         return;
@@ -4983,7 +5234,8 @@ Prs Parser::statement() {
                             GenericType curr;
                             if (this->current_tok.type != TokenType::IDENTIFIER) {
                                 if (this->current_tok.type == TokenType::KEYWORD &&
-                                    std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+                                    std::unordered_set<std::string>(
+                                        {"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                         .contains(this->current_tok.value)) {
                                     curr.isNonType = true;
                                     curr.nonTypeKind = this->current_tok.value;
@@ -5009,13 +5261,19 @@ Prs Parser::statement() {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
                                     if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                                   .contains(this->current_tok.value)
+                                                               ? this->current_tok.value
+                                                               : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                                           this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError(
+                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                            this->current_tok.pos));
                                         return;
                                     }
-                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                        this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                        this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5053,10 +5311,11 @@ Prs Parser::statement() {
                         }
                     }
                     if (this->current_tok.type == TokenType::LPAREN) {
-                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
+                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
                         if (std::holds_alternative<Error*>(m_pr)) return;
                         auto fn = std::get<FuncDefNode*>(m_pr);
-                        block.signatures.push_back(ConceptInfo::FunctionSignature(name_tok, type_list, std::vector<Parameter>(fn->params.begin(), fn->params.end()), genericsM));
+                        block.signatures.push_back(ConceptInfo::FunctionSignature(
+                            name_tok, type_list, std::vector<Parameter>(fn->params.begin(), fn->params.end()), genericsM));
                         continue;
                     }
                 }
@@ -5077,7 +5336,7 @@ Prs Parser::statement() {
                 }
                 this->advance();
                 std::string modifier = "else";
-                while(this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
                     if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "class") {
                         modifier = "class";
                         this->advance();
@@ -5086,6 +5345,12 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "else") {
                         modifier = "else";
                         this->advance();
+                        this->advance();
+                    }
+                    std::vector<Token> modifiers;
+                    if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                        user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                        modifiers.push_back(this->current_tok);
                         this->advance();
                     }
                     if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
@@ -5113,6 +5378,168 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
                         name_tok = this->current_tok;
                         this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "operator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::PLUS:
+                        case TokenType::MINUS:
+                        case TokenType::MUL:
+                        case TokenType::DIV:
+                        case TokenType::EQ_TO:
+                        case TokenType::NOT_EQ:
+                        case TokenType::EQ:
+                        case TokenType::NOT:
+                        case TokenType::AND:
+                        case TokenType::OR:
+                        case TokenType::MORE:
+                        case TokenType::LESS:
+                        case TokenType::MORE_EQ:
+                        case TokenType::LESS_EQ:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::XOR:
+                        case TokenType::QNOT:
+                        case TokenType::QAND:
+                        case TokenType::QOR:
+                        case TokenType::QXOR:
+                        case TokenType::INCREMENT:
+                        case TokenType::DECREMENT:
+                        case TokenType::BITWISE_NOT:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT:
+                        case TokenType::BITWISE_XOR:
+                        case TokenType::PIPE:
+                        case TokenType::AMPERSAND:
+                        case TokenType::COLLAPSE_OR:
+                        case TokenType::PLUS_EQ:
+                        case TokenType::MINUS_EQ:
+                        case TokenType::MUL_EQ:
+                        case TokenType::DIV_EQ:
+                        case TokenType::MOD_EQ:
+                        case TokenType::BIT_X_EQ:
+                        case TokenType::BIT_A_EQ:
+                        case TokenType::BIT_O_EQ:
+                        case TokenType::LSH_EQ:
+                        case TokenType::RSH_EQ:
+                        case TokenType::LRSH_EQ:
+                        case TokenType::RROT_EQ:
+                        case TokenType::LROT_EQ:
+                        case TokenType::COLLAPSE_AND: break;
+                        case TokenType::LPAREN:
+                            this->advance();
+                            if (this->current_tok.type != TokenType::RPAREN) {
+                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                return;
+                            }
+                            break;
+                        case TokenType::LBRACKET:
+                            this->advance();
+                            if (this->current_tok.type == TokenType::RBRACKET) {
+                                long_ops[0] = this->current_tok;
+                                if (this->peek().type == TokenType::EQ) {
+                                    this->advance();
+                                    long_ops[1] = this->current_tok;
+                                    break;
+                                }
+                                long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
+                                break;
+                            } else {
+                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                return;
+                            }
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return;
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::PLUS: op_name = "operator+"; break;
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::MUL: op_name = "operator*"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::EQ_TO: op_name = "operator=="; break;
+                        case TokenType::NOT_EQ: op_name = "operator!="; break;
+                        case TokenType::EQ: op_name = "operator="; break;
+                        case TokenType::NOT: op_name = "operator!"; break;
+                        case TokenType::AND: op_name = "operator&&"; break;
+                        case TokenType::OR: op_name = "operator||"; break;
+                        case TokenType::MORE: op_name = "operator>"; break;
+                        case TokenType::LESS: op_name = "operator<"; break;
+                        case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                        case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                        case TokenType::MUL_EQ: op_name = "operator*="; break;
+                        case TokenType::DIV_EQ: op_name = "operator/="; break;
+                        case TokenType::MOD_EQ: op_name = "operator%="; break;
+                        case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                        case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                        case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                        case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                        case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                        case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                        case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                        case TokenType::LROT_EQ: op_name = "operator<<<="; break;
+                        case TokenType::MORE_EQ: op_name = "operator>="; break;
+                        case TokenType::LESS_EQ: op_name = "operator<="; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::XOR: op_name = "operator^"; break;
+                        case TokenType::QNOT: op_name = "operator!!"; break;
+                        case TokenType::QAND: op_name = "operator&&&"; break;
+                        case TokenType::QOR: op_name = "operator|||"; break;
+                        case TokenType::QXOR: op_name = "operator^^"; break;
+                        case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
+                        case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                        case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                        case TokenType::LPAREN: op_name = "operator()"; break;
+                        case TokenType::INCREMENT: op_name = "operator++"; break;
+                        case TokenType::DECREMENT: op_name = "operator--"; break;
+                        case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                        case TokenType::PIPE: op_name = "operator|"; break;
+                        case TokenType::AMPERSAND: op_name = "operator&"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::MINUS:
+                        case TokenType::DIV:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT: break;
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return;
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
                     } else {
                         res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
                         return;
@@ -5124,7 +5551,8 @@ Prs Parser::statement() {
                             GenericType curr;
                             if (this->current_tok.type != TokenType::IDENTIFIER) {
                                 if (this->current_tok.type == TokenType::KEYWORD &&
-                                    std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+                                    std::unordered_set<std::string>(
+                                        {"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                         .contains(this->current_tok.value)) {
                                     curr.isNonType = true;
                                     curr.nonTypeKind = this->current_tok.value;
@@ -5150,13 +5578,19 @@ Prs Parser::statement() {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
                                     if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                                   .contains(this->current_tok.value)
+                                                               ? this->current_tok.value
+                                                               : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                                           this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError(
+                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                            this->current_tok.pos));
                                         return;
                                     }
-                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                        this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                        this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5196,10 +5630,11 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::LPAREN) {
                         ClassMethodInfo mi;
                         mi.name_tok = name_tok;
-                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
+                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
                         if (std::holds_alternative<Error*>(m_pr)) return;
                         auto fn = std::get<FuncDefNode*>(m_pr);
                         mi.params.clear();
+                        mi.modifiers = fn->modifiers;
                         mi.params.reserve(fn->params.size());
                         for (auto it = fn->params.begin(); it != fn->params.end(); ++it) { mi.params.push_back(*it); }
                         mi.return_types = fn->return_types;
@@ -5240,9 +5675,7 @@ Prs Parser::statement() {
         info.generics = generics;
         info.namespace_path = currentNamespace;
         ConceptInfo ci;
-        for (auto& b : blocks) {
-            ci.blocks.push_back({b, std::nullopt});
-        }
+        for (auto& b : blocks) { ci.blocks.push_back({b, std::nullopt}); }
         for (auto& [blockIdx, defBlock] : defaultBlocks) {
             if (blockIdx >= 0 && blockIdx < (int)ci.blocks.size()) {
                 ci.blocks[blockIdx].second = defBlock;
@@ -5256,7 +5689,6 @@ Prs Parser::statement() {
         this->current_generics = std::move(saved_generics);
         return res.success(std::monostate{});
     }
-    /*
     if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "modifier") {
         ModifierInfo modifierInfo;
         this->advance();
@@ -5271,16 +5703,16 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
-        while (this->current_tok.type == TokenType::KEYWORD) {
-            Token &name = this->current_tok;
-            StatementsNode *block;
-            if (!parse_block_into(block, res)) return res.to_prs();  
+        while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+            if (this->current_tok.type != TokenType::IDENTIFIER && this->current_tok.type != TokenType::KEYWORD) {
+                res.failure(new InvalidSyntaxError("Expected modifier handler ('on_call', 'on_return', 'on_use')", this->current_tok.pos));
+                return res.to_prs();
+            }
+            Token name = this->current_tok;
             this->advance();
+            StatementsNode* block = nullptr;
+            if (!parse_block_into(block, res)) return res.to_prs();
             modifierInfo.handlers.push_back(std::make_pair(name, block));
-        }
-        if (this->current_tok.type != TokenType::RBRACE) {
-            res.failure(new InvalidSyntaxError("QC-S084: Expected '}' at end of modifier", this->current_tok.pos));
-            return res.to_prs();
         }
         this->advance();
         std::string full_key = currentNamespace.empty() ? modifier_name.value : currentNamespace + "::" + modifier_name.value;
@@ -5297,12 +5729,18 @@ Prs Parser::statement() {
         user_types[base_type_name(full_key)] = info;
         return res.success(std::monostate{});
     }
-    */
     if (this->current_tok.type == TokenType::LBRACE) {
-        StatementsNode *block;
+        StatementsNode* block;
         if (!parse_block_into(block, res)) return res.to_prs();
         block->is_scoped = true;
         return res.success(block);
+    }
+    std::vector<Token> modifiers;
+    if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+        user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+        modifiers.push_back(this->current_tok);
+        this->advance();
+        tok = this->current_tok;
     }
     if (tok.type == TokenType::KEYWORD || tok.type == TokenType::IDENTIFIER && tok.value != "this") {
         if (tok.type == TokenType::IDENTIFIER) {
@@ -5365,10 +5803,11 @@ Prs Parser::statement() {
             this->advance();
         }
         bool is_volatile = false;
-        if (tok.value == "volatile") {
+        if (this->current_tok.value == "volatile") {
             is_volatile = true;
             this->advance();
         }
+        if (this->current_tok.value == "atomic") { this->advance(); }
         if (this->current_tok.value == "volatile") {
             is_volatile = true;
             this->advance();
@@ -5394,6 +5833,12 @@ Prs Parser::statement() {
                 }
                 this->advance();
                 while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                    std::vector<Token> modifiers;
+                    if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                        user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                        modifiers.push_back(this->current_tok);
+                        this->advance();
+                    }
                     if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
                         res.failure(new InvalidSyntaxError("Expected method return type(s)", this->current_tok.pos));
                         return res.to_prs();
@@ -5419,6 +5864,168 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
                         name_tok = this->current_tok;
                         this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "operator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::PLUS:
+                        case TokenType::MINUS:
+                        case TokenType::MUL:
+                        case TokenType::DIV:
+                        case TokenType::EQ_TO:
+                        case TokenType::NOT_EQ:
+                        case TokenType::EQ:
+                        case TokenType::NOT:
+                        case TokenType::AND:
+                        case TokenType::OR:
+                        case TokenType::MORE:
+                        case TokenType::LESS:
+                        case TokenType::MORE_EQ:
+                        case TokenType::LESS_EQ:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::XOR:
+                        case TokenType::QNOT:
+                        case TokenType::QAND:
+                        case TokenType::QOR:
+                        case TokenType::QXOR:
+                        case TokenType::INCREMENT:
+                        case TokenType::DECREMENT:
+                        case TokenType::BITWISE_NOT:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT:
+                        case TokenType::BITWISE_XOR:
+                        case TokenType::PIPE:
+                        case TokenType::AMPERSAND:
+                        case TokenType::COLLAPSE_OR:
+                        case TokenType::PLUS_EQ:
+                        case TokenType::MINUS_EQ:
+                        case TokenType::MUL_EQ:
+                        case TokenType::DIV_EQ:
+                        case TokenType::MOD_EQ:
+                        case TokenType::BIT_X_EQ:
+                        case TokenType::BIT_A_EQ:
+                        case TokenType::BIT_O_EQ:
+                        case TokenType::LSH_EQ:
+                        case TokenType::RSH_EQ:
+                        case TokenType::LRSH_EQ:
+                        case TokenType::RROT_EQ:
+                        case TokenType::LROT_EQ:
+                        case TokenType::COLLAPSE_AND: break;
+                        case TokenType::LPAREN:
+                            this->advance();
+                            if (this->current_tok.type != TokenType::RPAREN) {
+                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                return res.to_prs();
+                            }
+                            break;
+                        case TokenType::LBRACKET:
+                            this->advance();
+                            if (this->current_tok.type == TokenType::RBRACKET) {
+                                long_ops[0] = this->current_tok;
+                                if (this->peek().type == TokenType::EQ) {
+                                    this->advance();
+                                    long_ops[1] = this->current_tok;
+                                    break;
+                                }
+                                long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
+                                break;
+                            } else {
+                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                return res.to_prs();
+                            }
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return res.to_prs();
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::PLUS: op_name = "operator+"; break;
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::MUL: op_name = "operator*"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::EQ_TO: op_name = "operator=="; break;
+                        case TokenType::NOT_EQ: op_name = "operator!="; break;
+                        case TokenType::EQ: op_name = "operator="; break;
+                        case TokenType::NOT: op_name = "operator!"; break;
+                        case TokenType::AND: op_name = "operator&&"; break;
+                        case TokenType::OR: op_name = "operator||"; break;
+                        case TokenType::MORE: op_name = "operator>"; break;
+                        case TokenType::LESS: op_name = "operator<"; break;
+                        case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                        case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                        case TokenType::MUL_EQ: op_name = "operator*="; break;
+                        case TokenType::DIV_EQ: op_name = "operator/="; break;
+                        case TokenType::MOD_EQ: op_name = "operator%="; break;
+                        case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                        case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                        case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                        case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                        case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                        case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                        case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                        case TokenType::LROT_EQ: op_name = "operator<<<="; break;
+                        case TokenType::MORE_EQ: op_name = "operator>="; break;
+                        case TokenType::LESS_EQ: op_name = "operator<="; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::XOR: op_name = "operator^"; break;
+                        case TokenType::QNOT: op_name = "operator!!"; break;
+                        case TokenType::QAND: op_name = "operator&&&"; break;
+                        case TokenType::QOR: op_name = "operator|||"; break;
+                        case TokenType::QXOR: op_name = "operator^^"; break;
+                        case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
+                        case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                        case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                        case TokenType::LPAREN: op_name = "operator()"; break;
+                        case TokenType::INCREMENT: op_name = "operator++"; break;
+                        case TokenType::DECREMENT: op_name = "operator--"; break;
+                        case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                        case TokenType::PIPE: op_name = "operator|"; break;
+                        case TokenType::AMPERSAND: op_name = "operator&"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
+                    } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                        this->advance();
+                        Token op_tok = this->current_tok;
+                        Token long_ops[2] = {};
+                        switch (op_tok.type) {
+                        case TokenType::MINUS:
+                        case TokenType::DIV:
+                        case TokenType::POWER:
+                        case TokenType::MOD:
+                        case TokenType::RSHIFT:
+                        case TokenType::LOGICAL_RSHIFT:
+                        case TokenType::R_ROT:
+                        case TokenType::LSHIFT:
+                        case TokenType::L_ROT: break;
+                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
+                        }
+                        std::string op_name;
+                        switch (op_tok.type) {
+                        case TokenType::MINUS: op_name = "operator-"; break;
+                        case TokenType::DIV: op_name = "operator/"; break;
+                        case TokenType::POWER: op_name = "operator#^"; break;
+                        case TokenType::MOD: op_name = "operator%"; break;
+                        case TokenType::RSHIFT: op_name = "operator|>"; break;
+                        case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                        case TokenType::R_ROT: op_name = "operator|>>"; break;
+                        case TokenType::LSHIFT: op_name = "operator<<"; break;
+                        case TokenType::L_ROT: op_name = "operator<<<"; break;
+                        default: break;
+                        }
+                        name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                        this->advance();
                     } else {
                         res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
                         return res.to_prs();
@@ -5430,7 +6037,8 @@ Prs Parser::statement() {
                             GenericType curr;
                             if (this->current_tok.type != TokenType::IDENTIFIER) {
                                 if (this->current_tok.type == TokenType::KEYWORD &&
-                                    std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+                                    std::unordered_set<std::string>(
+                                        {"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
                                         .contains(this->current_tok.value)) {
                                     curr.isNonType = true;
                                     curr.nonTypeKind = this->current_tok.value;
@@ -5456,13 +6064,19 @@ Prs Parser::statement() {
                                 this->advance();
                                 if (this->current_tok.type != TokenType::COLON) {
                                     if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                        curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                                   .contains(this->current_tok.value)
+                                                               ? this->current_tok.value
+                                                               : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                                           this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError(
+                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                            this->current_tok.pos));
                                         return res.to_prs();
                                     }
-                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                                    if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                        this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                        this->advance();
                                 } else {
                                     curr.constraint = "";
                                 }
@@ -5502,10 +6116,11 @@ Prs Parser::statement() {
                     if (this->current_tok.type == TokenType::LPAREN) {
                         ClassMethodInfo mi;
                         mi.name_tok = name_tok;
-                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true);
+                        auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
                         if (std::holds_alternative<Error*>(m_pr)) return m_pr;
                         auto fn = std::get<FuncDefNode*>(m_pr);
                         mi.params.clear();
+                        mi.modifiers = fn->modifiers;
                         mi.params.reserve(fn->params.size());
                         for (auto it = fn->params.begin(); it != fn->params.end(); ++it) { mi.params.push_back(*it); }
                         mi.return_types = fn->return_types;
@@ -5529,9 +6144,7 @@ Prs Parser::statement() {
                 }
                 it->second.provees.push_back(proof);
                 it = user_types.find(base_type_name(type_str));
-                if (it != user_types.end()) {
-                    it->second.provees.push_back(proof);
-                } 
+                if (it != user_types.end()) { it->second.provees.push_back(proof); }
             } else {
                 auto it = user_types.find(base_type_name(conceptName));
                 if (it == user_types.end()) {
@@ -5542,10 +6155,12 @@ Prs Parser::statement() {
                     res.failure(new InvalidSyntaxError("QC-C006: '" + conceptName + "' is not a concept", proved_pos));
                     return res.to_prs();
                 }
-                it->second.provees.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
+                it->second.provees.push_back(
+                    {Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
                 it = user_types.find(base_type_name(type_str));
                 if (it != user_types.end()) {
-                    it->second.provees.push_back({Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
+                    it->second.provees.push_back(
+                        {Token(TokenType::IDENTIFIER, conceptName, proved_pos), Token(TokenType::IDENTIFIER, type_str, proved_pos)});
                 }
             }
             if (this->current_tok.type != TokenType::SEMICOLON) {
@@ -5597,13 +6212,19 @@ Prs Parser::statement() {
                         this->advance();
                         if (this->current_tok.type != TokenType::COLON) {
                             if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                                curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                           .contains(this->current_tok.value)
+                                                       ? this->current_tok.value
+                                                       : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                                   this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError(
+                                    "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                    this->current_tok.pos));
                                 return res.to_prs();
                             }
-                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                            if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                                this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                                this->advance();
                         } else {
                             curr.constraint = "";
                         }
@@ -5640,7 +6261,8 @@ Prs Parser::statement() {
                     this->advance();
                 }
             }
-            if (this->current_tok.type == TokenType::LPAREN) return this->func_def_multi({type_tok}, func_name, genericsM, false, is_volatile);
+            if (this->current_tok.type == TokenType::LPAREN)
+                return this->func_def_multi({type_tok}, func_name, genericsM, false, is_volatile, modifiers);
             res.failure(new InvalidSyntaxError("Expected '(' after function name", this->current_tok.pos));
             return res.to_prs();
         }
@@ -5734,13 +6356,19 @@ Prs Parser::statement() {
                     this->advance();
                     if (this->current_tok.type != TokenType::COLON) {
                         if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
-                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"}).contains(this->current_tok.value) ? this->current_tok.value : parseTypeString());
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError(
+                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
                             return res.to_prs();
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" || this->current_tok.value == "pointer") this->advance();
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
+                            this->advance();
                     } else {
                         curr.constraint = "";
                     }
@@ -5779,7 +6407,7 @@ Prs Parser::statement() {
         }
 
         if (this->current_tok.type == TokenType::LPAREN) {
-            auto func_def = res.reg(this->func_def_multi(return_types, name_tok, genericsM, false, is_volatile));
+            auto func_def = res.reg(this->func_def_multi(return_types, name_tok, genericsM, false, is_volatile, modifiers));
             if (res.error) return res.to_prs();
             return res.success(func_def);
         }
@@ -5908,7 +6536,7 @@ Prs Parser::statement() {
 
     if (this->current_tok.type == TokenType::SEMICOLON) {
         this->advance();
-        return res.success(node);
+        return res.success(modifiers.empty() ? node : new ModifierNode(modifiers, node));
     }
 
     res.failure(new MissingSemicolonError(this->current_tok.pos));
@@ -6093,30 +6721,17 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     }
                 }
             } else if (!generic.constraint.empty()) {
-                auto provesConcept = [&](const std::string& typeName,
-                                         const std::string& conceptName) -> bool {
-                    std::string resolvedConcept =
-                        resolveTypeName(conceptName, false);
+                auto provesConcept = [&](const std::string& typeName, const std::string& conceptName) -> bool {
+                    std::string resolvedConcept = resolveTypeName(conceptName, false);
                     if (!concepts.count(resolvedConcept)) {
-                        cg_error(
-                            pos,
-                            "concept " + conceptName + " is not defined"
-                        );
+                        cg_error(pos, "concept " + conceptName + " is not defined");
                         return false;
                     }
                     std::string base = baseTypeName(typeName);
-                    if (!userTypes.count(base)) {
-                        return false;
-                    }
-                    return std::ranges::any_of(
-                        userTypes[base].provees,
-                        [&](const ConceptProvee& proved) {
-                            return resolveTypeName(
-                                proved.conceptName.value,
-                                false
-                            ) == resolvedConcept;
-                        }
-                    );
+                    if (!userTypes.count(base)) { return false; }
+                    return std::ranges::any_of(userTypes[base].provees, [&](const ConceptProvee& proved) {
+                        return resolveTypeName(proved.conceptName.value, false) == resolvedConcept;
+                    });
                 };
                 std::vector<std::string> tokens;
                 {
@@ -6143,8 +6758,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                                 tokens.push_back(current);
                                 current.clear();
                             }
-                            if (i + 1 < generic.constraint.size() &&
-                                generic.constraint[i + 1] == '&') {
+                            if (i + 1 < generic.constraint.size() && generic.constraint[i + 1] == '&') {
                                 tokens.push_back("&&");
                                 ++i;
                             } else {
@@ -6158,8 +6772,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                                 tokens.push_back(current);
                                 current.clear();
                             }
-                            if (i + 1 < generic.constraint.size() &&
-                                generic.constraint[i + 1] == '|') {
+                            if (i + 1 < generic.constraint.size() && generic.constraint[i + 1] == '|') {
                                 tokens.push_back("||");
                                 ++i;
                             } else {
@@ -6170,9 +6783,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                         }
                         current += c;
                     }
-                    if (!current.empty()) {
-                        tokens.push_back(current);
-                    }
+                    if (!current.empty()) { tokens.push_back(current); }
                 }
                 size_t index = 0;
                 std::function<bool()> parseNot;
@@ -6182,29 +6793,18 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     if (index < tokens.size() && tokens[index] == "!") {
                         ++index;
                         if (index >= tokens.size()) {
-                            cg_error(
-                                pos,
-                                "expected concept after '!' in generic constraint"
-                            );
+                            cg_error(pos, "expected concept after '!' in generic constraint");
                             return false;
                         }
                         return !parseNot();
                     }
                     if (index >= tokens.size()) {
-                        cg_error(
-                            pos,
-                            "expected concept in generic constraint"
-                        );
+                        cg_error(pos, "expected concept in generic constraint");
                         return false;
                     }
                     std::string conceptName = tokens[index++];
-                    if (conceptName == "&&" ||
-                        conceptName == "||" ||
-                        conceptName == "!") {
-                        cg_error(
-                            pos,
-                            "expected concept, got '" + conceptName + "'"
-                        );
+                    if (conceptName == "&&" || conceptName == "||" || conceptName == "!") {
+                        cg_error(pos, "expected concept, got '" + conceptName + "'");
                         return false;
                     }
                     return provesConcept(value, conceptName);
@@ -6228,31 +6828,17 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     return result;
                 };
                 if (tokens.empty()) {
-                    cg_error(
-                        pos,
-                        "empty generic concept constraint"
-                    );
+                    cg_error(pos, "empty generic concept constraint");
                     return false;
                 }
                 bool satisfiesConstraint = parseOr();
                 if (index != tokens.size()) {
-                    cg_error(
-                        pos,
-                        "invalid generic concept constraint: " +
-                        generic.constraint
-                    );
+                    cg_error(pos, "invalid generic concept constraint: " + generic.constraint);
                     return false;
                 }
                 if (!satisfiesConstraint) {
-                    cg_error(
-                        pos,
-                        "concept generic constraint " +
-                        generic.name +
-                        " expects passed type to satisfy " +
-                        generic.constraint +
-                        ", got " +
-                        value
-                    );
+                    cg_error(pos, "concept generic constraint " + generic.name + " expects passed type to satisfy " + generic.constraint + ", got " +
+                                      value);
                     return false;
                 }
             }
@@ -6329,34 +6915,19 @@ ConceptInfo LLVMCompiler::generateGenericConcept(std::string conceptName, UserTy
         namespaceStack.push_back(conceptInfo.namespace_path.substr(start));
     }
     auto substituteSignature = [&](ConceptInfo::FunctionSignature sig) -> ConceptInfo::FunctionSignature {
-        for (auto& retToken : sig.return_types) {
-            retToken.value = substituteGenerics(retToken.value);
-        }
-        for (auto& param : sig.params) {
-            param.type.value = substituteGenerics(param.type.value);
-        }
+        for (auto& retToken : sig.return_types) { retToken.value = substituteGenerics(retToken.value); }
+        for (auto& param : sig.params) { param.type.value = substituteGenerics(param.type.value); }
         return sig;
     };
-    std::function<ConceptInfo::Block(ConceptInfo::Block)> substituteBlock = 
-    [&](ConceptInfo::Block block) -> ConceptInfo::Block {
-        for (auto& sig : block.signatures) {
-            sig = substituteSignature(sig);
-        }
-        for (auto& reqConceptTok : block.requiredConcepts) {
-            reqConceptTok.value = substituteGenerics(reqConceptTok.value);
-        }
-        for (auto& sub : block.subblocks) {
-            sub = substituteBlock(sub);
-        }
+    std::function<ConceptInfo::Block(ConceptInfo::Block)> substituteBlock = [&](ConceptInfo::Block block) -> ConceptInfo::Block {
+        for (auto& sig : block.signatures) { sig = substituteSignature(sig); }
+        for (auto& reqConceptTok : block.requiredConcepts) { reqConceptTok.value = substituteGenerics(reqConceptTok.value); }
+        for (auto& sub : block.subblocks) { sub = substituteBlock(sub); }
         return block;
     };
     auto substituteMethodInfo = [&](ClassMethodInfo method) -> ClassMethodInfo {
-        for (auto& param : method.params) {
-            param.type.value = substituteGenerics(param.type.value);
-        }
-        for (auto& ret : method.return_types) {
-            ret.value = substituteGenerics(ret.value);
-        }
+        for (auto& param : method.params) { param.type.value = substituteGenerics(param.type.value); }
+        for (auto& ret : method.return_types) { ret.value = substituteGenerics(ret.value); }
         return method;
     };
     ConceptInfo specializedConcept;
@@ -6594,7 +7165,6 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                         std::string resolvedType = resolveTypeName(param.type.value, false);
                         expectedType = llvmTypeFor(resolvedType);
                     }
-
                     llvm::Type* actualType = overload->getFunctionType()->getParamType(i + 1);
                     if (expectedType != actualType && param.type.value == "...") {
                         matches = false;
@@ -6609,25 +7179,27 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         }
         if (isHeader || classInfo.baseFile.ends_with(".hqc")) continue;
         if (!fn || !fn->empty()) continue;
-
-        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+        std::string methodName = fn->getName().str();
+        llvm::Function* currentTarget = fn;
+        if (!method.modifiers.empty()) {
+            std::string implName = "_impl_" + methodName;
+            currentTarget = llvm::Function::Create(fn->getFunctionType(), llvm::Function::InternalLinkage, implName, module);
+        }
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", currentTarget);
         builder->SetInsertPoint(entry);
-
         auto oldThis = currentThis;
         auto oldClassName = currentClassName;
         auto oldFunction = currentFunction;
         enterScope();
-        currentThis = fn->getArg(0);
+        currentThis = currentTarget->getArg(0);
         volatileVars["this"] = false;
         varTypes["this"] = mangled_class_name + "*";
         currentClassName = mangled_class_name;
-        currentFunction = fn;
-
+        currentFunction = currentTarget;
         for (size_t i = 0; i < method.params.size(); i++) {
             auto& param = method.params[i];
             llvm::Type* paramTy;
             std::string typeDescriptor;
-
             if (param.signature.has_value()) {
                 paramTy = llvm::PointerType::get(context, 0);
                 typeDescriptor = "fn";
@@ -6636,7 +7208,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 paramTy = llvmTypeFor(typeDescriptor);
             }
             llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
-            builder->CreateStore(fn->getArg(i + 1), alloc);
+            builder->CreateStore(currentTarget->getArg(i + 1), alloc);
             locals[param.name.value] = alloc;
             varTypes[param.name.value] = typeDescriptor;
             volatileVars[param.name.value] = param.isVolatile;
@@ -6657,8 +7229,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                             std::vector<llvm::Value*> allArgs = {currentThis};
                             allArgs.insert(allArgs.end(), parentArgs.begin(), parentArgs.end());
                             if (insideTry()) {
-                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
-                                                                       currentFunction);
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
                                 builder->CreateInvoke(parentCtor, contBB, currentLandingPad(), allArgs);
                                 builder->SetInsertPoint(contBB);
                             } else {
@@ -6673,20 +7244,86 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 }
             }
         }
-        if (method.body) {
-            emitStmt(method.body);
-        }
+        if (method.body) { emitStmt(method.body); }
         if (!builder->GetInsertBlock()->getTerminator()) {
-            if (fn->getReturnType()->isVoidTy()) {
+            if (currentTarget->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
-                builder->CreateRet(llvm::Constant::getNullValue(fn->getReturnType()));
+                builder->CreateRet(llvm::Constant::getNullValue(currentTarget->getReturnType()));
             }
         }
         currentThis = oldThis;
         currentClassName = oldClassName;
         currentFunction = oldFunction;
         exitScope();
+        if (!method.modifiers.empty()) {
+            llvm::FunctionType* fTy = fn->getFunctionType();
+            for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
+                Token modTok = method.modifiers[i];
+                if (!modifiers.count(modTok.value)) {
+                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                    continue;
+                }
+                ModifierInfo& modInfo = modifiers[modTok.value];
+                bool isOutermost = (i == 0);
+                std::string layerName = isOutermost ? methodName : ("_mod_" + std::to_string(i) + "_" + methodName);
+                auto linkage = isOutermost ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+                std::string proceedName = "_proceed_" + std::to_string(i) + "_" + methodName;
+                llvm::Function* proceedFunc = synthesizeProceed(proceedName, currentTarget, modInfo.onReturn,
+                                                                *funcDefFromClassMethod(method, mangled_class_name, "_"));
+                llvm::Function* layerFunc = isOutermost ? fn : module->getFunction(layerName);
+                if (!layerFunc) { layerFunc = llvm::Function::Create(fTy, linkage, layerName, module); }
+                auto savedDefers = defersStack;
+                defersStack.clear();
+                enterScope();
+                llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+                auto* entryBB = llvm::BasicBlock::Create(context, "entry", layerFunc);
+                builder->SetInsertPoint(entryBB);
+                auto* prevFunction = currentFunction;
+                auto prevThis = currentThis;
+                currentFunction = layerFunc;
+                currentThis = layerFunc->getArg(0);
+                varTypes["this"] = mangled_class_name + "*";
+                std::vector<llvm::Value*> forwardArgs;
+                forwardArgs.push_back(currentThis);
+                for (size_t pIdx = 0; pIdx < method.params.size(); pIdx++) {
+                    auto& param = method.params[pIdx];
+                    llvm::Value* argVal = layerFunc->getArg(pIdx + 1);
+                    argVal->setName(param.name.value);
+                    auto* alloca = createEntryAlloca(param.name.value, argVal->getType());
+                    builder->CreateStore(argVal, alloca);
+                    locals[param.name.value] = alloca;
+                    varTypes[param.name.value] = param.signature.has_value() ? "fn" : resolveTypeName(param.type.value, false);
+                    forwardArgs.push_back(argVal);
+                }
+                functions["proceed"] = proceedFunc;
+                if (modInfo.onCall) {
+                    for (auto& stmt : modInfo.onCall->statements) { emitStmt(stmt); }
+                } else {
+                    if (fTy->getReturnType()->isVoidTy()) {
+                        builder->CreateCall(proceedFunc, forwardArgs);
+                        builder->CreateRetVoid();
+                    } else {
+                        llvm::Value* retVal = builder->CreateCall(proceedFunc, forwardArgs);
+                        builder->CreateRet(retVal);
+                    }
+                }
+                if (!builder->GetInsertBlock()->getTerminator()) {
+                    if (fTy->getReturnType()->isVoidTy()) {
+                        builder->CreateRetVoid();
+                    } else {
+                        builder->CreateRet(llvm::ConstantAggregateZero::get(fTy->getReturnType()));
+                    }
+                }
+                if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
+                currentFunction = prevFunction;
+                currentThis = prevThis;
+                functions.erase("proceed");
+                exitScope();
+                defersStack = savedDefers;
+                currentTarget = layerFunc;
+            }
+        }
     }
     proveConceptsForTypeInfo(mangled_class_name, classInfo);
     namespaceStack = oldNamespaceStack;
@@ -7142,6 +7779,23 @@ void LLVMCompiler::createUserTypes() {
         if (info.kind != UserTypeKind::Concept || !info.generics.empty()) continue;
         proversFromConceptInfo(mapKey, info);
     }
+    for (auto& [mapKey, info] : userTypes) {
+        if (info.kind != UserTypeKind::Modifier) continue;
+        ModifierInfo res;
+        for (auto& [hookTok, bodyNode] : info.modifierInfo.handlers) {
+            if (hookTok.value == "on_call") {
+                res.onCall = bodyNode;
+            } else if (hookTok.value == "on_return") {
+                res.onReturn = bodyNode;
+            } else if (hookTok.value == "on_use") {
+                res.onUse = bodyNode;
+            } else {
+                cg_error(hookTok.pos, "unknown modifier handler '" + hookTok.value + "'");
+                return;
+            }
+        }
+        modifiers[mapKey] = res;
+    }
     if (this->config.use_runtime) { generateStructReprFunctions(); }
 }
 ParamTypeInfo toTypeInfo(const Parameter& p) {
@@ -7413,8 +8067,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return nullptr;
                 }
                 return builder->getInt1(std::ranges::any_of(userTypes[lType].provees, [&](const ConceptProvee& provedConcept) {
-                        return resolveTypeName(provedConcept.conceptName.value, false) == resolveTypeName(lType, false);
-                    }));
+                    return resolveTypeName(provedConcept.conceptName.value, false) == resolveTypeName(lType, false);
+                }));
             }
         }
         if (op == TokenType::RSHIFT) {
@@ -7597,6 +8251,24 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 return builder->CreateCall(opMethod, allArgs, "op_result");
                             }
                         }
+                    } else if (auto it = userTypes.find(className);
+                               it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                        std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                        if (!opMethodName.empty()) {
+                            auto fit = functions.find(className + "_" + opMethodName);
+                            if (fit != functions.end()) {
+                                llvm::Function* opMethod = fit->second;
+                                std::vector<llvm::Value*> allArgs = {L, R};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                }
+                                return builder->CreateCall(opMethod, allArgs, "op_result");
+                            }
+                        }
                     }
                 }
             }
@@ -7613,6 +8285,24 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             llvm::Function* opMethod = findMethodOverload(className, opMethodName, args);
                             if (opMethod) {
                                 std::vector<llvm::Value*> allArgs = {R, L};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                }
+                                return builder->CreateCall(opMethod, allArgs, "op_result");
+                            }
+                        }
+                    } else if (auto it = userTypes.find(className);
+                               it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                        std::string opMethodName = getRoperatorMethodName((*bin)->op_tok.type);
+                        if (!opMethodName.empty()) {
+                            auto fit = functions.find(className + "_" + opMethodName);
+                            if (fit != functions.end()) {
+                                llvm::Function* opMethod = fit->second;
+                                std::vector<llvm::Value*> allArgs = {L, R};
                                 if (insideTry()) {
                                     auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
                                                                            currentFunction);
@@ -8288,6 +8978,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 res = builder->CreateCall(method, args, "op_result");
                             }
                         }
+                    } else if (auto it = userTypes.find(className);
+                               it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                        auto fit = functions.find(className + "_" + methodName);
+                        if (fit != functions.end()) {
+                            llvm::Function* opMethod = fit->second;
+                            std::vector<llvm::Value*> allArgs = {L, R};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
                     }
                 }
                 if (!res && ts == "char" && (op == TokenType::PLUS || op == TokenType::MINUS)) {
@@ -8447,6 +9151,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                             res = builder->CreateCall(method, callArgs, "op_result");
                         }
+                    } else if (auto it = userTypes.find(className);
+                               it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                        auto fit = functions.find(className + "_" + methodName);
+                        if (fit != functions.end()) {
+                            llvm::Function* opMethod = fit->second;
+                            std::vector<llvm::Value*> allArgs = {L, R};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
                     }
                 } else {
                     classTy = llvm::dyn_cast<llvm::StructType>(rhsVal->getType());
@@ -8468,6 +9186,28 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     builder->SetInsertPoint(contBB);
                                 }
                                 res = builder->CreateCall(method, callArgs, "op_result");
+                            }
+                        }
+                    } else if (classTy && classTy->hasName()) {
+                        std::string className = classTy->getName().str();
+                        if (auto it = userTypes.find(className);
+                            it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                            std::string opMethodName = getRoperatorMethodName((*bin)->op_tok.type);
+                            if (!opMethodName.empty()) {
+                                std::vector<llvm::Value*> args = {R};
+                                auto fit = functions.find(className + "_" + opMethodName);
+                                if (fit != functions.end()) {
+                                    llvm::Function* opMethod = fit->second;
+                                    std::vector<llvm::Value*> allArgs = {L, R};
+                                    if (insideTry()) {
+                                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                               currentFunction);
+                                        auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                        builder->SetInsertPoint(contBB);
+                                        return invk;
+                                    }
+                                    return builder->CreateCall(opMethod, allArgs, "op_result");
+                                }
                             }
                         }
                     }
@@ -8643,6 +9383,23 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return builder->CreateCall(opMethod, allArgs, "op_result");
                         }
                     }
+                } else if (auto it = userTypes.find(className);
+                           it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                    std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                    if (!opMethodName.empty()) {
+                        auto fit = functions.find(className + "_" + opMethodName);
+                        if (fit != functions.end()) {
+                            llvm::Function* opMethod = fit->second;
+                            std::vector<llvm::Value*> allArgs = {L, R};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
+                    }
                 }
             }
         }
@@ -8661,6 +9418,23 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (insideTry()) {
                                 auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
                                 llvm::InvokeInst* invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
+                    }
+                } else if (auto it = userTypes.find(className);
+                           it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                    std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                    if (!opMethodName.empty()) {
+                        auto fit = functions.find(className + "_" + opMethodName);
+                        if (fit != functions.end()) {
+                            llvm::Function* opMethod = fit->second;
+                            std::vector<llvm::Value*> allArgs = {L, R};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
                                 builder->SetInsertPoint(contBB);
                                 return invk;
                             }
@@ -8726,12 +9500,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string rType = getExpressionType((*bin)->right_node);
 
                 if ((lType == "string" || lType == "char*" || lType == "char[]") && (rType == "string" || rType == "char*" || rType == "[]")) {
-                    if (lType == "char[]") {
-                        L = decayArrayToPointer(L);
-                    }
-                    if (rType == "char[]") {
-                        R = decayArrayToPointer(R);
-                    }
+                    if (lType == "char[]") { L = decayArrayToPointer(L); }
+                    if (rType == "char[]") { R = decayArrayToPointer(R); }
                     llvm::Function* concatFn = module->getFunction("qc_string_concat");
                     if (!concatFn) {
                         llvm::Type* i8PtrTy = llvm::PointerType::get(context, 0);
@@ -10514,6 +11284,24 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             llvm::Value* callResult = builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
                             return callResult;
                         }
+                    } else if (auto it = userTypes.find(className);
+                               it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                        std::string opMethodName = getOperatorMethodName((*bin)->op_tok.type);
+                        if (!opMethodName.empty()) {
+                            auto fit = functions.find(className + "_" + opMethodName);
+                            if (fit != functions.end()) {
+                                llvm::Function* opMethod = fit->second;
+                                std::vector<llvm::Value*> allArgs = {alloc, rhsVal};
+                                if (insideTry()) {
+                                    auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
+                                                                           currentFunction);
+                                    auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                    builder->SetInsertPoint(contBB);
+                                    return invk;
+                                }
+                                return builder->CreateCall(opMethod, allArgs, "op_assign_tmp");
+                            }
+                        }
                     }
                     cg_error(get_pos(*asn), "no valid overload to " + getCombinationalOperatorMethodName((*asn)->op_tok.type) + " found");
                     struct Candidate {
@@ -10665,12 +11453,29 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return builder->CreateCall(opMethod, allArgs, "unary_op_result");
                         }
                     }
+                } else if (auto it = userTypes.find(className);
+                           it != userTypes.end() && it->second.kind != UserTypeKind::Concept && it->second.kind != UserTypeKind::Modifier) {
+                    std::string opMethodName = getUnaryOperatorMethodName((*unary)->op_tok.type);
+                    if (!opMethodName.empty()) {
+                        auto fit = functions.find(className + "_" + opMethodName);
+                        if (fit != functions.end()) {
+                            llvm::Function* opMethod = fit->second;
+                            llvm::AllocaInst* temp = createEntryAlloca("temp_unary_this", operandTy);
+                            builder->CreateStore(operand, temp);
+                            std::vector<llvm::Value*> allArgs = {temp};
+                            if (insideTry()) {
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                                auto invk = builder->CreateInvoke(opMethod, contBB, currentLandingPad(), allArgs);
+                                builder->SetInsertPoint(contBB);
+                                return invk;
+                            }
+                            return builder->CreateCall(opMethod, allArgs, "op_result");
+                        }
+                    }
                 }
             }
         }
-        if ((*unary)->op_tok.type == TokenType::NOT) {
-            return builder->CreateNot(toTruthiness(operand, (*unary)->op_tok.pos), "not");
-        }
+        if ((*unary)->op_tok.type == TokenType::NOT) { return builder->CreateNot(toTruthiness(operand, (*unary)->op_tok.pos), "not"); }
         if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
             llvm::Type* ty = operand->getType();
             if (ty->isFloatingPointTy() || ty->isPointerTy()) {
@@ -11003,6 +11808,39 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         CallNode& call = *(*callPtr);
         if (auto* varAccess = std::get_if<VarAccessNode*>(&call.node_to_call)) {
             std::string funcName = (*varAccess)->var_name_tok.value;
+            if (funcName == "proceed") {
+                auto it = functions.find("proceed");
+                if (it != functions.end()) {
+                    llvm::Function* targetProceed = it->second;
+                    llvm::FunctionType* procTy = targetProceed->getFunctionType();
+                    std::vector<llvm::Value*> callArgs;
+                    if (call.arg_nodes.empty()) {
+                        for (auto& arg : currentFunction->args()) { callArgs.push_back(&arg); }
+                    } else {
+                        for (auto& argNode : call.arg_nodes) {
+                            llvm::Value* argVal = emitExpr(argNode);
+                            if (!argVal) return nullptr;
+                            callArgs.push_back(argVal);
+                        }
+                    }
+                    if (callArgs.size() != procTy->getNumParams()) {
+                        cg_error((*varAccess)->var_name_tok.pos, "proceed() argument count mismatch: expected " +
+                                                                     std::to_string(procTy->getNumParams()) + ", got " +
+                                                                     std::to_string(callArgs.size()));
+                        return nullptr;
+                    }
+                    llvm::Type* retTy = procTy->getReturnType();
+                    if (insideTry()) {
+                        auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
+                        auto* invokeInst = builder->CreateInvoke(procTy, targetProceed, contBB, currentLandingPad(), callArgs,
+                                                                 retTy->isVoidTy() ? "" : "calltmp");
+                        builder->SetInsertPoint(contBB);
+                        return retTy->isVoidTy() ? nullptr : invokeInst;
+                    }
+                    auto* callInst = builder->CreateCall(procTy, targetProceed, callArgs, retTy->isVoidTy() ? "" : "calltmp");
+                    return retTy->isVoidTy() ? nullptr : callInst;
+                }
+            }
             std::string resolvedName = funcName;
             if (llvm::Value* v = resolveVariable(baseTypeName(funcName))) {
                 if (std::string className = resolveVarType(baseTypeName(funcName)); !className.empty()) {
@@ -11247,12 +12085,226 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                                   {"`extract", ""},
                                                                                   {"`cast", ""},
                                                                                   {"`float_bits", ""},
-                                                                                  {"`double_bits", ""}};
+                                                                                  {"`double_bits", ""},
+                                                                                  {"`compile_error", ""},
+                                                                                  {"`compile_warn", ""},
+                                                                                  {"`compile_note", ""},
+                                                                                  {"`atomic_load", ""},
+                                                                                  {"`atomic_store", ""},
+                                                                                  {"`atomic_exchange", ""},
+                                                                                  {"`atomic_add", ""},
+                                                                                  {"`atomic_sub", ""},
+                                                                                  {"`atomic_and", ""},
+                                                                                  {"`atomic_or", ""},
+                                                                                  {"`atomic_xor", ""},
+                                                                                  {"`atomic_nand", ""},
+                                                                                  {"`atomic_min", ""},
+                                                                                  {"`atomic_max", ""},
+                                                                                  {"`atomic_umin", ""},
+                                                                                  {"`atomic_umax", ""},
+                                                                                  {"`atomic_cmpxchg", ""},
+                                                                                  {"`atomic_fence", ""}};
             auto it = builtins.find(funcName);
 
             if (it != builtins.end()) {
                 std::string runtimeName = it->second;
-                if (funcName == "`extract" && !call.arg_nodes.empty()) {
+                if (funcName == "`atomic_load") {
+                    if (call.arg_nodes.size() != 1) {
+                        cg_error(get_pos(*callPtr), "`atomic_load expects exactly one argument");
+                        return nullptr;
+                    }
+                    AnyNode& atomicNode = call.arg_nodes.front();
+                    llvm::Value* addr = emitLValue(atomicNode);
+                    if (!addr) return nullptr;
+                    llvm::Type* valueType = llvmTypeFor(getExpressionType(atomicNode, false));
+                    auto* load = builder->CreateLoad(valueType, addr);
+                    load->setAtomic(llvm::AtomicOrdering::SequentiallyConsistent);
+                    return load;
+                } else if (funcName == "`atomic_store") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_store expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    AnyNode& atomicNode = *it++;
+                    AnyNode& valueNode = *it;
+                    llvm::Value* addr = emitLValue(atomicNode);
+                    llvm::Value* value = emitExpr(valueNode);
+                    if (!addr || !value) return nullptr;
+                    auto* store = builder->CreateStore(value, addr);
+                    store->setAtomic(llvm::AtomicOrdering::SequentiallyConsistent);
+                    return nullptr;
+                } else if (funcName == "`atomic_exchange") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_exchange expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    AnyNode& atomicNode = *it++;
+                    const AnyNode& valueNode = *it;
+                    llvm::Value* addr = emitLValue(atomicNode);
+                    llvm::Value* value = emitExpr(valueNode);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Xchg, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_add") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_add expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Add, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_sub") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_sub expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Sub, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_and") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_and expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::And, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_or") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_or expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Or, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_xor") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_xor expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Xor, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_nand") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_nand expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Nand, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_min") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_min expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Min, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_max") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_max expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::Max, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_umin") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_umin expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::UMin, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_umax") {
+                    if (call.arg_nodes.size() != 2) {
+                        cg_error(get_pos(*callPtr), "`atomic_umax expects (atomic_variable, value)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* value = emitExpr(*it);
+                    if (!addr || !value) return nullptr;
+                    return builder->CreateAtomicRMW(llvm::AtomicRMWInst::UMax, addr, value, llvm::MaybeAlign(),
+                                                    llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_cmpxchg") {
+                    if (call.arg_nodes.size() != 3) {
+                        cg_error(get_pos(*callPtr), "`atomic_cmpxchg expects "
+                                                    "(atomic_variable, expected, desired)");
+                        return nullptr;
+                    }
+                    auto it = call.arg_nodes.begin();
+                    llvm::Value* addr = emitLValue(*it++);
+                    llvm::Value* expected = emitExpr(*it++);
+                    llvm::Value* desired = emitExpr(*it);
+                    if (!addr || !expected || !desired) return nullptr;
+                    return builder->CreateAtomicCmpXchg(addr, expected, desired, llvm::MaybeAlign(), llvm::AtomicOrdering::SequentiallyConsistent,
+                                                        llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`atomic_fence") {
+                    if (!call.arg_nodes.empty()) {
+                        cg_error(get_pos(*callPtr), "`atomic_fence expects no arguments");
+                        return nullptr;
+                    }
+                    return builder->CreateFence(llvm::AtomicOrdering::SequentiallyConsistent);
+                } else if (funcName == "`compile_error" && !call.arg_nodes.empty()) {
+                    AnyNode node = call.arg_nodes.back();
+                    StringNode* n = std::get_if<StringNode>(&node);
+                    if (!n) {
+                        cg_error(get_pos(node), "`compile_error takes a comptime string");
+                        return nullptr;
+                    }
+                    cg_error(get_pos(node), n->tok.value);
+                    return nullptr;
+                } else if (funcName == "`compile_warn" && !call.arg_nodes.empty()) {
+                    AnyNode node = call.arg_nodes.back();
+                    StringNode* n = std::get_if<StringNode>(&node);
+                    if (!n) {
+                        cg_error(get_pos(node), "`compile_warn takes a comptime string");
+                        return nullptr;
+                    }
+                    cg_warn(get_pos(node), n->tok.value);
+                    return nullptr;
+                } else if (funcName == "`compile_note" && !call.arg_nodes.empty()) {
+                    if (errors.empty()) cg_warn(get_pos(node), "");
+                    AnyNode node = call.arg_nodes.back();
+                    StringNode* n = std::get_if<StringNode>(&node);
+                    if (!n) {
+                        cg_error(get_pos(node), "`compile_note takes a comptime string");
+                        return nullptr;
+                    }
+                    cg_note(get_pos(node), n->tok.value);
+                    return nullptr;
+                } else if (funcName == "`extract" && !call.arg_nodes.empty()) {
                     std::string out;
                     llvm::Value* value = emitExpr(call.arg_nodes.front());
                     if (!value) return nullptr;
@@ -11263,22 +12315,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         return builder->CreateLoad(llvmTypeFor(matchInfo.value().memberTypeStr), value);
                     }
                     return nullptr;
-                }
-                if (funcName == "`float_bits" && !call.arg_nodes.empty()) {
+                } else if (funcName == "`float_bits" && !call.arg_nodes.empty()) {
                     llvm::Value* value = emitExpr(call.arg_nodes.front());
                     if (!value) return nullptr;
                     value = normalizeValue(value, call.arg_nodes.front());
                     if (!value->getType()->isIntegerTy()) return nullptr;
                     return builder->CreateBitCast(value, llvm::Type::getFloatTy(context));
-                }
-                if (funcName == "`double_bits" && !call.arg_nodes.empty()) {
+                } else if (funcName == "`double_bits" && !call.arg_nodes.empty()) {
                     llvm::Value* value = emitExpr(call.arg_nodes.front());
                     if (!value) return nullptr;
                     value = normalizeValue(value, call.arg_nodes.front());
                     if (!value->getType()->isIntegerTy()) return nullptr;
                     return builder->CreateBitCast(value, llvm::Type::getDoubleTy(context));
-                }
-                if (funcName == "`cast" && call.arg_nodes.size() >= 2) {
+                } else if (funcName == "`cast" && call.arg_nodes.size() >= 2) {
                     llvm::Value* value = emitExpr(call.arg_nodes.front());
                     if (!value) return nullptr;
                     value = normalizeValue(value, call.arg_nodes.front());
@@ -11288,7 +12337,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (!dstTy) return nullptr;
                     llvm::Type* srcTy = value->getType();
                     if (srcTy == dstTy) return value;
-                    bool srcSigned = std::unordered_set<std::string>({"addr_t", "byte", "nibble"}).contains(getExpressionType(call.arg_nodes.front()));
+                    bool srcSigned = std::unordered_set<std::string>({"addr_t", "byte", "nibble"})
+                                         .contains(getExpressionType(call.arg_nodes.front()));
                     bool dstSigned = std::unordered_set<std::string>({"addr_t", "byte", "nibble"}).contains(typeNode->tok.value);
                     if (srcTy->isIntegerTy() && dstTy->isIntegerTy()) {
                         unsigned srcBits = srcTy->getIntegerBitWidth();
@@ -11297,15 +12347,18 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (dstBits < srcBits) return builder->CreateTrunc(value, dstTy);
                         return value;
                     }
-                    if (srcTy->isIntegerTy() && dstTy->isFloatingPointTy()) return srcSigned ? builder->CreateSIToFP(value, dstTy) : builder->CreateUIToFP(value, dstTy);
-                    if (srcTy->isFloatingPointTy() && dstTy->isIntegerTy()) return dstSigned ? builder->CreateFPToSI(value, dstTy) : builder->CreateFPToUI(value, dstTy);
-                    if (srcTy->isFloatingPointTy() && dstTy->isFloatingPointTy()) return dstTy->getPrimitiveSizeInBits() > srcTy->getPrimitiveSizeInBits() ? builder->CreateFPExt(value, dstTy) : builder->CreateFPTrunc(value, dstTy);
+                    if (srcTy->isIntegerTy() && dstTy->isFloatingPointTy())
+                        return srcSigned ? builder->CreateSIToFP(value, dstTy) : builder->CreateUIToFP(value, dstTy);
+                    if (srcTy->isFloatingPointTy() && dstTy->isIntegerTy())
+                        return dstSigned ? builder->CreateFPToSI(value, dstTy) : builder->CreateFPToUI(value, dstTy);
+                    if (srcTy->isFloatingPointTy() && dstTy->isFloatingPointTy())
+                        return dstTy->getPrimitiveSizeInBits() > srcTy->getPrimitiveSizeInBits() ? builder->CreateFPExt(value, dstTy)
+                                                                                                 : builder->CreateFPTrunc(value, dstTy);
                     if (srcTy->isPointerTy() && dstTy->isPointerTy()) return builder->CreateBitCast(value, dstTy);
                     if (srcTy->isPointerTy() && dstTy->isIntegerTy()) return builder->CreatePtrToInt(value, dstTy);
                     if (srcTy->isIntegerTy() && dstTy->isPointerTy()) return builder->CreateIntToPtr(value, dstTy);
                     return nullptr;
-                }
-                if (funcName == "`typeof" && !call.arg_nodes.empty()) {
+                } else if (funcName == "`typeof" && !call.arg_nodes.empty()) {
                     AnyNode& argNode = call.arg_nodes.front();
                     llvm::Value* arg = emitExpr(argNode);
                     if (!arg) return nullptr;
@@ -11382,8 +12435,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         typeName = "pointer";
                     if (auto structTy = llvm::dyn_cast<llvm::StructType>(argTy)) typeName = structTy->getName().str();
                     return builder->CreateGlobalString(typeName);
-                }
-                if (funcName == "`random" && !call.arg_nodes.empty()) {
+                } else if (funcName == "`random" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() == 1)
                         runtimeName = "qc_random_int";
                     else if (call.arg_nodes.size() == 2)
@@ -13490,7 +14542,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         argVal = emitExpr(argNode);
                     }
                     if (auto paramTy = llvmTypeFor(resolveTypeName(ptype, false))) {
-                        argVal = adaptArgumentForParam(argVal, (*call)->args[std::distance(funcDef->params.begin(), paramIt)], paramTy, std::distance(funcDef->params.begin(), paramIt));
+                        argVal = adaptArgumentForParam(argVal, (*call)->args[std::distance(funcDef->params.begin(), paramIt)], paramTy,
+                                                       std::distance(funcDef->params.begin(), paramIt));
                     }
                     argValues.push_back(argVal);
                     if (paramIt != funcDef->params.end()) ++paramIt;
@@ -13499,7 +14552,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cg_error(get_pos(*call), "spread is no longer allowed in function calls.");
                     return nullptr;
                 }
-                if (!funcDef->generics.empty()) { 
+                if (!funcDef->generics.empty()) {
                     funcName = fixMangling(funcName);
                     if (specializedFunctions.find(funcName) == specializedFunctions.end()) {
                         llvm::Function* specializedFn = generateSpecializedFunction(funcDef, funcName);
@@ -13534,7 +14587,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return invoke;
                 }
                 return builder->CreateCall(fn, argValues);
-            } 
+            }
         }
         if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, *call, thisPtr)) { return specializedCall; }
         ClassMethodInfo* info = nullptr;
@@ -13559,7 +14612,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 for (size_t i = 0; i < m.params.size(); i++) {
                     std::string argTypeStr = getExpressionType((*call)->args[i]);
                     std::string paramTypeStr = m.params[i].type.value;
-                    if (argTypeStr == paramTypeStr) continue; 
+                    if (argTypeStr == paramTypeStr) continue;
                     matches = false;
                     break;
                 }
@@ -13685,18 +14738,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!rhsVal) return nullptr;
         builder->CreateStore(rhsVal, fieldPtr);
         return rhsVal;
-    } else if (auto ref = safe_get<RefVarDeclNode>(node)) { 
+    } else if (auto ref = safe_get<RefVarDeclNode>(node)) {
         std::string fullName = (getCurrentNamespace().empty() ? "" : getCurrentNamespace() + "::") + ref->var_name_tok.value;
         std::string baseType = ref->type_tok.value;
-        if (baseType.starts_with("volatile ")) {
-            baseType = baseType.substr(9);
-        }
-        if (!baseType.ends_with("&")) {
-            baseType += "&";
-        }
+        if (baseType.starts_with("volatile ")) { baseType = baseType.substr(9); }
+        if (!baseType.ends_with("&")) { baseType += "&"; }
         varTypes[fullName] = baseType;
         volatileVars[fullName] = ref->type_tok.value.starts_with("volatile ");
-        if (llvm::Value *value = emitLValue(ref->target)) {
+        if (llvm::Value* value = emitLValue(ref->target)) {
             llvm::AllocaInst* refStore = builder->CreateAlloca(builder->getPtrTy(), nullptr, fullName);
             builder->CreateStore(value, refStore);
             locals[fullName] = refStore;
@@ -13707,6 +14756,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         return nullptr;
     } else if (auto ref = std::get_if<NullptrNode>(&node)) {
         return llvm::ConstantPointerNull::get(llvm::PointerType::get(context, 0));
+    } else if (auto mn = std::get_if<ModifierNode*>(&node)) {
+        return emitModifierNode(*mn);
     }
     return nullptr;
 }
@@ -14130,6 +15181,82 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     } else {
         name = lambdaName();
     }
+    if (!fn.modifiers.empty() && !fn.is_foreign && !fn.is_header) {
+        FuncDefNode implFn = fn;
+        implFn.modifiers.clear();
+        std::string implName = "_impl_" + name;
+        Token implNameTok = *fn.name_tok;
+        implNameTok.value = implName;
+        implFn.name_tok = implNameTok;
+
+        llvm::Function* currentTarget = emitFuncDef(implFn);
+        if (!currentTarget) return nullptr;
+        currentTarget->setLinkage(llvm::Function::InternalLinkage);
+        llvm::FunctionType* fTy = llvmFuncTypeFor(fn.return_types, fn.params);
+        for (int i = (int)fn.modifiers.size() - 1; i >= 0; --i) {
+            Token modTok = fn.modifiers[i];
+            if (!modifiers.count(modTok.value)) {
+                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                return nullptr;
+            }
+            ModifierInfo& modInfo = modifiers[modTok.value];
+
+            bool isOutermost = (i == 0);
+            std::string layerName = isOutermost ? name : ("_mod_" + std::to_string(i) + "_" + name);
+            auto linkage = isOutermost ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+            std::string proceedName = "_proceed_" + std::to_string(i) + "_" + name;
+            llvm::Function* proceedFunc = synthesizeProceed(proceedName, currentTarget, modInfo.onReturn, fn);
+            llvm::Function* layerFunc = module->getFunction(layerName);
+            if (!layerFunc) { layerFunc = llvm::Function::Create(fTy, linkage, layerName, module); }
+            auto savedDefers = defersStack;
+            defersStack.clear();
+            enterScope();
+            llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+            auto* entryBB = llvm::BasicBlock::Create(context, "entry", layerFunc);
+            builder->SetInsertPoint(entryBB);
+            auto* oldFunction = currentFunction;
+            currentFunction = layerFunc;
+            std::vector<llvm::Value*> forwardArgs;
+            unsigned idx = 0;
+            for (auto& arg : layerFunc->args()) {
+                auto& param = *std::next(fn.params.begin(), idx);
+                arg.setName(param.name.value);
+                auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
+                builder->CreateStore(&arg, alloca);
+                locals[param.name.value] = alloca;
+                varTypes[param.name.value] = param.type.value;
+                forwardArgs.push_back(&arg);
+                idx++;
+            }
+            functions["proceed"] = proceedFunc;
+            if (modInfo.onCall) {
+                for (auto& stmt : modInfo.onCall->statements) { emitStmt(stmt); }
+            } else {
+                if (fTy->getReturnType()->isVoidTy()) {
+                    builder->CreateCall(proceedFunc, forwardArgs);
+                    builder->CreateRetVoid();
+                } else {
+                    llvm::Value* retVal = builder->CreateCall(proceedFunc, forwardArgs);
+                    builder->CreateRet(retVal);
+                }
+            }
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                if (fTy->getReturnType()->isVoidTy()) {
+                    builder->CreateRetVoid();
+                } else {
+                    builder->CreateRet(llvm::ConstantAggregateZero::get(fTy->getReturnType()));
+                }
+            }
+            if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
+            currentFunction = oldFunction;
+            functions.erase("proceed");
+            exitScope();
+            defersStack = savedDefers;
+            currentTarget = layerFunc;
+        }
+        functions[name] = currentTarget;
+        return currentTarget;
+    }
     llvm::FunctionType* fTy = llvmFuncTypeFor(fn.return_types, fn.params);
     llvm::GlobalValue::LinkageTypes linkage = llvm::Function::ExternalLinkage;
     auto* func = module->getFunction(name);
@@ -14192,16 +15319,17 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                     pos = t.find("[]", pos + 2);
                 }
                 if (dims > 0 && name != entrypointName) {
-                    cg_warn(param.type.pos, "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
-                                            size_t pos = 0;
-                                            while ((pos = str.find("[]", pos)) != std::string::npos) {
-                                                str.replace(pos, 2, "*");
-                                                pos += 1;
-                                            }
-                                            return str;
-                                        }(t)) +
-                                            ". Please consider changing the type of this parameter to that type instead, and if you need the length "
-                                            "property (which won't exist on pointers), add an additional length parameter.");
+                    cg_warn(param.type.pos,
+                            "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                                size_t pos = 0;
+                                while ((pos = str.find("[]", pos)) != std::string::npos) {
+                                    str.replace(pos, 2, "*");
+                                    pos += 1;
+                                }
+                                return str;
+                            }(t)) +
+                                ". Please consider changing the type of this parameter to that type instead, and if you need the length "
+                                "property (which won't exist on pointers), add an additional length parameter.");
                 }
                 if (dims > 1) {
                     std::string base = t.substr(0, t.find("[]"));
@@ -14667,9 +15795,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(thenBB);
         enterScope();
         for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { 
+        if (!builder->GetInsertBlock()->getTerminator()) {
             emitDefersDownTo(outerDepth + 2);
-            builder->CreateBr(mergeBB); 
+            builder->CreateBr(mergeBB);
         }
         exitScope();
         for (size_t i = 0; i < elifBlocks.size(); i++) {
@@ -14682,9 +15810,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->SetInsertPoint(elifBlocks[i].second);
             enterScope();
             for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 2);
-                builder->CreateBr(mergeBB); 
+                builder->CreateBr(mergeBB);
             }
             exitScope();
         }
@@ -14692,7 +15820,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->SetInsertPoint(elseBB);
             enterScope();
             for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 2);
                 builder->CreateBr(mergeBB);
             }
@@ -14731,9 +15859,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
         for (auto& stmt : while_node->body->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { 
+        if (!builder->GetInsertBlock()->getTerminator()) {
             emitDefersDownTo(outerDepth + 1);
-            builder->CreateBr(condBB); 
+            builder->CreateBr(condBB);
         }
         currentBreakBB = oldBreakBB;
         currentContinueBB = oldContinueBB;
@@ -14742,14 +15870,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(endBB);
     } else if (std::holds_alternative<BreakNode*>(node)) {
         if (currentBreakBB) {
-            if (!loopStack.empty()) emitDefersDownTo(loopStack.back()); 
+            if (!loopStack.empty()) emitDefersDownTo(loopStack.back());
             builder->CreateBr(currentBreakBB);
         } else {
             cg_error(get_pos(node), "break outside of loop/switch");
         }
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
-            if (!loopStack.empty()) emitDefersDownTo(loopStack.back()); 
+            if (!loopStack.empty()) emitDefersDownTo(loopStack.back());
             builder->CreateBr(currentContinueBB);
         } else {
             cg_error(get_pos(node), "continue outside of loop");
@@ -14787,9 +15915,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->CreateCondBr(cond, bodyBB, endBB);
         builder->SetInsertPoint(bodyBB);
         for (auto& stmt : for_node->body->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { 
+        if (!builder->GetInsertBlock()->getTerminator()) {
             emitDefersDownTo(outerDepth + 1);
-            builder->CreateBr(incBB); 
+            builder->CreateBr(incBB);
         }
         builder->SetInsertPoint(incBB);
         if (for_node->update.has_value()) { emitStmt(for_node->update.value()); }
@@ -14905,7 +16033,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             for (auto& stmt : switch_node->sections[i].body->statements) { emitStmt(stmt); }
 
             if (!builder->GetInsertBlock()->getTerminator()) {
-                
+
                 if (i + 1 < sectionBlocks.size()) {
                     builder->CreateBr(sectionBlocks[i + 1]);
                 } else {
@@ -14918,7 +16046,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         currentBreakBB = oldBreakBB;
         exitScope();
         builder->SetInsertPoint(endBB);
-    } else if (auto qif_node = safe_get<QIfNode>(node)) { 
+    } else if (auto qif_node = safe_get<QIfNode>(node)) {
         size_t outerDepth = defersStack.size();
         enterScope();
         if (qif_node->init.has_value()) { emitStmt(qif_node->init.value()); }
@@ -14949,9 +16077,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(qifBodyBB);
         enterScope();
         for (auto& stmt : qif_node->then_branch->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) { 
+        if (!builder->GetInsertBlock()->getTerminator()) {
             emitDefersDownTo(outerDepth + 2);
-            builder->CreateBr(endBB); 
+            builder->CreateBr(endBB);
         }
         exitScope();
         for (size_t i = 0; i < qif_node->qelif_branches.size(); i++) {
@@ -14970,9 +16098,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             builder->SetInsertPoint(elifBodyBB);
             enterScope();
             for (auto& stmt : qif_node->qelif_branches[i].second->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 2);
-                builder->CreateBr(endBB); 
+                builder->CreateBr(endBB);
             }
             exitScope();
             nextBB = nextElifBB;
@@ -15064,16 +16192,16 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (case_t_block && qsw->case_t) {
             builder->SetInsertPoint(case_t_block);
             for (auto& stmt : qsw->case_t->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
-                builder->CreateBr(qswitch_end); 
+                builder->CreateBr(qswitch_end);
             }
         }
 
         if (case_f_block && qsw->case_f) {
             builder->SetInsertPoint(case_f_block);
             for (auto& stmt : qsw->case_f->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
                 builder->CreateBr(qswitch_end);
             }
@@ -15082,9 +16210,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (case_n_block && qsw->case_n) {
             builder->SetInsertPoint(case_n_block);
             for (auto& stmt : qsw->case_n->statements) { emitStmt(stmt); }
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
-                builder->CreateBr(qswitch_end); 
+                builder->CreateBr(qswitch_end);
             }
         }
         if (case_b_block && qsw->case_b) {
@@ -15092,7 +16220,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             for (auto& stmt : qsw->case_b->statements) { emitStmt(stmt); }
             if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
-                builder->CreateBr(qswitch_end); 
+                builder->CreateBr(qswitch_end);
             }
         }
         exitScope();
@@ -15585,7 +16713,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
             builder->CreateStore(elemVal, elemAlloc);
             emitStmt(foreach->body);
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
                 builder->CreateBr(incBB);
             }
@@ -15600,9 +16728,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             llvm::Value* cur = emitMethodCall(nextFn, iterObjAlloc, {}, "_next");
             builder->CreateStore(cur, elemAlloc);
             emitStmt(foreach->body);
-            if (!builder->GetInsertBlock()->getTerminator()) { 
+            if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 1);
-                builder->CreateBr(condBB); 
+                builder->CreateBr(condBB);
             }
         }
         builder->SetInsertPoint(endBB);
@@ -15694,7 +16822,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 locals[name] = alloc;
             }
             emitStmt(c.body);
-            if (!builder->GetInsertBlock()->getTerminator()) { emitDefersDownTo(outerScope + 2); builder->CreateBr(endBB); }
+            if (!builder->GetInsertBlock()->getTerminator()) {
+                emitDefersDownTo(outerScope + 2);
+                builder->CreateBr(endBB);
+            }
             exitScope();
         }
         builder->SetInsertPoint(noMatchBB);
@@ -15861,19 +16992,15 @@ std::vector<CTError> LLVMCompiler::compile(
     }
     for (auto& [className, info] : userTypes) {
         if (info.kind != UserTypeKind::Class || !info.generics.empty()) continue;
-
         auto oldNamespaceStack = namespaceStack;
         namespaceStack.clear();
-
         if (!info.namespace_path.empty()) {
             size_t start = 0;
             size_t pos;
-
             while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
                 namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
                 start = pos + 2;
             }
-
             namespaceStack.push_back(info.namespace_path.substr(start));
         }
         for (size_t methodIdx = 0; methodIdx < info.classMethods.size(); methodIdx++) {
@@ -15913,20 +17040,26 @@ std::vector<CTError> LLVMCompiler::compile(
             }
             if (!fn || !fn->empty()) continue;
             if (isHeader || info.baseFile.ends_with(".hqc")) continue;
-            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+            llvm::Function* currentTarget = fn;
+            std::string methodName = fn->getName().str();
+            if (!method.modifiers.empty()) {
+                std::string implName = "_impl_" + methodName;
+                currentTarget = llvm::Function::Create(fn->getFunctionType(), llvm::Function::InternalLinkage, implName, module);
+            }
+            llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", currentTarget);
             builder->SetInsertPoint(entry);
             auto oldThis = currentThis;
             auto oldClassName = currentClassName;
             auto oldFunction = currentFunction;
             enterScope();
             if (!isStatic) {
-                currentThis = fn->getArg(0);
+                currentThis = currentTarget->getArg(0);
                 varTypes["this"] = className + "*";
             } else {
                 currentThis = nullptr;
             }
             currentClassName = className;
-            currentFunction = fn;
+            currentFunction = currentTarget;
             for (size_t i = 0; i < method.params.size(); i++) {
                 auto& param = method.params[i];
                 llvm::Type* paramTy;
@@ -15940,7 +17073,7 @@ std::vector<CTError> LLVMCompiler::compile(
                     paramTy = llvmTypeFor(typeDescriptor);
                 }
                 llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
-                llvm::Value* argVal = fn->getArg(i + expectedParamOffset);
+                llvm::Value* argVal = currentTarget->getArg(i + expectedParamOffset);
                 builder->CreateStore(argVal, alloc);
                 locals[param.name.value] = alloc;
                 varTypes[param.name.value] = typeDescriptor;
@@ -15960,8 +17093,7 @@ std::vector<CTError> LLVMCompiler::compile(
                             std::vector<llvm::Value*> allArgs = {currentThis};
                             allArgs.insert(allArgs.end(), parentArgs.begin(), parentArgs.end());
                             if (insideTry()) {
-                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++),
-                                                                       currentFunction);
+                                auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
                                 llvm::InvokeInst* invoke = builder->CreateInvoke(parentCtor, contBB, currentLandingPad(), allArgs);
                                 builder->SetInsertPoint(contBB);
                             } else {
@@ -15974,17 +17106,87 @@ std::vector<CTError> LLVMCompiler::compile(
                     }
                 }
             }
-            if (method.body) {
-                emitStmt(method.body);
-            }
+            if (method.body) { emitStmt(method.body); }
             if (!builder->GetInsertBlock()->getTerminator()) {
-                if (fn->getReturnType()->isVoidTy()) {
+                if (currentTarget->getReturnType()->isVoidTy()) {
                     builder->CreateRetVoid();
                 } else {
-                    builder->CreateRet(llvm::Constant::getNullValue(fn->getReturnType()));
+                    builder->CreateRet(llvm::Constant::getNullValue(currentTarget->getReturnType()));
                 }
             }
-
+            if (!method.modifiers.empty()) {
+                llvm::FunctionType* fTy = fn->getFunctionType();
+                for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
+                    Token modTok = method.modifiers[i];
+                    if (!modifiers.count(modTok.value)) {
+                        cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                        continue;
+                    }
+                    ModifierInfo& modInfo = modifiers[modTok.value];
+                    bool isOutermost = (i == 0);
+                    std::string layerName = isOutermost ? methodName : ("_mod_" + std::to_string(i) + "_" + methodName);
+                    auto linkage = isOutermost ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+                    std::string proceedName = "_proceed_" + std::to_string(i) + "_" + methodName;
+                    llvm::Function* proceedFunc = synthesizeProceed(proceedName, currentTarget, modInfo.onReturn,
+                                                                    *funcDefFromClassMethod(method, className, "_"));
+                    llvm::Function* layerFunc = isOutermost ? fn : module->getFunction(layerName);
+                    if (!layerFunc) { layerFunc = llvm::Function::Create(fTy, linkage, layerName, module); }
+                    auto savedDefers = defersStack;
+                    defersStack.clear();
+                    enterScope();
+                    llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+                    auto* entryBB = llvm::BasicBlock::Create(context, "entry", layerFunc);
+                    builder->SetInsertPoint(entryBB);
+                    auto* prevFunction = currentFunction;
+                    auto prevThis = currentThis;
+                    currentFunction = layerFunc;
+                    std::vector<llvm::Value*> forwardArgs;
+                    if (!isStatic) {
+                        currentThis = layerFunc->getArg(0);
+                        varTypes["this"] = className + "*";
+                        forwardArgs.push_back(currentThis);
+                    } else {
+                        currentThis = nullptr;
+                    }
+                    currentThis = oldThis;
+                    for (size_t pIdx = 0; pIdx < method.params.size(); pIdx++) {
+                        auto& param = method.params[pIdx];
+                        llvm::Value* argVal = layerFunc->getArg(pIdx + 1);
+                        argVal->setName(param.name.value);
+                        auto* alloca = createEntryAlloca(param.name.value, argVal->getType());
+                        builder->CreateStore(argVal, alloca);
+                        locals[param.name.value] = alloca;
+                        varTypes[param.name.value] = param.signature.has_value() ? "fn" : resolveTypeName(param.type.value, false);
+                        forwardArgs.push_back(argVal);
+                    }
+                    functions["proceed"] = proceedFunc;
+                    if (modInfo.onCall) {
+                        for (auto& stmt : modInfo.onCall->statements) { emitStmt(stmt); }
+                    } else {
+                        if (fTy->getReturnType()->isVoidTy()) {
+                            builder->CreateCall(proceedFunc, forwardArgs);
+                            builder->CreateRetVoid();
+                        } else {
+                            llvm::Value* retVal = builder->CreateCall(proceedFunc, forwardArgs);
+                            builder->CreateRet(retVal);
+                        }
+                    }
+                    if (!builder->GetInsertBlock()->getTerminator()) {
+                        if (fTy->getReturnType()->isVoidTy()) {
+                            builder->CreateRetVoid();
+                        } else {
+                            builder->CreateRet(llvm::ConstantAggregateZero::get(fTy->getReturnType()));
+                        }
+                    }
+                    if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
+                    currentFunction = prevFunction;
+                    currentThis = prevThis;
+                    functions.erase("proceed");
+                    exitScope();
+                    defersStack = savedDefers;
+                    currentTarget = layerFunc;
+                }
+            }
             currentThis = oldThis;
             currentClassName = oldClassName;
             currentFunction = oldFunction;
@@ -16648,7 +17850,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             std::string obj_file = config.object_only ? base_name + ".o" : dir + "temp_" + stem + ".o";
             auto end = std::chrono::high_resolution_clock::now();
             bool error_found = false;
-            if (!diagnostics.empty()) { error_found = true; }
+            if (!diagnostics.empty() &&
+                std::ranges::any_of(diagnostics, [&](const Diagnostic& d) { return d.level != "Warning" && d.level != "Note"; })) {
+                error_found = true;
+            }
             std::string message = "Program exited with code: 0";
             if (error_found) { message = "Program exited with code: 1"; }
             if (!diagnostics.empty()) { return Mer{ast, resp, message, diagnostics}; }
@@ -16941,26 +18146,29 @@ Token Lexer::make_identifier() {
     }
     if (
         /* primitives */ id == "int" || id == "float" || id == "double" || id == "bool" || id == "string" || id == "qbool" || id == "char" ||
-        /* storage modifiers */ id == "long" || id == "short" || id == "const" ||
-        /* switch */ id == "case" || id == "switch" || id == "default" || 
+        /* storage modifiers */ id == "long" || id == "short" || id == "const" || id == "atomic" ||
+        /* switch */ id == "case" || id == "switch" || id == "default" ||
         /* if else */ id == "if" || id == "else" ||
         /* loops */ id == "break" || id == "while" || id == "for" || id == "continue" || id == "foreach" || id == "in" ||
-        /* special types */ id == "void" || id == "auto" || 
+        /* special types */ id == "void" || id == "auto" ||
         /* functions / lambdas */ id == "return" || id == "function" || id == "fn" ||
-        /* q stuff */ id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" || 
-        /* usertypes */ id == "class" || id == "struct" || id == "enum" || id == "type" || 
+        /* q stuff */ id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" ||
+        /* usertypes */ id == "class" || id == "struct" || id == "enum" || id == "type" ||
         /* extern */ id == "foreign" || id == "extern" ||
-        /* namespace */ id == "namespace" || // i̶m̶ ̶t̶o̶o̶ ̶l̶a̶z̶y̶ ̶t̶o̶ ̶d̶o̶ ̶t̶h̶e̶ ̶r̶e̶s̶t̶ ̶o̶f̶ ̶t̶h̶i̶s̶ ̶r̶e̶o̶r̶g̶i̶n̶i̶z̶a̶t̶i̶o̶n̶ nevermind i did it. why did i do this. Also yes i am using neovim and did just manually type 
-        // <C-v>u0336 1... 2... 51 times. And yes you did just count them. And yes, there are probably 50 or 52. It should be a unordered set. Im not making it a unordered_set. 64 or's are faster. Yes i did count them. yes i am probably off.
+        /* namespace */ id == "namespace" || // i̶m̶ ̶t̶o̶o̶ ̶l̶a̶z̶y̶ ̶t̶o̶ ̶d̶o̶ ̶t̶h̶e̶ ̶r̶e̶s̶t̶ ̶o̶f̶ ̶t̶h̶i̶s̶ ̶r̶e̶o̶r̶g̶i̶n̶i̶z̶a̶t̶i̶o̶n̶ nevermind i did it. why did i do this. Also yes i am
+                                             // using neovim and did just manually type
+        // <C-v>u0336 1... 2... 51 times. And yes you did just count them. And yes, there are probably 50 or 52. It should be a unordered set. Im not
+        // making it a unordered_set. 64 or's are faster. Yes i did count them. yes i am probably off.
         /* operator */ id == "roperator" || id == "operator" ||
-        /* try/catch */ id == "try" || id == "catch" || 
-        /* nullptr */ id == "nullptr" || 
-        /* storage modifiers */ id == "out" || id == "inout" || id == "volatile" || id == "restrict" || 
-        /* more types */ id == "byte" || id == "nibble" || id == "addr_t" || 
+        /* try/catch */ id == "try" || id == "catch" ||
+        /* nullptr */ id == "nullptr" ||
+        /* storage modifiers */ id == "out" || id == "inout" || id == "volatile" || id == "restrict" ||
+        /* more types */ id == "byte" || id == "nibble" || id == "addr_t" ||
         /* class stuff */ id == "friend" || id == "friendly" || id == "static" || id == "abstract" || id == "final" ||
-        /* more  class stuff */  id == "public" || id == "protected" || id == "private" || 
+        /* more  class stuff */ id == "public" || id == "protected" || id == "private" ||
         /* defer */ id == "defer" ||
-        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" || id == "proved_by" ||
+        /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" ||
+        id == "proved_by" ||
         /* modifiers */ id == "modifier" || id == "on_call" || id == "on_return" || id == "on_use") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
@@ -17590,6 +18798,10 @@ Ler Lexer::make_tokens() {
                 break;
             case '~':
                 tokens.push_back(Token(TokenType::BITWISE_NOT, "~", start_pos));
+                this->advance();
+                break;
+            case '?':
+                tokens.push_back(Token(TokenType::QUESTION, "?", start_pos));
                 this->advance();
                 break;
             default:

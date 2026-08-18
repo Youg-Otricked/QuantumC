@@ -1,4 +1,5 @@
-proved_by binop so 
-if (allocated proved_by T) {
-    ...
-}
+modifiers on methods
+modifiers on constructors
+modifiers on generic methods
+modifiers on values
+modifiers on generic functions

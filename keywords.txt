@@ -8,6 +8,6 @@ catch nullptr addr_t out inout volatile restrict byte
 nibble true false qtrue qfalse both none sizeof throw
 friend friendly static defer
 concept proves with_proof _of all_of at_least, proved_by
-
+modifier, atomic
 to add:
-modifier attributes Type Ident macro
+attributes Type Ident macro

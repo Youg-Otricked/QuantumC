@@ -2,45 +2,6 @@
 - Operator.
 - Function pointers
 - Private/Protected inheritance
-- Modifier user type:
-```cpp
-modifier async type function {
-    on_call {// called when func is called
-        … x = mod.args[...];
-        …………
-    }
-    on_return {
-          … x = mod.return_values[...] // called on return
-         ………………
-    }
-}
-modifier await type value {
-    use { // called when used
-                … x = mod.value
-                …………..
-    }
-}
-```
-Then you could do
-```
-async <func def> foo <rest of def>
-…
-await foo();
-```
-- float_bits and double_bits intrinsic (literal llvm `bitcast ` instruction)
-- Fields to get all obj fields
-- typeof(fn) giving a object with properties of argos ret types…  shape as a struct:
-```c
-typedef struct {
-    char*[] return_types;
-    char*[] arg_types;
-    char*[] arg_names;
-    char* name;
-    char*[] modifiers;
-    char*[] attributes;
-    generic_constraint[] constraints;
-} qc_function_typeof;
-```
 - Constexpr
 - Debug
 - Cqb lib in stl. Ci and build.
@@ -55,7 +16,6 @@ __qc_build_date() — timestamp of the build
 __qc_target_triple() — what platform/arch this runtime was compiled for (x86_64-linux-gnu, wasm32-unknown-unknown, etc.) — relevant since your lesson context here is literally about compiling toward WASM/LLVM targets
 __qc_llvm_version() — since you're LLVM-backed, knowing which LLVM version built a given binary matters a lot for debugging codegen-level bugs that are version-specific
 __qc_debug_build() — a bool baked in at compile time indicating whether this was a debug or release build, so runtime error handlers can decide whether to print verbose diagnostics or not
-- atomics
 - destructuring (eg `Pair {abc, def} = ...`, operator{} which is your destructure handler (multi return baby!) (maybe))
 - tuples (like zig/rust tuples, .0 .1 .2 .3)
 - user defined literals (macros baby!)
@@ -66,32 +26,23 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - noexcept (funciton modifier) (same update as const on functions and stuff)
 - change parent constructor and delegeating constructors
 - compile_error("My error")
-- compile_log("My msg")
+- compile_note("My msg")
+- compile_warn("My warning")
 - dynamic field access
 - has field, has method
 - _generic- manal overloading
 - rust like tags for enums
-- 
-        on_write
-        on_read    on_type_decl
-    on_member_access hooks for modifiers
+- cpp contracts
+- has_method, has_field, at
+- rule usertypes so userdefined const equiveleants and stuff
 TOP PRIORITY:
-1. Expressions in concepts, kinda like C++, allong with allowing concepts on non-usertypes.
-    concept Pointer {
-        all_of {
-            *ptr;
-            ...
-        }
-    }
-    int* proves Pointer, _ discard value
-2. Modifiers, Atomics (x1.0)
-2. Variadics on generics
-3. Tuples + Destruturing
-3. Function Pointers
-3. Tagged enums
-3. CQB
-4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
-5. Metadata
+1. Variadics on generics
+2. Tuples + Destruturing
+2. Function Pointers
+2. Tagged enums
+2. CQB
+3. Other stuff (private/protected inheritance) + Variadic Generics, operator.
+4. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -113,7 +64,7 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-6. Preproccessers
+5. Preproccessers
 #define - define a constant value
 #undef - undef a constant value
 #if - if
@@ -122,7 +73,7 @@ TOP PRIORITY:
 #ifndef - if undefined
 #endif - end if
 #line - somthing idk
-7. User-Defined metadata
-8. User-Defined macro _functions_ (the only good thing in rust)
-9. User defined literals
-10. co_await
+6. User-Defined metadata
+7. User-Defined macro _functions_ (the only good thing in rust)
+8. User defined literals
+9. co_await

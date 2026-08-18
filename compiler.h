@@ -110,12 +110,13 @@ class RefVarDeclNode;
 class NullptrNode;
 class TypeValueNode;
 class DeferNode;
+class ModifierNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode*, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
                              QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
                              SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*,
-                             TypeValueNode, DeferNode*>;
+                             TypeValueNode, DeferNode*, ModifierNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -218,6 +219,7 @@ enum class TokenType {
     QNOT,
     QXOR,
     PIPE,
+    QUESTION,
     EOFT
 };
 
@@ -414,7 +416,8 @@ class StatementsNode {
     bool is_block = false;
     bool is_scoped = false;
     Position getPos() { return statements.empty() ? Position("", "", 0, 0, 0) : get_pos(statements[0]); }
-    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false, bool is_scoped = false) : statements(stmts), is_block(is_block), is_scoped(is_scoped) {}
+    StatementsNode(std::vector<AnyNode> stmts, bool is_block = false, bool is_scoped = false)
+        : statements(stmts), is_block(is_block), is_scoped(is_scoped) {}
     std::string print() const;
 };
 
@@ -488,11 +491,12 @@ class ClassMethodInfo {
     std::vector<Token> return_types;
     StatementsNode* body;
     bool is_constructor = false;
-    CallNode *parentConstructorCall = nullptr;
+    CallNode* parentConstructorCall = nullptr;
     std::string access;
     bool is_final = false;
     bool is_volatile = false;
     bool is_static = false;
+    std::vector<Token> modifiers;
     std::vector<GenericType> generics;
     std::string print() {
         std::string res = is_volatile ? "volatile " : "";
@@ -547,11 +551,10 @@ class ConceptInfo {
     };
     std::vector<std::pair<Block, std::optional<DefaultBlock>>> blocks;
 };
-/*
 struct ModifierInfo {
     std::vector<std::pair<Token, StatementsNode*>> handlers;
-};*/
-enum class UserTypeKind { Struct, Alias, Union, Enum, Class, Concept, /*Modifier*/ };
+};
+enum class UserTypeKind { Struct, Alias, Union, Enum, Class, Concept, Modifier };
 
 struct UnionMember {
     std::string type;
@@ -566,7 +569,7 @@ class ConceptProvee {
 struct UserTypeInfo {
     Position pos;
     UserTypeKind kind;
-    // ModifierInfo modifierInfo;
+    ModifierInfo modifierInfo;
     std::vector<ConceptProvee> provees;
     std::vector<StructField> fields;
     std::string aliasTarget;
@@ -653,12 +656,22 @@ class VarAccessNode {
 
     std::string print() const;
 };
+class ModifierNode {
+  public:
+    std::vector<Token> modifiers;
+    AnyNode node;
+    ModifierNode(std::vector<Token> modifiers, AnyNode node) {
+        this->modifiers = modifiers;
+        this->node = node;
+    }
+    Position getPos() { return modifiers.empty() ? get_pos(node) : modifiers[0].pos; }
+    std::string print() const { return "modifier(" + printAny(node) + ")"; }
+};
 class DeferNode {
   public:
     StatementsNode* block;
     Position getPos() { return get_pos(block); }
-    DeferNode(StatementsNode* block)
-        : block(block) {}
+    DeferNode(StatementsNode* block) : block(block) {}
     std::string print() const;
 };
 
@@ -787,6 +800,7 @@ class FuncDefNode {
     std::vector<Token> return_types;
     std::optional<Token> name_tok;
     std::list<Parameter> params;
+    std::vector<Token> modifiers;
     StatementsNode* body;
     std::vector<GenericType> generics;
     std::string namespace_path;
@@ -797,8 +811,8 @@ class FuncDefNode {
     bool is_header = true;
     FuncDefNode(std::vector<Token> ret_types, std::optional<Token> name, std::list<Parameter> parameters, StatementsNode* func_body,
                 std::string ns = "", bool is_ex = false, bool is_f = false, std::vector<GenericType> generics = {}, bool is_volatile = false,
-                bool is_header = false)
-        : return_types(ret_types), name_tok(name), params(parameters), body(func_body), namespace_path(ns) {
+                bool is_header = false, std::vector<Token> modifiers = {})
+        : return_types(ret_types), name_tok(name), params(parameters), body(func_body), namespace_path(ns), modifiers(modifiers) {
         this->is_extern = is_ex;
         this->is_foreign = is_f;
         this->generics = generics;
@@ -1020,7 +1034,7 @@ using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, Ch
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
                          QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode*,
-                         NullptrNode, TypeValueNode, DeferNode*>;
+                         NullptrNode, TypeValueNode, DeferNode*, ModifierNode*>;
 
 class ParseResult {
   public:
@@ -1070,8 +1084,10 @@ class Parser {
     std::string currentNamespace;
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
-    bool is_primitive_type(std::string name) { return std::unordered_set<std::string>({
-            "void", "int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"}).contains(name); }
+    bool is_primitive_type(std::string name) {
+        return std::unordered_set<std::string>({"void", "int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+            .contains(name);
+    }
     bool is_known_type(std::string name) {
         std::string base = base_type_name(name);
         if (base.ends_with("&")) { base.pop_back(); }
@@ -1206,9 +1222,10 @@ class Parser {
     Prs for_stmt();
     Prs try_catch_expr();
     Prs array_literal();
+    Prs ternary();
     Prs call(AnyNode node_to_call);
     Prs func_def_multi(std::vector<Token> return_type, std::optional<Token> func_name, std::vector<GenericType> generics, bool keep = false,
-                       bool is_volatile = false);
+                       bool is_volatile = false, std::vector<Token> modifiers = {});
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
@@ -1217,18 +1234,12 @@ class Parser {
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
             this->advance();
             auto parse_constraint_type = [&]() -> std::string {
-                if (this->current_tok.type != TokenType::KEYWORD &&
-                    this->current_tok.type != TokenType::IDENTIFIER) {
-                    return "";
-                }
+                if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) { return ""; }
                 std::string result = this->current_tok.value;
                 this->advance();
                 while (this->current_tok.type == TokenType::SCOPE) {
                     this->advance();
-                    if (this->current_tok.type != TokenType::KEYWORD &&
-                        this->current_tok.type != TokenType::IDENTIFIER) {
-                        return "";
-                    }
+                    if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) { return ""; }
                     result += "::" + this->current_tok.value;
                     this->advance();
                 }
@@ -1237,9 +1248,7 @@ class Parser {
                     result += "<";
                     int depth = 1;
                     while (depth > 0) {
-                        if (this->current_tok.type == TokenType::EOFT) {
-                            return "";
-                        }
+                        if (this->current_tok.type == TokenType::EOFT) { return ""; }
                         if (this->current_tok.type == TokenType::LESS) {
                             depth++;
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -1263,39 +1272,29 @@ class Parser {
                     this->advance();
                 }
                 std::string type = parse_constraint_type();
-                if (type.empty()) {
-                    return "";
-                }
+                if (type.empty()) { return ""; }
                 result += type;
                 return result;
             };
             auto parse_and = [&]() -> std::string {
                 std::string result = parse_not();
-                if (result.empty()) {
-                    return "";
-                }
+                if (result.empty()) { return ""; }
                 while (this->current_tok.type == TokenType::AND) {
                     result += " && ";
                     this->advance();
                     std::string rhs = parse_not();
-                    if (rhs.empty()) {
-                        return "";
-                    }
+                    if (rhs.empty()) { return ""; }
                     result += rhs;
                 }
                 return result;
             };
             std::string constraint = parse_and();
-            if (constraint.empty()) {
-                return "";
-            }
+            if (constraint.empty()) { return ""; }
             while (this->current_tok.type == TokenType::OR) {
                 constraint += " || ";
                 this->advance();
                 std::string rhs = parse_and();
-                if (rhs.empty()) {
-                    return "";
-                }
+                if (rhs.empty()) { return ""; }
                 constraint += rhs;
             }
             type += constraint;
@@ -1303,6 +1302,10 @@ class Parser {
         }
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
             type += "volatile ";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "atomic") {
+            type += "atomic ";
             this->advance();
         }
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "fn") {
@@ -1669,6 +1672,12 @@ class LLVMCompiler {
     std::unordered_map<std::string, bool> genericUnions;
     std::unordered_map<std::string, bool> genericConcepts;
     std::unordered_map<std::string, ConceptInfo> concepts;
+    struct ModifierInfo {
+        StatementsNode* onCall = nullptr;
+        StatementsNode* onReturn = nullptr;
+        StatementsNode* onUse = nullptr;
+    };
+    std::unordered_map<std::string, ModifierInfo> modifiers;
     std::unordered_map<std::string, UserTypeInfo> substitutedUnions;
     std::unordered_map<std::string, llvm::Type*> currentGenericTypes;
     std::unordered_map<std::string, std::string> currentGenericTypeStrings;
@@ -1810,10 +1819,8 @@ class LLVMCompiler {
     }
 
     void exitScope() {
-        auto *currentBlock = builder->GetInsertBlock();
-        if (currentBlock && !currentBlock->getTerminator()) {
-            emitDefersDownTo(defersStack.size());
-        }
+        auto* currentBlock = builder->GetInsertBlock();
+        if (currentBlock && !currentBlock->getTerminator()) { emitDefersDownTo(defersStack.size()); }
         defersStack.pop_back();
         localsStack.pop_back();
         volatileVarsStack.pop_back();
@@ -1828,7 +1835,7 @@ class LLVMCompiler {
         if (defersStack.empty()) return;
         int first = std::max(0, (int)targetDepth - 1);
         for (int i = (int)defersStack.size() - 1; i >= first; --i) {
-            auto defersToRun = defersStack[i]; 
+            auto defersToRun = defersStack[i];
             for (auto it = defersToRun.rbegin(); it != defersToRun.rend(); ++it) {
                 enterScope();
                 emitStmt(*it);
@@ -1986,12 +1993,41 @@ class LLVMCompiler {
             std::string fieldName = (*propAcc)->property_name.value;
             while (!currentType.empty() && userTypes.contains(baseTypeName(currentType))) {
                 auto& info = userTypes[baseTypeName(currentType)];
+                auto savedGenericTypeStrings = currentGenericTypeStrings;
+                auto savedNonTypeGenerics = currentNonTypeGenericValues;
+                currentGenericTypeStrings.clear();
+                currentNonTypeGenericValues.clear();
+                std::vector<std::string> concreteArgs = genericParamsFromName(currentType);
+                for (size_t idx = 0; idx < info.generics.size(); ++idx) {
+                    GenericType gen = info.generics[idx];
+                    std::string val = (idx < concreteArgs.size()) ? concreteArgs[idx] : gen.defaultValue;
+                    if (val.empty()) continue;
+                    if (gen.isNonType) {
+                        std::string gname = gen.name;
+                        gen.name = val;
+                        currentNonTypeGenericValues[gname] = gen;
+                    } else {
+                        currentGenericTypeStrings[gen.name] = val;
+                    }
+                }
                 for (const auto& f : info.fields) {
-                    if (f.name == fieldName) { return substituteGenerics(f.type); }
+                    if (f.name == fieldName) {
+                        std::string res = substituteGenerics(f.type);
+                        currentGenericTypeStrings = savedGenericTypeStrings;
+                        currentNonTypeGenericValues = savedNonTypeGenerics;
+                        return res;
+                    }
                 }
                 for (const auto& f : info.classFields) {
-                    if (f.name == fieldName) return substituteGenerics(f.type);
+                    if (f.name == fieldName) {
+                        std::string res = substituteGenerics(f.type);
+                        currentGenericTypeStrings = savedGenericTypeStrings;
+                        currentNonTypeGenericValues = savedNonTypeGenerics;
+                        return res;
+                    }
                 }
+                currentGenericTypeStrings = savedGenericTypeStrings;
+                currentNonTypeGenericValues = savedNonTypeGenerics;
                 currentType = info.baseClassName;
             }
             return "unknown";
@@ -2060,7 +2096,7 @@ class LLVMCompiler {
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
                     }
-                    auto node = (*callNode)->arg_nodes.back(); 
+                    auto node = (*callNode)->arg_nodes.back();
                     std::optional<EnumMatchInfo> matchInfo = matchValueToEnumMember(getExpressionType(node), (*callNode)->arg_nodes.back());
                     if (!matchInfo.has_value()) return "unknown";
                     return matchInfo->memberTypeStr;
@@ -2078,6 +2114,139 @@ class LLVMCompiler {
                 }
                 if (funcName == "`float_bits") return "float";
                 if (funcName == "`double_bits") return "double";
+                if (funcName == "`atomic_load") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_load");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_load expects 1 argument: atomic variable");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_store") { return "void"; }
+                if (funcName == "`atomic_exchange") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_exchange");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_exchange expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_add") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_add");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_add expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_sub") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_sub");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_sub expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_and") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_and");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_and expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_or") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_or");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_or expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_xor") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_xor");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_xor expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_nand") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_nand");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_nand expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_min") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_min");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_min expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_max") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_max");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_max expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_umin") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umin");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_umin expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_umax") {
+                    if ((*callNode)->arg_nodes.size() < 1) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umax");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_umax expects 2 arguments: atomic variable, value");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    return getExpressionType(node, false);
+                }
+                if (funcName == "`atomic_cmpxchg") {
+                    if ((*callNode)->arg_nodes.size() < 3) {
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_cmpxchg");
+                        cg_note((*varAcc)->var_name_tok.pos, "`atomic_cmpxchg expects 3 arguments: atomic variable, expected, desired");
+                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
+                        return "unknown";
+                    }
+                    auto node = (*callNode)->arg_nodes.front();
+                    std::string valueType = getExpressionType(node, false);
+                    return "{ " + valueType + ", bool }";
+                }
+                if (funcName == "`atomic_fence") { return "void"; }
                 if (classTypes.contains(resolveTypeName(funcName, false))) { return resolveTypeName(funcName, false); }
                 if (functionDefs.contains(funcName)) {
                     auto* def = functionDefs[funcName];
@@ -2135,9 +2304,76 @@ class LLVMCompiler {
             return foundReturnType;
         } else if (TypeValueNode* typeValue = std::get_if<TypeValueNode>(&node)) {
             return resolveTypeName(typeValue->tok.value, false);
+        } else if (ModifierNode* modNode = safe_get<ModifierNode>(node)) {
+            if (!modNode || modNode->modifiers.empty()) { return getExpressionType(modNode->node, strip); }
+            std::string currentType = getExpressionType(modNode->node, strip);
+            for (int i = (int)modNode->modifiers.size() - 1; i >= 0; --i) {
+                Token modTok = modNode->modifiers[i];
+                if (!modifiers.count(modTok.value)) continue;
+                ModifierInfo& modInfo = modifiers[modTok.value];
+                if (!modInfo.onUse) continue;
+                enterScope();
+                varTypes["value"] = currentType;
+                std::string retType = "void";
+                for (auto& stmt : modInfo.onUse->statements) {
+                    if (std::holds_alternative<ReturnNode*>(stmt)) {
+                        auto* retNode = std::get<ReturnNode*>(stmt);
+                        if (retNode) { retType = getExpressionType(retNode->value, false); }
+                        break;
+                    }
+                }
+                exitScope();
+                currentType = retType;
+            }
+            return currentType;
         }
         return "unknown";
     }
+    llvm::Value* emitModifierNode(ModifierNode* node) {
+        if (!node || node->modifiers.empty()) { return emitExpr(node->node); }
+        llvm::Value* currentValue = emitExpr(node->node);
+        if (!currentValue) return nullptr;
+        std::string currentTypeStr = getExpressionType(node->node, false);
+        for (int i = (int)node->modifiers.size() - 1; i >= 0; --i) {
+            Token modTok = node->modifiers[i];
+            if (!modifiers.count(modTok.value)) {
+                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                return nullptr;
+            }
+            ModifierInfo& modInfo = modifiers[modTok.value];
+            if (!modInfo.onUse) {
+                cg_error(modTok.pos, "modifier '" + modTok.value + "' has no 'on_use' handler");
+                return nullptr;
+            }
+            static unsigned onUseId = 0;
+            Token helperNameTok = modTok;
+            helperNameTok.value = "_on_use_" + modTok.value + "_" + std::to_string(onUseId++);
+            std::list<Parameter> params;
+            Parameter valParam;
+            valParam.name = Token{TokenType::IDENTIFIER, "value", modTok.pos};
+            valParam.type = Token{TokenType::IDENTIFIER, currentTypeStr, modTok.pos};
+            params.push_back(valParam);
+            enterScope();
+            varTypes["value"] = currentTypeStr;
+            std::string deducedRetType = "void";
+            for (auto& stmt : modInfo.onUse->statements) {
+                if (std::holds_alternative<ReturnNode*>(stmt)) {
+                    auto* retNode = std::get<ReturnNode*>(stmt);
+                    if (retNode) { deducedRetType = getExpressionType(retNode->value, false); }
+                    break;
+                }
+            }
+            exitScope();
+            std::vector<Token> retTypes;
+            if (deducedRetType != "void") { retTypes.push_back(Token{TokenType::IDENTIFIER, deducedRetType, modTok.pos}); }
+            FuncDefNode helperFn(retTypes, std::optional<Token>(helperNameTok), params, modInfo.onUse);
+            llvm::Function* helperFunc = emitFuncDef(helperFn);
+            if (!helperFunc) return nullptr;
+            currentValue = builder->CreateCall(helperFunc, {currentValue});
+        }
+        return currentValue;
+    }
+
     bool returnsRef(unsigned index = 0) {
         auto* md = currentFunction->getMetadata("qc.return_types");
         if (!md || index >= md->getNumOperands()) return false;
@@ -2160,9 +2396,7 @@ class LLVMCompiler {
     };
     */
     llvm::Value* derefIfReference(llvm::Value* val, AnyNode& argNode) {
-        if (val && isEnumType(val->getType())) {
-            return builder->CreateExtractValue(val, 0);
-        }
+        if (val && isEnumType(val->getType())) { return builder->CreateExtractValue(val, 0); }
         if (!val || !val->getType()->isPointerTy()) return val;
         std::string qcType = substituteGenerics(getExpressionType(argNode, false));
         if (!qcType.ends_with("&")) return val;
@@ -2745,9 +2979,7 @@ class LLVMCompiler {
                 if (!v) return {};
             } else {
             }
-            if (v->getType()->isArrayTy() && i < fnTy->getNumParams() && fnTy->getParamType(i)->isPointerTy()) {
-                v = decayArrayToPointer(v);
-            }
+            if (v->getType()->isArrayTy() && i < fnTy->getNumParams() && fnTy->getParamType(i)->isPointerTy()) { v = decayArrayToPointer(v); }
             args.push_back(v);
         }
         return args;
@@ -2914,7 +3146,7 @@ class LLVMCompiler {
         std::string mangledName = className + delim + method.name_tok.value;
         Token nameTok(TokenType::IDENTIFIER, mangledName, method.name_tok.pos);
         return new FuncDefNode(method.return_types, nameTok, std::list(method.params.begin(), method.params.end()), method.body, "", false, false,
-                               method.generics, false);
+                               method.generics, false, isHeader, method.modifiers);
     }
     std::unordered_map<std::string, std::unordered_map<std::string, llvm::Function*>> genericisedMethods;
     llvm::Value* tryHandleSpecialized(const std::string& className, const std::string& methodName, MethodCallNode* node, llvm::Value* thisPtr) {
@@ -3257,9 +3489,15 @@ class LLVMCompiler {
                 for (size_t i = 0; i < m.params.size(); i++) {
                     llvm::Type* declaredTy = llvmTypeFor(m.params[i].type.value);
                     llvm::Type* actualTy = method->getFunctionType()->getParamType(i + 1);
-                    if (declaredTy != actualTy) { typesMatch = false; break; }
+                    if (declaredTy != actualTy) {
+                        typesMatch = false;
+                        break;
+                    }
                 }
-                if (typesMatch) { info = &m; break; }
+                if (typesMatch) {
+                    info = &m;
+                    break;
+                }
             }
             searchClass = userTypes.at(baseTypeName(searchClass)).baseClassName;
         }
@@ -3320,7 +3558,7 @@ class LLVMCompiler {
             currentGenericTypeStrings = oldGenericTypeStrings;
             currentNonTypeGenericValues = oldNonTypeGenerics;
             return nullptr;
-        }        
+        }
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) {
@@ -3342,24 +3580,6 @@ class LLVMCompiler {
             fn->addFnAttr(llvm::Attribute::OptimizeNone);
             fn->addFnAttr("noipa");
         }
-        for (size_t i = 0; i < method.params.size(); i++) {
-            auto& param = method.params[i];
-            llvm::Type* paramTy;
-            std::string typeDescriptor;
-
-            if (param.signature.has_value()) {
-                paramTy = llvm::PointerType::get(context, 0);
-                typeDescriptor = "fn";
-            } else {
-                typeDescriptor = resolveTypeName(param.type.value, false);
-                paramTy = llvmTypeFor(typeDescriptor);
-            }
-            llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
-            builder->CreateStore(fn->getArg(i + 1), alloc);
-            locals[param.name.value] = alloc;
-            varTypes[param.name.value] = typeDescriptor;
-            volatileVars[param.name.value] = param.isVolatile;
-        }
         for (int i = 1; i < fnTy->getNumParams(); i++) {
             if (method.params[i - 1].type.value.starts_with("out ")) {
                 fn->addParamAttr(i, llvm::Attribute::WriteOnly);
@@ -3370,15 +3590,38 @@ class LLVMCompiler {
             if (method.params[i - 1].type.value.ends_with("restrict")) { fn->addParamAttr(i, llvm::Attribute::NoAlias); }
         }
         if (isHeader) return nullptr;
-        currentFunction = fn;
+        llvm::Function* currentTarget = fn;
+        if (!method.modifiers.empty()) {
+            std::string implName = "_impl_" + specializedName;
+            currentTarget = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, implName, module);
+        }
+        currentFunction = currentTarget;
         currentClassName = className;
-        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", fn);
+        llvm::BasicBlock* entry = llvm::BasicBlock::Create(context, "entry", currentTarget);
         builder->SetInsertPoint(entry);
-        auto argIt = fn->arg_begin();
-        currentThis = &*argIt;
-        ++argIt;
-        paramIdx = 0;
-        for (auto& stmt : method.body->statements) { emitStmt(stmt); }
+        currentThis = currentTarget->getArg(0);
+        varTypes["this"] = className + "*";
+        volatileVars["this"] = false;
+        for (size_t i = 0; i < method.params.size(); i++) {
+            auto& param = method.params[i];
+            llvm::Type* paramTy;
+            std::string typeDescriptor;
+            if (param.signature.has_value()) {
+                paramTy = llvm::PointerType::get(context, 0);
+                typeDescriptor = "fn";
+            } else {
+                typeDescriptor = resolveTypeName(param.type.value, false);
+                paramTy = llvmTypeFor(typeDescriptor);
+            }
+            llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
+            builder->CreateStore(currentTarget->getArg(i + 1), alloc);
+            locals[param.name.value] = alloc;
+            varTypes[param.name.value] = typeDescriptor;
+            volatileVars[param.name.value] = param.isVolatile;
+        }
+        if (method.body) {
+            for (auto& stmt : method.body->statements) { emitStmt(stmt); }
+        }
         if (!builder->GetInsertBlock()->getTerminator()) {
             if (baseFuncTy->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
@@ -3387,6 +3630,73 @@ class LLVMCompiler {
             }
         }
         exitScope();
+        if (!method.modifiers.empty()) {
+            for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
+                Token modTok = method.modifiers[i];
+                if (!modifiers.count(modTok.value)) {
+                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                    continue;
+                }
+                ModifierInfo& modInfo = modifiers[modTok.value];
+                bool isOutermost = (i == 0);
+                std::string layerName = isOutermost ? specializedName : ("_mod_" + std::to_string(i) + "_" + specializedName);
+                auto linkage = isOutermost ? llvm::Function::ExternalLinkage : llvm::Function::InternalLinkage;
+                std::string proceedName = "_proceed_" + std::to_string(i) + "_" + specializedName;
+                llvm::Function* proceedFunc = synthesizeProceed(proceedName, currentTarget, modInfo.onReturn,
+                                                                *funcDefFromClassMethod(method, className, "_"));
+                llvm::Function* layerFunc = isOutermost ? fn : module->getFunction(layerName);
+                if (!layerFunc) { layerFunc = llvm::Function::Create(fnTy, linkage, layerName, module); }
+                auto savedDefers = defersStack;
+                defersStack.clear();
+                enterScope();
+                llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+                auto* entryBB = llvm::BasicBlock::Create(context, "entry", layerFunc);
+                builder->SetInsertPoint(entryBB);
+                auto* prevFunction = currentFunction;
+                auto prevThis = currentThis;
+                currentFunction = layerFunc;
+                currentThis = layerFunc->getArg(0);
+                varTypes["this"] = className + "*";
+                std::vector<llvm::Value*> forwardArgs;
+                forwardArgs.push_back(currentThis);
+                for (size_t pIdx = 0; pIdx < method.params.size(); pIdx++) {
+                    auto& param = method.params[pIdx];
+                    llvm::Value* argVal = layerFunc->getArg(pIdx + 1);
+                    argVal->setName(param.name.value);
+                    auto* alloca = createEntryAlloca(param.name.value, argVal->getType());
+                    builder->CreateStore(argVal, alloca);
+                    locals[param.name.value] = alloca;
+                    varTypes[param.name.value] = param.signature.has_value() ? "fn" : resolveTypeName(param.type.value, false);
+                    forwardArgs.push_back(argVal);
+                }
+                functions["proceed"] = proceedFunc;
+                if (modInfo.onCall) {
+                    for (auto& stmt : modInfo.onCall->statements) { emitStmt(stmt); }
+                } else {
+                    if (fnTy->getReturnType()->isVoidTy()) {
+                        builder->CreateCall(proceedFunc, forwardArgs);
+                        builder->CreateRetVoid();
+                    } else {
+                        llvm::Value* retVal = builder->CreateCall(proceedFunc, forwardArgs);
+                        builder->CreateRet(retVal);
+                    }
+                }
+                if (!builder->GetInsertBlock()->getTerminator()) {
+                    if (fnTy->getReturnType()->isVoidTy()) {
+                        builder->CreateRetVoid();
+                    } else {
+                        builder->CreateRet(llvm::ConstantAggregateZero::get(fnTy->getReturnType()));
+                    }
+                }
+                if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
+                currentFunction = prevFunction;
+                currentThis = prevThis;
+                functions.erase("proceed");
+                exitScope();
+                defersStack = savedDefers;
+                currentTarget = layerFunc;
+            }
+        }
         namespaceStack = savedNamespaceStack;
         currentFunction = savedFunction;
         globals = savedGlobals;
@@ -3425,7 +3735,25 @@ class LLVMCompiler {
             currentGenericTypeStrings = oldGenericTypeStrings;
             currentNonTypeGenericValues = oldNonTypeGenerics;
             return nullptr;
-        }    
+        }
+        if (!funcDef->modifiers.empty()) {
+            FuncDefNode specFn = *funcDef;
+            specFn.generics.clear();
+            Token specNameTok = funcDef->name_tok.value_or(Token{TokenType::IDENTIFIER, specializedName, get_pos(funcDef)});
+            specNameTok.value = specializedName;
+            specFn.name_tok = specNameTok;
+            for (auto& param : specFn.params) { param.type.value = substituteGenerics(param.type.value); }
+            for (auto& ret : specFn.return_types) { ret.value = substituteGenerics(ret.value); }
+            llvm::Function* specializedResult = emitFuncDef(specFn);
+            this->currentGenericTypes = oldGenericTypes;
+            currentGenericTypeStrings = oldGenericTypeStrings;
+            currentNonTypeGenericValues = oldNonTypeGenerics;
+            namespaceStack = savedNamespaceStack;
+            currentFunction = savedFunction;
+            globals = savedGlobals;
+            if (savedBlock) { builder->SetInsertPoint(savedBlock); }
+            return specializedResult;
+        }
         namespaceStack.clear();
         size_t nsSep = specializedName.rfind("::");
         if (nsSep != std::string::npos) { namespaceStack = {specializedName.substr(0, nsSep)}; }
@@ -3655,23 +3983,16 @@ class LLVMCompiler {
     }
     bool testExpression(AnyNode expr) {
         auto saved_ip = builder->saveIP();
-        llvm::FunctionType *fnType = llvm::FunctionType::get(builder->getVoidTy(), false);
-        llvm::Function *dummy_fn = llvm::Function::Create(
-            fnType,
-            llvm::Function::InternalLinkage,
-            "__qc_concept_probe",
-            *module
-        );
-        llvm::BasicBlock *dummyBB = llvm::BasicBlock::Create(context, "concept_probe", dummy_fn);
+        llvm::FunctionType* fnType = llvm::FunctionType::get(builder->getVoidTy(), false);
+        llvm::Function* dummy_fn = llvm::Function::Create(fnType, llvm::Function::InternalLinkage, "__qc_concept_probe", *module);
+        llvm::BasicBlock* dummyBB = llvm::BasicBlock::Create(context, "concept_probe", dummy_fn);
         builder->SetInsertPoint(dummyBB);
         bool valid = false;
         try {
             size_t size = errors.size();
-            llvm::Value *val = emitExpr(expr);
+            llvm::Value* val = emitExpr(expr);
             valid = size == errors.size();
-        } catch (...) {
-            valid = false;
-        }
+        } catch (...) { valid = false; }
         dummyBB->eraseFromParent();
         builder->restoreIP(saved_ip);
         return valid;
@@ -3682,9 +4003,7 @@ class LLVMCompiler {
         for (auto& proof : info.provees) {
             std::string mapKey = proof.proverName.value;
             std::unordered_set<std::string> additionalProofNames;
-            for (auto& proofMethod : proof.additionalProof) {
-                additionalProofNames.insert(proofMethod.name_tok.value);
-            }
+            for (auto& proofMethod : proof.additionalProof) { additionalProofNames.insert(proofMethod.name_tok.value); }
             auto alreadyDefd = [&](const std::string& methodName, const std::vector<Parameter>& sigParams) -> bool {
                 std::string mangledName = mapKey + "_" + methodName;
                 auto it = functionDefs.find(mangledName);
@@ -3695,13 +4014,12 @@ class LLVMCompiler {
                 for (size_t i = 0; i < sigParams.size(); ++i, ++actualParamIt) {
                     std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
                     std::string actualType = (actualParamIt->type.value == "Self") ? mapKey + "*" : actualParamIt->type.value;
-                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) {
-                        return false;
-                    }
+                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) { return false; }
                 }
                 return true;
             };
-            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ConceptProvee& proof) -> bool {
+            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType,
+                                        const ConceptProvee& proof) -> bool {
                 std::string methodName = sig.name.value;
                 auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
                     if (sigParams.size() != targetParams.size()) return false;
@@ -3720,12 +4038,14 @@ class LLVMCompiler {
                 }
                 return alreadyDefd(methodName, sig.params);
             };
-            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock = 
-            [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
+            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock =
+                [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
                 auto b = block.first;
                 std::vector<std::string> scopedParams;
                 for (auto& param : b.params) {
-                    std::string param_type_name = (param.first == "Proving") ? mapKey : (param.first == "Self")    ? mapKey + "*" : resolveTypeName(param.first, false);
+                    std::string param_type_name = (param.first == "Proving") ? mapKey
+                                                  : (param.first == "Self")  ? mapKey + "*"
+                                                                             : resolveTypeName(param.first, false);
                     locals[param.second] = createEntryAlloca(param.second, llvmTypeFor(param_type_name));
                     varTypes[param.second] = param_type_name;
                     volatileVars[param.second] = false;
@@ -3790,31 +4110,31 @@ class LLVMCompiler {
                     size_t pos = val.find("_of");
                     if (pos != std::string::npos) {
                         std::string numStr = val.substr(0, pos);
-                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) {
-                            requiredCount = std::stoi(numStr);
-                        }
+                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) { requiredCount = std::stoi(numStr); }
                     }
-                    if (isAtLeast) failed = (int)passedConstraints.size() < requiredCount;
-                    else failed = (int)passedConstraints.size() != requiredCount;
+                    if (isAtLeast)
+                        failed = (int)passedConstraints.size() < requiredCount;
+                    else
+                        failed = (int)passedConstraints.size() != requiredCount;
                 }
                 if (failed && !block.second.has_value()) {
                     if (requiredCount >= 0) {
                         cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
-                        cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfilled" :
-                            "the amount of fulfilled constraints was not equal to " + std::to_string(requiredCount)) + " (amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
-                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        cg_note(block.first.constraint.pos,
+                                (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfilled"
+                                           : "the amount of fulfilled constraints was not equal to " + std::to_string(requiredCount)) +
+                                    " (amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
+                        cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }
-                        cg_note(proof.proverName.pos, "passed constraints were:"); 
-                        for (auto& passedConstraintPos : passedConstraints) {
-                            cg_note(passedConstraintPos, "");
-                        }
+                        cg_note(proof.proverName.pos, "passed constraints were:");
+                        for (auto& passedConstraintPos : passedConstraints) { cg_note(passedConstraintPos, ""); }
                     } else {
                         cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
-                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }
@@ -3826,31 +4146,23 @@ class LLVMCompiler {
             bool allConceptBlocksPassed = true;
             for (std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block : conceptInfo.blocks) {
                 bool blockPassed = verifyBlock(block);
-                if (!blockPassed && !block.second.has_value()) {
-                    allConceptBlocksPassed = false;
-                }
+                if (!blockPassed && !block.second.has_value()) { allConceptBlocksPassed = false; }
                 if (blockPassed || block.second.has_value()) {
                     if (info.kind == UserTypeKind::Class) {
                         for (auto& proofMethod : proof.additionalProof) {
                             info.classMethods.push_back(proofMethod);
                             size_t newIdx = info.classMethods.size() - 1;
                             if (!proofMethod.generics.empty()) {
-                                if (!proofMethod.is_static) {
-                                    genericMethodIndices[mapKey].push_back(newIdx);
-                                }
+                                if (!proofMethod.is_static) { genericMethodIndices[mapKey].push_back(newIdx); }
                             } else {
                                 std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
                                 std::vector<llvm::Type*> paramTypes;
                                 paramTypes.push_back(llvm::PointerType::get(context, 0));
                                 llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(proofMethod.return_types, proofMethod.params);
-                                for (auto* paramTy : baseFuncTy->params()) { 
-                                    paramTypes.push_back(paramTy); 
-                                }
+                                for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
                                 llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
                                 llvm::Function* fn = module->getFunction(methodName);
-                                if (!fn) {
-                                    fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module);
-                                }
+                                if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module); }
                                 classMethods[mapKey][proofMethod.name_tok.value].push_back(fn);
                                 functionDefs[methodName] = funcDefFromClassMethod(proofMethod, mapKey, "_");
                             }
@@ -3860,21 +4172,15 @@ class LLVMCompiler {
                             std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
                             ClassMethodInfo concreteMethod = proofMethod;
                             for (auto& param : concreteMethod.params) {
-                                if (param.type.value == "Self") {
-                                    param.type.value = mapKey + "*";
-                                }
+                                if (param.type.value == "Self") { param.type.value = mapKey + "*"; }
                             }
                             for (auto& ret : concreteMethod.return_types) {
-                                if (ret.value == "Self") {
-                                    ret.value = mapKey + "*";
-                                }
+                                if (ret.value == "Self") { ret.value = mapKey + "*"; }
                             }
-                            FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                            FuncDefNode* funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                             functionDefs[methodName] = funcNode;
-                            if (!concreteMethod.generics.empty()) {
-                                continue;
-                            }
-                            emitFuncDef(*funcNode);                       
+                            if (!concreteMethod.generics.empty()) { continue; }
+                            emitFuncDef(*funcNode);
                         }
                     }
                 }
@@ -3896,47 +4202,35 @@ class LLVMCompiler {
                             if (!alreadyProvided) {
                                 ClassMethodInfo concreteMethod = defaultMethod;
                                 for (auto& param : concreteMethod.params) {
-                                    if (param.type.value == "Self") {
-                                        param.type.value = mapKey + "*";
-                                    }
+                                    if (param.type.value == "Self") { param.type.value = mapKey + "*"; }
                                 }
                                 for (auto& ret : concreteMethod.return_types) {
-                                    if (ret.value == "Self") {
-                                        ret.value = mapKey + "*";
-                                    }
+                                    if (ret.value == "Self") { ret.value = mapKey + "*"; }
                                 }
                                 if (info.kind == UserTypeKind::Class) {
                                     info.classMethods.push_back(concreteMethod);
                                     size_t newIdx = info.classMethods.size() - 1;
                                     if (!concreteMethod.generics.empty()) {
-                                        if (!concreteMethod.is_static) {
-                                            genericMethodIndices[mapKey].push_back(newIdx);
-                                        }
+                                        if (!concreteMethod.is_static) { genericMethodIndices[mapKey].push_back(newIdx); }
                                     } else {
                                         std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
                                         std::vector<llvm::Type*> paramTypes;
                                         paramTypes.push_back(llvm::PointerType::get(context, 0));
                                         llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(concreteMethod.return_types, concreteMethod.params);
-                                        for (auto* paramTy : baseFuncTy->params()) {
-                                            paramTypes.push_back(paramTy);
-                                        }
+                                        for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
                                         llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
                                         llvm::Function* fn = module->getFunction(mangledName);
-                                        if (!fn) {
-                                            fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module);
-                                        }
+                                        if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module); }
                                         classMethods[mapKey][concreteMethod.name_tok.value].push_back(fn);
                                         functionDefs[mangledName] = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                                     }
                                 } else {
                                     std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
-                                    FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                    FuncDefNode* funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                                     functionDefs[mangledName] = funcNode;
-                                    if (!concreteMethod.generics.empty()) {
-                                        continue;
-                                    }
+                                    if (!concreteMethod.generics.empty()) { continue; }
                                     emitFuncDef(*funcNode);
-                                }                            
+                                }
                             }
                         }
                     }
@@ -3954,31 +4248,24 @@ class LLVMCompiler {
                 continue;
             }
             std::unordered_set<std::string> additionalProofNames;
-            for (auto& proofMethod : proof.additionalProof) {
-                additionalProofNames.insert(proofMethod.name_tok.value);
-            }
+            for (auto& proofMethod : proof.additionalProof) { additionalProofNames.insert(proofMethod.name_tok.value); }
             auto alreadyDefd = [&](const std::string& methodName, const std::vector<Parameter>& sigParams) -> bool {
                 std::string mangledName = mapKey + "_" + methodName;
                 auto it = functionDefs.find(mangledName);
-                if (it == functionDefs.end()) {
-                    return false;
-                }
+                if (it == functionDefs.end()) { return false; }
                 FuncDefNode* funcNode = it->second;
                 if (!funcNode) return false;
-                if (funcNode->params.size() != sigParams.size()) {
-                    return false;
-                }
+                if (funcNode->params.size() != sigParams.size()) { return false; }
                 auto actualParamIt = funcNode->params.begin();
                 for (size_t i = 0; i < sigParams.size(); ++i, ++actualParamIt) {
                     std::string expectedType = (sigParams[i].type.value == "Self") ? mapKey + "*" : sigParams[i].type.value;
                     std::string actualType = (actualParamIt->type.value == "Self") ? mapKey + "*" : actualParamIt->type.value;
-                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) {
-                        return false;
-                    }
+                    if (resolveTypeName(expectedType, false) != resolveTypeName(actualType, false)) { return false; }
                 }
                 return true;
             };
-            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType, const ConceptProvee& proof) -> bool {
+            auto matchesSignature = [&](const ConceptInfo::FunctionSignature& sig, const UserTypeInfo& targetType,
+                                        const ConceptProvee& proof) -> bool {
                 std::string methodName = sig.name.value;
                 auto matchesParams = [&](const std::vector<Parameter>& sigParams, const std::vector<Parameter>& targetParams) {
                     if (sigParams.size() != targetParams.size()) return false;
@@ -3990,22 +4277,16 @@ class LLVMCompiler {
                     return true;
                 };
                 for (auto& method : targetType.classMethods) {
-                    if (method.name_tok.value == methodName && matchesParams(sig.params, method.params)) {
-                        return true;
-                    }
+                    if (method.name_tok.value == methodName && matchesParams(sig.params, method.params)) { return true; }
                 }
                 for (auto& proofMethod : proof.additionalProof) {
-                    if (proofMethod.name_tok.value == methodName && matchesParams(sig.params, proofMethod.params)) {
-                        return true;
-                    }
+                    if (proofMethod.name_tok.value == methodName && matchesParams(sig.params, proofMethod.params)) { return true; }
                 }
-                if (alreadyDefd(methodName, sig.params)) {
-                    return true;
-                }
+                if (alreadyDefd(methodName, sig.params)) { return true; }
                 return false;
             };
-            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock = 
-            [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
+            std::function<bool(const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>&)> verifyBlock =
+                [&](const std::pair<ConceptInfo::Block, std::optional<ConceptInfo::DefaultBlock>>& block) -> bool {
                 auto b = block.first;
                 for (auto& param : b.params) {
                     std::string param_type_name;
@@ -4023,7 +4304,7 @@ class LLVMCompiler {
                 }
                 std::vector<std::pair<Position, std::optional<std::string>>> failedConstraints;
                 std::vector<Position> passedConstraints;
-                 for (const Token& requiredConcept : b.requiredConcepts) {
+                for (const Token& requiredConcept : b.requiredConcepts) {
                     std::string reqConceptName = resolveTypeName(requiredConcept.value, false);
                     std::string reqConceptBase = baseTypeName(reqConceptName);
                     auto reqIt = userTypes.find(reqConceptBase);
@@ -4075,32 +4356,32 @@ class LLVMCompiler {
                     size_t pos = val.find("_of");
                     if (pos != std::string::npos) {
                         std::string numStr = val.substr(0, pos);
-                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) {
-                            requiredCount = std::stoi(numStr);
-                        }
+                        if (!numStr.empty() && std::all_of(numStr.begin(), numStr.end(), ::isdigit)) { requiredCount = std::stoi(numStr); }
                     }
-                    if (isAtLeast) failed = (int)passedConstraints.size() < requiredCount;
-                    else failed = (int)passedConstraints.size() != requiredCount;
+                    if (isAtLeast)
+                        failed = (int)passedConstraints.size() < requiredCount;
+                    else
+                        failed = (int)passedConstraints.size() != requiredCount;
                 }
                 if (failed && !block.second.has_value()) {
                     if (requiredCount >= 0) {
                         cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
-                        cg_note(block.first.constraint.pos, (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled" :
-                            "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) + "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
-                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        cg_note(block.first.constraint.pos,
+                                (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled"
+                                           : "the amount of fulfiled constraints was not equal to " + std::to_string(requiredCount)) +
+                                    "(amount of fulfilled constraints: " + std::to_string(passedConstraints.size()) + ")");
+                        cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }
-                        cg_note(proof.proverName.pos, "passed constraints were:"); 
-                        for (auto& passedConstraintPos : passedConstraints) {
-                            cg_note(passedConstraintPos, "");
-                        }
+                        cg_note(proof.proverName.pos, "passed constraints were:");
+                        for (auto& passedConstraintPos : passedConstraints) { cg_note(passedConstraintPos, ""); }
 
                     } else {
                         cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
                         cg_note(block.first.constraint.pos, "due to this constraint block");
-                        cg_note(proof.proverName.pos, "failed constraints were:"); 
+                        cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
                             cg_note(failedConstraintPos, additionalMessage.has_value() ? ("    " + additionalMessage.value()) : "");
                         }
@@ -4117,24 +4398,17 @@ class LLVMCompiler {
                             info.classMethods.push_back(proofMethod);
                             size_t newIdx = info.classMethods.size() - 1;
                             if (!proofMethod.generics.empty()) {
-                                if (!proofMethod.is_static) {
-                                    genericMethodIndices[mapKey].push_back(newIdx);
-                                }
+                                if (!proofMethod.is_static) { genericMethodIndices[mapKey].push_back(newIdx); }
                             } else {
                                 std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
                                 std::vector<llvm::Type*> paramTypes;
                                 paramTypes.push_back(llvm::PointerType::get(context, 0));
                                 llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(proofMethod.return_types, proofMethod.params);
-                                for (auto* paramTy : baseFuncTy->params()) { 
-                                    paramTypes.push_back(paramTy); 
-                                }
+                                for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
                                 llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
                                 llvm::Function* fn = module->getFunction(methodName);
-                                if (!fn) {
-                                    fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module);
-                                }
+                                if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, methodName, module); }
                                 classMethods[mapKey][proofMethod.name_tok.value].push_back(fn);
-                                functionDefs[methodName] = funcDefFromClassMethod(proofMethod, mapKey, "_");
                             }
                         }
                     } else {
@@ -4142,21 +4416,15 @@ class LLVMCompiler {
                             std::string methodName = mapKey + "_" + proofMethod.name_tok.value;
                             ClassMethodInfo concreteMethod = proofMethod;
                             for (auto& param : concreteMethod.params) {
-                                if (param.type.value == "Self") {
-                                    param.type.value = mapKey + "*";
-                                }
+                                if (param.type.value == "Self") { param.type.value = mapKey + "*"; }
                             }
                             for (auto& ret : concreteMethod.return_types) {
-                                if (ret.value == "Self") {
-                                    ret.value = mapKey + "*";
-                                }
+                                if (ret.value == "Self") { ret.value = mapKey + "*"; }
                             }
-                            FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                            FuncDefNode* funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                             functionDefs[methodName] = funcNode;
-                            if (!concreteMethod.generics.empty()) {
-                                continue;
-                            }
-                            emitFuncDef(*funcNode);                       
+                            if (!concreteMethod.generics.empty()) { continue; }
+                            emitFuncDef(*funcNode);
                         }
                     }
                 }
@@ -4179,47 +4447,35 @@ class LLVMCompiler {
                                 if (!alreadyProvided) {
                                     ClassMethodInfo concreteMethod = defaultMethod;
                                     for (auto& param : concreteMethod.params) {
-                                        if (param.type.value == "Self") {
-                                            param.type.value = mapKey + "*";
-                                        }
+                                        if (param.type.value == "Self") { param.type.value = mapKey + "*"; }
                                     }
                                     for (auto& ret : concreteMethod.return_types) {
-                                        if (ret.value == "Self") {
-                                            ret.value = mapKey + "*";
-                                        }
+                                        if (ret.value == "Self") { ret.value = mapKey + "*"; }
                                     }
                                     if (info.kind == UserTypeKind::Class) {
                                         info.classMethods.push_back(concreteMethod);
                                         size_t newIdx = info.classMethods.size() - 1;
                                         if (!concreteMethod.generics.empty()) {
-                                            if (!concreteMethod.is_static) {
-                                                genericMethodIndices[mapKey].push_back(newIdx);
-                                            }
+                                            if (!concreteMethod.is_static) { genericMethodIndices[mapKey].push_back(newIdx); }
                                         } else {
                                             std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
                                             std::vector<llvm::Type*> paramTypes;
                                             paramTypes.push_back(llvm::PointerType::get(context, 0));
                                             llvm::FunctionType* baseFuncTy = llvmFuncTypeFor(concreteMethod.return_types, concreteMethod.params);
-                                            for (auto* paramTy : baseFuncTy->params()) {
-                                                paramTypes.push_back(paramTy);
-                                            }
+                                            for (auto* paramTy : baseFuncTy->params()) { paramTypes.push_back(paramTy); }
                                             llvm::FunctionType* fnTy = llvm::FunctionType::get(baseFuncTy->getReturnType(), paramTypes, false);
                                             llvm::Function* fn = module->getFunction(mangledName);
-                                            if (!fn) {
-                                                fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module);
-                                            }
+                                            if (!fn) { fn = llvm::Function::Create(fnTy, llvm::Function::ExternalLinkage, mangledName, module); }
                                             classMethods[mapKey][concreteMethod.name_tok.value].push_back(fn);
                                             functionDefs[mangledName] = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                                         }
                                     } else {
                                         std::string mangledName = mapKey + "_" + concreteMethod.name_tok.value;
-                                        FuncDefNode *funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
+                                        FuncDefNode* funcNode = funcDefFromClassMethod(concreteMethod, mapKey, "_");
                                         functionDefs[mangledName] = funcNode;
-                                        if (!concreteMethod.generics.empty()) {
-                                            continue;
-                                        }
+                                        if (!concreteMethod.generics.empty()) { continue; }
                                         emitFuncDef(*funcNode);
-                                    }                            
+                                    }
                                 }
                             }
                         }
@@ -4492,20 +4748,22 @@ class LLVMCompiler {
         return name;
     }
     llvm::Function* resolveFunction(const std::string& name) {
-        if (name.find("::") != std::string::npos) { return module->getFunction(name); }
+        if (name.find("::") != std::string::npos) {
+            if (llvm::Function* f = module->getFunction(name)) return f;
+            if (auto fi = functions.find(name); fi != functions.end()) return fi->second;
+        }
         std::string current = getCurrentNamespace();
         while (true) {
             std::string fullName = current.empty() ? name : current + "::" + name;
 
             llvm::Function* fn = module->getFunction(fullName);
             if (fn) return fn;
-
+            auto fi = functions.find(fullName);
+            if (fi != functions.end()) return fi->second;
             if (current.empty()) break;
-
             size_t pos = current.rfind("::");
             current = (pos == std::string::npos) ? "" : current.substr(0, pos);
         }
-
         return nullptr;
     }
 
@@ -4699,6 +4957,59 @@ class LLVMCompiler {
     std::pair<bool, int> checkJagged(AnyNode& node);
     llvm::Value* boolToQBool(llvm::Value* boolVal);
     void addRuntimeToModule();
+    llvm::Function* synthesizeProceed(const std::string& proceedName, llvm::Function* nextTargetFunc, StatementsNode* onReturnBody,
+                                      const FuncDefNode& fn) {
+        llvm::FunctionType* fTy = nextTargetFunc->getFunctionType();
+        llvm::Function* proceedFunc = llvm::Function::Create(fTy, llvm::Function::InternalLinkage, proceedName, module);
+        enterScope();
+        llvm::BasicBlock* entryBB = llvm::BasicBlock::Create(context, "entry", proceedFunc);
+        llvm::BasicBlock* savedInsertBlock = builder->GetInsertBlock();
+        builder->SetInsertPoint(entryBB);
+        llvm::Function* oldFunction = currentFunction;
+        currentFunction = proceedFunc;
+        std::vector<llvm::Value*> callArgs;
+        unsigned idx = 0;
+        for (auto& arg : proceedFunc->args()) {
+            auto& param = *std::next(fn.params.begin(), idx);
+            arg.setName(param.name.value);
+            auto* alloca = createEntryAlloca(arg.getName().str(), arg.getType());
+            builder->CreateStore(&arg, alloca);
+            locals[param.name.value] = alloca;
+            varTypes[param.name.value] = param.type.value;
+            callArgs.push_back(&arg);
+            idx++;
+        }
+        llvm::Value* retVal = nullptr;
+        if (fTy->getReturnType()->isVoidTy()) {
+            builder->CreateCall(nextTargetFunc, callArgs);
+        } else {
+            retVal = builder->CreateCall(nextTargetFunc, callArgs, "raw_return");
+        }
+        if (onReturnBody) {
+            if (retVal != nullptr) {
+                llvm::AllocaInst* retAlloc = createEntryAlloca("returns", retVal->getType());
+                builder->CreateStore(retVal, retAlloc);
+                locals["returns"] = retAlloc;
+                varTypes["returns"] = fn.return_types.empty() ? "void" : fn.return_types[0].value;
+            } else {
+                llvm::AllocaInst* retAlloc = createEntryAlloca("returns", builder->getPtrTy());
+                builder->CreateStore(llvm::ConstantPointerNull::get(builder->getPtrTy()), retAlloc);
+                locals["returns"] = retAlloc;
+                varTypes["returns"] = "void*";
+            }
+            for (auto& stmt : onReturnBody->statements) { emitStmt(stmt); }
+            if (retVal != nullptr) { retVal = builder->CreateLoad(retVal->getType(), locals["returns"]); }
+        }
+        if (fTy->getReturnType()->isVoidTy()) {
+            builder->CreateRetVoid();
+        } else {
+            builder->CreateRet(retVal);
+        }
+        if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
+        currentFunction = oldFunction;
+        exitScope();
+        return proceedFunc;
+    }
     llvm::Function* emitFuncDef(const FuncDefNode& fn);
     llvm::FunctionType* llvmFuncTypeForHelper(const std::vector<Token>& returnTypes, const std::vector<ParamTypeInfo>& params);
     llvm::FunctionType* llvmFuncTypeFor(const std::vector<Token>& retTypes, const std::list<Parameter>& params);

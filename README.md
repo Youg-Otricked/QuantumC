@@ -116,9 +116,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x0.27.2 = "Concepts"
-Next Version: x0.28.0 = "Modifiers"
-After: x1.0.0 = "Major bugfixes: version 1.0"
+Current Version: x1.0.0 = "Modifiers & Atomics"
+Next Version: x1.0.1 = "More Error Stuff"
 
 # Current Version Highlights
 
@@ -130,10 +129,10 @@ Major
 └─ N/A
 
 Moderate
-└─ Concepts
+└─ Modifiers
 
 Minor
-└─ MAJOR bugfixes
+└─ N/A
 
 Patch
 └─ N/A
@@ -141,7 +140,7 @@ Patch
 
 # Recent Deprecations / Breaking Changes
 
-These are deprecations in the past 3 moderate versions (`x0.25.* -> x0.27.*`)
+These are deprecations in the past 3 moderate versions (`x0.26.* -> x1.0.*`)
 
 Self parameter is now a pointer.
 This now requires explicit dereference (must use `->` instead of `.`)
