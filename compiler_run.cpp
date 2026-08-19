@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x1.0.1";
+const std::string ver = "x1.0.2";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -312,6 +312,15 @@ Examples:
             config.use_runtime = false;
         } else if (arg == "-dump-tokens") {
             config.dump_tokens = true;
+        } else if (arg == "-D" || arg == "--define") {
+            if (i + 1 < argc) {
+                config.definitions[argv[++i]] = "1";
+            } else {
+                std::cerr << "Error: -D/--define requires a definition name\n";
+                return 1;
+            }
+        } else if (arg.starts_with("-D") || arg.starts_with("--define")) {
+            config.definitions[argv[++i]] = "1";
         } else {
             filename = arg;
         }

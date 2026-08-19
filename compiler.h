@@ -683,10 +683,11 @@ class IfNode {
     StatementsNode* then_branch;
     std::vector<std::pair<AnyNode, StatementsNode*>> elif_branches;
     StatementsNode* else_branch;
+    bool is_comptime;
     Position getPos() { return get_pos(condition); }
     IfNode(std::optional<AnyNode> init_node, AnyNode cond, StatementsNode* then_b, std::vector<std::pair<AnyNode, StatementsNode*>> elifs = {},
-           StatementsNode* else_b = nullptr)
-        : init(init_node), condition(cond), then_branch(then_b), elif_branches(elifs), else_branch(else_b) {}
+           StatementsNode* else_b = nullptr, bool is_comptime = false)
+        : init(init_node), condition(cond), then_branch(then_b), elif_branches(elifs), else_branch(else_b), is_comptime(is_comptime) {}
 
     std::string print() const;
 };
@@ -1205,7 +1206,7 @@ class Parser {
     Prs expr();
     Prs atom();
     Prs power();
-    Prs if_expr();
+    Prs if_expr(bool is_comptime = false);
     Prs defer_expr();
     Prs return_stmt();
     Prs bin_op(std::function<Prs()> func, std::initializer_list<TokenType> ops);
@@ -1463,6 +1464,102 @@ struct RunConfig {
     std::vector<std::string> library_search_paths = {"."};
     std::vector<std::string> libraries = {};
     std::vector<std::string> link_with = {};
+    std::unordered_map<std::string, std::string> definitions = {
+#ifdef _WIN32
+    {"_WIN32", "1"},
+#endif
+#ifdef _WIN64
+    {"_WIN64", "1"},
+#endif
+#ifdef __APPLE__
+    {"__APPLE__", "1"},
+#endif
+#ifdef __MACH__
+    {"__MACH__", "1"},
+#endif
+#ifdef __linux__
+    {"__linux__", "1"},
+#endif
+#ifdef __linux
+    {"__linux", "1"},
+#endif
+#ifdef __ANDROID__
+    {"__ANDROID__", "1"},
+#endif
+#ifdef __FreeBSD__
+    {"__FreeBSD__", "1"},
+#endif
+#ifdef __OpenBSD__
+    {"__OpenBSD__", "1"},
+#endif
+#ifdef __NetBSD__
+    {"__NetBSD__", "1"},
+#endif
+#ifdef __unix__
+    {"__unix__", "1"},
+#endif
+#ifdef __unix
+    {"__unix", "1"},
+#endif
+#ifdef __i386__
+    {"__i386__", "1"},
+#endif
+#ifdef __i386
+    {"__i386", "1"},
+#endif
+#ifdef __x86_64__
+    {"__x86_64__", "1"},
+#endif
+#ifdef __x86_64
+    {"__x86_64", "1"},
+#endif
+#ifdef _M_IX86
+    {"_M_IX86", "1"},
+#endif
+#ifdef _M_X64
+    {"_M_X64", "1"},
+#endif
+#ifdef __arm__
+    {"__arm__", "1"},
+#endif
+#ifdef __aarch64__
+    {"__aarch64__", "1"},
+#endif
+#ifdef _M_ARM
+    {"_M_ARM", "1"},
+#endif
+#ifdef _M_ARM64
+    {"_M_ARM64", "1"},
+#endif
+#ifdef __riscv
+    {"__riscv", "1"},
+#endif
+#ifdef __riscv_xlen
+    {"__riscv_xlen", "1"},
+#endif
+#ifdef __wasm32__
+    {"__wasm32__", "1"},
+#endif
+#ifdef __wasm64__
+    {"__wasm64__", "1"},
+#endif
+#ifdef __powerpc__
+    {"__powerpc__", "1"},
+#endif
+#ifdef __powerpc64__
+    {"__powerpc64__", "1"},
+#endif
+#ifdef __powerpc64le__
+    {"__powerpc64le__", "1"},
+#endif
+#ifdef __mips__
+    {"__mips__", "1"},
+#endif
+#ifdef __mips64
+    {"__mips64", "1"},
+#endif
+    {"__quantumc", "\"x1.0.1D\""}
+};
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
@@ -5223,5 +5320,33 @@ struct PreprocessResult {
     std::unordered_set<std::string> accessible_namespaces;
 };
 
-PreprocessResult preprocess_includes(const std::string& source, const std::string& current_file);
+PreprocessResult preprocess_includes(std::string& source, const std::string& current_file);
+struct MatchResult {
+    size_t else_pos;
+    size_t endif_pos;
+};
+static MatchResult findMatch(const std::string& src, size_t searchStart) {
+    int depth = 0;
+    size_t elsePos = std::string::npos;
+    size_t pos = searchStart;
+    while (pos < src.size()) {
+        size_t nextIf = src.find("#if", pos);
+        size_t nextElse = src.find("#else", pos);
+        size_t nextEndif = src.find("#endif", pos);
+        size_t next = std::min({nextIf, nextElse, nextEndif});
+        if (next == std::string::npos) break;
+        if (next == nextIf) {
+            depth++;
+            pos = next + 3;
+        } else if (next == nextElse) {
+            if (depth == 0) { elsePos = next; }
+            pos = next + 5;
+        } else { // nextEndif
+            if (depth == 0) { return {elsePos, next}; }
+            depth--;
+            pos = next + 6;
+        }
+    }
+    return {std::string::npos, std::string::npos};
+}
 #endif

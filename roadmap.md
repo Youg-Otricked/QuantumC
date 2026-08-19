@@ -65,13 +65,6 @@ TOP PRIORITY:
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
 5. Preproccessers
-#define - define a constant value
-#undef - undef a constant value
-#if - if
-#else - else 
-#ifdef - if defined
-#ifndef - if undefined
-#endif - end if
 #line - somthing idk
 6. User-Defined metadata
 7. User-Defined macro _functions_ (the only good thing in rust)

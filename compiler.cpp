@@ -81,6 +81,8 @@ std::vector<std::string> to_link;
 std::vector<std::string> to_link_dir;
 std::unordered_map<std::string, std::string> aliases;
 std::unordered_map<std::string, std::string> dir_aliases;
+std::unordered_map<std::string, std::string> definitions;
+
 std::string entrypointName = "main";
 extern "C" const char _binary_runtime_ll_start[];
 extern "C" const size_t _binary_runtime_ll_size;
@@ -497,7 +499,7 @@ std::string DeferNode::print() const {
     return res + ")";
 }
 std::string IfNode::print() const {
-    std::string res = "(if ";
+    std::string res = std::string("(") + (this->is_comptime ? "comptime if " : "if ");
     if (init.has_value()) { res += "init=" + printAny(init.value()) + "; "; }
     res += printAny(this->condition) + " " + this->then_branch->print();
     for (auto& p : this->elif_branches) { res += " elif " + printAny(p.first) + " " + p.second->print(); }
@@ -966,7 +968,7 @@ Prs Parser::defer_expr() {
     return res.success(defernode);
 }
 
-Prs Parser::if_expr() {
+Prs Parser::if_expr(bool is_comptime) {
     auto has_semicolon_before_closing_paren = [this]() -> bool {
         size_t idx = index;
         int depth = 0;
@@ -1105,7 +1107,7 @@ Prs Parser::if_expr() {
         }
     }
 
-    auto ifnode = new IfNode(init_node, condition, then_branch, elifs, else_branch);
+    auto ifnode = new IfNode(init_node, condition, then_branch, elifs, else_branch, is_comptime);
     return res.success(ifnode);
 }
 Prs Parser::try_catch_expr() {
@@ -2875,7 +2877,7 @@ Prs Parser::factor() {
         tok.type == TokenType::QNOT || tok.type == TokenType::AMPERSAND || tok.type == TokenType::MUL) {
 
         this->advance();
-        AnyNode factor_node = res.reg(this->factor());
+        AnyNode factor_node = res.reg(this->ternary());
         if (res.error) return res.to_prs();
         return res.success(new UnaryOpNode(tok, factor_node));
     }
@@ -3481,8 +3483,14 @@ Prs Parser::statement() {
         if (this->current_tok.type == TokenType::SEMICOLON) this->advance();
         return res.success(fn_node);
     }
+    bool is_comptime = false;
+    if (tok.type == TokenType::KEYWORD && tok.value == "comptime") {
+        is_comptime = true;
+        this->advance();
+        tok = this->current_tok;
+    }
     if (tok.type == TokenType::KEYWORD && tok.value == "defer") { return this->defer_expr(); }
-    if (tok.type == TokenType::KEYWORD && tok.value == "if") { return this->if_expr(); }
+    if (tok.type == TokenType::KEYWORD && tok.value == "if") { return this->if_expr(is_comptime); }
     if (tok.type == TokenType::KEYWORD && tok.value == "try") { return this->try_catch_expr(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "qif") { return this->qif_expr(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "switch") { return this->switch_stmt(); }
@@ -15786,69 +15794,116 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (if_node->init.has_value()) { emitStmt(if_node->init.value()); }
         llvm::Value* cond = emitExpr(if_node->condition);
         if (!cond) return;
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (cond->getType() == enumTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
-
-                llvm::Type* targetTy = builder->getInt1Ty();
-
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                cond = builder->CreateLoad(targetTy, typedPtr);
-                break;
+        llvm::ConstantInt* comptimeValue = nullptr;
+        if (if_node->is_comptime) {
+            comptimeValue = llvm::dyn_cast<llvm::ConstantInt>(cond);
+            if (!comptimeValue) {
+                cg_error(get_pos(if_node->condition), "comptime if condition must be evaluatable at compile time.");
+                return;
             }
-        }
-        cond = normalizeValue(cond, if_node->condition);
-        cond = toTruthiness(cond, get_pos(if_node->condition));
-        if (!cond) return;
-        llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(context, "then", currentFunction);
-        llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
-        std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> elifBlocks;
-        for (size_t i = 0; i < if_node->elif_branches.size(); i++) {
-            llvm::BasicBlock* elifCondBB = llvm::BasicBlock::Create(context, "elif.cond", currentFunction);
-            llvm::BasicBlock* elifBodyBB = llvm::BasicBlock::Create(context, "elif.body", currentFunction);
-            elifBlocks.push_back({elifCondBB, elifBodyBB});
-        }
-
-        llvm::BasicBlock* elseBB = nullptr;
-        if (if_node->else_branch) { elseBB = llvm::BasicBlock::Create(context, "else", currentFunction); }
-        llvm::BasicBlock* nextBB = elifBlocks.empty() ? (elseBB ? elseBB : mergeBB) : elifBlocks[0].first;
-        builder->CreateCondBr(cond, thenBB, nextBB);
-        builder->SetInsertPoint(thenBB);
-        enterScope();
-        for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
-        if (!builder->GetInsertBlock()->getTerminator()) {
-            emitDefersDownTo(outerDepth + 2);
-            builder->CreateBr(mergeBB);
-        }
-        exitScope();
-        for (size_t i = 0; i < elifBlocks.size(); i++) {
-            builder->SetInsertPoint(elifBlocks[i].first);
-            llvm::Value* elifCond = emitExpr(if_node->elif_branches[i].first);
-
-            llvm::BasicBlock* nextElifBB = (i + 1 < elifBlocks.size()) ? elifBlocks[i + 1].first : (elseBB ? elseBB : mergeBB);
-            builder->CreateCondBr(elifCond, elifBlocks[i].second, nextElifBB);
-
-            builder->SetInsertPoint(elifBlocks[i].second);
+            llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
             enterScope();
-            for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
+            if (comptimeValue->getZExtValue() != 0) {
+                for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
+            } else {
+                bool emitedBranch = false;
+                for (size_t i = 0; i < if_node->elif_branches.size(); i++) {
+                    llvm::Value* elifCond = emitExpr(if_node->elif_branches[i].first);
+                    comptimeValue = llvm::dyn_cast<llvm::ConstantInt>(elifCond);
+                    if (!comptimeValue) {
+                        cg_error(get_pos(if_node->elif_branches[i].first),
+                                 "all conditions including else ifs in a comptime if must be evaluatable at compile time.");
+                        return;
+                    }
+                    if (comptimeValue->getZExtValue() != 0) {
+                        for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
+                        if (!builder->GetInsertBlock()->getTerminator()) {
+                            emitDefersDownTo(outerDepth + 2);
+                            builder->CreateBr(mergeBB);
+                        }
+                        emitedBranch = true;
+                        break;
+                    }
+                }
+                if (!emitedBranch && if_node->else_branch) {
+                    for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
+                    if (!builder->GetInsertBlock()->getTerminator()) {
+                        emitDefersDownTo(outerDepth + 2);
+                        builder->CreateBr(mergeBB);
+                    }
+                }
+            }
             if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 2);
                 builder->CreateBr(mergeBB);
             }
             exitScope();
-        }
-        if (elseBB) {
-            builder->SetInsertPoint(elseBB);
+            builder->SetInsertPoint(mergeBB);
+        } else {
+            for (auto& [enumName, enumTy] : enumTypes) {
+                if (cond->getType() == enumTy) {
+                    llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
+
+                    llvm::Type* targetTy = builder->getInt1Ty();
+
+                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
+                    cond = builder->CreateLoad(targetTy, typedPtr);
+                    break;
+                }
+            }
+            cond = normalizeValue(cond, if_node->condition);
+            cond = toTruthiness(cond, get_pos(if_node->condition));
+            if (!cond) return;
+            llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(context, "then", currentFunction);
+            llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
+            std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> elifBlocks;
+            for (size_t i = 0; i < if_node->elif_branches.size(); i++) {
+                llvm::BasicBlock* elifCondBB = llvm::BasicBlock::Create(context, "elif.cond", currentFunction);
+                llvm::BasicBlock* elifBodyBB = llvm::BasicBlock::Create(context, "elif.body", currentFunction);
+                elifBlocks.push_back({elifCondBB, elifBodyBB});
+            }
+
+            llvm::BasicBlock* elseBB = nullptr;
+            if (if_node->else_branch) { elseBB = llvm::BasicBlock::Create(context, "else", currentFunction); }
+            llvm::BasicBlock* nextBB = elifBlocks.empty() ? (elseBB ? elseBB : mergeBB) : elifBlocks[0].first;
+            builder->CreateCondBr(cond, thenBB, nextBB);
+            builder->SetInsertPoint(thenBB);
             enterScope();
-            for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
+            for (auto& stmt : if_node->then_branch->statements) { emitStmt(stmt); }
             if (!builder->GetInsertBlock()->getTerminator()) {
                 emitDefersDownTo(outerDepth + 2);
                 builder->CreateBr(mergeBB);
             }
             exitScope();
+            for (size_t i = 0; i < elifBlocks.size(); i++) {
+                builder->SetInsertPoint(elifBlocks[i].first);
+                llvm::Value* elifCond = emitExpr(if_node->elif_branches[i].first);
+
+                llvm::BasicBlock* nextElifBB = (i + 1 < elifBlocks.size()) ? elifBlocks[i + 1].first : (elseBB ? elseBB : mergeBB);
+                builder->CreateCondBr(elifCond, elifBlocks[i].second, nextElifBB);
+
+                builder->SetInsertPoint(elifBlocks[i].second);
+                enterScope();
+                for (auto& stmt : if_node->elif_branches[i].second->statements) { emitStmt(stmt); }
+                if (!builder->GetInsertBlock()->getTerminator()) {
+                    emitDefersDownTo(outerDepth + 2);
+                    builder->CreateBr(mergeBB);
+                }
+                exitScope();
+            }
+            if (elseBB) {
+                builder->SetInsertPoint(elseBB);
+                enterScope();
+                for (auto& stmt : if_node->else_branch->statements) { emitStmt(stmt); }
+                if (!builder->GetInsertBlock()->getTerminator()) {
+                    emitDefersDownTo(outerDepth + 2);
+                    builder->CreateBr(mergeBB);
+                }
+                exitScope();
+            }
+            exitScope();
+            builder->SetInsertPoint(mergeBB);
         }
-        exitScope();
-        builder->SetInsertPoint(mergeBB);
     } else if (auto while_node = safe_get<WhileNode>(node)) {
         size_t outerDepth = defersStack.size();
         loopStack.push_back(outerDepth);
@@ -17555,6 +17610,8 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, s
 }
 Mer run(std::string file, std::string text, RunConfig config = {}) {
     // Check for inline directives
+    definitions = config.definitions;
+    definitions["__FILE__"] = "\"" + file + "\"";
     aliases = config.aliases;
     dir_aliases = config.dir_aliases;
     if (text.find("// @no-context") != std::string::npos) { config.use_context = false; }
@@ -18197,7 +18254,8 @@ Token Lexer::make_identifier() {
         /* defer */ id == "defer" ||
         /* concepts */ id == "concept" || id == "proves" || id == "with_proof" || id == "_of" || id == "at_least" || id == "all_of" ||
         id == "proved_by" ||
-        /* modifiers */ id == "modifier" || id == "on_call" || id == "on_return" || id == "on_use") {
+        /* modifiers */ id == "modifier" || id == "on_call" || id == "on_return" || id == "on_use" ||
+        /* comptime */ id == "comptime") {
         return Token(TokenType::KEYWORD, id, start_pos);
     }
     if (id == "true" || id == "false") { return Token(TokenType::BOOL, id, start_pos); }
@@ -18859,7 +18917,7 @@ std::string resolve_path(const std::string& current_file, const std::string& inc
     std::filesystem::path resolved = current.parent_path() / include;
     return std::filesystem::weakly_canonical(resolved).string();
 }
-PreprocessResult preprocess_includes(const std::string& source, const std::string& current_file) {
+PreprocessResult preprocess_includes(std::string& source, const std::string& current_file) {
     PreprocessResult res;
     res.accessible_namespaces.clear();
     res.accessible_namespaces.insert("Exported");
@@ -18888,7 +18946,262 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         }
         if (!in_string) { no_main = true; }
     }
+    std::function<std::string(const std::string&)> substituteDefined = [&](const std::string& expr) -> std::string {
+        std::string out;
+        size_t i = 0;
+        while (i < expr.size()) {
+            char c = expr[i];
+            if (std::isalpha((unsigned char)c) || c == '_') {
+                size_t start = i;
+                while (i < expr.size() && (std::isalnum((unsigned char)expr[i]) || expr[i] == '_')) i++;
+                std::string ident = expr.substr(start, i - start);
+                if (ident == "defined") {
+                    size_t j = i;
+                    while (j < expr.size() && std::isspace((unsigned char)expr[j])) j++;
+                    bool paren = false;
+                    if (j < expr.size() && expr[j] == '(') {
+                        paren = true;
+                        j++;
+                        while (j < expr.size() && std::isspace((unsigned char)expr[j])) j++;
+                    }
+                    size_t nameStart = j;
+                    while (j < expr.size() && (std::isalnum((unsigned char)expr[j]) || expr[j] == '_')) j++;
+                    std::string name = expr.substr(nameStart, j - nameStart);
+                    if (paren) {
+                        while (j < expr.size() && std::isspace((unsigned char)expr[j])) j++;
+                        if (j < expr.size() && expr[j] == ')') j++;
+                    }
+                    out += definitions.count(name) ? "1" : "0";
+                    i = j;
+                } else {
+                    auto it = definitions.find(ident);
+                    out += (it != definitions.end()) ? it->second : "0";
+                }
+            } else {
+                out += c;
+                i++;
+            }
+        }
+        return out;
+    };
+    std::string estr;
+    size_t epos = 0;
+    std::function<void()> eSkipWs = [&]() {
+        while (epos < estr.size() && std::isspace((unsigned char)estr[epos])) epos++;
+    };
+    std::function<long long()> eOr, eAnd, eEq, eRel, eAdd, eMul, eUnary, ePrim;
+    ePrim = [&]() -> long long {
+        eSkipWs();
+        if (epos < estr.size() && estr[epos] == '(') {
+            epos++;
+            long long v = eOr();
+            eSkipWs();
+            if (epos < estr.size() && estr[epos] == ')') epos++;
+            return v;
+        }
+        size_t start = epos;
+        while (epos < estr.size() && std::isdigit((unsigned char)estr[epos])) epos++;
+        if (epos == start) return 0;
+        return std::stoll(estr.substr(start, epos - start));
+    };
+    eUnary = [&]() -> long long {
+        eSkipWs();
+        if (epos < estr.size() && estr[epos] == '!') {
+            epos++;
+            return eUnary() == 0 ? 1 : 0;
+        }
+        if (epos < estr.size() && estr[epos] == '-') {
+            epos++;
+            return -eUnary();
+        }
+        return ePrim();
+    };
+    eMul = [&]() -> long long {
+        long long l = eUnary();
+        eSkipWs();
+        while (epos < estr.size() && (estr[epos] == '*' || estr[epos] == '/')) {
+            char op = estr[epos];
+            epos++;
+            long long r = eUnary();
+            l = op == '*' ? l * r : (r != 0 ? l / r : 0);
+            eSkipWs();
+        }
+        return l;
+    };
+    eAdd = [&]() -> long long {
+        long long l = eMul();
+        eSkipWs();
+        while (epos < estr.size() && (estr[epos] == '+' || estr[epos] == '-')) {
+            char op = estr[epos];
+            epos++;
+            long long r = eMul();
+            l = op == '+' ? l + r : l - r;
+            eSkipWs();
+        }
+        return l;
+    };
+    eRel = [&]() -> long long {
+        long long l = eAdd();
+        eSkipWs();
+        while (epos < estr.size() && (estr[epos] == '<' || estr[epos] == '>')) {
+            bool lt = estr[epos] == '<';
+            bool orEq = false;
+            epos++;
+            if (epos < estr.size() && estr[epos] == '=') {
+                orEq = true;
+                epos++;
+            }
+            long long r = eAdd();
+            if (lt)
+                l = orEq ? (l <= r ? 1 : 0) : (l < r ? 1 : 0);
+            else
+                l = orEq ? (l >= r ? 1 : 0) : (l > r ? 1 : 0);
+            eSkipWs();
+        }
+        return l;
+    };
+    eEq = [&]() -> long long {
+        long long l = eRel();
+        eSkipWs();
+        while (epos + 1 < estr.size() && ((estr[epos] == '=' && estr[epos + 1] == '=') || (estr[epos] == '!' && estr[epos + 1] == '='))) {
+            bool eq = estr[epos] == '=';
+            epos += 2;
+            long long r = eRel();
+            l = eq ? (l == r ? 1 : 0) : (l != r ? 1 : 0);
+            eSkipWs();
+        }
+        return l;
+    };
+    eAnd = [&]() -> long long {
+        long long l = eEq();
+        eSkipWs();
+        while (epos + 1 < estr.size() && estr[epos] == '&' && estr[epos + 1] == '&') {
+            epos += 2;
+            long long r = eEq();
+            l = (l != 0 && r != 0) ? 1 : 0;
+            eSkipWs();
+        }
+        return l;
+    };
+    eOr = [&]() -> long long {
+        long long l = eAnd();
+        eSkipWs();
+        while (epos + 1 < estr.size() && estr[epos] == '|' && estr[epos + 1] == '|') {
+            epos += 2;
+            long long r = eAnd();
+            l = (l != 0 || r != 0) ? 1 : 0;
+            eSkipWs();
+        }
+        return l;
+    };
+    auto evalIf = [&](const std::string& rawExpr) -> bool {
+        estr = substituteDefined(rawExpr);
+        epos = 0;
+        return eOr() != 0;
+    };
     size_t pos = 0;
+    while (true) {
+        size_t define_pos = source.find("#define", pos);
+        size_t undef_pos = source.find("#undef", pos);
+        size_t if_pos = source.find("#if", pos); // catches #if, #ifdef, #ifndef
+        size_t directive_pos = std::min({define_pos, undef_pos, if_pos});
+        if (directive_pos == std::string::npos) break;
+        bool in_string = false;
+        for (size_t check = 0; check < directive_pos; check++) {
+            if (source[check] == '"' && (check == 0 || source[check - 1] != '\\')) { in_string = !in_string; }
+        }
+        if (directive_pos == if_pos) {
+            bool isIfndef = source.compare(directive_pos, 7, "#ifndef") == 0;
+            bool isIfdef = !isIfndef && source.compare(directive_pos, 6, "#ifdef") == 0;
+            size_t keyword_len = isIfndef ? 7 : (isIfdef ? 6 : 3);
+            if (in_string) {
+                pos = directive_pos + keyword_len;
+                continue;
+            }
+            size_t line_end = source.find('\n', directive_pos);
+            if (line_end == std::string::npos) line_end = source.size();
+            std::string directiveText = trim(source.substr(directive_pos + keyword_len, line_end - directive_pos - keyword_len));
+            bool condition;
+            if (isIfdef)
+                condition = definitions.count(directiveText) > 0;
+            else if (isIfndef)
+                condition = definitions.count(directiveText) == 0;
+            else
+                condition = evalIf(directiveText);
+            MatchResult m = findMatch(source, line_end + 1);
+            if (m.endif_pos == std::string::npos) { throw std::runtime_error("unterminated #if/#ifdef/#ifndef — missing #endif"); }
+            std::string keptRegion;
+            if (condition) {
+                size_t thenEnd = (m.else_pos != std::string::npos) ? m.else_pos : m.endif_pos;
+                keptRegion = source.substr(line_end + 1, thenEnd - (line_end + 1));
+            } else if (m.else_pos != std::string::npos) {
+                size_t elseLineEnd = source.find('\n', m.else_pos);
+                if (elseLineEnd == std::string::npos)
+                    elseLineEnd = source.size();
+                else
+                    elseLineEnd++;
+                keptRegion = source.substr(elseLineEnd, m.endif_pos - elseLineEnd);
+            }
+            size_t endifLineEnd = source.find('\n', m.endif_pos);
+            if (endifLineEnd == std::string::npos)
+                endifLineEnd = source.size();
+            else
+                endifLineEnd++;
+            source = source.substr(0, directive_pos) + keptRegion + source.substr(endifLineEnd);
+            pos = directive_pos;
+            continue;
+        }
+        bool isDefine = (directive_pos == define_pos);
+        size_t keyword_len = isDefine ? 8 : 7;
+        size_t line_end = source.find('\n', directive_pos);
+        if (line_end == std::string::npos) line_end = source.size();
+        if (!in_string) {
+            if (isDefine) {
+                std::string directive = source.substr(directive_pos + keyword_len, line_end - directive_pos - keyword_len);
+                size_t space_pos = directive.find(" ");
+                std::string name = directive.substr(0, space_pos);
+                std::string value = (space_pos == std::string::npos) ? "1" : directive.substr(space_pos + 1);
+                definitions[name] = value;
+            } else {
+                std::string name = source.substr(directive_pos + keyword_len, line_end - directive_pos - keyword_len);
+                definitions.erase(name);
+            }
+            pos = line_end + 1;
+        } else {
+            pos = directive_pos + keyword_len;
+        }
+    }
+    pos = 0;
+    std::string result;
+    result.reserve(source.size());
+    bool in_string = false;
+    size_t i = 0;
+    while (i < source.size()) {
+        char c = source[i];
+        if (c == '"' && (i == 0 || source[i - 1] != '\\')) {
+            in_string = !in_string;
+            result += c;
+            i++;
+            continue;
+        }
+        if (!in_string && (std::isalpha((unsigned char)c) || c == '_')) {
+            size_t start = i;
+            while (i < source.size() && (std::isalnum((unsigned char)source[i]) || source[i] == '_')) { i++; }
+            std::string identifier = source.substr(start, i - start);
+            auto it = definitions.find(identifier);
+            if (it != definitions.end()) {
+                result += it->second;
+            } else {
+                result += identifier;
+            }
+            continue;
+        }
+        result += c;
+        i++;
+    }
+    source = result;
+
+    pos = 0;
     while ((pos = source.find("#link", pos)) != std::string::npos) {
         bool in_string = false;
         for (size_t check = 0; check < pos; check++) {
@@ -19057,7 +19370,7 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
         dependencies.push_back(full_path);
         pos = end + 1;
     }
-    std::string result = "";
+    std::string result2 = "";
     size_t last_pos = 0;
     pos = 0;
     while ((pos = source.find("#include", pos)) != std::string::npos) {
@@ -19069,84 +19382,84 @@ PreprocessResult preprocess_includes(const std::string& source, const std::strin
             pos++;
             continue;
         }
-        result += source.substr(last_pos, pos - last_pos);
+        result2 += source.substr(last_pos, pos - last_pos);
         size_t end = source.find('>', pos);
         last_pos = end + 1;
         if (last_pos < source.size() && source[last_pos] == '\n') { last_pos++; }
         pos = last_pos;
     }
-    result += source.substr(last_pos);
+    result2 += source.substr(last_pos);
     pos = 0;
-    while ((pos = result.find("#link", pos)) != std::string::npos) {
+    while ((pos = result2.find("#link", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
-            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+            if (result2[check] == '"' && (check == 0 || result2[check - 1] != '\\')) { in_str = !in_str; }
         }
         if (!in_str) {
-            size_t line_end = result.find('\n', pos);
-            if (line_end == std::string::npos) line_end = result.size();
-            result.erase(pos, line_end - pos + 1);
+            size_t line_end = result2.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result2.size();
+            result2.erase(pos, line_end - pos + 1);
         } else {
             pos++;
         }
     }
     pos = 0;
-    while ((pos = result.find("#searchdir", pos)) != std::string::npos) {
+    while ((pos = result2.find("#searchdir", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
-            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+            if (result2[check] == '"' && (check == 0 || result2[check - 1] != '\\')) { in_str = !in_str; }
         }
         if (!in_str) {
-            size_t line_end = result.find('\n', pos);
-            if (line_end == std::string::npos) line_end = result.size();
-            result.erase(pos, line_end - pos + 1);
+            size_t line_end = result2.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result2.size();
+            result2.erase(pos, line_end - pos + 1);
         } else {
             pos++;
         }
     }
     pos = 0;
-    while ((pos = result.find("#entrypoint", pos)) != std::string::npos) {
+    while ((pos = result2.find("#entrypoint", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
-            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+            if (result2[check] == '"' && (check == 0 || result2[check - 1] != '\\')) { in_str = !in_str; }
         }
         if (!in_str) {
-            size_t line_end = result.find('\n', pos);
-            if (line_end == std::string::npos) line_end = result.size();
-            result.erase(pos, line_end - pos + 1);
+            size_t line_end = result2.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result2.size();
+            result2.erase(pos, line_end - pos + 1);
         } else {
             pos++;
         }
     }
     pos = 0;
-    while ((pos = result.find("#depends", pos)) != std::string::npos) {
+    while ((pos = result2.find("#depends", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
-            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+            if (result2[check] == '"' && (check == 0 || result2[check - 1] != '\\')) { in_str = !in_str; }
         }
         if (!in_str) {
-            size_t line_end = result.find('\n', pos);
-            if (line_end == std::string::npos) line_end = result.size();
-            result.erase(pos, line_end - pos + 1);
+            size_t line_end = result2.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result2.size();
+            result2.erase(pos, line_end - pos + 1);
         } else {
             pos++;
         }
     }
     pos = 0;
-    while ((pos = result.find("#nomain", pos)) != std::string::npos) {
+    while ((pos = result2.find("#nomain", pos)) != std::string::npos) {
         bool in_str = false;
         for (size_t check = 0; check < pos; check++) {
-            if (result[check] == '"' && (check == 0 || result[check - 1] != '\\')) { in_str = !in_str; }
+            if (result2[check] == '"' && (check == 0 || result2[check - 1] != '\\')) { in_str = !in_str; }
         }
         if (!in_str) {
-            size_t line_end = result.find('\n', pos);
-            if (line_end == std::string::npos) line_end = result.size();
-            result.erase(pos, line_end - pos + 1);
+            size_t line_end = result2.find('\n', pos);
+            if (line_end == std::string::npos) line_end = result2.size();
+            result2.erase(pos, line_end - pos + 1);
         } else {
             pos++;
         }
     }
-    res.clean_source = result;
+    res.clean_source = result2;
     res.dependency_paths = dependencies;
     res.included_namespaces = from_where;
     res.namespace_depends = namespace_depends;

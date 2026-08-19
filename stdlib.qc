@@ -888,10 +888,6 @@ namespace Encodings {
         }
     }
 }
-/*
-namespace Ordered {
-}
-*/
 #depends(Unordered: CoreConcepts)
 namespace Unordered {
     concept Hash {
@@ -904,7 +900,49 @@ namespace Unordered {
         T value;
         SetNode<T>* next;
     }
+    #depends(Unordered: Pair)
+    class MapNode<K, V> {
+        Pair::Pair<K, V> data;
+        MapNode<K, V>* next;
+    }
     namespace Iterators {
+        class MapIt<K, V> {
+            MapNode<K, V>** buckets;
+            int num_buckets;
+            int bucket_index;
+            MapNode<K, V>* current;
+
+            MapIt(MapNode<K, V>** buckets, int num_buckets, bool is_end) {
+                this->buckets = buckets;
+                this->num_buckets = num_buckets;
+                if (is_end) {
+                    this->bucket_index = num_buckets;
+                    this->current = nullptr;
+                } else {
+                    this->bucket_index = 0;
+                    this->current = nullptr;
+                    this->_advanceToNext();
+                }
+            }
+            private void _advanceToNext() {
+                while (this->current == nullptr && this->bucket_index < this->num_buckets) {
+                    this->current = this->buckets[this->bucket_index];
+                    if (this->current == nullptr) this->bucket_index++;
+                }
+            }
+            bool _atEnd() {
+                return this->bucket_index >= this->num_buckets;
+            }
+            Pair::Pair<K, V>& _next() {
+                Pair::Pair<K, V>& val = this->current->data;
+                this->current = this->current->next;
+                if (this->current == nullptr) {
+                    this->bucket_index++;
+                    this->_advanceToNext();
+                }
+                return val;
+            }
+        }
         class SetIt<T> {
             SetNode<T>** buckets;
             int num_buckets;
@@ -965,8 +1003,8 @@ namespace Unordered {
             }
         }
         bool contains(T item) {
-            if (!(CoreConcepts::Eq proved_by T)) {
-                `qout("T must prove CoreConcepts::Eq to use contains");
+            comptime if (!(CoreConcepts::Eq proved_by T)) {
+                `compile_error("T must prove CoreConcepts::Eq to use contains");
                 return false;
             }
             int index = this->get_Bucket_Index(item);
@@ -1012,6 +1050,9 @@ namespace Unordered {
         void _destroy() {
             for (int i = 0; i < this->num_buckets; i++) {
                 SetNode<T>* node = this->buckets[i];
+                comptime if (CoreConcepts::Allocated proved_by T) {
+                    node->value._destroy();
+                }
                 while (node != nullptr) {
                     SetNode<T>* next = node->next;
                     `free(node);
@@ -1027,12 +1068,7 @@ namespace Unordered {
             return Iterators::SetIt<T>(this->buckets, this->num_buckets, true);
         }
     }
-    Set proves CoreConcepts::Allocated;
-    #depends(Unordered: Pair)
-    class MapNode<K, V> {
-        Pair::Pair<K, V> data;
-        MapNode<K, V>* next;
-    }
+    Set proves CoreConcepts::Allocated; 
     class Map<K(proves Hash:), V> {
         private int num_buckets;
         private int count;
@@ -1114,6 +1150,12 @@ namespace Unordered {
             for (int i = 0; i < this->num_buckets; i++) {
                 MapNode<K, V>* node = this->buckets[i];
                 while (node != nullptr) {
+                    comptime if (CoreConcepts::Allocated proved_by V) {
+                        node->data.second._destroy();
+                    }
+                    comptime if (CoreConcepts::Allocated proved_by K) {
+                        node->data.first._destroy();
+                    }
                     MapNode<K, V>* next = node->next;
                     `free(node);
                     node = next;
@@ -1136,6 +1178,242 @@ namespace Unordered {
             }
             throw "Key not found";
         }
+        Iterators::MapIt<K, V> _begin() {
+            return Iterators::MapIt<K, V>(this->buckets, this->num_buckets, false);
+        }
+        Iterators::MapIt<K, V> _end() {
+            return Iterators::MapIt<K, V>(this->buckets, this->num_buckets, true);
+        }
+
     }
     Map proves CoreConcepts::Allocated;
 }
+/*
+#depends(Ordered: CoreConcepts)
+namespace Ordered {
+    concept Ord {
+        at_least 1_of {
+            bool operator<(Self other);
+            bool operator<(Self self, Self other);
+        }
+    }
+}
+*/
+/*
+namespace Filesystem {
+    type DateTime = addr_t;
+    enum FileType {
+        Unknown,
+        File,
+        Directory,
+        Symlink,
+        Other
+    }
+    struct FileStatus {
+        FileType type;
+        uint64 size;
+        DateTime created;
+        DateTime accessed;
+        DateTime modified;
+        Permissions permissions;
+        bool exists;
+    }
+    class Path {
+        string path;
+        Path(string path) {
+            this->path = path;
+        }
+        Path operator/(string other) {
+            if (this->path.length() == 0) {
+                return Path(other);
+            }
+            if (other.length() == 0) {
+                return Path(this->path);
+            }
+            if (this->path[this->path.length() - 1] == '/') {
+                if (other[0] == '/') {
+                    return Path(this->path + other.substr(1));
+                }
+                return Path(this->path + other);
+            }
+            if (other[0] == '/') {
+                return Path(this->path + other);
+            }
+            return Path(this->path + "/" + other);
+        }
+        Path operator/(Path other) {
+            return this->operator/(other.path);
+        }
+        Path& operator=(Path other) {
+            this->path = other.path;
+            return *this;
+        }
+        Path& operator=(string other) {
+            this->path = other;
+            return *this;
+        }
+        string toString() {
+            return this->path;
+        }
+        bool empty() {
+            return this->path.length() == 0;
+        }
+        bool isAbsolute() {
+            if (this->path.length() == 0) {
+                return false;
+            }
+            return this->path[0] == '/';
+        }
+        bool isRelative() {
+            return !this->isAbsolute();
+        }
+        Path parent() {
+            if (`len(this->path) == 0) {
+                return Path(".");
+            }
+            int end = `len(this->path) - 1;
+            while (end > 0 && this->path[end] == '/') {
+                end--;
+            }
+            while (end >= 0 && this->path[end] != '/') {
+                end--;
+            }
+            if (end < 0) {
+                return Path(".");
+            }
+            if (end == 0) {
+                return Path("/");
+            }
+            return Path(`substring(this->path, 0, end));
+        }
+        string filename() {
+            if (`len(this->path) == 0) {
+                return "";
+            }
+            int end = `len(this->path) - 1;
+            while (end >= 0 && this->path[end] == '/') {
+                end--;
+            }
+            if (end < 0) {
+                return "";
+            }
+            int start = end;
+            while (start >= 0 && this->path[start] != '/') {
+                start--;
+            }
+            return `substring(this->path, start + 1, end - start);
+        }
+        string extension() {
+            string name = this->filename();
+            if (`len(name) == 0) {
+                return "";
+            }
+            int dot = `len(name) - 1;
+            while (dot >= 0 && name[dot] != '.') {
+                dot--;
+            }
+            if (dot <= 0) {
+                return "";
+            }
+            return `substring(name, dot, `len(name) - dot);
+        }
+        string stem() {
+            string name = this->filename();
+            if (`len(name) == 0) {
+                return "";
+            }
+            int dot = `len(name) - 1;
+            while (dot >= 0 && name[dot] != '.') {
+                dot--;
+            }
+            if (dot <= 0) {
+                return name;
+            }
+            return `substring(name, 0, dot);
+        }
+        bool hasFilename() {
+            return `len(this->filename()) != 0;
+        }
+        bool hasExtension() {
+            return `len(this->extension()) != 0;
+        }
+        bool hasParent() {
+            return this->parent().toString() != this->path;
+        }
+        Path normalize() {
+            // "."      -> remove
+            // ".."     -> remove previous component where possible
+            // "//"     -> "/"
+            return result;
+        }
+        Path absolute() {
+            if (this->isAbsolute()) {
+                return this->normalize();
+            }
+            string cwd = get_current_directory();
+            return (Path(cwd) / this->path).normalize();
+        }
+        Path canonical() {
+            // - relative components
+            // - "." / ".."
+            // - symbolic links
+        }
+        bool exists() {
+            FileStatus status = this->status();
+            return status.exists;
+        }
+        uint64 fileSize() {
+            FileStatus status = this->status();
+            return status.size;
+        }
+        DateTime lastWriteTime() {
+            FileStatus status = this->status();
+            return status.modified;
+        }
+        DateTime lastAccess_Time() {
+            FileStatus status = this->status();
+            return status.accessed;
+        }
+        DateTime creationTime() {
+            FileStatus status = this->status();
+            return status.created;
+        }
+        FileStatus status() {
+            // stat()
+        }
+        FileStatus linkStatus() {
+            // lstat()
+        }
+        bool isHidden() {
+            string name = this->filename();
+            if (`len(name) == 0) {
+                return false;
+            }
+
+            return name[0] == '.';
+        }
+        bool isFile() {
+        }
+        bool isDirectory() {
+        }
+        bool isSymlink() {
+        }
+    }
+    DirectoryEntry
+    Permissions
+    DirectoryIterator
+    RecursiveDirectoryIterator
+    exists()
+    createDirectory()
+    createDirectories()
+    remove()
+    removeAll()
+    copy()
+    rename()
+    absolute()
+    canonical()
+    relative()
+    directoryIterator()
+    recursiveDirectoryIterator()
+}
+*/
