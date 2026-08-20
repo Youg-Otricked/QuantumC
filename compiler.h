@@ -2199,6 +2199,10 @@ class LLVMCompiler {
                     if (!matchInfo.has_value()) return "unknown";
                     return matchInfo->memberTypeStr;
                 }
+                if (funcName == "`opendir") return "void*";
+                if (funcName == "`readdir") return "bool";
+                if (funcName == "`closedir") return "int";
+                if (funcName == "`lseek") return "long int";
                 if (funcName == "`cast") {
                     if ((*callNode)->arg_nodes.size() < 2) {
                         cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `cast");
@@ -2206,7 +2210,7 @@ class LLVMCompiler {
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
                     }
-                    auto node = (*callNode)->arg_nodes.front();
+                    auto node = (*callNode)->arg_nodes.back();
                     if (auto n = std::get_if<TypeValueNode>(&node)) return n->tok.value;
                     return "unknown";
                 }
@@ -3566,9 +3570,7 @@ class LLVMCompiler {
         }
         if (auto* arrTy = llvm::dyn_cast<llvm::ArrayType>(v->getType())) {
             llvm::AllocaInst* tmp = builder->CreateAlloca(arrTy);
-            llvm::Value* srcPtr = builder->CreateAlloca(arrTy);
-            builder->CreateStore(v, srcPtr);
-            builder->CreateMemCpy(tmp, llvm::MaybeAlign(), srcPtr, llvm::MaybeAlign(), module->getDataLayout().getTypeAllocSize(arrTy));
+            builder->CreateStore(v, tmp);
             return builder->CreateInBoundsGEP(arrTy, tmp, {builder->getInt32(0), builder->getInt32(0)});
         }
         if (v->getType()->isPointerTy()) return v;

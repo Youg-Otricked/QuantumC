@@ -3733,6 +3733,20 @@ Prs Parser::statement() {
                 return res.to_prs();
             }
         }
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance();
+            UserTypeInfo tempInfo;
+            tempInfo.generics = generics;
+            tempInfo.baseClassName = baseName;
+            tempInfo.is_final_class = is_final_class;
+            tempInfo.kind = UserTypeKind::Class;
+            tempInfo.pos = class_name.pos;
+            tempInfo.baseFile = this->current_tok.pos.Filename;
+            std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
+            user_types[full_key] = tempInfo;
+            this->current_generics = saved_generics;
+            return res.success(std::monostate{});
+        }
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after class name", this->current_tok.pos));
             return res.to_prs();
@@ -3756,10 +3770,6 @@ Prs Parser::statement() {
         dummy.is_abstract_class = is_abstract_class;
         info.is_abstract_class = is_abstract_class;
         std::string full_key = currentNamespace.empty() ? class_name.value : currentNamespace + "::" + class_name.value;
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + class_name.value + "'", class_name.pos));
-            return res.to_prs();
-        }
         dummy.generics = generics;
         info.generics = generics;
         dummy.namespace_path = currentNamespace;
@@ -4528,6 +4538,16 @@ Prs Parser::statement() {
             }
         }
         auto saved_generics = this->current_generics;
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance();
+            UserTypeInfo tempInfo;
+            tempInfo.kind = UserTypeKind::Struct;
+            tempInfo.pos = struct_name.pos;
+            tempInfo.baseFile = this->current_tok.pos.Filename;
+            std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
+            user_types[full_key] = tempInfo;
+            return res.success(std::monostate{});
+        }
         this->current_generics.insert(this->current_generics.end(), generics.begin(), generics.end());
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after struct name", this->current_tok.pos));
@@ -4586,10 +4606,6 @@ Prs Parser::statement() {
         this->advance();
         std::string full_key = currentNamespace.empty() ? struct_name.value : currentNamespace + "::" + struct_name.value;
         if (this->current_tok.type == TokenType::SEMICOLON) { this->advance(); }
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of struct '" + struct_name.value + "'", struct_name.pos));
-            return res.to_prs();
-        }
         UserTypeInfo info;
         info.baseFile = this->current_tok.pos.Filename;
         info.kind = UserTypeKind::Struct;
@@ -4770,10 +4786,6 @@ Prs Parser::statement() {
         }
         this->advance();
         std::string full_key = currentNamespace.empty() ? type_name.value : currentNamespace + "::" + type_name.value;
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + type_name.value + "'", type_name.pos));
-            return res.to_prs();
-        }
         UserTypeInfo info;
         if (members.size() == 1) {
             info.kind = UserTypeKind::Alias;
@@ -4854,10 +4866,6 @@ Prs Parser::statement() {
         }
         this->advance();
         std::string full_key = currentNamespace.empty() ? enum_name.value : currentNamespace + "::" + enum_name.value;
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + enum_name.value + "'", enum_name.pos));
-            return res.to_prs();
-        }
         UserTypeInfo info;
         info.pos = enum_name.pos;
         info.kind = UserTypeKind::Enum;
@@ -4960,6 +4968,18 @@ Prs Parser::statement() {
             }
         }
         auto saved_generics = this->current_generics;
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance();
+            UserTypeInfo tempInfo;
+            tempInfo.generics = generics;
+            tempInfo.kind = UserTypeKind::Concept;
+            tempInfo.pos = name.pos;
+            tempInfo.baseFile = this->current_tok.pos.Filename;
+            std::string full_key = currentNamespace.empty() ? name.value : currentNamespace + "::" + name.value;
+            user_types[full_key] = tempInfo;
+            this->current_generics = saved_generics;
+            return res.success(std::monostate{});
+        }
         this->current_generics.insert(this->current_generics.end(), generics.begin(), generics.end());
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept name", this->current_tok.pos));
@@ -5674,10 +5694,6 @@ Prs Parser::statement() {
         this->advance();
         std::string full_key = currentNamespace.empty() ? name.value : currentNamespace + "::" + name.value;
         if (this->current_tok.type == TokenType::SEMICOLON) { this->advance(); }
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of concept '" + name.value + "'", name.pos));
-            return res.to_prs();
-        }
         UserTypeInfo info;
         info.pos = name.pos;
         info.baseFile = this->current_tok.pos.Filename;
@@ -5708,6 +5724,17 @@ Prs Parser::statement() {
         }
         Token modifier_name = this->current_tok;
         this->advance();
+        if (this->current_tok.type == TokenType::SEMICOLON) {
+            this->advance();
+            UserTypeInfo info;
+            info.kind = UserTypeKind::Modifier;
+            std::string full_key = currentNamespace.empty() ? modifier_name.value : currentNamespace + "::" + modifier_name.value;
+            info.pos = modifier_name.pos;
+            info.baseFile = this->current_tok.pos.Filename;
+            info.namespace_path = currentNamespace;
+            user_types[base_type_name(full_key)] = info;
+            return res.success(std::monostate{});
+        }
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after modifier name", this->current_tok.pos));
             return res.to_prs();
@@ -5726,10 +5753,6 @@ Prs Parser::statement() {
         }
         this->advance();
         std::string full_key = currentNamespace.empty() ? modifier_name.value : currentNamespace + "::" + modifier_name.value;
-        if (user_types.contains(base_type_name(full_key))) {
-            res.failure(new InvalidSyntaxError("QC-UT01: Redefinition of type '" + modifier_name.value + "'", modifier_name.pos));
-            return res.to_prs();
-        }
         UserTypeInfo info;
         info.pos = modifier_name.pos;
         info.baseFile = this->current_tok.pos.Filename;
@@ -8242,7 +8265,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Type* rty = R->getType();
         if (L->getType()->isPointerTy()) {
             llvm::Type* allocTy = llvmTypeFor(getExpressionType((*bin)->left_node));
-            if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
+            if (allocTy) if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
                 if (structTy->hasName()) {
                     std::string className = structTy->getName().str();
                     if (classTypes.find(className) != classTypes.end()) {
@@ -10799,6 +10822,8 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
                 rhs = builder->CreateFPExt(rhs, destTy, "f2d");
             } else if (srcTy->isArrayTy() && destTy->isPointerTy()) {
+                rhs = this->decayArrayToPointer(rhs);
+            } else if (srcTy->isPointerTy() && destTy->isArrayTy()) {
                 auto* arr_alloca = builder->CreateAlloca(srcTy);
                 builder->CreateStore(rhs, arr_alloca);
                 rhs = builder->CreateGEP(srcTy, arr_alloca, {builder->getInt32(0), builder->getInt32(0)});
@@ -11915,17 +11940,36 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     std::vector<llvm::Value*> argValues;
                     auto paramIt = funcDef->params.begin();
                     bool hasSpread = false;
-                    for (auto& argNode : call.arg_nodes) {
-                        if (std::holds_alternative<SpreadNode*>(argNode)) { hasSpread = true; }
-                        std::string ptype = (paramIt != funcDef->params.end()) ? paramIt->type.value : "...";
+                    int paramIdx = 0;
+                    auto argIt = call.arg_nodes.begin();
+                    while (paramIt != funcDef->params.end()) {
                         llvm::Value* argVal;
-                        if (ptype.ends_with("&")) {
-                            argVal = emitLValue(argNode);
+                        auto param = *paramIt;
+                        if (paramIdx >= call.arg_nodes.size()) {
+                            if (param.default_value.has_value()) {
+                                AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
+                                argVal = emitExpr(defaultRef);
+                                if (!argVal) {
+                                    cg_error(get_pos(&call), "failed to evaluate default parameter");
+                                    return nullptr;
+                                }
+                            } else {
+                                cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx));
+                                return nullptr;
+                            }
                         } else {
-                            argVal = emitExpr(argNode);
+                            auto argNode = *argIt;
+                            argIt++;
+                            if (std::holds_alternative<SpreadNode*>(argNode)) { hasSpread = true; }
+                            std::string ptype = (paramIt != funcDef->params.end()) ? paramIt->type.value : "...";
+                            if (ptype.ends_with("&")) {
+                                argVal = emitLValue(argNode);
+                            } else {
+                                argVal = emitExpr(argNode);
+                            } 
                         }
+                        paramIdx++;
                         argValues.push_back(argVal);
-                        if (paramIt != funcDef->params.end()) ++paramIt;
                     }
                     if (hasSpread) {
                         cg_error(get_pos(&call), "spread is no longer allowed in function calls.");
@@ -12114,7 +12158,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                                   {"`atomic_umin", ""},
                                                                                   {"`atomic_umax", ""},
                                                                                   {"`atomic_cmpxchg", ""},
-                                                                                  {"`atomic_fence", ""}};
+                                                                                  {"`atomic_fence", ""},
+                                                                                  {"`lseek", "qc_lseek"},
+                                                                                  {"`opendir", "qc_opendir"},
+                                                                                  {"`readdir", "qc_readdir"},
+                                                                                  {"`closedir", "qc_closedir"}};
             auto it = builtins.find(funcName);
 
             if (it != builtins.end()) {
@@ -12342,7 +12390,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* value = emitExpr(call.arg_nodes.front());
                     if (!value) return nullptr;
                     value = normalizeValue(value, call.arg_nodes.front());
-                    auto* typeNode = std::get_if<TypeValueNode>(&call.arg_nodes.front());
+                    auto* typeNode = std::get_if<TypeValueNode>(&call.arg_nodes.back());
                     if (!typeNode) return nullptr;
                     llvm::Type* dstTy = llvmTypeFor(typeNode->tok.value);
                     if (!dstTy) return nullptr;
@@ -13407,7 +13455,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             return nullptr;
                         }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
-                        llvm::Value* val = emitExpr(*it);
+                        llvm::Value* val = (op.kind == 'm' ? emitLValue(*it) : emitExpr(*it));
                         if (!val) return nullptr;
                         input_values.push_back(val);
                         input_types.push_back(val->getType());
@@ -14433,6 +14481,10 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             targetClass = getExpressionType(temp);
         } else {
             llvm::Value* baseVal = emitExpr((*call)->base);
+            if (!baseVal) {
+                cg_error(get_pos(*call), "Failed to emit base of callnode");
+                return nullptr;
+            }
             llvm::Type* baseTy = baseVal->getType();
             if (auto* st = llvm::dyn_cast<llvm::StructType>(baseTy)) {
                 std::string unionName = st->getName().str();
@@ -14576,6 +14628,24 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     argValues.push_back(argVal);
                     if (paramIt != funcDef->params.end()) ++paramIt;
+                }
+                size_t paramNo = 0;
+                for (auto& param : funcDef->params) {
+                    if (paramNo >= (*call)->args.size()) {
+                        if (param.default_value.has_value()) {
+                            AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
+                            llvm::Value* defVal = emitExpr(defaultRef);
+                            if (!defVal) {
+                                cg_error(get_pos(*call), "failed to evaluate default parameter");      
+                                return nullptr;
+                            }
+                            argValues.push_back(defVal);
+                        } else {
+                            cg_error(get_pos(*call), "missing required argument at position " + std::to_string(paramNo));
+                            return nullptr;
+                        }
+                    }
+                    paramNo++;
                 }
                 if (hasSpread) {
                     cg_error(get_pos(*call), "spread is no longer allowed in function calls.");
@@ -17749,6 +17819,9 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
     } catch (InvalidSyntaxError& e) {
         std::cout << '\n' << e.as_string() << '\n';
         return Mer{Aer{nullptr, nullptr}, resp, ""};
+    } catch (IllegalCharError& e) {
+        std::cout << '\n' << e.as_string() << '\n';
+        return Mer{Aer{nullptr, nullptr}, Ler{std::vector<Token>(), nullptr}, ""};
     }
     Aer ast = file_asts[file];
     if (config.print_tokens) {

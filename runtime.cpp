@@ -8,7 +8,27 @@
 #include <ctime>
 #include <unistd.h>
 #include <unwind.h>
+#include <dirent.h>
 extern "C" {
+DIR* qc_opendir(const char* path) {
+    return opendir(path);
+}
+bool qc_readdir(DIR* dir, char* buffer, size_t size) {
+    struct dirent* entry = readdir(dir);
+    if (entry == NULL) {
+        return false;
+    }
+    size_t length = strlen(entry->d_name);
+    if (length + 1 > size) {
+        return false;
+    }
+    memcpy(buffer, entry->d_name, length + 1);
+    return true;
+}
+int qc_closedir(DIR* dir) {
+    return closedir(dir);
+}
+
 const char* __qc_version() { // self hosted
     return "x0.27.03";
 }
@@ -618,6 +638,9 @@ void qc_close(int fd) {
 } // self hosted
 ssize_t qc_read(int fd, char* buffer, size_t size) {
     return read(fd, buffer, size);
+}
+long long qc_lseek(int fd, long long offset, int whence) {
+    return lseek(fd, offset, whence);
 }
 void qc_write(int fd, const char* data) {
     if (!data) return;

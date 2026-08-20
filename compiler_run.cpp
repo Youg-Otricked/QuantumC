@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x1.0.2";
+const std::string ver = "x1.0.3";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -495,6 +495,9 @@ Examples:
         bool has_warnings = false;
         if (config.dump_tokens) return 0;
         if (!config.quiet_mode) { slow_print("=== Diagnostics ===\n", BOLD); }
+        if (result.tokens.error) {
+            slow_print(result.tokens.error->as_string() + "\n", RED);
+        }
         for (const auto& diag : result.errors) {
             std::string color;
 
