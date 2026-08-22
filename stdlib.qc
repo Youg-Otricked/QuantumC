@@ -2038,7 +2038,7 @@ namespace Filesystem {
             `inline(R"(
                 mov rax, 83
                 mov rdi, $1r
-                mov rsi, $2r
+                mov esi, $2r
                 syscall
                 mov $0=r, rax
             )", result, path.absolute().toString(), mode, "~{rax,rdi,rsi,memory}");
@@ -2047,7 +2047,7 @@ namespace Filesystem {
             `inline(R"(
                 mov rax, 0x2000068
                 mov rdi, $1r
-                mov rsi, $2r
+                mov esi, $2r
                 syscall
                 mov $0=r, rax
             )", result, path.absolute().toString(), mode, "~{rax,rdi,rsi,memory}"

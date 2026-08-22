@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.3 = "Filesystem"
+Current Version: x1.0.31 = "Filesystem"
 Next Version: x1.0.4 = "Variadic Generics"
 
 # Current Version Highlights
@@ -135,7 +135,7 @@ Minor
 └─ Filesystem
 
 Patch
-└─ N/A
+└─ Fixed default args on namespaced functions
 ```
 
 # Recent Deprecations / Breaking Changes

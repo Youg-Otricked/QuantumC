@@ -13691,7 +13691,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
         std::vector<std::string> paramTypeStrings;
         std::string lastVarName = "";
-        auto defIt = functionDefs.find(funcName);
+        auto defIt = resolveFuncDefIt(funcName);
         if (defIt != functionDefs.end()) {
             for (auto& p : defIt->second->params) {
                 paramTypeStrings.push_back(p.type.value);
@@ -17734,7 +17734,15 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 current_text = buffer.str();
             }
             bool saved_no_main = no_main;
+            if (config.progress) {
+                std::cout << "[PREPROCESSING] " << current_file << '\n';
+                std::cout.flush();
+            }
             auto outputofdeps = preprocess_includes(current_text, current_file);
+            if (config.progress) {
+                std::cout << "[DONE PREPROCESSING] " << current_file << '\n';
+                std::cout.flush();
+            }
             if (!(current_file == file)) { no_main = saved_no_main; }
             cleaned_files[current_file] = outputofdeps.clean_source;
             fileAccessibleNamespaces[current_file] = outputofdeps.accessible_namespaces;
@@ -17777,8 +17785,16 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
         }
         Ler file_resp;
         try {
+            if (config.progress) {
+                std::cout << "[LEXING] " << path << '\n';
+                std::cout.flush();
+            }
             Lexer lexer(cleaned_files[path], path);
             file_resp = lexer.make_tokens();
+            if (config.progress) {
+                std::cout << "[DONE LEXING] " << path << '\n';
+                std::cout.flush();
+            }
             if (config.dump_tokens && file == path && file_resp.error != nullptr) {
                 std::cout << "\n##DUMP##" << '\n'
                           << "ERROR: " << file_resp.error->pos.line << " " << file_resp.error->pos.column << " " << file_resp.error->pos.length << " "
@@ -17804,10 +17820,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             std::cout << "########" << '\n';
             return;
         }
+        if (config.progress) {
+            std::cout << "[PARSING] " << path << '\n';
+            std::cout.flush();
+        }
         Parser parser(file_resp.Tkns, visible_types);
         bool saved_no_main = no_main;
         no_main = ((path == file) ? no_main : true);
         Aer ast = parser.parse();
+        if (config.progress) {
+            std::cout << "[DONE PARSING] " << path << '\n';
+            std::cout.flush();
+        }
         no_main = saved_no_main;
         type_registry[path] = ast.user_types;
         file_asts[path] = ast;
@@ -17968,10 +17992,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     }
                 }
                 isHeader = std::filesystem::path(filepath).extension() == ".hqc";
+                if (config.progress) {
+                    std::cout << "[COMPILING] " << filepath << '\n';
+                    std::cout.flush();
+                }
                 LLVMCompiler comp(file_asts[filepath].user_types, master_module, context, filepath == file);
                 comp.config = config;
                 std::vector<CTError> errs = comp.compile(file_asts[filepath].statements, visSigs, visFDefs, visJagged, visTypeStr, visLen, visVars,
                                                          visAlloc, visLamb, visSpec, visGlobals);
+                if (config.progress) {
+                    std::cout << "[DONE COMPILING] " << filepath << '\n';
+                    std::cout.flush();
+                }
                 if (!errs.empty()) {
                     for (auto& err : errs)
                         diagnostics.push_back(
@@ -18024,6 +18056,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
 #ifndef __EMSCRIPTEN__
             if (config.optimize) {
+                if (config.progress) {
+                    std::cout << "[OPTIMIZING] " << file << '\n';
+                    std::cout.flush();
+                }
                 llvm::PassBuilder PB;
                 llvm::LoopAnalysisManager LAM;
                 llvm::FunctionAnalysisManager FAM;
@@ -18053,6 +18089,11 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 }
                 MPM = PB.buildPerModuleDefaultPipeline(optimization_level);
                 MPM.run(*master_module, MAM);
+                if (config.progress) {
+                    std::cout << "[DONE OPTIMIZING] " << file << '\n';
+                    std::cout.flush();
+                }
+
             }
 #endif
             master_module->print(out, nullptr);
@@ -18060,15 +18101,27 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 message += ". Compiled to " + ll_file;
                 return Mer{ast, resp, message, diagnostics};
             }
+            if (config.progress) {
+                std::cout << "[EMITTING OBJECT] " << file << '\n';
+                std::cout.flush();
+            }
             int llc_result = emitObjectFile(*master_module, obj_file, config.debug, config.target);
             if (llc_result != 0) {
                 diagnostics.push_back({new CTError("Failed to compile IR to object file", Position("", "", 0, 0, 0))});
                 return Mer{ast, resp, message, diagnostics};
             }
+            if (config.progress) {
+                std::cout << "[DONE EMITTING OBJECT] " << file << '\n';
+                std::cout.flush();
+            }
             if (config.object_only) {
                 std::remove(ll_file.c_str());
                 message += ". Compiled to " + obj_file;
                 return Mer{ast, resp, message, diagnostics};
+            }
+            if (config.progress) {
+                std::cout << "[LINKING] " << file << '\n';
+                std::cout.flush();
             }
             std::string final_exe = config.output_file.empty() ? "a.out" : config.output_file;
             std::string link_cmd = "gcc " + obj_file + " -o " + final_exe;
@@ -18099,7 +18152,10 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             }
             std::remove(ll_file.c_str());
             std::remove(obj_file.c_str());
-
+            if (config.progress) {
+                std::cout << "[DONE LINKING] " << file << '\n';
+                std::cout.flush();
+            }
             message += ". Built executable: " + final_exe;
             if (config.quiet_mode) message = "";
             return Mer{ast, resp, message, diagnostics};

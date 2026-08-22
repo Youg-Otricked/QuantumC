@@ -1560,6 +1560,7 @@ struct RunConfig {
 #endif
     {"__quantumc", "\"x1.0.1D\""}
 };
+    bool progress = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
@@ -4887,7 +4888,34 @@ class LLVMCompiler {
         }
         return nullptr;
     }
-
+    FuncDefNode* resolveFuncDef(const std::string& name) {
+        if (name.find("::") != std::string::npos) {
+            if (auto fi = functionDefs.find(name); fi != functionDefs.end()) return fi->second;
+        }
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string fullName = current.empty() ? name : current + "::" + name;
+            if (auto fi = functionDefs.find(fullName); fi != functionDefs.end()) return fi->second;
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+        }
+        return nullptr;
+    }
+    auto resolveFuncDefIt(const std::string& name) {
+        if (name.find("::") != std::string::npos) {
+            if (auto fi = functionDefs.find(name); fi != functionDefs.end()) return fi;
+        }
+        std::string current = getCurrentNamespace();
+        while (true) {
+            std::string fullName = current.empty() ? name : current + "::" + name;
+            if (auto fi = functionDefs.find(fullName); fi != functionDefs.end()) return fi;
+            if (current.empty()) break;
+            size_t pos = current.rfind("::");
+            current = (pos == std::string::npos) ? "" : current.substr(0, pos);
+        }
+        return functionDefs.end();
+    }
     llvm::Value* toTruthiness(llvm::Value* v, const Position& pos) {
         llvm::Type* ty = v->getType();
 
