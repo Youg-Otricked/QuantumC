@@ -44,7 +44,7 @@
 #include <llvm/MC/TargetRegistry.h>
 #ifndef __EMSCRIPTEN__
 #include <llvm/Passes/PassBuilder.h>
-#include <llvm/Passes/PassPlugin.h>
+#include <llvm/Plugins/PassPlugin.h>
 #endif
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/ModRef.h>
@@ -1354,6 +1354,54 @@ Prs Parser::qswitch_stmt() {
 
     return res.success(new QSwitchNode(value, case_t, case_f, case_n, case_b));
 }
+Prs Parser::loop_stmt() {
+    ParseResult res;
+    if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "loop")) {
+        res.failure(new InvalidSyntaxError("QC-S032: Expected 'loop'", current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    Position& cond_pos = this->current_tok.pos;
+    StatementsNode* body;
+    if (!this->parse_block_into(body, res)) return res.to_prs();
+    auto wn = new WhileNode(BoolNode(Token(TokenType::BOOL, "true", cond_pos)), body);
+    return res.success(wn);
+}
+Prs Parser::dowhile_stmt() {
+    ParseResult res;
+    if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "do")) {
+        res.failure(new InvalidSyntaxError("QC-S032: Expected 'do'", this->current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    StatementsNode* body;
+    if (!this->parse_block_into(body, res)) return res.to_prs();
+    if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "while")) {
+        res.failure(new InvalidSyntaxError("QC-S032: Expected 'while'", current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    if (current_tok.type != TokenType::LPAREN) {
+        res.failure(new InvalidSyntaxError("QC-S033: Expected '(' after 'while'", this->current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    AnyNode cond = res.reg(this->ternary());
+    if (res.error) return res.to_prs();
+    if (current_tok.type != TokenType::RPAREN) {
+        res.failure(new InvalidSyntaxError("QC-S034: Expected ')' after while condition", current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    if (current_tok.type != TokenType::SEMICOLON) {
+        res.failure(new MissingSemicolonError(this->current_tok.pos));
+        return res.to_prs();
+    }
+    this->advance();
+    auto wn = new WhileNode(cond, body, true);
+    return res.success(wn);
+}
+
 Prs Parser::while_stmt() {
     ParseResult res;
     if (!(current_tok.type == TokenType::KEYWORD && current_tok.value == "while")) {
@@ -3497,6 +3545,8 @@ Prs Parser::statement() {
     if (tok.type == TokenType::KEYWORD && tok.value == "qswitch") { return this->qswitch_stmt(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "while") { return this->while_stmt(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "for") { return this->for_stmt(); }
+    if (tok.type == TokenType::KEYWORD && tok.value == "do") { return this->dowhile_stmt(); }
+    if (tok.type == TokenType::KEYWORD && tok.value == "loop") { return this->loop_stmt(); }
     if (tok.type == TokenType::KEYWORD && tok.value == "foreach") {
         this->advance();
 
@@ -15985,7 +16035,11 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::BasicBlock* oldContinueBB = currentContinueBB;
         currentBreakBB = endBB;
         currentContinueBB = condBB;
-        builder->CreateBr(condBB);
+        if (while_node->is_dowhile) {
+            builder->CreateBr(bodyBB);
+        } else {
+            builder->CreateBr(condBB);
+        }
         builder->SetInsertPoint(condBB);
         llvm::Value* cond = emitExpr(while_node->condition);
         if (!cond) return;
@@ -15993,7 +16047,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (cond->getType() == enumTy) {
                 llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
                 llvm::Type* targetTy = builder->getInt1Ty();
-
                 llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
                 cond = builder->CreateLoad(targetTy, typedPtr);
                 break;
@@ -16007,7 +16060,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         for (auto& stmt : while_node->body->statements) { emitStmt(stmt); }
         if (!builder->GetInsertBlock()->getTerminator()) {
             emitDefersDownTo(outerDepth + 1);
-            builder->CreateBr(condBB);
+            builder->CreateBr(condBB); 
         }
         currentBreakBB = oldBreakBB;
         currentContinueBB = oldContinueBB;
@@ -18363,7 +18416,7 @@ Token Lexer::make_identifier() {
         /* storage modifiers */ id == "long" || id == "short" || id == "const" || id == "atomic" ||
         /* switch */ id == "case" || id == "switch" || id == "default" ||
         /* if else */ id == "if" || id == "else" ||
-        /* loops */ id == "break" || id == "while" || id == "for" || id == "continue" || id == "foreach" || id == "in" ||
+        /* loops */ id == "break" || id == "while" || id == "loop" || id == "do" || id == "for" || id == "continue" || id == "foreach" || id == "in" ||
         /* special types */ id == "void" || id == "auto" ||
         /* functions / lambdas */ id == "return" || id == "function" || id == "fn" ||
         /* q stuff */ id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" ||

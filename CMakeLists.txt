@@ -86,22 +86,11 @@ if(ENABLE_LLVM)
     add_definitions(-D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS)
     target_compile_definitions(qc PRIVATE ENABLE_LLVM)
     target_include_directories(qc PRIVATE ${LLVM_INCLUDE_DIRS})
-    set(LLVM_COMPONENTS
-        Core Support IRReader Passes Analysis TransformUtils 
-        ScalarOpts InstCombine IPO Target MC AsmPrinter CodeGen
+    target_link_directories(qc PRIVATE ${LLVM_LIBRARY_DIRS})
+    target_link_libraries(qc PRIVATE
+        LLVM
+        ${LLVM_SYSTEM_LIBS}
     )
-    if(EMSCRIPTEN)
-        list(APPEND LLVM_COMPONENTS
-            WebAssemblyCodeGen WebAssemblyAsmParser WebAssemblyDesc
-        )
-    else()
-        list(APPEND LLVM_COMPONENTS
-            X86CodeGen AllTargetsDescs AllTargetsAsmParsers AllTargetsCodeGens
-            WebAssemblyCodeGen WebAssemblyAsmParser WebAssemblyDesc
-        )
-    endif()
-    llvm_map_components_to_libnames(llvm_libs ${LLVM_COMPONENTS})
-    target_link_libraries(qc PRIVATE ${llvm_libs} ${LLVM_SYSTEM_LIBS})
 endif()
 target_include_directories(qc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 if(EMSCRIPTEN)

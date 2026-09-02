@@ -43,15 +43,15 @@ install_deps() {
         echo -e "${YELLOW}Set LLVM_DIR manually, see README${NC}"
     fi
 }
-LLVM_CONFIG=$(command -v llvm-config || command -v llvm-config-21)
+LLVM_CONFIG=$(command -v llvm-config || command -v llvm-config-22)
 
 if [[ -z "$LLVM_CONFIG" ]]; then
     install_deps
-    LLVM_CONFIG=$(command -v llvm-config || command -v llvm-config-21)
+    LLVM_CONFIG=$(command -v llvm-config || command -v llvm-config-22)
 fi
 LLVM_VER=$($LLVM_CONFIG --version | cut -d. -f1)
-if [ "$LLVM_VER" -lt 21 ]; then
-    echo -e "${RED}LLVM 21+ required, found $LLVM_VER${NC}"
+if [ "$LLVM_VER" -lt 22 ]; then
+    echo -e "${RED}LLVM 22+ required, found $LLVM_VER${NC}"
     exit 1
 fi
 echo -e "${GREEN}Detected OS: $OS${NC}"

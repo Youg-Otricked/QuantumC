@@ -25,9 +25,6 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - Decltype (get type of expr)
 - noexcept (funciton modifier) (same update as const on functions and stuff)
 - change parent constructor and delegeating constructors
-- compile_error("My error")
-- compile_note("My msg")
-- compile_warn("My warning")
 - dynamic field access
 - has field, has method
 - _generic- manal overloading
@@ -36,7 +33,7 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - has_method, has_field, at
 - rule usertypes so userdefined const equiveleants and stuff
 TOP PRIORITY:
-1. Variadics on generics
+1. Generics in header
 2. Tuples + Destruturing
 2. Function Pointers
 2. Tagged enums

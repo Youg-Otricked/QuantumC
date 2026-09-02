@@ -747,9 +747,9 @@ class WhileNode {
   public:
     AnyNode condition;
     StatementsNode* body;
-
+    bool is_dowhile = false;
     Position getPos() { return get_pos(condition); }
-    WhileNode(AnyNode cond, StatementsNode* b) : condition(cond), body(b) {}
+    WhileNode(AnyNode cond, StatementsNode* b, bool isdowhile = false) : condition(cond), body(b), is_dowhile(isdowhile) {}
 
     std::string print() { return "(while " + printAny(condition) + " " + body->print() + ")"; }
 };
@@ -1220,6 +1220,8 @@ class Parser {
     Prs qswitch_stmt();
     Aer parse();
     Prs statement();
+    Prs loop_stmt();
+    Prs dowhile_stmt();
     Prs while_stmt();
     Prs for_stmt();
     Prs try_catch_expr();
@@ -1558,7 +1560,7 @@ struct RunConfig {
 #ifdef __mips64
     {"__mips64", "1"},
 #endif
-    {"__quantumc", "\"x1.0.1D\""}
+    {"__quantumc", "\"x1.0.2R\""}
 };
     bool progress = false;
 };
