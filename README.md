@@ -116,8 +116,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.31 = "Filesystem"
-Next Version: x1.0.4 = "Variadic Generics"
+Current Version: x1.0.4 = "New Loops"
+Next Version: x1.0.5 = "Generics In Headers"
 
 # Current Version Highlights
 
@@ -594,8 +594,12 @@ and may define the following recommended extra methods:
 bool _atStart() // Returns true if the iterator is currently at index 0
 T _prev() // Returns the element at current index -- and decrements current index
 void _moveTo(whateveryouwant idx) // sets index to idx
-MyIterator<T> _map(fn(T elem) -> T) // preforms an operation on every element
+MyIterator<U> _map<U>(fn(T elem) -> U) // preforms a operation on every element
 MyClass<T> _collect() // returns the class that this iterator iterates
+MyIterator<T> _filter(fn(T elem) -> bool) // returns a iterator of only the elements that are true for that lambda
+void _inval_destroy() // invalidates the collection this iterator iterates
+MyIterator<T> _take(int n) // returns a iterator to the first n elements
+MyIterator<T> _drop(int n) // returns a iterator skipping the first n elements
 ```
 
 Example:
