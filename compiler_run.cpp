@@ -583,7 +583,9 @@ const char* run_quantumc_code(const char* code) {
                                "O0",             // opt_level
                                "/working/a.out", // output_file
                                false,            // output_wasm
-                               false             // link runtime
+                               true,             // link runtime
+                               false, // dump tokens
+                               "x86_64-unknown-linux-gnu"
                            });
     if (result.ast.error) {
         output = result.ast.error->as_string();
