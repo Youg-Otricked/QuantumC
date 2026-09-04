@@ -574,7 +574,7 @@ const char* run_quantumc_code(const char* code) {
                                false,            // quiet_mode
                                false,            // raw
                                false,            // bst
-                               true,             // compile_mode
+                               false,             // compile_mode
                                false,            // interpret_mode
                                false,            // compile_only
                                true,             // object_only
