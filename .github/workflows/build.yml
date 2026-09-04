@@ -52,10 +52,10 @@ jobs:
       - name: Install deps
         run: |
           apt update
-          apt install -y llvm-21 llvm-21-dev clang-21 libffi-dev pkg-config cmake g++ git libzstd-dev
+          apt install -y llvm-22 llvm-22-dev clang-22 libffi-dev pkg-config cmake g++ git libzstd-dev
       
       - name: Generate runtime.ll
-        run: clang-21 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
+        run: clang-22 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
       
       - name: Build (Linux)
         run: |
@@ -78,9 +78,9 @@ jobs:
       
       - name: Install dependencies
         run: |
-          brew install llvm@21 libffi cmake
-          echo "LLVM_DIR=$(brew --prefix llvm@21)/lib/cmake/llvm" >> $GITHUB_ENV
-          echo "$(brew --prefix llvm@21)/bin" >> $GITHUB_PATH
+          brew install llvm@22 libffi cmake
+          echo "LLVM_DIR=$(brew --prefix llvm@22)/lib/cmake/llvm" >> $GITHUB_ENV
+          echo "$(brew --prefix llvm@22)/bin" >> $GITHUB_PATH
       - name: Generate runtime.ll
         run: clang -S -emit-llvm -O0 -I$(brew --prefix libffi)/include -o runtime.ll runtime.cpp
       - name: Build (macOS)

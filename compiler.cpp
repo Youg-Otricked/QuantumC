@@ -1877,7 +1877,7 @@ Prs Parser::atom() {
                         break;
                     }
                     if (this->current_tok.type == TokenType::EOFT) {
-                        res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                        res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", pos));
                         return res.to_prs();
                     }
                     if (this->current_tok.type == TokenType::LESS) {
@@ -1891,11 +1891,9 @@ Prs Parser::atom() {
                         just_incremented = true;
                         depth++;
                         if (depth > 128) {
-                            res.failure(new InvalidSyntaxError(
-                                "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." +
+                            res.failure(new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " + name.substr(0, 120) + "..." +
                                     "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                    "compiler is not a Matryoshka doll. It has feelings too.",
-                                pos));
+                                    "compiler is not a Matryoshka doll. It has feelings too.", pos));
                             return res.to_prs();
                         }
                     } else if (this->current_tok.type == TokenType::MORE) {
@@ -1957,7 +1955,7 @@ Prs Parser::atom() {
                     break;
                 }
                 if (this->current_tok.type == TokenType::EOFT) {
-                    res.failure(new InvalidSyntaxError("Unterminated generic argument list", pos));
+                    res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", pos));
                     return res.to_prs();
                 }
                 if (this->current_tok.type == TokenType::LESS) {
@@ -1970,11 +1968,10 @@ Prs Parser::atom() {
                     just_incremented = true;
                     depth++;
                     if (depth > 128) {
-                        res.failure(new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                        res.failure(new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                                                name.substr(0, 120) + "..." +
                                                                "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                               "compiler is not a Matryoshka doll. It has feelings too.",
-                                                           pos));
+                                                               "compiler is not a Matryoshka doll. It has feelings too.", pos));
                         return res.to_prs();
                     }
                 } else if (this->current_tok.type == TokenType::MORE) {
@@ -2079,7 +2076,7 @@ Prs Parser::atom() {
                 this->advance();
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(new InvalidSyntaxError("Expected property or method name after '->'", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-S037: Expected property or method name after '->'", this->current_tok.pos));
                     return res.to_prs();
                 }
 
@@ -2128,7 +2125,7 @@ Prs Parser::atom() {
                             break;
                         }
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
@@ -2142,11 +2139,10 @@ Prs Parser::atom() {
                             depth++;
                             if (depth > 128) {
                                 res.failure(
-                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                    new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                                                property_name.value.substr(0, 120) + "..." +
                                                                "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                               "compiler is not a Matryoshka doll. It has feelings too.",
-                                                           this->current_tok.pos));
+                                                               "compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -2195,7 +2191,7 @@ Prs Parser::atom() {
                     }
 
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ')' after method arguments", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S052: Expected ')' after method arguments", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -2208,7 +2204,7 @@ Prs Parser::atom() {
                 this->advance();
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(new InvalidSyntaxError("Expected property or method name after '.'", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-S053: Expected property or method name after '.'", this->current_tok.pos));
                     return res.to_prs();
                 }
 
@@ -2257,7 +2253,7 @@ Prs Parser::atom() {
                             break;
                         }
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
@@ -2271,11 +2267,10 @@ Prs Parser::atom() {
                             depth++;
                             if (depth > 128) {
                                 res.failure(
-                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                    new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                                                property_name.value.substr(0, 120) + "..." +
                                                                "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                               "compiler is not a Matryoshka doll. It has feelings too.",
-                                                           this->current_tok.pos));
+                                                               "compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -2370,7 +2365,7 @@ Prs Parser::atom() {
                     this->advance();
 
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected property or method name after '->'", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S037: Expected property or method name after '->'", this->current_tok.pos));
                         return res.to_prs();
                     }
 
@@ -2419,7 +2414,7 @@ Prs Parser::atom() {
                                 break;
                             }
                             if (this->current_tok.type == TokenType::EOFT) {
-                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.type == TokenType::LESS) {
@@ -2432,12 +2427,10 @@ Prs Parser::atom() {
                                 just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(new InvalidSyntaxError(
-                                        "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                    res.failure(new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                             property_name.value.substr(0, 120) + "..." +
                                             "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                            "compiler is not a Matryoshka doll. It has feelings too.",
-                                        this->current_tok.pos));
+                                            "compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2486,7 +2479,7 @@ Prs Parser::atom() {
                         }
 
                         if (this->current_tok.type != TokenType::RPAREN) {
-                            res.failure(new InvalidSyntaxError("Expected ')' after method arguments", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S052: Expected ')' after method arguments", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -2499,7 +2492,7 @@ Prs Parser::atom() {
                     this->advance();
 
                     if (this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected property or method name after '.'", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S053: Expected property or method name after '.'", this->current_tok.pos));
                         return res.to_prs();
                     }
 
@@ -2548,7 +2541,7 @@ Prs Parser::atom() {
                                 break;
                             }
                             if (this->current_tok.type == TokenType::EOFT) {
-                                res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.type == TokenType::LESS) {
@@ -2561,12 +2554,10 @@ Prs Parser::atom() {
                                 just_incremented = true;
                                 depth++;
                                 if (depth > 128) {
-                                    res.failure(new InvalidSyntaxError(
-                                        "Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                    res.failure(new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                             property_name.value.substr(0, 120) + "..." +
                                             "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                            "compiler is not a Matryoshka doll. It has feelings too.",
-                                        this->current_tok.pos));
+                                            "compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                             } else if (this->current_tok.type == TokenType::MORE) {
@@ -2660,7 +2651,7 @@ Prs Parser::atom() {
                 this->advance();
 
                 if (this->current_tok.type != TokenType::IDENTIFIER) {
-                    res.failure(new InvalidSyntaxError("Expected property or method name after '.'", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-S053: Expected property or method name after '.'", this->current_tok.pos));
                     return res.to_prs();
                 }
 
@@ -2709,7 +2700,7 @@ Prs Parser::atom() {
                             break;
                         }
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unterminated generic argument list", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G001: Unterminated generic argument list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.type == TokenType::LESS) {
@@ -2723,11 +2714,10 @@ Prs Parser::atom() {
                             depth++;
                             if (depth > 128) {
                                 res.failure(
-                                    new InvalidSyntaxError("Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
+                                    new InvalidSyntaxError("QC-G002: Generic nesting exceeds maximum depth of 128.\n\nNote: While expanding:\n    " +
                                                                property_name.value.substr(0, 120) + "..." +
                                                                "\n\nNote: We opened the box and there was another box. And another. Please stop. The "
-                                                               "compiler is not a Matryoshka doll. It has feelings too.",
-                                                           this->current_tok.pos));
+                                                               "compiler is not a Matryoshka doll. It has feelings too.", this->current_tok.pos));
                                 return res.to_prs();
                             }
                         } else if (this->current_tok.type == TokenType::MORE) {
@@ -2783,7 +2773,7 @@ Prs Parser::atom() {
                     }
 
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ')' after method arguments", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S052: Expected ')' after method arguments", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -2990,7 +2980,7 @@ Prs Parser::ternary() {
         AnyNode left = res.reg(this->ternary());
         if (res.error) return res.to_prs();
         if (this->current_tok.type != TokenType::COLON) {
-            res.failure(new InvalidSyntaxError("Expected : after if-true value in ternary expression", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S054: Expected : after if-true value in ternary expression", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -3240,7 +3230,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
         p.type = this->current_tok;
         this->advance();
 
-        if (this->current_tok.type != TokenType::LPAREN) { throw new InvalidSyntaxError("Expected '(' after 'fn'", this->current_tok.pos); }
+        if (this->current_tok.type != TokenType::LPAREN) { throw new InvalidSyntaxError("QC-S056: Expected '(' after 'fn'", this->current_tok.pos); }
         this->advance();
 
         Parameter::FunctionSignature sig;
@@ -3255,7 +3245,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
             }
         }
 
-        if (this->current_tok.type != TokenType::RPAREN) { throw new InvalidSyntaxError("Expected ')'", this->current_tok.pos); }
+        if (this->current_tok.type != TokenType::RPAREN) { throw new InvalidSyntaxError("QC-S059: Expected ')'", this->current_tok.pos); }
         this->advance();
         if (this->current_tok.type == TokenType::ARROW) {
             this->advance();
@@ -3266,7 +3256,7 @@ Parameter Parser::parse_parameter(bool type_only = false) {
                     if (this->current_tok.type != TokenType::COMMA) break;
                     this->advance();
                 }
-                if (this->current_tok.type != TokenType::RPAREN) { throw new InvalidSyntaxError("Expected ')'", this->current_tok.pos); }
+                if (this->current_tok.type != TokenType::RPAREN) { throw new InvalidSyntaxError("QC-S059: Expected ')'", this->current_tok.pos); }
                 this->advance();
             } else {
                 auto temp_p = this->parse_parameter(true);
@@ -3394,7 +3384,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
         if (this->current_tok.type == TokenType::RBRACE) break;
 
         if (this->current_tok.type == TokenType::EOFT) {
-            res.failure(new InvalidSyntaxError("Unexpected end of file in function body", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S060: Unexpected end of file in function body", this->current_tok.pos));
             return res.to_prs();
         }
         Prs st = this->statement();
@@ -3414,7 +3404,7 @@ Prs Parser::func_def_multi(std::vector<Token> return_types, std::optional<Token>
     }
 
     if (this->current_tok.type != TokenType::RBRACE) {
-        res.failure(new InvalidSyntaxError("Expected '}' to end function body", this->current_tok.pos));
+        res.failure(new InvalidSyntaxError("QC-S062: Expected '}' to end function body", this->current_tok.pos));
         return res.to_prs();
     }
     auto body = new StatementsNode(body_stmts, true);
@@ -3434,7 +3424,7 @@ Prs Parser::statement() {
             tok = this->current_tok;
             this->in_extern = true;
         } else {
-            res.failure(new InvalidSyntaxError("Expected ':' after 'extern'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S063: Expected ':' after 'extern'", this->current_tok.pos));
             return res.to_prs();
         }
     }
@@ -3452,7 +3442,7 @@ Prs Parser::statement() {
             tok = this->current_tok;
             this->in_foreign = true;
         } else {
-            res.failure(new InvalidSyntaxError("Expected ':' after 'foreign'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S066: Expected ':' after 'foreign'", this->current_tok.pos));
             return res.to_prs();
         }
     }
@@ -3467,7 +3457,7 @@ Prs Parser::statement() {
         this->advance();
 
         if (this->current_tok.type != TokenType::LPAREN) {
-            res.failure(new InvalidSyntaxError("Expected '(' after 'fn'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S056: Expected '(' after 'fn'", this->current_tok.pos));
             return res.to_prs();
         }
 
@@ -3490,7 +3480,7 @@ Prs Parser::statement() {
             if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER &&
                 std::none_of(this->current_generics.begin(), this->current_generics.end(),
                              [this](GenericType t) { return t.name == this->current_tok.value; })) {
-                res.failure(new InvalidSyntaxError("Expected return type after '->'", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-T001: Expected return type after '->'", this->current_tok.pos));
                 return res.to_prs();
             }
             Token saved_tok = this->current_tok;
@@ -3502,7 +3492,7 @@ Prs Parser::statement() {
                 if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER &&
                     std::none_of(this->current_generics.begin(), this->current_generics.end(),
                                  [this](GenericType t) { return t.name == this->current_tok.value; })) {
-                    res.failure(new InvalidSyntaxError("Expected return type after ','", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-T002: Expected return type after ','", this->current_tok.pos));
                     return res.to_prs();
                 }
                 Token saved_tok = this->current_tok;
@@ -3551,26 +3541,26 @@ Prs Parser::statement() {
         this->advance();
 
         if (this->current_tok.type != TokenType::LPAREN) {
-            res.failure(new InvalidSyntaxError("Expected '(' after 'foreach'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S067: Expected '(' after 'foreach'", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
 
         if (this->current_tok.type != TokenType::KEYWORD) {
-            res.failure(new InvalidSyntaxError("Expected type in foreach", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-T003: Expected type in foreach", this->current_tok.pos));
             return res.to_prs();
         }
         Token elem_type = this->current_tok;
         elem_type.value = parseTypeString();
         if (this->current_tok.type != TokenType::IDENTIFIER) {
-            res.failure(new InvalidSyntaxError("Expected variable name in foreach", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S068: Expected variable name in foreach", this->current_tok.pos));
             return res.to_prs();
         }
         Token elem_name = this->current_tok;
         this->advance();
 
         if (this->current_tok.type != TokenType::KEYWORD || this->current_tok.value != "in") {
-            res.failure(new InvalidSyntaxError("Expected 'in' in foreach", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S069: Expected 'in' in foreach", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -3599,7 +3589,7 @@ Prs Parser::statement() {
         }
 
         if (this->current_tok.type != TokenType::RBRACE) {
-            res.failure(new InvalidSyntaxError("Expected '}' to end foreach body", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S070: Expected '}' to end foreach body", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -3631,7 +3621,7 @@ Prs Parser::statement() {
     if (tok.type == TokenType::KEYWORD && tok.value == "abstract") {
         this->advance();
         if (this->current_tok.type != TokenType::KEYWORD || this->current_tok.value != "class") {
-            res.failure(new InvalidSyntaxError("Expected 'class' after 'abstract'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S078: Expected 'class' after 'abstract'", this->current_tok.pos));
             return res.to_prs();
         }
         is_abstract_class = true;
@@ -3640,7 +3630,7 @@ Prs Parser::statement() {
     if (tok.type == TokenType::KEYWORD && tok.value == "final") {
         this->advance();
         if (this->current_tok.type != TokenType::KEYWORD || this->current_tok.value != "class") {
-            res.failure(new InvalidSyntaxError("Expected 'class' after 'final'", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S079: Expected 'class' after 'final'", this->current_tok.pos));
             return res.to_prs();
         }
         is_final_class = true;
@@ -3649,7 +3639,7 @@ Prs Parser::statement() {
     if (tok.type == TokenType::KEYWORD && tok.value == "class") {
         this->advance();
         if (this->current_tok.type != TokenType::IDENTIFIER) {
-            res.failure(new InvalidSyntaxError("Expected class name", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S086: Expected class name", this->current_tok.pos));
             return res.to_prs();
         }
         Token class_name = this->current_tok;
@@ -3669,14 +3659,14 @@ Prs Parser::statement() {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         curr.isNonType = true;
                         curr.nonTypeKind = prev + " " + this->current_tok.value;
                     } else {
                         res.failure(
-                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -3692,9 +3682,7 @@ Prs Parser::statement() {
                                                    ? this->current_tok.value
                                                    : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError(
-                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
@@ -3714,7 +3702,7 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                     }
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -3725,7 +3713,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
                 if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                     return res.to_prs();
                 }
                 generics.push_back(curr);
@@ -3742,7 +3730,7 @@ Prs Parser::statement() {
         if (this->current_tok.type == TokenType::COLON) {
             this->advance();
             if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(new InvalidSyntaxError("Expected base class name after ':'", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S088: Expected base class name after ':'", this->current_tok.pos));
                 return res.to_prs();
             }
             baseName = this->current_tok.value;
@@ -3770,7 +3758,7 @@ Prs Parser::statement() {
                     } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
                         baseName += parseTypeString();
                     } else {
-                        res.failure(new InvalidSyntaxError("Unexpected token inside base class generic argument list", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-G005: Unexpected token inside base class generic argument list", this->current_tok.pos));
                         return res.to_prs();
                     }
                 }
@@ -3779,7 +3767,7 @@ Prs Parser::statement() {
         if (!baseName.empty()) {
             auto* base_ptr = find_type(base_type_name(baseName));
             if (base_ptr && base_ptr->kind == UserTypeKind::Class && base_ptr->is_final_class) {
-                res.failure(new InvalidSyntaxError("Cannot inherit from final class '" + base_type_name(baseName) + "'", class_name.pos));
+                res.failure(new InvalidSyntaxError("QC-S089: Cannot inherit from final class '" + base_type_name(baseName) + "'", class_name.pos));
                 return res.to_prs();
             }
         }
@@ -3857,7 +3845,7 @@ Prs Parser::statement() {
                 this->advance();
                 info.friendClasses.push_back(parseTypeString());
                 if (this->current_tok.type != TokenType::SEMICOLON) {
-                    res.failure(new InvalidSyntaxError("expected ; after friend class name", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-MS01: expected ; after friend class name", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -3867,7 +3855,7 @@ Prs Parser::statement() {
                 this->advance();
                 info.friendlyClasses.push_back(parseTypeString());
                 if (this->current_tok.type != TokenType::SEMICOLON) {
-                    res.failure(new InvalidSyntaxError("expected ; after friendly class name", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-MS02: expected ; after friendly class name", this->current_tok.pos));
                     return res.to_prs();
                 }
                 this->advance();
@@ -3882,7 +3870,7 @@ Prs Parser::statement() {
             if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value == class_name.value) {
 
                 if (is_abstract_class) {
-                    res.failure(new InvalidSyntaxError("Cannot make constructor on abstract class '" + class_name.value + "'", class_name.pos));
+                    res.failure(new InvalidSyntaxError("QC-S090: Cannot make constructor on abstract class '" + class_name.value + "'", class_name.pos));
                     return res.to_prs();
                 }
 
@@ -3912,14 +3900,13 @@ Prs Parser::statement() {
                                 std::string prev = this->current_tok.value;
                                 this->advance();
                                 if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                    res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                                 curr.isNonType = true;
                                 curr.nonTypeKind = prev + " " + this->current_tok.value;
                             } else {
-                                res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                   this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             this->advance();
@@ -3935,9 +3922,7 @@ Prs Parser::statement() {
                                                            ? this->current_tok.value
                                                            : parseTypeString());
                                 } else {
-                                    res.failure(new InvalidSyntaxError(
-                                        "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                        this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                                 if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -3957,7 +3942,7 @@ Prs Parser::statement() {
                                 if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                             }
                             if (this->current_tok.type != TokenType::RPAREN) {
-                                res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             this->advance();
@@ -3968,7 +3953,7 @@ Prs Parser::statement() {
                             this->advance();
                         }
                         if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                            res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                             return res.to_prs();
                         }
                         genericsM.push_back(curr);
@@ -3983,7 +3968,7 @@ Prs Parser::statement() {
                 if (next_tok.type == TokenType::LPAREN) {
                     this->advance();
                     if (this->current_tok.type != TokenType::LPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected '(' after constructor name", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S091: Expected '(' after constructor name", this->current_tok.pos));
                         return res.to_prs();
                     }
 
@@ -4026,7 +4011,7 @@ Prs Parser::statement() {
                     while (true) {
                         if (this->current_tok.type == TokenType::RBRACE) break;
                         if (this->current_tok.type == TokenType::EOFT) {
-                            res.failure(new InvalidSyntaxError("Unexpected end of file in constructor body", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S092: Unexpected end of file in constructor body", this->current_tok.pos));
                             return res.to_prs();
                         }
                         Prs st = this->statement();
@@ -4040,7 +4025,7 @@ Prs Parser::statement() {
                         body_stmts.push_back(node);
                     }
                     if (this->current_tok.type != TokenType::RBRACE) {
-                        res.failure(new InvalidSyntaxError("Expected '}' to end constructor body", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S093: Expected '}' to end constructor body", this->current_tok.pos));
                         return res.to_prs();
                     }
                     auto body = new StatementsNode(body_stmts, true);
@@ -4064,7 +4049,7 @@ Prs Parser::statement() {
                 }
             }
             if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(new InvalidSyntaxError("Expected type or constructor in class body", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-T004: Expected type or constructor in class body", this->current_tok.pos));
                 return res.to_prs();
             }
 
@@ -4145,7 +4130,7 @@ Prs Parser::statement() {
                 case TokenType::LPAREN:
                     this->advance();
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
                         return res.to_prs();
                     }
                     break;
@@ -4161,10 +4146,10 @@ Prs Parser::statement() {
                         long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
                         break;
                     } else {
-                        res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
                         return res.to_prs();
                     }
-                default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return res.to_prs();
+                default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return res.to_prs();
                 }
                 std::string op_name;
                 switch (op_tok.type) {
@@ -4235,7 +4220,7 @@ Prs Parser::statement() {
                 case TokenType::R_ROT:
                 case TokenType::LSHIFT:
                 case TokenType::L_ROT: break;
-                default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
+                default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
                 }
                 std::string op_name;
                 switch (op_tok.type) {
@@ -4253,7 +4238,7 @@ Prs Parser::statement() {
                 name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
                 this->advance();
             } else {
-                res.failure(new InvalidSyntaxError("Expected method or field name after type(s)", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-T005: Expected method or field name after type(s)", this->current_tok.pos));
                 return res.to_prs();
             }
             std::vector<GenericType> genericsM;
@@ -4271,14 +4256,13 @@ Prs Parser::statement() {
                             std::string prev = this->current_tok.value;
                             this->advance();
                             if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             curr.isNonType = true;
                             curr.nonTypeKind = prev + " " + this->current_tok.value;
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -4294,9 +4278,7 @@ Prs Parser::statement() {
                                                        ? this->current_tok.value
                                                        : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError(
-                                    "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                    this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -4316,7 +4298,7 @@ Prs Parser::statement() {
                             if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                         }
                         if (this->current_tok.type != TokenType::RPAREN) {
-                            res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -4327,7 +4309,7 @@ Prs Parser::statement() {
                         this->advance();
                     }
                     if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                        res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     genericsM.push_back(curr);
@@ -4347,9 +4329,8 @@ Prs Parser::statement() {
                         auto& baseInfo = *base_ptr;
                         for (auto& bm : baseInfo.classMethods) {
                             if (bm.name_tok.value == mi.name_tok.value && bm.is_final) {
-                                res.failure(new InvalidSyntaxError("Cannot override final method '" + mi.name_tok.value + "' from base class '" +
-                                                                       info.baseClassName + "'",
-                                                                   mi.name_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S097: Cannot override final method '" + mi.name_tok.value + "' from base class '" +
+                                                                       info.baseClassName + "'", mi.name_tok.pos));
                                 return res.to_prs();
                             }
                         }
@@ -4376,7 +4357,7 @@ Prs Parser::statement() {
                 continue;
             }
             if (type_list.size() != 1) {
-                res.failure(new InvalidSyntaxError("Class fields cannot have multiple types", name_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-T006: Class fields cannot have multiple types", name_tok.pos));
                 return res.to_prs();
             }
             std::string field_type = type_list[0].value;
@@ -4402,7 +4383,7 @@ Prs Parser::statement() {
                 if (res.error) return res.to_prs();
             }
             if (this->current_tok.type != TokenType::SEMICOLON) {
-                res.failure(new InvalidSyntaxError("Expected ';' after field declaration", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-MS03: Expected ';' after field declaration", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -4417,7 +4398,7 @@ Prs Parser::statement() {
         }
 
         if (this->current_tok.type != TokenType::RBRACE) {
-            res.failure(new InvalidSyntaxError("Expected '}' at end of class", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S098: Expected '}' at end of class", this->current_tok.pos));
             return res.to_prs();
         }
         this->advance();
@@ -4432,7 +4413,7 @@ Prs Parser::statement() {
         this->advance();
 
         if (current_tok.type != TokenType::IDENTIFIER) {
-            res.failure(new InvalidSyntaxError("Expected namespace name", current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-N001: Expected namespace name", current_tok.pos));
             return res.to_prs();
         }
 
@@ -4520,14 +4501,14 @@ Prs Parser::statement() {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         curr.isNonType = true;
                         curr.nonTypeKind = prev + " " + this->current_tok.value;
                     } else {
                         res.failure(
-                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -4543,9 +4524,7 @@ Prs Parser::statement() {
                                                    ? this->current_tok.value
                                                    : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError(
-                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
@@ -4565,7 +4544,7 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                     }
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -4576,7 +4555,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
                 if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                     return res.to_prs();
                 }
                 generics.push_back(curr);
@@ -4692,14 +4671,14 @@ Prs Parser::statement() {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         curr.isNonType = true;
                         curr.nonTypeKind = prev + " " + this->current_tok.value;
                     } else {
                         res.failure(
-                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -4715,9 +4694,7 @@ Prs Parser::statement() {
                                                    ? this->current_tok.value
                                                    : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError(
-                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
@@ -4737,7 +4714,7 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                     }
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -4748,7 +4725,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
                 if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                     return res.to_prs();
                 }
                 generics.push_back(curr);
@@ -4950,14 +4927,14 @@ Prs Parser::statement() {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         curr.isNonType = true;
                         curr.nonTypeKind = prev + " " + this->current_tok.value;
                     } else {
                         res.failure(
-                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -4973,9 +4950,7 @@ Prs Parser::statement() {
                                                    ? this->current_tok.value
                                                    : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError(
-                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
@@ -4995,7 +4970,7 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                     }
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -5006,7 +4981,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
                 if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                     return res.to_prs();
                 }
                 generics.push_back(curr);
@@ -5196,7 +5171,7 @@ Prs Parser::statement() {
                         case TokenType::LPAREN:
                             this->advance();
                             if (this->current_tok.type != TokenType::RPAREN) {
-                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
                                 return;
                             }
                             break;
@@ -5212,10 +5187,10 @@ Prs Parser::statement() {
                                 long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
                                 break;
                             } else {
-                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
                                 return;
                             }
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return;
+                        default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return;
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -5286,7 +5261,7 @@ Prs Parser::statement() {
                         case TokenType::R_ROT:
                         case TokenType::LSHIFT:
                         case TokenType::L_ROT: break;
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return;
+                        default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return;
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -5304,7 +5279,7 @@ Prs Parser::statement() {
                         name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
                         this->advance();
                     } else {
-                        res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-T007: Expected method name after type(s)", this->current_tok.pos));
                         return;
                     }
                     std::vector<GenericType> genericsM;
@@ -5323,14 +5298,13 @@ Prs Parser::statement() {
                                     std::string prev = this->current_tok.value;
                                     this->advance();
                                     if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                        res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                         return;
                                     }
                                     curr.isNonType = true;
                                     curr.nonTypeKind = prev + " " + this->current_tok.value;
                                 } else {
-                                    res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                       this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                                     return;
                                 }
                                 this->advance();
@@ -5346,9 +5320,7 @@ Prs Parser::statement() {
                                                                ? this->current_tok.value
                                                                : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError(
-                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                            this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                         return;
                                     }
                                     if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -5368,7 +5340,7 @@ Prs Parser::statement() {
                                     if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                                 }
                                 if (this->current_tok.type != TokenType::RPAREN) {
-                                    res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                                     return;
                                 }
                                 this->advance();
@@ -5379,7 +5351,7 @@ Prs Parser::statement() {
                                 this->advance();
                             }
                             if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                                res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                                 return;
                             }
                             genericsM.push_back(curr);
@@ -5434,7 +5406,7 @@ Prs Parser::statement() {
                         this->advance();
                     }
                     if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected method type in default block", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-T008: Expected method type in default block", this->current_tok.pos));
                         return;
                     }
                     std::vector<Token> type_list;
@@ -5513,7 +5485,7 @@ Prs Parser::statement() {
                         case TokenType::LPAREN:
                             this->advance();
                             if (this->current_tok.type != TokenType::RPAREN) {
-                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
                                 return;
                             }
                             break;
@@ -5529,10 +5501,10 @@ Prs Parser::statement() {
                                 long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
                                 break;
                             } else {
-                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
                                 return;
                             }
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return;
+                        default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return;
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -5603,7 +5575,7 @@ Prs Parser::statement() {
                         case TokenType::R_ROT:
                         case TokenType::LSHIFT:
                         case TokenType::L_ROT: break;
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return;
+                        default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return;
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -5621,7 +5593,7 @@ Prs Parser::statement() {
                         name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
                         this->advance();
                     } else {
-                        res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-T007: Expected method name after type(s)", this->current_tok.pos));
                         return;
                     }
                     std::vector<GenericType> genericsM;
@@ -5640,14 +5612,13 @@ Prs Parser::statement() {
                                     std::string prev = this->current_tok.value;
                                     this->advance();
                                     if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                        res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                         return;
                                     }
                                     curr.isNonType = true;
                                     curr.nonTypeKind = prev + " " + this->current_tok.value;
                                 } else {
-                                    res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                       this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                                     return;
                                 }
                                 this->advance();
@@ -5663,9 +5634,7 @@ Prs Parser::statement() {
                                                                ? this->current_tok.value
                                                                : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError(
-                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                            this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                         return;
                                     }
                                     if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -5685,7 +5654,7 @@ Prs Parser::statement() {
                                     if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                                 }
                                 if (this->current_tok.type != TokenType::RPAREN) {
-                                    res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                                     return;
                                 }
                                 this->advance();
@@ -5696,7 +5665,7 @@ Prs Parser::statement() {
                                 this->advance();
                             }
                             if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                                res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                                 return;
                             }
                             genericsM.push_back(curr);
@@ -5792,7 +5761,7 @@ Prs Parser::statement() {
         this->advance();
         while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
             if (this->current_tok.type != TokenType::IDENTIFIER && this->current_tok.type != TokenType::KEYWORD) {
-                res.failure(new InvalidSyntaxError("Expected modifier handler ('on_call', 'on_return', 'on_use')", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S099: Expected modifier handler ('on_call', 'on_return', 'on_use')", this->current_tok.pos));
                 return res.to_prs();
             }
             Token name = this->current_tok;
@@ -5924,7 +5893,7 @@ Prs Parser::statement() {
                         this->advance();
                     }
                     if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
-                        res.failure(new InvalidSyntaxError("Expected method return type(s)", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-T009: Expected method return type(s)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     std::vector<Token> type_list;
@@ -6003,7 +5972,7 @@ Prs Parser::statement() {
                         case TokenType::LPAREN:
                             this->advance();
                             if (this->current_tok.type != TokenType::RPAREN) {
-                                res.failure(new InvalidSyntaxError("expected closing paren in operator()", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
                                 return res.to_prs();
                             }
                             break;
@@ -6019,10 +5988,10 @@ Prs Parser::statement() {
                                 long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
                                 break;
                             } else {
-                                res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
                                 return res.to_prs();
                             }
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in operator method", op_tok.pos)); return res.to_prs();
+                        default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return res.to_prs();
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -6093,7 +6062,7 @@ Prs Parser::statement() {
                         case TokenType::R_ROT:
                         case TokenType::LSHIFT:
                         case TokenType::L_ROT: break;
-                        default: res.failure(new InvalidSyntaxError("Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
+                        default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return res.to_prs();
                         }
                         std::string op_name;
                         switch (op_tok.type) {
@@ -6111,7 +6080,7 @@ Prs Parser::statement() {
                         name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
                         this->advance();
                     } else {
-                        res.failure(new InvalidSyntaxError("Expected method name after type(s)", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-T007: Expected method name after type(s)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     std::vector<GenericType> genericsM;
@@ -6130,14 +6099,13 @@ Prs Parser::statement() {
                                     std::string prev = this->current_tok.value;
                                     this->advance();
                                     if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                        res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                         return res.to_prs();
                                     }
                                     curr.isNonType = true;
                                     curr.nonTypeKind = prev + " " + this->current_tok.value;
                                 } else {
-                                    res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                                       this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                                 this->advance();
@@ -6153,9 +6121,7 @@ Prs Parser::statement() {
                                                                ? this->current_tok.value
                                                                : parseTypeString());
                                     } else {
-                                        res.failure(new InvalidSyntaxError(
-                                            "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                            this->current_tok.pos));
+                                        res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                         return res.to_prs();
                                     }
                                     if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -6175,7 +6141,7 @@ Prs Parser::statement() {
                                     if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                                 }
                                 if (this->current_tok.type != TokenType::RPAREN) {
-                                    res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                                    res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                                     return res.to_prs();
                                 }
                                 this->advance();
@@ -6186,7 +6152,7 @@ Prs Parser::statement() {
                                 this->advance();
                             }
                             if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                                res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             genericsM.push_back(curr);
@@ -6248,7 +6214,7 @@ Prs Parser::statement() {
                 }
             }
             if (this->current_tok.type != TokenType::SEMICOLON) {
-                res.failure(new InvalidSyntaxError("Expected ';' after proves statement", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-MS004: Expected ';' after proves statement", this->current_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -6258,7 +6224,7 @@ Prs Parser::statement() {
         bool is_array = type_str.find("[]") != std::string::npos;
         if (type_str.find("[][]") != std::string::npos) {
             if (this->current_tok.type != TokenType::IDENTIFIER) {
-                res.failure(new InvalidSyntaxError("Multi-dimensional types can only be used in function returns", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-T010: Multi-dimensional types can only be used in function returns", this->current_tok.pos));
                 return res.to_prs();
             }
             Token func_name = this->current_tok;
@@ -6278,14 +6244,13 @@ Prs Parser::statement() {
                             std::string prev = this->current_tok.value;
                             this->advance();
                             if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                                res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             curr.isNonType = true;
                             curr.nonTypeKind = prev + " " + this->current_tok.value;
                         } else {
-                            res.failure(new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
-                                                               this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -6301,9 +6266,7 @@ Prs Parser::statement() {
                                                        ? this->current_tok.value
                                                        : parseTypeString());
                             } else {
-                                res.failure(new InvalidSyntaxError(
-                                    "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                    this->current_tok.pos));
+                                res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                                 return res.to_prs();
                             }
                             if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
@@ -6323,7 +6286,7 @@ Prs Parser::statement() {
                             if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                         }
                         if (this->current_tok.type != TokenType::RPAREN) {
-                            res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                             return res.to_prs();
                         }
                         this->advance();
@@ -6334,7 +6297,7 @@ Prs Parser::statement() {
                         this->advance();
                     }
                     if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                        res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     genericsM.push_back(curr);
@@ -6347,7 +6310,7 @@ Prs Parser::statement() {
             }
             if (this->current_tok.type == TokenType::LPAREN)
                 return this->func_def_multi({type_tok}, func_name, genericsM, false, is_volatile, modifiers);
-            res.failure(new InvalidSyntaxError("Expected '(' after function name", this->current_tok.pos));
+            res.failure(new InvalidSyntaxError("QC-S100: Expected '(' after function name", this->current_tok.pos));
             return res.to_prs();
         }
         std::vector<Token> return_types = {type_tok};
@@ -6422,14 +6385,14 @@ Prs Parser::statement() {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(new InvalidSyntaxError("Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return res.to_prs();
                         }
                         curr.isNonType = true;
                         curr.nonTypeKind = prev + " " + this->current_tok.value;
                     } else {
                         res.failure(
-                            new InvalidSyntaxError("Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
+                            new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -6445,9 +6408,7 @@ Prs Parser::statement() {
                                                    ? this->current_tok.value
                                                    : parseTypeString());
                         } else {
-                            res.failure(new InvalidSyntaxError(
-                                "Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
-                                this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list", this->current_tok.pos));
                             return res.to_prs();
                         }
                         if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
@@ -6467,7 +6428,7 @@ Prs Parser::statement() {
                         if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
                     }
                     if (this->current_tok.type != TokenType::RPAREN) {
-                        res.failure(new InvalidSyntaxError("Expected ) after generic type constraint list.", this->current_tok.pos));
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
                         return res.to_prs();
                     }
                     this->advance();
@@ -6478,7 +6439,7 @@ Prs Parser::statement() {
                     this->advance();
                 }
                 if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
-                    res.failure(new InvalidSyntaxError("Expected > or , after generic type.", this->current_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
                     return res.to_prs();
                 }
                 genericsM.push_back(curr);
@@ -6513,7 +6474,7 @@ Prs Parser::statement() {
                 this->advance();
             }
             if (this->current_tok.type != TokenType::EQ) {
-                res.failure(new InvalidSyntaxError("Expected '=' in multi-variable declaration", name_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S101: Expected '=' in multi-variable declaration", name_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -6525,7 +6486,7 @@ Prs Parser::statement() {
             }
             this->advance();
             if (var_types.size() != var_names.size()) {
-                res.failure(new InvalidSyntaxError("Number of types must match number of variables", var_names[0].pos));
+                res.failure(new InvalidSyntaxError("QC-T011: Number of types must match number of variables", var_names[0].pos));
                 return res.to_prs();
             }
             return res.success(new MultiVarDeclNode(is_const, var_types, var_names, value));
@@ -6547,7 +6508,7 @@ Prs Parser::statement() {
                 this->advance();
             }
             if (this->current_tok.type != TokenType::EQ) {
-                res.failure(new InvalidSyntaxError("Expected '=' in multi-variable declaration", name_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S101: Expected '=' in multi-variable declaration", name_tok.pos));
                 return res.to_prs();
             }
             this->advance();
@@ -6559,7 +6520,7 @@ Prs Parser::statement() {
             }
             this->advance();
             if (var_types.size() != var_names.size()) {
-                res.failure(new InvalidSyntaxError("Number of types must match number of variables", var_names[0].pos));
+                res.failure(new InvalidSyntaxError("QC-T011: Number of types must match number of variables", var_names[0].pos));
                 return res.to_prs();
             }
             return res.success(new MultiVarDeclNode(is_const, var_types, var_names, value));
@@ -6572,7 +6533,7 @@ Prs Parser::statement() {
                 if (res.error) return res.to_prs();
             } else {
                 if (is_const) {
-                    res.failure(new InvalidSyntaxError("QC-T007: const variables must be initialized", name_tok.pos));
+                    res.failure(new InvalidSyntaxError("QC-S102: QC-CN07: const variables must be initialized", name_tok.pos));
                     return res.to_prs();
                 }
                 value = default_value_for_type(type_tok, name_tok.pos);
@@ -6601,7 +6562,7 @@ Prs Parser::statement() {
             if (res.error) return res.to_prs();
         } else {
             if (is_const || is_reference) {
-                res.failure(new InvalidSyntaxError("QC-T007: const variables and references must be initialized", name_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S103: QC-CN07: const variables and references must be initialized", name_tok.pos));
                 return res.to_prs();
             }
             value = default_value_for_type(type_tok, name_tok.pos);
@@ -6645,14 +6606,12 @@ Aer Parser::parse() {
                     if (arg->name_tok.has_value() && arg->name_tok->value == entrypointName) {
                         if (arg->return_types.empty() || arg->return_types[0].value != "int") {
                             std::string actual = arg->return_types.empty() ? "void" : arg->return_types[0].value;
-                            throw InvalidSyntaxError("the entrypoint must return int, not " + actual, get_pos(arg));
+                            throw InvalidSyntaxError("QC-S104: the entrypoint must return int, not " + actual, get_pos(arg));
                         }
                         if (!arg->params.empty() && (arg->params.front().type.value != "string[]" &&
                                                      ((((arg->params.size())) == 2 &&
                                                        (arg->params.front().type.value != "int" || arg->params.back().type.value != "char**"))))) {
-                            throw InvalidSyntaxError(
-                                "the entrypoint must have no parameters, take a integer argc and a char** argv, or take a array of strings.",
-                                get_pos(arg));
+                            throw InvalidSyntaxError("QC-S105: the entrypoint must have no parameters, take a integer argc and a char** argv, or take a array of strings.", get_pos(arg));
                         }
                         if (!arg->params.empty()) {
                             if (arg->params.front().type.value == "string[]") {
@@ -6690,12 +6649,12 @@ Aer Parser::parse() {
                         break;
                     }
                 }
-                if (!found) { throw InvalidSyntaxError("Base class '" + ut.baseClassName + "' not found", ut.pos); }
+                if (!found) { throw InvalidSyntaxError("QC-S106: Base class '" + ut.baseClassName + "' not found", ut.pos); }
             }
 
             auto it = user_types.find(base_type_name(baseKey));
             if (it == user_types.end() || it->second.kind != UserTypeKind::Class) {
-                throw InvalidSyntaxError("class inherits from non-class or non-existent object", ut.pos);
+                throw InvalidSyntaxError("QC-S107: class inherits from non-class or non-existent object", ut.pos);
             }
         }
     }
@@ -6718,7 +6677,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (type.ends_with("]")) {
         size_t open = type.rfind('[');
         if (open == std::string::npos) {
-            cg_error(Position(), "malformed array type");
+            cg_error(Position(), "malformed array type", "QC-T012");
             return nullptr;
         }
         std::string sizeStr = type.substr(open + 1, type.size() - open - 2);
@@ -6726,7 +6685,7 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
         try {
             count = parseInteger(sizeStr);
         } catch (...) {
-            cg_error(Position(), "invalid array size: " + sizeStr);
+            cg_error(Position(), "invalid array size: " + sizeStr, "QC-S108");
             return nullptr;
         }
         std::string elementType = type.substr(0, open);
@@ -6767,7 +6726,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
         GenericType generic = generics[i];
         if (genericParams.size() <= i) {
             if (generic.defaultValue.empty()) {
-                cg_error(pos, "too few generic params");
+                cg_error(pos, "too few generic params", "QC-G006");
                 return false;
             }
         }
@@ -6780,13 +6739,13 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
         if (!generic.isNonType && !generic.isVariadic) {
             if (generic.constraint == "pointer") {
                 if (!(value.ends_with("*"))) {
-                    cg_error(pos, "pointer generic constrain " + generic.name + " expectes pointer type, got " + value);
+                    cg_error(pos, "pointer generic constrain " + generic.name + " expectes pointer type, got " + value, "QC-G007");
                     return false;
                 }
             } else if (generic.constraint == "numeric") {
                 if (!(std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "long double", "short int", "long int"})
                           .contains(value))) {
-                    cg_error(pos, "numeric generic constrain " + generic.name + " expectes numeric type, got " + value);
+                    cg_error(pos, "numeric generic constrain " + generic.name + " expectes numeric type, got " + value, "QC-G008");
                     return false;
                 }
             } else if (generic.constraint == "primitive" || generic.constraint == "usertype") {
@@ -6795,12 +6754,12 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                 auto clean_view = value | std::views::filter([](char c) { return c != '*' && c != '&' && c != '[' && c != ']'; });
                 if (native_types.contains(std::string(clean_view.begin(), clean_view.end()))) {
                     if (generic.constraint == "usertype") {
-                        cg_error(pos, "usertype generic constrain " + generic.name + " expectes usertype type, got " + value);
+                        cg_error(pos, "usertype generic constrain " + generic.name + " expectes usertype type, got " + value, "QC-G009");
                         return false;
                     }
                 } else {
                     if (generic.constraint == "primitive") {
-                        cg_error(pos, "primitive generic constrain " + generic.name + " expectes primitive type, got " + value);
+                        cg_error(pos, "primitive generic constrain " + generic.name + " expectes primitive type, got " + value, "QC-G010");
                         return false;
                     }
                 }
@@ -6808,7 +6767,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                 auto provesConcept = [&](const std::string& typeName, const std::string& conceptName) -> bool {
                     std::string resolvedConcept = resolveTypeName(conceptName, false);
                     if (!concepts.count(resolvedConcept)) {
-                        cg_error(pos, "concept " + conceptName + " is not defined");
+                        cg_error(pos, "concept " + conceptName + " is not defined", "QC-C009");
                         return false;
                     }
                     std::string base = baseTypeName(typeName);
@@ -6846,7 +6805,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                                 tokens.push_back("&&");
                                 ++i;
                             } else {
-                                cg_error(pos, "expected '&&' in generic constraint");
+                                cg_error(pos, "expected '&&' in generic constraint", "QC-C010");
                                 return false;
                             }
                             continue;
@@ -6860,7 +6819,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                                 tokens.push_back("||");
                                 ++i;
                             } else {
-                                cg_error(pos, "expected '||' in generic constraint");
+                                cg_error(pos, "expected '||' in generic constraint", "QC-C011");
                                 return false;
                             }
                             continue;
@@ -6877,18 +6836,18 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     if (index < tokens.size() && tokens[index] == "!") {
                         ++index;
                         if (index >= tokens.size()) {
-                            cg_error(pos, "expected concept after '!' in generic constraint");
+                            cg_error(pos, "expected concept after '!' in generic constraint", "QC-C012");
                             return false;
                         }
                         return !parseNot();
                     }
                     if (index >= tokens.size()) {
-                        cg_error(pos, "expected concept in generic constraint");
+                        cg_error(pos, "expected concept in generic constraint", "QC-C013");
                         return false;
                     }
                     std::string conceptName = tokens[index++];
                     if (conceptName == "&&" || conceptName == "||" || conceptName == "!") {
-                        cg_error(pos, "expected concept, got '" + conceptName + "'");
+                        cg_error(pos, "expected concept, got '" + conceptName + "'", "QC-C014");
                         return false;
                     }
                     return provesConcept(value, conceptName);
@@ -6912,17 +6871,17 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                     return result;
                 };
                 if (tokens.empty()) {
-                    cg_error(pos, "empty generic concept constraint");
+                    cg_error(pos, "empty generic concept constraint", "QC-C015");
                     return false;
                 }
                 bool satisfiesConstraint = parseOr();
                 if (index != tokens.size()) {
-                    cg_error(pos, "invalid generic concept constraint: " + generic.constraint);
+                    cg_error(pos, "invalid generic concept constraint: " + generic.constraint, "QC-C016");
                     return false;
                 }
                 if (!satisfiesConstraint) {
                     cg_error(pos, "concept generic constraint " + generic.name + " expects passed type to satisfy " + generic.constraint + ", got " +
-                                      value);
+                                      value, "QC-C017");
                     return false;
                 }
             }
@@ -6930,7 +6889,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                 if (generic.negated) {
                     for (std::string subconstraint : generic.subconstraints) {
                         if (value == subconstraint) {
-                            cg_error(pos, "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value);
+                            cg_error(pos, "generic constrain !" + value + " in generic " + generic.name + " does not except type " + value, "QC-G011");
                             return false;
                         }
                     }
@@ -6940,7 +6899,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
                         if (value == subconstraint) { is_valid = true; }
                     }
                     if (!is_valid) {
-                        cg_error(pos, "generic constrait " + generic.name + " does not except type " + value);
+                        cg_error(pos, "generic constrait " + generic.name + " does not except type " + value, "QC-G012");
                         return false;
                     }
                 }
@@ -6951,7 +6910,7 @@ bool LLVMCompiler::fulfillsGenericConstraints(std::vector<GenericType> generics,
             GenericType generic = generics[i];
             if (genericParams.size() <= i) {
                 if (generic.defaultValue.empty()) {
-                    cg_error(pos, "too few generic params");
+                    cg_error(pos, "too few generic params", "QC-G006");
                     return false;
                 }
             }
@@ -7141,7 +7100,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 for (auto& baseMethod : baseInfo.classMethods) {
                     if (baseMethod.name_tok.value == method.name_tok.value && baseMethod.is_final) {
                         cg_error(method.name_tok.pos, "cannot override final method '" + baseMethod.name_tok.value + "' from base class '" +
-                                                          classInfo.baseClassName + "'");
+                                                          classInfo.baseClassName + "'", "QC-S109");
                     }
                 }
             }
@@ -7155,7 +7114,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
         auto& method = classInfo.classMethods[methodIdx];
         if (method.is_static) continue;
         if (method.is_constructor && classInfo.is_abstract_class) {
-            cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
+            cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.", "QC-S110");
             continue;
         }
         if (std::find(genericMethodIndices[baseTypeName(className)].begin(), genericMethodIndices[baseTypeName(className)].end(), methodIdx) !=
@@ -7321,7 +7280,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                             }
                         } else {
                             Position pos = get_pos(method.parentConstructorCall);
-                            cg_error(pos, "parent class `" + classInfo.baseClassName + "` has no matching constructor");
+                            cg_error(pos, "parent class `" + classInfo.baseClassName + "` has no matching constructor", "QC-S111");
                             addConstructorNotes(classInfo.baseClassName, parentArgs, pos);
                         }
                     }
@@ -7345,7 +7304,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
                 Token modTok = method.modifiers[i];
                 if (!modifiers.count(modTok.value)) {
-                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'", "QC-S112");
                     continue;
                 }
                 ModifierInfo& modInfo = modifiers[modTok.value];
@@ -7617,7 +7576,7 @@ void LLVMCompiler::createUserTypes() {
             if (!info.baseClassName.empty()) {
                 auto base_it = userTypes.find(baseTypeName(info.baseClassName));
                 if (base_it != userTypes.end() && base_it->second.is_final_class) {
-                    cg_error(info.pos, "cannot inherit from final class '" + info.baseClassName + "'");
+                    cg_error(info.pos, "cannot inherit from final class '" + info.baseClassName + "'", "QC-S113");
                     continue;
                 }
             }
@@ -7684,7 +7643,7 @@ void LLVMCompiler::createUserTypes() {
                             }
                         } else {
                             if (!std::holds_alternative<std::monostate>(field.defaultValue)) {
-                                cg_warn(get_pos(field.defaultValue), "default values do not exist on non-static members");
+                                cg_warn(get_pos(field.defaultValue), "default values do not exist on non-static members", "W001");
                             }
                             fieldTypes.push_back(llvmTypeFor(resolvedType));
                         }
@@ -7729,8 +7688,7 @@ void LLVMCompiler::createUserTypes() {
                 for (auto& method : info.classMethods) {
                     for (auto& baseMethod : baseInfo.classMethods) {
                         if (baseMethod.name_tok.value == method.name_tok.value && baseMethod.is_final) {
-                            cg_error(method.name_tok.pos,
-                                     "Cannot override final method '" + baseMethod.name_tok.value + "' from base class '" + info.baseClassName + "'");
+                            cg_error(method.name_tok.pos, "Cannot override final method '" + baseMethod.name_tok.value + "' from base class '" + info.baseClassName + "'", "QC-S097");
                         }
                     }
                 }
@@ -7788,7 +7746,7 @@ void LLVMCompiler::createUserTypes() {
             auto& method = info.classMethods[methodIdx];
             if (method.is_static) continue;
             if (method.is_constructor && info.is_abstract_class) {
-                cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.");
+                cg_error(method.name_tok.pos, "cannot make a constructor on a abstract class.", "QC-S110");
                 continue;
             }
             if (std::find(genericMethodIndices[mapKey].begin(), genericMethodIndices[mapKey].end(), methodIdx) !=
@@ -7874,7 +7832,7 @@ void LLVMCompiler::createUserTypes() {
             } else if (hookTok.value == "on_use") {
                 res.onUse = bodyNode;
             } else {
-                cg_error(hookTok.pos, "unknown modifier handler '" + hookTok.value + "'");
+                cg_error(hookTok.pos, "unknown modifier handler '" + hookTok.value + "'", "QC-S114");
                 return;
             }
         }
@@ -8121,7 +8079,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         } else if (qbool->tok.value == "both") {
             value = 0b11;
         } else {
-            cg_error(qbool->tok.pos, "invalid qbool value '" + qbool->tok.value + "'");
+            cg_error(qbool->tok.pos, "invalid qbool value '" + qbool->tok.value + "'", "QC-S116");
             return nullptr;
         }
         return llvm::ConstantInt::get(builder->getIntNTy(2), value);
@@ -8146,7 +8104,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string lType = getExpressionType((*bin)->left_node);
                 std::string rType = getExpressionType((*bin)->right_node);
                 if (!userTypes.count(lType) || userTypes[lType].kind != UserTypeKind::Concept) {
-                    cg_error(get_pos((*bin)->left_node), "No such concept `" + lType + "`");
+                    cg_error(get_pos((*bin)->left_node), "No such concept `" + lType + "`", "QC-C018");
                     if (!userTypes.count(lType)) addTypeNotes(lType, get_pos((*bin)->left_node));
                     return nullptr;
                 }
@@ -8177,7 +8135,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* alloc = getVarAddress(varName);
                     if (!alloc) {
                         Position pos = get_pos(*varAccess);
-                        cg_error(pos, "qin: variable not declared: " + varName);
+                        cg_error(pos, "qin: variable not declared: " + varName, "QC-S117");
                         auto suggestions = getVisibleVariables();
                         std::vector<std::pair<int, std::string>> matches;
                         if (varName.size() >= 3) {
@@ -8271,7 +8229,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return builder->getInt32(0);
                 }
 
-                cg_error(get_pos((*bin)->right_node), "qin: right side must be a variable");
+                cg_error(get_pos((*bin)->right_node), "qin: right side must be a variable", "QC-S118");
                 return nullptr;
             }
         }
@@ -8988,7 +8946,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 if (ty->isPointerTy()) { return v; }
 
-                cg_error(pos, "f-string: unsupported type in compiled mode");
+                cg_error(pos, "f-string: unsupported type in compiled mode", "QC-T013");
                 return nullptr;
             };
             llvm::Value* lStr = toString(L, (*bin)->left_node, (*bin)->op_tok.pos);
@@ -9039,7 +8997,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (colon != std::string::npos) ts = ts.substr(0, colon);
                 llvm::Type* memberTy = llvmTypeFor(ts);
                 if (memberTy->isPointerTy() || memberTy->isArrayTy()) {
-                    cg_error((*bin)->op_tok.pos, "pointer arithmetic is not allowed on unions");
+                    cg_error((*bin)->op_tok.pos, "pointer arithmetic is not allowed on unions", "QC-S119");
                     return nullptr;
                 }
                 llvm::Value* lhsVal = builder->CreateLoad(memberTy, lPayload, "lmember");
@@ -9115,7 +9073,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     case TokenType::BITWISE_XOR:
                         if (isFP) {
                             cg_error((*bin)->op_tok.pos, "bitwise operation is not allowed "
-                                                         "on floating-point union members");
+                                                         "on floating-point union members", "QC-S120");
                             return nullptr;
                         }
 
@@ -9131,7 +9089,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     case TokenType::LOGICAL_RSHIFT:
                         if (isFP) {
                             cg_error((*bin)->op_tok.pos, "shift operation is not allowed on "
-                                                         "floating-point union members");
+                                                         "floating-point union members", "QC-S121");
                             return nullptr;
                         }
                         if (op == TokenType::LSHIFT)
@@ -9145,7 +9103,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     case TokenType::R_ROT: {
                         if (isFP) {
                             cg_error((*bin)->op_tok.pos, "rotation is not allowed on "
-                                                         "floating-point union members");
+                                                         "floating-point union members", "QC-S122");
                             return nullptr;
                         }
                         llvm::Intrinsic::ID id = op == TokenType::L_ROT ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
@@ -9153,7 +9111,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         res = builder->CreateCall(rotation, {lhsVal, lhsVal, rhsVal}, "union_rotate");
                         break;
                     }
-                    default: cg_error((*bin)->op_tok.pos, "unsupported operator for union member " + ts); return nullptr;
+                    default: cg_error((*bin)->op_tok.pos, "unsupported operator for union member " + ts, "QC-S123"); return nullptr;
                     }
                 }
                 if (res->getType() != resultTy) {
@@ -9164,11 +9122,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             res = builder->CreateFPExt(res, resultTy, "union_to_double");
                         } else {
                             cg_error((*bin)->op_tok.pos, "union operator must return a numeric "
-                                                         "value");
+                                                         "value", "QC-S124");
                             return nullptr;
                         }
                     } else {
-                        cg_error((*bin)->op_tok.pos, "union boolean operator must return bool");
+                        cg_error((*bin)->op_tok.pos, "union boolean operator must return bool", "QC-S125");
                         return nullptr;
                     }
                 }
@@ -9300,7 +9258,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Type* rTy = rhsVal->getType();
                 if ((op == TokenType::PLUS || op == TokenType::MINUS) && (lhsChar || rhsChar)) {
                     if (!lhsVal->getType()->isIntegerTy() || !rhsVal->getType()->isIntegerTy()) {
-                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands");
+                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands", "QC-S126");
                         return nullptr;
                     }
                     unsigned width = std::max(32u, std::max(lhsVal->getType()->getIntegerBitWidth(), rhsVal->getType()->getIntegerBitWidth()));
@@ -9312,7 +9270,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 bool lhsPtr = lhsVal->getType()->isPointerTy();
                 bool rhsPtr = rhsVal->getType()->isPointerTy();
                 if (lhsPtr || rhsPtr) {
-                    cg_error(get_pos(*bin), "Pointer arithmetic is not allow on unions. Consider extracting the value first.");
+                    cg_error(get_pos(*bin), "Pointer arithmetic is not allow on unions. Consider extracting the value first.", "QC-S127");
                     return nullptr;
                 }
                 if (lTy != rTy) {
@@ -9373,7 +9331,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     case TokenType::LOGICAL_RSHIFT:
                         if (isFP) {
                             cg_error((*bin)->op_tok.pos, "bitwise operations not allowed on "
-                                                         "floating-point union members");
+                                                         "floating-point union members", "QC-S128");
                             return nullptr;
                         }
                         if (op == TokenType::AMPERSAND)
@@ -9393,7 +9351,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     case TokenType::R_ROT: {
                         if (isFP) {
                             cg_error((*bin)->op_tok.pos, "rotation not allowed on floating-point union "
-                                                         "members");
+                                                         "members", "QC-S129");
                             return nullptr;
                         }
                         llvm::Intrinsic::ID id = (op == TokenType::L_ROT) ? llvm::Intrinsic::fshl : llvm::Intrinsic::fshr;
@@ -9407,7 +9365,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 bool isCharArithmetic = (lhsChar || rhsChar) && (op == TokenType::PLUS || op == TokenType::MINUS);
                 if (isCharArithmetic) {
                     if (!lhsVal->getType()->isIntegerTy() || !rhsVal->getType()->isIntegerTy()) {
-                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands");
+                        cg_error((*bin)->op_tok.pos, "char arithmetic requires integer operands", "QC-S126");
                         return nullptr;
                     }
                     bool mixedChar = lhsChar != rhsChar;
@@ -9597,7 +9555,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else if (lType.ends_with("*") || lType == "@nullptr" || lType == "string" && rType != "string" || lType.ends_with("]")) {
                     if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
-                                                     "void pointers");
+                                                     "void pointers", "QC-S130");
                         return nullptr;
                     }
                     if (lType.ends_with("]")) {
@@ -9609,7 +9567,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         cg_error((*bin)->op_tok.pos, "pointer arithmetic may only be preformed on "
                                                      "ptr lhs and "
                                                      "int rhs, got " +
-                                                         lType + " and " + rType);
+                                                         lType + " and " + rType, "QC-S131");
                         return nullptr;
                     }
                     if (lType == "string")
@@ -9618,16 +9576,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         lType.pop_back();
                     return builder->CreateGEP(llvmTypeFor(lType), L, R, "ptr_arith_plus");
                 }
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on types " + lType + " + " + rType);
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on types " + lType + " + " + rType, "QC-T014");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             return isFloatTy         ? builder->CreateFAdd(L, R, "fadd")
@@ -9642,19 +9600,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     (rType.ends_with("]") || rType.ends_with("*") || rType == "@nullptr")) {
                     if (lType == "void*") {
                         cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
-                                                     "void pointers");
+                                                     "void pointers", "QC-S130");
                         return nullptr;
                     }
                     if (rType == "void*") {
                         cg_error((*bin)->op_tok.pos, "pointer arithmetic cannot be preformed on "
-                                                     "void pointers");
+                                                     "void pointers", "QC-S130");
                         return nullptr;
                     }
                     if (remove_last_ptr(lType) != remove_last_ptr(rType)) {
                         cg_error((*bin)->op_tok.pos, "pointer arithmetic may only be preformed on "
                                                      "the same lhs "
                                                      "and rhs type, got " +
-                                                         lType + " and " + rType);
+                                                         lType + " and " + rType, "QC-T017");
                         return nullptr;
                     }
                     std::string baseType = (lType == "@nullptr") ? rType : lType;
@@ -9674,16 +9632,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return builder->CreateGEP(llvmTypeFor(baseType), L, {negR}, "ptr_arith_minus");
                 }
 
-                cg_error((*bin)->op_tok.pos, "invalid pointer subtraction: " + lType + " - " + rType);
+                cg_error((*bin)->op_tok.pos, "invalid pointer subtraction: " + lType + " - " + rType, "QC-S132");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             return isFloatTy         ? builder->CreateFSub(L, R, "fsub")
@@ -9691,58 +9649,58 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                      : builder->CreateSub(L, R, "sub");
         case TokenType::MUL:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types", "QC-T018");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types", "QC-T019");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFMul(L, R, "fmul") : builder->CreateMul(L, R, "mul");
         case TokenType::DIV:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types", "QC-T018");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types", "QC-T019");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFDiv(L, R, "fdiv") : builder->CreateSDiv(L, R, "sdiv");
         case TokenType::MOD:
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types", "QC-T018");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types", "QC-T019");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             return isFloatTy ? builder->CreateFRem(L, R, "frem") : builder->CreateSRem(L, R, "srem");
@@ -9750,11 +9708,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::PIPE:
         case TokenType::BITWISE_XOR:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on float/double types", "QC-T020");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform bitwise operations on string types", "QC-T021");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::AMPERSAND) return builder->CreateAnd(L, R, "andtmp");
@@ -9764,7 +9722,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::LSHIFT:
         case TokenType::LOGICAL_RSHIFT:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "cannot perform shifts on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform shifts on float/double types", "QC-T022");
                 return nullptr;
             }
             if ((*bin)->op_tok.type == TokenType::LSHIFT) return builder->CreateShl(L, R, "shltmp");
@@ -9773,7 +9731,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::L_ROT:
         case TokenType::R_ROT:
             if (isFloatTy) {
-                cg_error((*bin)->op_tok.pos, "cannot perform rotations on float/double types");
+                cg_error((*bin)->op_tok.pos, "cannot perform rotations on float/double types", "QC-T023");
                 return nullptr;
             }
             {
@@ -9783,20 +9741,20 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
         case TokenType::POWER: {
             if (lTyStr == "char" || rTyStr == "char") {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on char types", "QC-T018");
                 return nullptr;
             }
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types", "QC-T019");
                 return nullptr;
             }
             if (lty == builder->getInt1Ty() || rty == builder->getInt1Ty()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on bool types", "QC-T015");
                 return nullptr;
             }
 
             if (lty == builder->getIntNTy(2) || rty == builder->getIntNTy(2)) {
-                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types");
+                cg_error((*bin)->op_tok.pos, "cannot perform arithmetic on qbool types", "QC-T016");
                 return nullptr;
             }
             llvm::Type* ty = L->getType();
@@ -9812,7 +9770,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Function* powFn = llvm::Intrinsic::getOrInsertDeclaration(module, llvm::Intrinsic::pow, {ty});
                 return builder->CreateCall(powFn, {L, R}, "pow");
             } else {
-                cg_error((*bin)->op_tok.pos, "pOWER not supported for this type");
+                cg_error((*bin)->op_tok.pos, "pOWER not supported for this type", "QC-T024");
                 return nullptr;
             }
         }
@@ -9908,14 +9866,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::MORE_EQ: {
             bool isFloatTy = false;
             if (lty->isPointerTy() || rty->isPointerTy()) {
-                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types");
+                cg_error((*bin)->op_tok.pos, "cannot perform this operation on string types", "QC-T019");
                 return nullptr;
             }
             if (lty->isIntegerTy() && rty->isIntegerTy()) {
                 unsigned lBits = lty->getIntegerBitWidth();
                 unsigned rBits = rty->getIntegerBitWidth();
                 if (lBits == 1 || lBits == 2 || rBits == 1 || rBits == 2) {
-                    cg_error((*bin)->op_tok.pos, "cannot use comparison operators on bool/qbool");
+                    cg_error((*bin)->op_tok.pos, "cannot use comparison operators on bool/qbool", "QC-S133");
                     return nullptr;
                 }
                 if (lBits < rBits) {
@@ -9935,7 +9893,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     rty = lty;
                 }
             } else {
-                cg_error((*bin)->op_tok.pos, "cannot compare non-numeric types with <, >, <=, >=");
+                cg_error((*bin)->op_tok.pos, "cannot compare non-numeric types with <, >, <=, >=", "QC-T025");
                 return nullptr;
             }
             switch (op) {
@@ -9970,7 +9928,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
-            cg_error((*bin)->op_tok.pos, "&&& requires qbool operands");
+            cg_error((*bin)->op_tok.pos, "&&& requires qbool operands", "QC-S134");
             return nullptr;
         case TokenType::QOR:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
@@ -9984,7 +9942,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
-            cg_error((*bin)->op_tok.pos, "||| requires qbool operands");
+            cg_error((*bin)->op_tok.pos, "||| requires qbool operands", "QC-S135");
             return nullptr;
 
         case TokenType::QXOR:
@@ -9999,7 +9957,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* result8 = builder->CreateCall(fn, {L8, R8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
-            cg_error((*bin)->op_tok.pos, "^^ requires qbool operands");
+            cg_error((*bin)->op_tok.pos, "^^ requires qbool operands", "QC-S136");
             return nullptr;
         case TokenType::COLLAPSE_AND:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
@@ -10012,7 +9970,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
                 return builder->CreateCall(fn, {L8, R8});
             }
-            cg_error((*bin)->op_tok.pos, "&|& requires qbool operands");
+            cg_error((*bin)->op_tok.pos, "&|& requires qbool operands", "QC-S137");
             return nullptr;
         case TokenType::COLLAPSE_OR:
             if (lty == builder->getIntNTy(2) && rty == builder->getIntNTy(2)) {
@@ -10025,7 +9983,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* R8 = builder->CreateZExt(R, builder->getInt8Ty());
                 return builder->CreateCall(fn, {L8, R8});
             }
-            cg_error((*bin)->op_tok.pos, "|&| requires qbool operands");
+            cg_error((*bin)->op_tok.pos, "|&| requires qbool operands", "QC-S138");
             return nullptr;
         default: break;
         }
@@ -10040,7 +9998,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (qcType == "auto") {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
-                cg_error((*va)->var_name_tok.pos, "cannot infer type from invalid expression");
+                cg_error((*va)->var_name_tok.pos, "cannot infer type from invalid expression", "QC-T026");
                 return nullptr;
             }
 
@@ -10082,14 +10040,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (qcType == "auto[]" || qcType.starts_with("auto[")) {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) {
-                cg_error((*va)->var_name_tok.pos, "cannot infer array type");
+                cg_error((*va)->var_name_tok.pos, "cannot infer array type", "QC-T027");
                 return nullptr;
             }
 
             llvm::Type* rhsTy = rhs->getType();
 
             if (!rhsTy->isArrayTy()) {
-                cg_error((*va)->var_name_tok.pos, "auto[] requires array literal");
+                cg_error((*va)->var_name_tok.pos, "auto[] requires array literal", "QC-S139");
                 return nullptr;
             }
 
@@ -10158,7 +10116,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             auto userTypeIt = userTypes.find(qcType);
             llvm::StructType* classTy = generateGenericClass(qcType, userTypeIt->second, genericParams);
             if (classTy == nullptr) {
-                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for class " + qcType);
+                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for class " + qcType, "QC-G013");
                 return nullptr;
             }
             llvm::AllocaInst* instance = createEntryAlloca(name, classTy);
@@ -10240,7 +10198,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
+                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                         return nullptr;
                     }
                     builder->CreateStore(rhs, instance, isVolatile);
@@ -10259,7 +10217,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     varTypes[fullName] = mangledName;
                     volatileVars[fullName] = isVolatile;
                 } else {
-                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType);
+                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType, "QC-S140");
                     return nullptr;
                 }
                 auto vtableIt = vtables.find(mangledName);
@@ -10298,7 +10256,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             auto userTypeIt = userTypes.find(qcType);
             llvm::StructType* structTy = generateGenericStruct(qcType, userTypeIt->second, genericParams);
             if (structTy == nullptr) {
-                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for struct " + qcType);
+                cg_error((*va)->var_name_tok.pos, "failed to generate generic subset for struct " + qcType, "QC-G014");
                 return nullptr;
             }
             if ((*va)->value_node.index() == 0) {
@@ -10315,7 +10273,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
                 if (!(*arrLit)->type.empty()) {
                     if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*arrLit)->type, true))) {
-                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type", "QC-T029");
                         cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " +
                                                       buildMangledName(qcType, genericParams));
                         return nullptr;
@@ -10358,7 +10316,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
                 if (!(*mapLit)->struct_type.empty()) {
                     if (buildMangledName(qcType, genericParams) != fixMangling(resolveTypeName((*mapLit)->struct_type, true))) {
-                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type", "QC-T029");
                         cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " +
                                                       buildMangledName(qcType, genericParams));
                         return nullptr;
@@ -10373,7 +10331,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
                     } else {
-                        cg_error((*mapLit)->pos, "struct field name must be an identifier");
+                        cg_error((*mapLit)->pos, "struct field name must be an identifier", "QC-S141");
                         return nullptr;
                     }
                     int fieldIndex = -1;
@@ -10384,7 +10342,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                     }
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType, "QC-S142");
                         return nullptr;
                     }
                     llvm::Value* fieldValue = emitExpr(valueNode);
@@ -10416,7 +10374,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
 
             if (tag == -1) {
-                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType);
+                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType, "QC-S143");
                 return nullptr;
             }
             auto& member = info.members[tag];
@@ -10425,7 +10383,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
             llvm::Type* memberTy = llvmTypeFor(baseType);
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
-                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
+                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch", "QC-T030");
                 return nullptr;
             }
             llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
@@ -10455,7 +10413,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
                 if (!(*arrLit)->type.empty()) {
                     if (qcType != fixMangling(resolveTypeName((*arrLit)->type, true))) {
-                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type", "QC-T029");
                         cg_note(get_pos(*arrLit), "got type " + fixMangling(resolveTypeName((*arrLit)->type, true)) + ", expected " + qcType);
                         return nullptr;
                     }
@@ -10492,7 +10450,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant", "QC-S144");
                         return nullptr;
                     }
                     gv->setInitializer(constant);
@@ -10511,7 +10469,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::StructType* structTy = genericiseOrFindStruct(qcType);
                 if (!(*mapLit)->struct_type.empty()) {
                     if (qcType != fixMangling(resolveTypeName((*mapLit)->struct_type, true))) {
-                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type");
+                        cg_error(get_pos(*va), "cannot initialize struct with literal of different struct type", "QC-T029");
                         cg_note(get_pos(*mapLit), "got type " + fixMangling(resolveTypeName((*mapLit)->struct_type, true)) + ", expected " + qcType);
                         return nullptr;
                     }
@@ -10528,7 +10486,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                         fieldName = key->tok.value;
                     } else {
-                        cg_error((*mapLit)->pos, "struct field name must be an identifier");
+                        cg_error((*mapLit)->pos, "struct field name must be an identifier", "QC-S141");
                         return nullptr;
                     }
 
@@ -10542,7 +10500,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
 
                     if (fieldIndex == -1) {
-                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType);
+                        cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + qcType, "QC-S142");
                         return nullptr;
                     }
 
@@ -10557,7 +10515,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global struct initializer must be constant", "QC-S144");
                         return nullptr;
                     }
                     gv->setInitializer(constant);
@@ -10657,7 +10615,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     llvm::Value* rhs = emitExpr((*va)->value_node);
                     if (!rhs) return nullptr;
                     if (rhs->getType() != classTy) {
-                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
+                        cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                         return nullptr;
                     }
                     builder->CreateStore(rhs, instance, isVolatile);
@@ -10675,7 +10633,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     varTypes[fullName] = qcType;
                     volatileVars[fullName] = isVolatile;
                 } else {
-                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType);
+                    cg_error((*va)->var_name_tok.pos, "no valid operator[]= method found on class " + qcType, "QC-S140");
                     return nullptr;
                 }
                 auto vtableIt = vtables.find(qcType);
@@ -10688,7 +10646,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
                 if (rhs->getType() != classTy) {
-                    cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.");
+                    cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                     return nullptr;
                 }
                 builder->CreateStore(rhs, instance, isVolatile);
@@ -10709,7 +10667,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(unionAlloc)) {
                     auto* constant = llvm::dyn_cast<llvm::Constant>(value);
                     if (!constant) {
-                        cg_error((*va)->var_name_tok.pos, "global union initializer must be constant");
+                        cg_error((*va)->var_name_tok.pos, "global union initializer must be constant", "QC-S145");
                         return false;
                     }
                     gv->setInitializer(constant);
@@ -10728,7 +10686,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             int tag = findUnionVariantTag(qcType, (*va)->value_node, rhs);
             if (tag == -1) {
-                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType);
+                cg_error((*va)->var_name_tok.pos, "value does not match any variant of union " + qcType, "QC-S143");
                 return nullptr;
             }
             auto& member = userTypes.at(baseTypeName(qcType)).members[tag];
@@ -10737,7 +10695,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             std::string baseType = isLiteral ? member.type.substr(0, member.type.find(':')) : member.type;
             llvm::Type* memberTy = llvmTypeFor(baseType);
             if (!rhsTy->isPointerTy() && rhsTy != memberTy) {
-                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch");
+                cg_error((*va)->var_name_tok.pos, "union literal variant type mismatch", "QC-T030");
                 return nullptr;
             }
             llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
@@ -10760,7 +10718,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(enumAlloc)) {
                 auto* constant = llvm::dyn_cast<llvm::Constant>(rhs);
                 if (!constant) {
-                    cg_error((*va)->var_name_tok.pos, "global enum initializer must be constant");
+                    cg_error((*va)->var_name_tok.pos, "global enum initializer must be constant", "QC-S146");
                     return nullptr;
                 }
                 gv->setInitializer(constant);
@@ -10799,7 +10757,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!existingAlloc) {
             llvm::Type* ty = llvmTypeFor(qcType);
             if (!ty) {
-                cg_error((*va)->var_name_tok.pos, "unknown type: " + qcType);
+                cg_error((*va)->var_name_tok.pos, "unknown type: " + qcType, "QC-T031");
                 return nullptr;
             }
             alloc = createEntryAlloca(fullName, ty);
@@ -10836,7 +10794,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Type* destTy = getPointeeType(fullName);
         llvm::Value* rhs = emitExpr((*va)->value_node);
         if (!rhs) {
-            cg_error((*va)->var_name_tok.pos, "failed to compile initializer for '" + name + "'");
+            cg_error((*va)->var_name_tok.pos, "failed to compile initializer for '" + name + "'", "QC-S147");
             return nullptr;
         }
 
@@ -10881,13 +10839,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 auto* srcArrTy = llvm::cast<llvm::ArrayType>(srcTy);
                 auto* destArrTy = llvm::cast<llvm::ArrayType>(destTy);
                 if (srcArrTy->getElementType() != destArrTy->getElementType()) {
-                    cg_error((*va)->var_name_tok.pos, "array element type mismatch in assignment");
+                    cg_error((*va)->var_name_tok.pos, "array element type mismatch in assignment", "QC-T032");
                     return nullptr;
                 }
                 uint64_t srcLen = srcArrTy->getNumElements();
                 uint64_t destLen = destArrTy->getNumElements();
                 if (srcLen > destLen) {
-                    cg_error((*va)->var_name_tok.pos, "source array is larger than destination array");
+                    cg_error((*va)->var_name_tok.pos, "source array is larger than destination array", "QC-S148");
                     return nullptr;
                 }
                 if (!rhs->getType()->isPointerTy()) {
@@ -10905,7 +10863,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 rhs = newArr;
             } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
-                cg_error((*va)->var_name_tok.pos, "cannot assign double to float in compiled mode");
+                cg_error((*va)->var_name_tok.pos, "cannot assign double to float in compiled mode", "QC-S149");
                 return nullptr;
             } else if (srcTy->isIntegerTy() && destTy->isIntegerTy()) {
                 unsigned srcBits = srcTy->getIntegerBitWidth();
@@ -10918,7 +10876,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (srcTy->isIntegerTy() && destTy->isFloatingPointTy()) {
                 rhs = builder->CreateSIToFP(rhs, destTy, "i2f");
             } else {
-                cg_error((*va)->var_name_tok.pos, "type mismatch in assignment in compiled mode");
+                cg_error((*va)->var_name_tok.pos, "type mismatch in assignment in compiled mode", "QC-T033");
                 return nullptr;
             }
         }
@@ -10935,7 +10893,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if (currentThis) {
                 return currentThis;
             } else {
-                cg_error((*acc)->var_name_tok.pos, "'this' used outside class method");
+                cg_error((*acc)->var_name_tok.pos, "'this' used outside class method", "QC-S150");
                 return nullptr;
             }
         }
@@ -10954,7 +10912,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (alloc) {
             llvm::Type* ty = getPointeeType(name);
             if (ty == nullptr) {
-                cg_error((*acc)->var_name_tok.pos, "could not resolve var type");
+                cg_error((*acc)->var_name_tok.pos, "could not resolve var type", "QC-T034");
                 return nullptr;
             }
             return builder->CreateLoad(ty, alloc, resolveVolatileVar(name), name);
@@ -10963,7 +10921,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Function* fn = resolveFunction(name);
         if (fn) { return fn; }
 
-        cg_error((*acc)->var_name_tok.pos, "use of undeclared variable '" + name + "'");
+        cg_error((*acc)->var_name_tok.pos, "use of undeclared variable '" + name + "'", "QC-S151");
         auto suggestions = getVisibleVariables();
         std::vector<std::pair<int, std::string>> matches;
         if (name.size() >= 3) {
@@ -10992,13 +10950,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string varName = (*varAccess)->var_name_tok.value;
                 llvm::Value* locAlloc = getVarAddress(varName);
                 if (!locAlloc) {
-                    cg_error(get_pos(*varAccess), "unknown variable: " + varName);
+                    cg_error(get_pos(*varAccess), "unknown variable: " + varName, "QC-S152");
                     return nullptr;
                 }
                 llvm::Type* allocTy = getPointeeType(varName);
                 auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy);
                 if (!structTy) {
-                    cg_error(get_pos(*varAccess), "not a struct");
+                    cg_error(get_pos(*varAccess), "not a struct", "QC-S153");
                     return nullptr;
                 }
                 std::string structName = structTy->getName().str();
@@ -11031,7 +10989,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     if (oldVal->getType()->isPointerTy() && (op == TokenType::MINUS_EQ || op == TokenType::PLUS_EQ)) {
                         if (!rhsVal->getType()->isIntegerTy()) {
-                            cg_error(get_pos((*asn)->value), "pointer offset must be an integer");
+                            cg_error(get_pos((*asn)->value), "pointer offset must be an integer", "QC-S154");
                             return nullptr;
                         }
                         llvm::Value* offset = rhsVal;
@@ -11072,7 +11030,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Value* alloc = emitLValue((*asn)->target);
         if (!alloc) {
             cg_error((*asn)->op_tok.pos, "left side of assignment must be an L-value "
-                                         "(variable, property, or dereference)");
+                                         "(variable, property, or dereference)", "QC-S155");
             return nullptr;
         }
         std::string name = "";
@@ -11080,7 +11038,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string lhsTypeStr = getExpressionType((*asn)->target);
         llvm::Type* destTy = llvmTypeFor(lhsTypeStr);
         if (!destTy) {
-            cg_error(get_pos((*asn)->target), "could not resolve type " + lhsTypeStr + " for assignment");
+            cg_error(get_pos((*asn)->target), "could not resolve type " + lhsTypeStr + " for assignment", "QC-T035");
             return nullptr;
         }
         for (auto& [unionName, unionTy] : unionTypes) {
@@ -11103,7 +11061,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Type* memberTy = llvmTypeFor(baseType);
 
                 if (rhsTy->getTypeID() != memberTy->getTypeID()) {
-                    cg_error((*asn)->op_tok.pos, "union variant payload type mismatch");
+                    cg_error((*asn)->op_tok.pos, "union variant payload type mismatch", "QC-T036");
                     return nullptr;
                 }
                 llvm::Value* unionVal = llvm::ConstantAggregateZero::get(unionTy);
@@ -11133,7 +11091,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         std::string rhsType = getExpressionType((*asn)->value);
         if (!rhsVal) {
-            cg_error(get_pos((*asn)->value), "failed to compile right-hand side of assignment");
+            cg_error(get_pos((*asn)->value), "failed to compile right-hand side of assignment", "QC-S156");
             return nullptr;
         }
         llvm::Type* srcTy = rhsVal->getType();
@@ -11164,15 +11122,15 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             auto& srcInfo = userTypes.at(baseTypeName(srcClassName));
                             if (srcInfo.baseClassName == destClassName) {
                             } else {
-                                cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                                cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                                 return nullptr;
                             }
                         } else {
-                            cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                            cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                             return nullptr;
                         }
                     } else {
-                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                         return nullptr;
                     }
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
@@ -11182,7 +11140,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     unsigned srcBits = srcTy->getIntegerBitWidth();
                     unsigned destBits = destTy->getIntegerBitWidth();
                     if ((srcBits == 1 || srcBits == 2) && (destBits != srcBits)) {
-                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types");
+                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types", "QC-T038");
                         return nullptr;
                     }
 
@@ -11204,14 +11162,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         rhsVal = builder->CreateLoad(destTy, rhsVal, "ref_peel");
                         srcTy = rhsVal->getType();
                     } else {
-                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                         return nullptr;
                     }
                 } else if (srcTy->isPointerTy() && destTy->isPointerTy()) {
                     if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr") {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
-                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                         return nullptr;
                     }
                 } else if (srcTy->isIntegerTy() && destTy->isPointerTy()) {
@@ -11231,7 +11189,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         builder->CreateStore(newPtr, alloc, resolveVolatileVar(name));
                         return newPtr;
                     }
-                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                     return nullptr;
                 }
             }
@@ -11243,7 +11201,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     unsigned srcBits = srcTy->getIntegerBitWidth();
                     unsigned destBits = destTy->getIntegerBitWidth();
                     if ((srcBits == 1 || srcBits == 2) && (destBits != srcBits)) {
-                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types");
+                        cg_error((*asn)->op_tok.pos, "cannot convert bool/qbool to other integer types", "QC-T038");
                         return nullptr;
                     }
 
@@ -11259,11 +11217,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else if (srcTy->isIntegerTy() && destTy->isDoubleTy()) {
                     rhsVal = builder->CreateSIToFP(rhsVal, destTy, "i2d");
                 } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
-                    cg_error((*asn)->op_tok.pos, "cannot narrow double to float (loses precision)");
+                    cg_error((*asn)->op_tok.pos, "cannot narrow double to float (loses precision)", "QC-S157");
                     return nullptr;
                 } else if (srcTy->isFloatingPointTy() && destTy->isIntegerTy()) {
                     cg_error((*asn)->op_tok.pos, "cannot convert floating point to integer (loses "
-                                                 "precision)");
+                                                 "precision)", "QC-S158");
                     return nullptr;
                 } else if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
                     if (lhsTypeStr.ends_with("&")) {
@@ -11277,11 +11235,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (lhsTypeStr == "void*" || rhsType.ends_with("*") || lhsTypeStr == "@nullptr" || rhsType == "@nullptr") {
                     } else if (lhsTypeStr == rhsType) {
                     } else {
-                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                        cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                         return nullptr;
                     }
                 } else {
-                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment");
+                    cg_error((*asn)->op_tok.pos, "type mismatch in assignment", "QC-T037");
                     return nullptr;
                 }
             }
@@ -11310,7 +11268,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                     llvm::Value* lhsAlloc = emitLValue((*asn)->target);
                                     return emitMethodCall(opMethod, lhsAlloc, {rhsVal, len}, "operator[]=");
                                 }
-                                cg_error((*asn)->op_tok.pos, "class " + className + " has no valid matching operator[]=");
+                                cg_error((*asn)->op_tok.pos, "class " + className + " has no valid matching operator[]=", "QC-S159");
                                 return nullptr;
                             }
                         }
@@ -11389,7 +11347,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                         }
                     }
-                    cg_error(get_pos(*asn), "no valid overload to " + getCombinationalOperatorMethodName((*asn)->op_tok.type) + " found");
+                    cg_error(get_pos(*asn), "no valid overload to " + getCombinationalOperatorMethodName((*asn)->op_tok.type) + " found", "QC-O001");
                     struct Candidate {
                         int score;
                         ClassMethodInfo* method;
@@ -11460,7 +11418,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         case TokenType::BIT_X_EQ: newVal = builder->CreateXor(oldVal, rhsVal, "xor"); break;
         case TokenType::LROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshl, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
         case TokenType::RROT_EQ: newVal = builder->CreateIntrinsic(llvm::Intrinsic::fshr, {oldVal->getType()}, {oldVal, oldVal, rhsVal}); break;
-        default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator."); return nullptr;
+        default: cg_error((*asn)->op_tok.pos, "unsupported assignment operator.", "QC-S160"); return nullptr;
         }
         builder->CreateStore(newVal, alloc, resolveVolatileVar(name));
         return newVal;
@@ -11565,7 +11523,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if ((*unary)->op_tok.type == TokenType::BITWISE_NOT) {
             llvm::Type* ty = operand->getType();
             if (ty->isFloatingPointTy() || ty->isPointerTy()) {
-                cg_error((*unary)->op_tok.pos, "cannot perform bitwise NOT on non-integer type");
+                cg_error((*unary)->op_tok.pos, "cannot perform bitwise NOT on non-integer type", "QC-T039");
                 return nullptr;
             }
             llvm::Value* allOnes = llvm::ConstantInt::get(ty, -1, true);
@@ -11582,7 +11540,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 llvm::Value* result8 = builder->CreateCall(fn, {op8});
                 return builder->CreateTrunc(result8, builder->getIntNTy(2));
             }
-            cg_error((*unary)->op_tok.pos, "!! requires qbool operand");
+            cg_error((*unary)->op_tok.pos, "!! requires qbool operand", "QC-S161");
             return nullptr;
         }
         if ((*unary)->op_tok.type == TokenType::MINUS) {
@@ -11591,7 +11549,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (operandTy->isFloatingPointTy()) {
                 return builder->CreateFNeg(operand, "fneg");
             } else {
-                cg_error((*unary)->op_tok.pos, "- requires numeric operand");
+                cg_error((*unary)->op_tok.pos, "- requires numeric operand", "QC-S162");
                 return nullptr;
             }
         }
@@ -11622,7 +11580,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 return isPostfix ? oldVal : newVal;
             }
             if (!lhsVal->getType()->isIntegerTy()) {
-                cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like");
+                cg_error((*unary)->op_tok.pos, "++/-- only valid on int-like", "QC-S163");
                 return nullptr;
             }
             llvm::Value* one = llvm::ConstantInt::get(lhsVal->getType(), 1);
@@ -11643,11 +11601,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* val = operand;
             std::string type = getExpressionType((*unary)->node);
             if (!type.ends_with("*") && !type.ends_with("[]") && type != "string") {
-                cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type);
+                cg_error((*unary)->op_tok.pos, "you can only dereference pointer types, found: " + type, "QC-T040");
                 return nullptr;
             }
             if (type == "void*") {
-                cg_error((*unary)->op_tok.pos, "you canot dereference void*");
+                cg_error((*unary)->op_tok.pos, "you canot dereference void*", "QC-S164");
                 return nullptr;
             }
             if (type.ends_with("]")) type.pop_back();
@@ -11669,7 +11627,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (ty) {
                     size = dl.getTypeAllocSize(ty);
                 } else {
-                    cg_error(t->getPos(), "unknown type `" + t->tok.value + "`");
+                    cg_error(t->getPos(), "unknown type `" + t->tok.value + "`", "QC-T041");
                     return nullptr;
                 }
             } else {
@@ -11703,12 +11661,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         return f;
     } else if (auto mapLit = std::get_if<MapLiteralNode*>(&node)) {
         if ((*mapLit)->struct_type.empty()) {
-            cg_error(get_pos(*mapLit), "struct literals must have a struct type");
+            cg_error(get_pos(*mapLit), "struct literals must have a struct type", "QC-T042");
             return nullptr;
         }
         llvm::StructType* structTy = genericiseOrFindStruct((*mapLit)->struct_type);
         if (!structTy) {
-            cg_error(get_pos(*mapLit), "unknown struct type '" + (*mapLit)->struct_type + "'");
+            cg_error(get_pos(*mapLit), "unknown struct type '" + (*mapLit)->struct_type + "'", "QC-T043");
             std::vector<std::pair<int, std::string>> matches;
             if ((*mapLit)->struct_type.size() >= 3) {
                 for (auto& [vname, strct] : userTypes) {
@@ -11739,7 +11697,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             } else if (auto key = std::get_if<StringNode>(&keyNode)) {
                 fieldName = key->tok.value;
             } else {
-                cg_error((*mapLit)->pos, "struct field name must be an identifier");
+                cg_error((*mapLit)->pos, "struct field name must be an identifier", "QC-S141");
                 return nullptr;
             }
             int fieldIndex = -1;
@@ -11750,7 +11708,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
             if (fieldIndex == -1) {
-                cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + (*mapLit)->struct_type);
+                cg_error((*mapLit)->pos, "unknown field '" + fieldName + "' in struct " + (*mapLit)->struct_type, "QC-S142");
                 return nullptr;
             }
             llvm::Value* fieldValue = emitExpr(valueNode);
@@ -11762,7 +11720,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if (!(*arrLit)->type.empty() && std::holds_alternative<std::monostate>((*arrLit)->length)) {
             llvm::StructType* structTy = genericiseOrFindStruct((*arrLit)->type);
             if (!structTy) {
-                cg_error(get_pos(*arrLit), "unknown struct type '" + (*arrLit)->type + "'");
+                cg_error(get_pos(*arrLit), "unknown struct type '" + (*arrLit)->type + "'", "QC-T043");
                 std::vector<std::pair<int, std::string>> matches;
                 if ((*arrLit)->type.size() >= 3) {
                     for (auto& [vname, strct] : userTypes) {
@@ -11815,7 +11773,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         if ((*arrLit)->elements.empty()) {
             llvm::Type* elemType = llvmTypeFor((*arrLit)->type);
             if (elemType == nullptr) {
-                cg_error(get_pos(*arrLit), "empty array literals without an element type are not allowed");
+                cg_error(get_pos(*arrLit), "empty array literals without an element type are not allowed", "QC-T044");
                 cg_note(get_pos(*arrLit),
                         "for a empty literal of integers, you can do `[int, 0]`, or for a array of 10 ints, you can do `[int, 10]`");
                 return nullptr;
@@ -11823,7 +11781,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* length = emitExpr((*arrLit)->length);
             llvm::ConstantInt* ci = llvm::dyn_cast<llvm::ConstantInt>(length);
             if (ci == nullptr) {
-                cg_error(get_pos(*arrLit), "empty array literal length must be a constant compile time int");
+                cg_error(get_pos(*arrLit), "empty array literal length must be a constant compile time int", "QC-S165");
                 return nullptr;
             }
             llvm::ArrayType* arrTy = llvm::ArrayType::get(elemType, ci->getZExtValue());
@@ -11912,7 +11870,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (callArgs.size() != procTy->getNumParams()) {
                         cg_error((*varAccess)->var_name_tok.pos, "proceed() argument count mismatch: expected " +
                                                                      std::to_string(procTy->getNumParams()) + ", got " +
-                                                                     std::to_string(callArgs.size()));
+                                                                     std::to_string(callArgs.size()), "QC-S166");
                         return nullptr;
                     }
                     llvm::Type* retTy = procTy->getReturnType();
@@ -11957,12 +11915,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                             llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
                             if (!opMethod) {
-                                cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className);
+                                cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
                                 return nullptr;
                             }
                             return emitMethodCall(opMethod, v, args, "operator()");
                         }
-                        cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className);
+                        cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className, "QC-S167");
                         return nullptr;
                     }
                 }
@@ -12000,11 +11958,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
                                 argVal = emitExpr(defaultRef);
                                 if (!argVal) {
-                                    cg_error(get_pos(&call), "failed to evaluate default parameter");
+                                    cg_error(get_pos(&call), "failed to evaluate default parameter", "QC-S168");
                                     return nullptr;
                                 }
                             } else {
-                                cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx));
+                                cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx), "QC-S169");
                                 return nullptr;
                             }
                         } else {
@@ -12022,7 +11980,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         argValues.push_back(argVal);
                     }
                     if (hasSpread) {
-                        cg_error(get_pos(&call), "spread is no longer allowed in function calls.");
+                        cg_error(get_pos(&call), "spread is no longer allowed in function calls.", "QC-S170");
                         return nullptr;
                     }
                     funcName = fixMangling(funcName);
@@ -12083,11 +12041,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         classTy = generateGenericClass(resolvedName, classIt->second, genericParams);
                         resolvedName = fullName;
                         if (classTy == nullptr) {
-                            cg_error(get_pos(*varAccess), "failed to generate generic subset for class " + resolvedName);
+                            cg_error(get_pos(*varAccess), "failed to generate generic subset for class " + resolvedName, "QC-G013");
                             return nullptr;
                         }
                     } else {
-                        cg_error(get_pos(*callPtr), "class '" + resolvedName + "' has no generated type");
+                        cg_error(get_pos(*callPtr), "class '" + resolvedName + "' has no generated type", "QC-T045");
                         return nullptr;
                     }
                 }
@@ -12110,7 +12068,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     llvm::Function* ctor = findMethodOverload(resolvedName, ctorName, ctorArgs);
                     if (!ctor) {
-                        cg_error((*varAccess)->var_name_tok.pos, "no matching constructor for " + resolvedName);
+                        cg_error((*varAccess)->var_name_tok.pos, "no matching constructor for " + resolvedName, "QC-S171");
                         addConstructorNotes(resolvedName, ctorArgs, get_pos(*varAccess));
                         return nullptr;
                     }
@@ -12219,7 +12177,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 std::string runtimeName = it->second;
                 if (funcName == "`atomic_load") {
                     if (call.arg_nodes.size() != 1) {
-                        cg_error(get_pos(*callPtr), "`atomic_load expects exactly one argument");
+                        cg_error(get_pos(*callPtr), "`atomic_load expects exactly one argument", "QC-S172");
                         return nullptr;
                     }
                     AnyNode& atomicNode = call.arg_nodes.front();
@@ -12231,7 +12189,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return load;
                 } else if (funcName == "`atomic_store") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_store expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_store expects (atomic_variable, value)", "QC-S173");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12245,7 +12203,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     return nullptr;
                 } else if (funcName == "`atomic_exchange") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_exchange expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_exchange expects (atomic_variable, value)", "QC-S174");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12258,7 +12216,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_add") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_add expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_add expects (atomic_variable, value)", "QC-S175");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12269,7 +12227,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_sub") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_sub expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_sub expects (atomic_variable, value)", "QC-S176");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12280,7 +12238,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_and") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_and expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_and expects (atomic_variable, value)", "QC-S177");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12291,7 +12249,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_or") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_or expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_or expects (atomic_variable, value)", "QC-S178");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12302,7 +12260,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_xor") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_xor expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_xor expects (atomic_variable, value)", "QC-S179");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12313,7 +12271,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_nand") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_nand expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_nand expects (atomic_variable, value)", "QC-S180");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12324,7 +12282,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_min") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_min expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_min expects (atomic_variable, value)", "QC-S181");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12335,7 +12293,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_max") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_max expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_max expects (atomic_variable, value)", "QC-S182");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12346,7 +12304,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_umin") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_umin expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_umin expects (atomic_variable, value)", "QC-S183");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12357,7 +12315,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                     llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_umax") {
                     if (call.arg_nodes.size() != 2) {
-                        cg_error(get_pos(*callPtr), "`atomic_umax expects (atomic_variable, value)");
+                        cg_error(get_pos(*callPtr), "`atomic_umax expects (atomic_variable, value)", "QC-S184");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12369,7 +12327,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else if (funcName == "`atomic_cmpxchg") {
                     if (call.arg_nodes.size() != 3) {
                         cg_error(get_pos(*callPtr), "`atomic_cmpxchg expects "
-                                                    "(atomic_variable, expected, desired)");
+                                                    "(atomic_variable, expected, desired)", "QC-S185");
                         return nullptr;
                     }
                     auto it = call.arg_nodes.begin();
@@ -12381,7 +12339,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                         llvm::AtomicOrdering::SequentiallyConsistent);
                 } else if (funcName == "`atomic_fence") {
                     if (!call.arg_nodes.empty()) {
-                        cg_error(get_pos(*callPtr), "`atomic_fence expects no arguments");
+                        cg_error(get_pos(*callPtr), "`atomic_fence expects no arguments", "QC-S186");
                         return nullptr;
                     }
                     return builder->CreateFence(llvm::AtomicOrdering::SequentiallyConsistent);
@@ -12389,26 +12347,26 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     AnyNode node = call.arg_nodes.back();
                     StringNode* n = std::get_if<StringNode>(&node);
                     if (!n) {
-                        cg_error(get_pos(node), "`compile_error takes a comptime string");
+                        cg_error(get_pos(node), "`compile_error takes a comptime string", "QC-S187");
                         return nullptr;
                     }
-                    cg_error(get_pos(node), n->tok.value);
+                    cg_error(get_pos(node), n->tok.value, "QC-S188");
                     return nullptr;
                 } else if (funcName == "`compile_warn" && !call.arg_nodes.empty()) {
                     AnyNode node = call.arg_nodes.back();
                     StringNode* n = std::get_if<StringNode>(&node);
                     if (!n) {
-                        cg_error(get_pos(node), "`compile_warn takes a comptime string");
+                        cg_error(get_pos(node), "`compile_warn takes a comptime string", "QC-S189");
                         return nullptr;
                     }
-                    cg_warn(get_pos(node), n->tok.value);
+                    cg_warn(get_pos(node), n->tok.value, "QC-S188");
                     return nullptr;
                 } else if (funcName == "`compile_note" && !call.arg_nodes.empty()) {
                     if (errors.empty()) cg_warn(get_pos(node), "");
                     AnyNode node = call.arg_nodes.back();
                     StringNode* n = std::get_if<StringNode>(&node);
                     if (!n) {
-                        cg_error(get_pos(node), "`compile_note takes a comptime string");
+                        cg_error(get_pos(node), "`compile_note takes a comptime string", "QC-S190");
                         return nullptr;
                     }
                     cg_note(get_pos(node), n->tok.value);
@@ -12552,7 +12510,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 } else if (funcName == "`qout") { // Ṱ̵̺̙̙͔̯̣͓̼̈́͜h̶̳͖̝̰͍̮͆̅̊e̶̡̧̮͍̘̘͍̮͎͎̺̗̦͕̾͗͐̽͑̔̅́̑̌̕ ̶̥̮̪͙̎͛̐͑̔̉́̂̂̐́̽̔̔͂̃d̴̛̪̦̞́́̎͊̌̈̍̓̓̔̑͑̒͘͝e̶͎̤̠̞̞͖̊ṽ̴̡͖̫̩̣̳̖̞̯̪͇̰̆͑͐͐̀̿͐̍̑̕͘̕͝͝ͅͅͅí̵̜̬͍̖̒͑̎͗l̸̛͍̰̜̞̩̜̘͈̯̬̇̀̋̈͐̔̿̓̅͌̉̅͂̌͘͜͝ ̷̡̣̰͙̰̪͈̪̣̺̺̤̦̰͌̊̀̀̑͑̅̈́ş̶̛̳̟̫͇̠͉͍̺̣̲̬̻̰͍̙̋̂͗̕͠ͅę̸̹̹̈́͒̐̃̋̓͐̓͆̉̀̊̀̏̿͘é̷͖͎̹̉́̈́͠͠͝s̸̡̢̢̩͍̹̼͈͕̘̖͋̋̃̓͗͆͌̕͠ͅͅͅ ̴̛̮͉̣̈́̒͋͐̿̾̐̽̚ḩ̶̨̧̺͉̹̩̙̫͇̰̫̯̬͐́̑͜i̶̠͖̠̟̻̭̫̙̳̪͆̄̿̈́̾̊̈́̒͑͊̆̋̃̎̿̂͗ş̴̥̤̜̦̗͍̟̈́̽̑̏ ̶̡̛̫̥̝̰̣̟͇͔̤̱̯͉̱̩̋̈̈́͐̓̑̋̎͝͝ͅö̷̡̝̣́̎̎͝ẘ̶̢̡̨̡̭̞̯̘̦̟̳̮̫͎̑͂̇̀͆̋̐̃̒́̏̓͒̅͜͝͝n̵̳͎̣̬̪̝̩͒͊̓̾̓̄̃̂͗̉͆̒̋̚͜͜͝ ̴͔̫̂̏ͅͅį̷̡̤̼͈̗̦̣̘̮̠̣͎̬̰̍͗ṉ̸̨̯̱̦͕͐̉̀͌͑̀͐̽̕͜
                                                   // ̷̛̜̈́̐̇̑͛̕ṯ̸̟̰̩̩̼̀͆̏̀̔̈́͛̍͑͑͠͝h̶̺̺͙͙̤̘̦̬̝̱̟͕̟̟͕̯͛̌͋̓́̔̊͘͘ͅè̷̢̡̝̗͙̘͍̠̝͑̃̋͜͝͝ ̶̬̐̂̏̆̀͝͠s̴̨̮̺͙͙̪̹͖͓̆̌̔͆̿̌̏̇̎͜͝h̴̛̝̜̥̺͇̗̪̄̀͆̆̅͋͂̅͘ͅḁ̸̖͐̅̑͗̃̂͌̃͝d̶̢͇͉͈̹̯͌̓͂̈̒́͐̈́͑̏̀͊͋͐͠o̴̧̧̥͎͓̒̀̍̀͒͠w̵̢̰̰̭̟̼̋̓͋̈́̅ ̸̢̖̘͓̯̦͎̼̗̠̤̙̿̄̍̎̎͑͐ȏ̷̹̫̲͎͖͉̩̺̫̖͊̐̄̀͌̃̀́̌͑͒̈́̐̀͘f̴̧̣͔͇̹͙͙̦͎̿̋͊͊̀̽͗͒ ̷͕̥͕̣͎̫̿͊͊̅͆͂͘͜ǫ̴̢̱͍͍͍̰͓͚̟͚̹͗̔̎͜͠͠ţ̷̨̺̯̥͕̳̮̳̜̙̫̫̺͐̀͊̽̀̇̽̋̚̚͠ͅh̷̼̦̦̝̺̒͌͐͐̀̈́̕̕͠ͅḙ̷̢̨̜͕͖͈̜͖̥̈́̐́̀̓́̽̀̈͂̅́̍̚͜͝r̷͙̎͐̅̍̐̈́͌͊͌̇́ŝ̵̥̱̞͔̩̉͋̌͂̉͑̇̆̓͆̃̚͝.̸̡̣̘̗̖̦͙͕̯̗̩́̔͜͠
                     if (call.arg_nodes.empty()) {
-                        cg_error((*varAccess)->var_name_tok.pos, "qout requires arguments: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "qout requires arguments: " + funcName, "QC-S191");
                         return nullptr;
                     }
                     std::vector<AnyNode> goodArgs((call.arg_nodes.begin()), (call.arg_nodes.end()));
@@ -12573,7 +12531,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     } else {
                         cg_error((*varAccess)->var_name_tok.pos, "qout requires the first argument to be a "
                                                                  "string: " +
-                                                                     funcName);
+                                                                     funcName, "QC-S192");
                         return nullptr;
                     }
                     std::string to_print = "";
@@ -12672,7 +12630,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         i++;
                         if (i > fmtString.length() - 1) {
-                            cg_error((*varAccess)->var_name_tok.pos, "unexpected end of fmt string: " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "unexpected end of fmt string: " + funcName, "QC-S193");
                             return nullptr;
                         }
                         c = fmtString[i];
@@ -12687,7 +12645,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             zero_pad = true;
                             i++;
                             if (i >= fmtString.size()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName, "QC-S194");
                                 break;
                             }
                             c = fmtString[i];
@@ -12704,7 +12662,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         if (c == '.') {
                             i++;
                             if (i >= fmtString.size()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName, "QC-S194");
                                 break;
                             }
                             c = fmtString[i];
@@ -12717,7 +12675,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 c = fmtString[i];
                                 precision = std::stoi(num);
                             } else {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName, "QC-S194");
                                 break;
                             }
                         }
@@ -12725,13 +12683,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'i': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* itgVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             llvm::Value* bigIntSigned = nullptr;
                             if (!itgVal || !itgVal->getType()->isIntegerTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "%i formater takes an integer");
+                                cg_error((*varAccess)->var_name_tok.pos, "%i formater takes an integer", "QC-S196");
                                 return nullptr;
                             }
                             llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
@@ -12756,7 +12714,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'u': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* itgVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
@@ -12764,7 +12722,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (!itgVal || !itgVal->getType()->isIntegerTy()) {
                                 cg_error((*varAccess)->var_name_tok.pos, "%u formater takes an int-like (int, "
                                                                          "long int, short "
-                                                                         "int, addr_t, nibble, byte)");
+                                                                         "int, addr_t, nibble, byte)", "QC-S197");
                                 return nullptr;
                             }
                             llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
@@ -12789,14 +12747,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 's': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 return nullptr;
                             }
                             llvm::Value* stVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!stVal) {
                                 cg_error((*varAccess)->var_name_tok.pos, "failed to resolve argument for "
                                                                          "formatter in " +
-                                                                             funcName);
+                                                                             funcName, "QC-S198");
                                 return nullptr;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12813,7 +12771,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                         if (classTypes.find(className) != classTypes.end()) {
                                             cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct "
                                                                                      "instance: " +
-                                                                                         funcName);
+                                                                                         funcName, "QC-S199");
                                             break;
                                         } else if (structTypes.find(className) != structTypes.end()) {
                                             llvm::Function* nestedReprFn = module->getFunction(className + "_repr");
@@ -12826,19 +12784,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                         } else {
                                             cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct "
                                                                                      "instance: " +
-                                                                                         funcName);
+                                                                                         funcName, "QC-S199");
                                             break;
                                         }
                                     }
                                 } else {
                                     cg_error((*varAccess)->var_name_tok.pos, "st formater takes a struct "
                                                                              "instance: " +
-                                                                                 funcName);
+                                                                                 funcName, "QC-S199");
                                     return nullptr;
                                 }
                             } else {
                                 if (!stVal->getType()->isPointerTy()) {
-                                    cg_error((*varAccess)->var_name_tok.pos, "s formater takes a string: " + funcName);
+                                    cg_error((*varAccess)->var_name_tok.pos, "s formater takes a string: " + funcName, "QC-S200");
                                     return nullptr;
                                 }
                                 builder->CreateCall(printString,
@@ -12850,12 +12808,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'f': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* floatVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!floatVal || !floatVal->getType()->isFloatTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "f formater takes a float: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "f formater takes a float: " + funcName, "QC-S201");
                                 return nullptr;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12871,12 +12829,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'd': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* doubVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!doubVal || !doubVal->getType()->isDoubleTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "d formater takes a double: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "d formater takes a double: " + funcName, "QC-S202");
                                 return nullptr;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12891,7 +12849,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'c': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12922,12 +12880,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                         }
                                     }
                                 } else {
-                                    cg_error((*varAccess)->var_name_tok.pos, "cs formater takes a class instance: " + funcName);
+                                    cg_error((*varAccess)->var_name_tok.pos, "cs formater takes a class instance: " + funcName, "QC-S203");
                                     return nullptr;
                                 }
                             } else {
                                 if (!cVal || !cVal->getType()->isIntegerTy(8)) {
-                                    cg_error((*varAccess)->var_name_tok.pos, "c formater takes a char: " + funcName);
+                                    cg_error((*varAccess)->var_name_tok.pos, "c formater takes a char: " + funcName, "QC-S204");
                                     return nullptr;
                                 }
                                 builder->CreateCall(printString,
@@ -12940,12 +12898,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'b': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* boolVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!boolVal || !boolVal->getType()->isIntegerTy(1)) {
-                                cg_error((*varAccess)->var_name_tok.pos, "b formater takes a bool: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "b formater takes a bool: " + funcName, "QC-S205");
                                 return nullptr;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12959,12 +12917,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'q': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* qboolVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!qboolVal || !qboolVal->getType()->isIntegerTy(2)) {
-                                cg_error((*varAccess)->var_name_tok.pos, "q formater takes a qbool: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "q formater takes a qbool: " + funcName, "QC-S206");
                                 return nullptr;
                             }
                             llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -12978,13 +12936,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'x': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* itgVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             llvm::Value* bigIntUnsigned;
                             if (!itgVal || !itgVal->getType()->isIntegerTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "x formater takes a int: " + funcName, "QC-S207");
                                 return nullptr;
                             }
                             llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
@@ -13008,12 +12966,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'o': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 break;
                             }
                             llvm::Value* itgVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!itgVal || !itgVal->getType()->isIntegerTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "o formater takes a int: " + funcName, "QC-S208");
                                 return nullptr;
                             }
                             llvm::Type* i64Ty = builder->getIntNTy(getPtrSize());
@@ -13038,7 +12996,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'p': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 return nullptr;
                             }
                             llvm::Value* ptVal = emitExpr(goodArgs[current_arg]);
@@ -13046,7 +13004,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             builder->CreateCall(printString, {strVal});
                             to_print = "";
                             if (!ptVal || !ptVal->getType()->isPointerTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "p formater takes a pointer: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "p formater takes a pointer: " + funcName, "QC-S209");
                                 break;
                             }
                             builder->CreateCall(printString,
@@ -13057,13 +13015,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'e': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 return nullptr;
                             }
                             llvm::Value* decimalVal = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
                             if (!decimalVal || !decimalVal->getType()->isFloatTy() && !decimalVal->getType()->isDoubleTy() &&
                                                    !decimalVal->getType()->isIntegerTy()) {
-                                cg_error((*varAccess)->var_name_tok.pos, "e formater takes a number: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "e formater takes a number: " + funcName, "QC-S210");
                             }
                             if (decimalVal->getType()->isIntegerTy()) {
                                 decimalVal = builder->CreateSIToFP(decimalVal, builder->getDoubleTy());
@@ -13085,15 +13043,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         case 'a': {
                             current_arg++;
                             if (goodArgs.size() - 1 < current_arg) {
-                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "too few args: " + funcName, "QC-S195");
                                 return nullptr;
                             }
 
                             llvm::Value* val = derefIfReference(emitExpr(goodArgs[current_arg]), goodArgs[current_arg]);
 
                             if (!val) {
-                                cg_error((*varAccess)->var_name_tok.pos,
-                                         "failed to evaluate argument " + std::to_string(current_arg) + ": " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "failed to evaluate argument " + std::to_string(current_arg) + ": " + funcName, "QC-S211");
                                 return nullptr;
                             }
                             llvm::Type* aTy = val->getType();
@@ -13188,7 +13145,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                             break;
                         }
-                        default: cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName); break;
+                        default: cg_error((*varAccess)->var_name_tok.pos, "invalid formater: " + funcName, "QC-S194"); break;
                         }
                     }
                     llvm::Value* strVal = builder->CreateGlobalString(to_print);
@@ -13266,18 +13223,17 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (funcName == "`mapped_ptr" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!val || !(val->getType()->isIntegerTy())) {
-                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer: " + funcName, "QC-S212");
                         return nullptr;
                     }
                     if (!(val->getType()->isIntegerTy(getPtrSize()))) {
-                        cg_error((*varAccess)->var_name_tok.pos,
-                                 "arg 1 must be a integer the size of a pointer (" + std::to_string(getPtrSize()) + ") (addr_t or " +
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a integer the size of a pointer (" + std::to_string(getPtrSize()) + ") (addr_t or " +
                                      (getPtrSize() == 32 ? "int" : "long int") + ", got a " + std::to_string(val->getType()->getIntegerBitWidth()) +
                                      " bit integer (" +
                                      ((val->getType()->getIntegerBitWidth() == 32)
                                           ? "int"
                                           : ((val->getType()->getIntegerBitWidth() == 64) ? "long int" : "short int")) +
-                                     ": " + funcName);
+                                     ": " + funcName, "QC-S213");
                         return nullptr;
                     }
                     return builder->CreateIntToPtr(val, builder->getPtrTy());
@@ -13285,14 +13241,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (funcName == "`to_address" && !call.arg_nodes.empty()) {
                     llvm::Value* val = emitExpr(call.arg_nodes.front());
                     if (!val || !(val->getType()->isPointerTy())) {
-                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a pointer: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a pointer: " + funcName, "QC-S214");
                         return nullptr;
                     }
                     return builder->CreatePtrToInt(val, builder->getIntNTy(getPtrSize()), "addr");
                 }
                 if (funcName == "`ternary" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() != 3) {
-                        cg_error((*varAccess)->var_name_tok.pos, "must have exactly 3 args: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "must have exactly 3 args: " + funcName, "QC-S215");
                         return nullptr;
                     }
                     auto condIt = call.arg_nodes.begin();
@@ -13305,7 +13261,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     cond = toTruthiness(cond, get_pos(*condIt));
                     if (!cond) return nullptr;
                     if (!cond->getType()->isIntegerTy(1)) {
-                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a boolean: " + funcName, "QC-S216");
                         return nullptr;
                     }
                     llvm::Type* trTy = is_tr->getType();
@@ -13319,7 +13275,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (trTy != commonTy) { is_tr = builder->CreateSExt(is_tr, commonTy, "ternary_tr_promote"); }
                             if (flTy != commonTy) { is_fl = builder->CreateSExt(is_fl, commonTy, "ternary_fl_promote"); }
                         } else {
-                            cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must have compatible types: " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "arg 2 and 3 must have compatible types: " + funcName, "QC-T046");
                             return nullptr;
                         }
                     }
@@ -13328,7 +13284,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (funcName == "`inline" && !call.arg_nodes.empty()) {
                     StringNode* data = std::get_if<StringNode>(&call.arg_nodes.front());
                     if (data == nullptr) {
-                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a compile-time string: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "arg 1 must be a compile-time string: " + funcName, "QC-S217");
                         return nullptr;
                     }
                     int outputs = 0;
@@ -13355,7 +13311,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             continue;
                         } else {
                             if (asm_text.length() <= i + 1) {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand placeholder: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand placeholder: " + funcName, "QC-S218");
                                 return nullptr;
                             }
                             finalized += c;
@@ -13365,7 +13321,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             op.isRW = false;
                             try {
                                 if (i >= asm_text.size() || !std::isdigit(asm_text[i])) {
-                                    cg_error((*varAccess)->var_name_tok.pos, "expected number after $: " + funcName);
+                                    cg_error((*varAccess)->var_name_tok.pos, "expected number after $: " + funcName, "QC-S219");
                                     return nullptr;
                                 }
                                 int index = 0;
@@ -13376,11 +13332,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 }
                                 op.index = index;
                             } catch (...) {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand index: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand index: " + funcName, "QC-S220");
                                 return nullptr;
                             }
                             if (asm_text.length() <= i + 1) {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand placeholder: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid operand placeholder: " + funcName, "QC-S218");
                                 return nullptr;
                             }
                             if (i < asm_text.size() && asm_text[i] == '=') {
@@ -13393,12 +13349,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (i >= asm_text.size()) {
                                 cg_error((*varAccess)->var_name_tok.pos, "expected operand kind after asm "
                                                                          "operand index: " +
-                                                                             funcName);
+                                                                             funcName, "QC-S221");
                                 return nullptr;
                             }
                             char kind = asm_text[i];
                             if (kind != 'r' && kind != 'm' && kind != 'i' && kind != 'g') {
-                                cg_error((*varAccess)->var_name_tok.pos, "invalid asm operand kind: " + funcName);
+                                cg_error((*varAccess)->var_name_tok.pos, "invalid asm operand kind: " + funcName, "QC-S222");
                                 return nullptr;
                             }
                             op.kind = kind;
@@ -13413,7 +13369,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     }
                     StringNode* clobber_string_node = std::get_if<StringNode>(&call.arg_nodes.back());
                     if (clobber_string_node == nullptr) {
-                        cg_error((*varAccess)->var_name_tok.pos, "final arg must be a compile-time string: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "final arg must be a compile-time string: " + funcName, "QC-S223");
                         return nullptr;
                     }
                     std::string clobber_string = clobber_string_node->tok.value;
@@ -13426,7 +13382,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         i++;
                         while (i < clobber_string.size() && isspace(clobber_string[i])) i++;
                         if (i >= clobber_string.size() || clobber_string[i] != '{') {
-                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected '{'");
+                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected '{'", "QC-S224");
                             return nullptr;
                         }
                         i++;
@@ -13441,7 +13397,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 if (reg == "rsp" || reg == "esp" || reg == "rbp" || reg == "ebp") {
                                     cg_error((*varAccess)->var_name_tok.pos, reg + " is the stack pointer. You cannot clobber the stack pointer "
                                                                                    "because the compiler relies on it to track local variables "
-                                                                                   "and function returns; modifying it guarantees a runtime crash.");
+                                                                                   "and function returns; modifying it guarantees a runtime crash.", "QC-S225");
                                     return nullptr;
                                 }
                                 clobbers.push_back("~{" + reg + "}");
@@ -13455,7 +13411,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 i++;
                                 break;
                             }
-                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected ',' or '}'");
+                            cg_error((*varAccess)->var_name_tok.pos, "invalid clobber syntax: expected ',' or '}'", "QC-S226");
                             return nullptr;
                         }
                     }
@@ -13466,7 +13422,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     for (int idx : input_indices) {
                         if (output_indices.contains(idx)) {
-                            cg_error((*varAccess)->var_name_tok.pos, "asm operand " + std::to_string(idx) + " used as both input and output");
+                            cg_error((*varAccess)->var_name_tok.pos, "asm operand " + std::to_string(idx) + " used as both input and output", "QC-S227");
                             return nullptr;
                         }
                     }
@@ -13475,14 +13431,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     for (int i = 0; i < output_count; i++) {
                         if (!output_indices.contains(i)) {
                             cg_error((*varAccess)->var_name_tok.pos, "output operands must be contiguous "
-                                                                     "starting at index 0");
+                                                                     "starting at index 0", "QC-S228");
                             return nullptr;
                         }
                     }
 
                     for (int idx : input_indices) {
                         if (idx < output_count) {
-                            cg_error((*varAccess)->var_name_tok.pos, "input operands must come after all outputs");
+                            cg_error((*varAccess)->var_name_tok.pos, "input operands must come after all outputs", "QC-S229");
                             return nullptr;
                         }
                     }
@@ -13501,7 +13457,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     for (auto& [idx, op] : unique_inputs) {
                         int arg_pos = idx + 1;
                         if (arg_pos >= call.arg_nodes.size() - 1) {
-                            cg_error((*varAccess)->var_name_tok.pos, "asm input index out of range");
+                            cg_error((*varAccess)->var_name_tok.pos, "asm input index out of range", "QC-S230");
                             return nullptr;
                         }
                         auto it = std::next(call.arg_nodes.begin(), arg_pos);
@@ -13583,14 +13539,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.front())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
-                            cg_error((*varAccess)->var_name_tok.pos, "argument one must be a variadic argument: " + funcName);
+                            cg_error((*varAccess)->var_name_tok.pos, "argument one must be a variadic argument: " + funcName, "QC-S231");
                             return nullptr;
                         }
                         StringNode* expectedType = std::get_if<StringNode>(&call.arg_nodes.back());
                         TypeValueNode* otherExpType = std::get_if<TypeValueNode>(&call.arg_nodes.back());
                         if (!expectedType && !otherExpType) {
-                            cg_error((*varAccess)->var_name_tok.pos,
-                                     "argument two must be a string storing the type or the type. (" + funcName + ")");
+                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a string storing the type or the type. (" + funcName + ")", "QC-T047");
                             return nullptr;
                         }
                         llvm::Value* ConvertedValue = nullptr;
@@ -13605,7 +13560,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                    "variadc_arg");
                         llvm::Type* TargetType = llvmTypeFor(expectedType ? expectedType->tok.value : otherExpType->tok.value);
                         if (!TargetType) {
-                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a valid type");
+                            cg_error((*varAccess)->var_name_tok.pos, "argument two must be a valid type", "QC-T048");
                             return nullptr;
                         }
                         if (TargetType->isIntegerTy()) {
@@ -13627,7 +13582,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         return ConvertedValue;
                     } else {
-                        cg_error((*varAccess)->var_name_tok.pos, "argument one must be a direct variadic argument: " + funcName);
+                        cg_error((*varAccess)->var_name_tok.pos, "argument one must be a direct variadic argument: " + funcName, "QC-S232");
                     }
                     return nullptr;
                 }
@@ -13635,7 +13590,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     if (auto acc = std::get_if<VarAccessNode*>(&call.arg_nodes.back())) {
                         std::string var_name = (*acc)->var_name_tok.value;
                         if (resolveVarType(var_name) != "...") {
-                            cg_error((*acc)->var_name_tok.pos, "argument must be a variadic argument: " + funcName);
+                            cg_error((*acc)->var_name_tok.pos, "argument must be a variadic argument: " + funcName, "QC-S233");
                             return nullptr;
                         }
                         llvm::Function* isEmpty = module->getFunction("qc_variadic_is_empty");
@@ -13647,13 +13602,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         llvm::Value* VariableAddr = resolveVariable(var_name);
                         return builder->CreateCall(isEmpty, builder->CreateLoad(builder->getPtrTy(), VariableAddr, "variad"), "variadc_is_empty");
                     } else {
-                        cg_error(get_pos(call.arg_nodes.back()), "argument must be a direct variadic argument: " + funcName);
+                        cg_error(get_pos(call.arg_nodes.back()), "argument must be a direct variadic argument: " + funcName, "QC-S234");
                     }
                     return nullptr;
                 }
                 llvm::Function* fn = module->getFunction(runtimeName);
                 if (!fn) {
-                    cg_error((*varAccess)->var_name_tok.pos, "built-in function not found in runtime: " + runtimeName);
+                    cg_error((*varAccess)->var_name_tok.pos, "built-in function not found in runtime: " + runtimeName, "QC-S235");
                     return nullptr;
                 }
                 llvm::FunctionType* builtinFnTy = fn->getFunctionType();
@@ -13688,12 +13643,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         }
                         llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
                         if (!opMethod) {
-                            cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className);
+                            cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
                             return nullptr;
                         }
                         return emitMethodCall(opMethod, v, args, "operator()");
                     }
-                    cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className);
+                    cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className, "QC-S167");
                     return nullptr;
                 }
             }
@@ -13717,13 +13672,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
             if (!calleeVal) {
-                cg_error((*varAccess)->var_name_tok.pos, "undeclared function or variable: " + name);
+                cg_error((*varAccess)->var_name_tok.pos, "undeclared function or variable: " + name, "QC-S236");
                 return nullptr;
             }
             funcName = name;
         }
         if (!fnTy) {
-            cg_error(get_pos(&call), "could not determine function type");
+            cg_error(get_pos(&call), "could not determine function type", "QC-T049");
             return nullptr;
         }
         bool hasSpread = false;
@@ -13735,7 +13690,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
 
         if (hasSpread) {
-            cg_error(get_pos(&call), "spread is no longer allowed in function calls.");
+            cg_error(get_pos(&call), "spread is no longer allowed in function calls.", "QC-S170");
             return nullptr;
         }
 
@@ -13750,8 +13705,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
         std::vector<llvm::Value*> args = emitAdaptedArgs(call.arg_nodes, fnTy, paramTypeStrings);
         if (call.arg_nodes.size() < args.size()) {
-            cg_error(get_pos(&call),
-                     "too few arguments to function: got " + std::to_string(call.arg_nodes.size()) + ", expected " + std::to_string(args.size()));
+            cg_error(get_pos(&call), "too few arguments to function: got " + std::to_string(call.arg_nodes.size()) + ", expected " + std::to_string(args.size()), "QC-S237");
 
             cg_note(get_pos(&call), "missing " + std::to_string(args.size() - call.arg_nodes.size()) + " argument" +
                                         (args.size() - call.arg_nodes.size() == 1 ? "" : "s"));
@@ -13808,12 +13762,12 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
                         llvm::Value* defVal = emitExpr(defaultRef);
                         if (!defVal) {
-                            cg_error(get_pos(&call), "failed to evaluate default parameter");
+                            cg_error(get_pos(&call), "failed to evaluate default parameter", "QC-S168");
                             return nullptr;
                         }
                         args.push_back(defVal);
                     } else {
-                        cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx));
+                        cg_error(get_pos(&call), "missing required argument at position " + std::to_string(paramIdx), "QC-S169");
                         return nullptr;
                     }
                 }
@@ -13833,16 +13787,16 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string ptrTy = getExpressionType(arrAcc->base);
         if (ptrTy.ends_with("*") || ptrTy == "@nullptr" || ptrTy == "string") {
             if (ptrTy == "@nullptr") {
-                cg_error(get_pos(arrAcc), "attempted to dereference nullptr");
+                cg_error(get_pos(arrAcc), "attempted to dereference nullptr", "QC-S238");
                 return nullptr;
             }
             if (ptrTy == "void*") {
-                cg_error(get_pos(arrAcc), "pointer arithmetic cannot be preformed on void pointers");
+                cg_error(get_pos(arrAcc), "pointer arithmetic cannot be preformed on void pointers", "QC-S130");
                 return nullptr;
             }
             llvm::Value* value = emitExpr(arrAcc->indices[0]);
             if (!value || !value->getType()->isIntegerTy()) {
-                cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a non-integer value.");
+                cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a non-integer value.", "QC-S239");
                 return nullptr;
             }
             if (ptrTy == "string") {
@@ -13858,7 +13812,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             llvm::Value* idx = emitExpr(arrAcc->indices[0]);
             llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
             if (!ref) {
-                cg_error(get_pos(arrAcc), ptrTy + " does not have operator[]");
+                cg_error(get_pos(arrAcc), ptrTy + " does not have operator[]", "QC-S240");
                 return nullptr;
             }
             return ref;
@@ -13869,7 +13823,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 auto jagIt = findJaggedArray(name);
                 llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
-                    cg_error(get_pos(varAcc), "unknown jagged array: " + name);
+                    cg_error(get_pos(varAcc), "unknown jagged array: " + name, "QC-S241");
                     return nullptr;
                 }
 
@@ -13914,7 +13868,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             }
             llvm::Value* alloc = getVarAddress(name);
             if (!alloc) {
-                cg_error(get_pos(varAcc), "unknown array: " + name);
+                cg_error(get_pos(varAcc), "unknown array: " + name, "QC-S242");
                 return nullptr;
             }
 
@@ -13927,7 +13881,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 if (!indexVal) return nullptr;
                 auto it = findArrayType(name);
                 if (it == arrayTypeStrings.end()) {
-                    cg_error(get_pos(varAcc), "failed to find array access type");
+                    cg_error(get_pos(varAcc), "failed to find array access type", "QC-T050");
                     return nullptr;
                 }
                 std::string baseType = it->second;
@@ -13954,14 +13908,14 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         llvm::Value* val = emitExpr(arrAcc->base);
         llvm::Type* elemTy;
         if (!val) {
-            cg_error(get_pos(arrAcc->base), "failed to emit base of array access");
+            cg_error(get_pos(arrAcc->base), "failed to emit base of array access", "QC-S243");
             return nullptr;
         }
         if (val->getType()->isArrayTy()) {
             base = emitLValue(arrAcc->base);
             elemTy = llvm::cast<llvm::ArrayType>(val->getType())->getElementType();
             if (!elemTy) {
-                cg_error(get_pos(arrAcc), "cannot determine element type for array access");
+                cg_error(get_pos(arrAcc), "cannot determine element type for array access", "QC-T051");
                 return nullptr;
             }
             llvm::Value* idx = emitExpr(arrAcc->indices[arrAcc->indices.size() - 1]);
@@ -13971,7 +13925,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             base = val;
             elemTy = llvmTypeFor(ptrTy.ends_with("*") ? ptrTy.substr(0, ptrTy.size() - 1) : ptrTy.substr(0, ptrTy.size() - 2));
             if (!elemTy) {
-                cg_error(get_pos(arrAcc), "cannot determine element type for array access");
+                cg_error(get_pos(arrAcc), "cannot determine element type for array access", "QC-T051");
                 return nullptr;
             }
             llvm::Value* idx = emitExpr(arrAcc->indices[arrAcc->indices.size() - 1]);
@@ -14007,7 +13961,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
 
                     return enumVal;
                 } else {
-                    cg_error(get_pos(*varAccess), "enum " + baseName + " has no member " + propName);
+                    cg_error(get_pos(*varAccess), "enum " + baseName + " has no member " + propName, "QC-S244");
                     std::vector<std::pair<int, std::string>> suggestions;
                     for (auto& entry : userTypes[resolved].enumEntries) {
                         int distance = levenshteinDistance(propName, entry.memberName);
@@ -14025,7 +13979,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         }
 
         if (isEnum) {
-            cg_error(get_pos(*propAccess), "enum member not found");
+            cg_error(get_pos(*propAccess), "enum member not found", "QC-S245");
             return nullptr;
         }
         if (propName == "length") {
@@ -14062,7 +14016,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
 
                             if (fieldIdx == -1) {
-                                cg_error(get_pos(*varAccess), "struct " + structName + " has no field " + propName);
+                                cg_error(get_pos(*varAccess), "struct " + structName + " has no field " + propName, "QC-S246");
                                 if (propName.length() > 3) {
                                     std::vector<std::pair<int, std::string>> suggestions;
                                     for (auto& field : userTypes[baseTypeName(structName)].fields) {
@@ -14101,7 +14055,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
 
                 if (fieldIdx == -1) {
-                    cg_error(get_pos(*propAccess), "struct " + structName + " has no field " + propName);
+                    cg_error(get_pos(*propAccess), "struct " + structName + " has no field " + propName, "QC-S246");
                     if (propName.length() > 3) {
                         std::vector<std::pair<int, std::string>> suggestions;
                         for (auto& field : userTypes[baseTypeName(structName)].fields) {
@@ -14127,7 +14081,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 int fieldIdx = getFlattenedFieldIndex(baseTypeName(className), propName);
 
                 if (fieldIdx == -1) {
-                    cg_error(get_pos(*propAccess), "field " + propName + " not found in class " + baseTypeName(className));
+                    cg_error(get_pos(*propAccess), "field " + propName + " not found in class " + baseTypeName(className), "QC-S247");
                     if (propName.length() > 3) {
                         std::vector<std::pair<int, std::string>> suggestions;
                         for (auto& field : userTypes[baseTypeName(className)].classFields) {
@@ -14145,7 +14099,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(className), propName);
                 if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                    cg_error(get_pos(*propAccess), "cannot access " + fieldAccess + " field " + propName);
+                    cg_error(get_pos(*propAccess), "cannot access " + fieldAccess + " field " + propName, "QC-S248");
                     return nullptr;
                 }
 
@@ -14212,7 +14166,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             if (genericClasses[resolvedVariant]) {
                                 classTy = generateGenericClass(resolvedVariant, userTypes.find(resolvedVariant)->second, genericParams);
                                 if (classTy == nullptr) {
-                                    cg_error(get_pos(*propAccess), "failed to create specialized version of class " + resolvedVariant);
+                                    cg_error(get_pos(*propAccess), "failed to create specialized version of class " + resolvedVariant, "QC-S249");
                                     return nullptr;
                                 }
                             } else {
@@ -14253,7 +14207,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
             }
         }
-        cg_error((*propAccess)->property_name.pos, "unknown property: " + propName);
+        cg_error((*propAccess)->property_name.pos, "unknown property: " + propName, "QC-S250");
         return nullptr;
     } else if (auto methodCall = std::get_if<MethodCallNode*>(&node)) {
         auto* call = methodCall;
@@ -14304,7 +14258,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                 }
                             }
                             if (!info) {
-                                cg_error((*call)->method_name.pos, "no overload found");
+                                cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                                 struct Candidate {
                                     int score;
                                     ClassMethodInfo* method;
@@ -14427,7 +14381,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                         }
                         if (!info) {
-                            cg_error((*call)->method_name.pos, "no overload found");
+                            cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                             struct Candidate {
                                 int score;
                                 ClassMethodInfo* method;
@@ -14508,7 +14462,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 structType = generateGenericClass(baseTypeName(ownerClass), userTypes.find(baseTypeName(ownerClass))->second,
                                                   genericParamsFromName(ownerClass));
                 if (structType == nullptr) {
-                    cg_error(get_pos(*call), "failed to create specialized version of class " + baseTypeName(ownerClass));
+                    cg_error(get_pos(*call), "failed to create specialized version of class " + baseTypeName(ownerClass), "QC-S249");
                     return nullptr;
                 }
             } else {
@@ -14524,7 +14478,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                     break;
                 }
             }
-            if (!found) { return (cg_error((*call)->method_name.pos, "field not found"), nullptr); }
+            if (!found) { return (cg_error((*call)->method_name.pos, "field not found", "QC-S251"), nullptr); }
             llvm::Value* fieldAddr = builder->CreateStructGEP(structType, baseAddr, fieldIndex);
             thisPtr = fieldAddr;
             AnyNode temp = AnyNode(propAcc);
@@ -14532,7 +14486,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         } else {
             llvm::Value* baseVal = emitExpr((*call)->base);
             if (!baseVal) {
-                cg_error(get_pos(*call), "Failed to emit base of callnode");
+                cg_error(get_pos(*call), "Failed to emit base of callnode", "QC-S252");
                 return nullptr;
             }
             llvm::Type* baseTy = baseVal->getType();
@@ -14570,7 +14524,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             }
                         }
                         if (!info) {
-                            cg_error((*call)->method_name.pos, "no overload found");
+                            cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                             struct Candidate {
                                 int score;
                                 ClassMethodInfo* method;
@@ -14654,7 +14608,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 builder->CreateStore(baseVal, thisPtr);
             }
         }
-        if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target"), nullptr);
+        if (targetClass.empty()) return (cg_error((*call)->method_name.pos, "cannot resolve target", "QC-S253"), nullptr);
         if (userTypes.count(targetClass) && userTypes.at(targetClass).kind != UserTypeKind::Class || !userTypes.count(targetClass)) {
             std::string funcName = targetClass + "_" + methodName;
             auto funcDefIt = functionDefs.find(baseTypeName(funcName));
@@ -14686,19 +14640,19 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                             AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
                             llvm::Value* defVal = emitExpr(defaultRef);
                             if (!defVal) {
-                                cg_error(get_pos(*call), "failed to evaluate default parameter");      
+                                cg_error(get_pos(*call), "failed to evaluate default parameter", "QC-S168");      
                                 return nullptr;
                             }
                             argValues.push_back(defVal);
                         } else {
-                            cg_error(get_pos(*call), "missing required argument at position " + std::to_string(paramNo));
+                            cg_error(get_pos(*call), "missing required argument at position " + std::to_string(paramNo), "QC-S169");
                             return nullptr;
                         }
                     }
                     paramNo++;
                 }
                 if (hasSpread) {
-                    cg_error(get_pos(*call), "spread is no longer allowed in function calls.");
+                    cg_error(get_pos(*call), "spread is no longer allowed in function calls.", "QC-S170");
                     return nullptr;
                 }
                 if (!funcDef->generics.empty()) {
@@ -14726,7 +14680,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                 }
                 llvm::Function* fn = module->getFunction(funcName);
                 if (!fn) {
-                    cg_error((*call)->method_name.pos, "method '" + methodName + "' not found on type '" + targetClass + "'");
+                    cg_error((*call)->method_name.pos, "method '" + methodName + "' not found on type '" + targetClass + "'", "QC-T052");
                     return nullptr;
                 }
                 if (insideTry()) {
@@ -14813,7 +14767,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         std::string dispatchClass = targetClass;
         targetClass = resolveVirtualTargetClass(targetClass, methodName, (*call)->args.size());
         llvm::Function* method = findMethodOverload(targetClass, methodName, args);
-        if (!method) return (cg_error((*call)->method_name.pos, "no overload found"), nullptr);
+        if (!method) return (cg_error((*call)->method_name.pos, "no overload found", "QC-O003"), nullptr);
         auto vtableIt = vtables.find(targetClass);
         auto slotIt = vtableSlotIndex.find(targetClass);
         if (vtableIt != vtables.end() && slotIt != vtableSlotIndex.end()) {
@@ -14844,7 +14798,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
         return emitMethodCall(method, thisPtr, args, methodName);
     } else if (auto spread = std::get_if<SpreadNode*>(&node)) {
         cg_error(get_pos(*spread), "spread operator can only be used in array "
-                                   "literals");
+                                   "literals", "QC-S254");
         return nullptr;
     } else if (auto fieldAssign = std::get_if<FieldAssignNode*>(&node)) {
         std::string fieldName = (*fieldAssign)->field_name.value;
@@ -14861,13 +14815,13 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
                 int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), fieldName);
                 if (fieldIdx == -1) {
-                    cg_error(get_pos(*varAccess), "field not found: " + fieldName);
+                    cg_error(get_pos(*varAccess), "field not found: " + fieldName, "QC-S255");
                     return nullptr;
                 }
 
                 auto [fieldOwnerClass, fieldAccess] = getFieldOwner(currentClassName, fieldName);
                 if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                    cg_error(get_pos(*varAccess), "cannot access " + fieldAccess + " field");
+                    cg_error(get_pos(*varAccess), "cannot access " + fieldAccess + " field", "QC-S256");
                     return nullptr;
                 }
                 llvm::StructType* classTy = genericiseOrFindClass(currentClassName);
@@ -14899,7 +14853,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
             builder->CreateStore(value, refStore);
             locals[fullName] = refStore;
         } else {
-            cg_error(get_pos(ref), "Failed to emit RHS for reference decl");
+            cg_error(get_pos(ref), "Failed to emit RHS for reference decl", "QC-S257");
             return nullptr;
         }
         return nullptr;
@@ -15061,7 +15015,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr, Posi
                 if (currentThis) {
                     return currentThis;
                 } else {
-                    cg_error((*varAccess)->var_name_tok.pos, "'this' used outside of class method");
+                    cg_error((*varAccess)->var_name_tok.pos, "'this' used outside of class method", "QC-S258");
                     return nullptr;
                 }
             }
@@ -15088,7 +15042,7 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr, Posi
     else if (ty->isIntegerTy(8))
         fnName = "qc_to_string_char";
     else {
-        cg_error(pos, "cannot convert type to string");
+        cg_error(pos, "cannot convert type to string", "QC-T053");
         return nullptr;
     }
 
@@ -15124,7 +15078,7 @@ void LLVMCompiler::expandSpreadIntoVector(llvm::Value* collVal, AnyNode& collExp
             elements.push_back(elemVal);
         }
     } else {
-        cg_error(get_pos(collExpr), "cannot spread runtime-sized collection into array literal");
+        cg_error(get_pos(collExpr), "cannot spread runtime-sized collection into array literal", "QC-S259");
     }
 }
 llvm::Value* LLVMCompiler::expandSpreadIntoArrays(llvm::Value* collVal, AnyNode& collExpr, llvm::AllocaInst* argsArray, llvm::AllocaInst* typesArray,
@@ -15204,7 +15158,7 @@ llvm::Value* LLVMCompiler::getCollectionLength(llvm::Value* collVal, AnyNode& co
     }
 
     if (auto arrLit = std::get_if<ArrayLiteralNode*>(&collExpr)) { return builder->getInt32((*arrLit)->elements.size()); }
-    cg_error(get_pos(collExpr), "cannot determine collection length for spread");
+    cg_error(get_pos(collExpr), "cannot determine collection length for spread", "QC-S260");
     return nullptr;
 }
 llvm::Value* LLVMCompiler::copySpreadToArray(llvm::Value* collVal, AnyNode& collExpr, llvm::Value* destArray, llvm::Value* startIndex,
@@ -15275,7 +15229,7 @@ llvm::Value* LLVMCompiler::createRuntimeSizedArray(std::vector<AnyNode>& element
     }
 
     if (!elemTy) {
-        cg_error(Position(), "cannot determine element type for runtime array");
+        cg_error(Position(), "cannot determine element type for runtime array", "QC-T054");
         return nullptr;
     }
     llvm::Function* mallocFn = module->getFunction("qc_malloc");
@@ -15345,7 +15299,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
         for (int i = (int)fn.modifiers.size() - 1; i >= 0; --i) {
             Token modTok = fn.modifiers[i];
             if (!modifiers.count(modTok.value)) {
-                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'", "QC-S112");
                 return nullptr;
             }
             ModifierInfo& modInfo = modifiers[modTok.value];
@@ -15411,9 +15365,9 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
     auto* func = module->getFunction(name);
     functionSignatures[name] = {fTy, {}};
     if (func) {
-        if (func->getFunctionType() != fTy) { cg_warn(fn.getPos(), "conflicting declaration for function " + name); }
+        if (func->getFunctionType() != fTy) { cg_warn(fn.getPos(), "conflicting declaration for function " + name, "W002"); }
         if (fn.is_foreign || fn.is_header) return func;
-        if (!func->empty()) { cg_warn(fn.getPos(), "redefinition of function " + name); }
+        if (!func->empty()) { cg_warn(fn.getPos(), "redefinition of function " + name, "W003"); }
         func->setLinkage(linkage);
     } else {
         func = llvm::Function::Create(fTy, linkage, name, module);
@@ -15468,8 +15422,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                     pos = t.find("[]", pos + 2);
                 }
                 if (dims > 0 && name != entrypointName) {
-                    cg_warn(param.type.pos,
-                            "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                    cg_warn(param.type.pos, "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
                                 size_t pos = 0;
                                 while ((pos = str.find("[]", pos)) != std::string::npos) {
                                     str.replace(pos, 2, "*");
@@ -15478,7 +15431,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                                 return str;
                             }(t)) +
                                 ". Please consider changing the type of this parameter to that type instead, and if you need the length "
-                                "property (which won't exist on pointers), add an additional length parameter.");
+                                "property (which won't exist on pointers), add an additional length parameter.", "W004");
                 }
                 if (dims > 1) {
                     std::string base = t.substr(0, t.find("[]"));
@@ -15551,13 +15504,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         return;
     }
     if (builder->GetInsertBlock()->getTerminator()) {
-        cg_error(get_pos(node), "internal error: attempted to emit into terminated basic block");
+        cg_error(get_pos(node), "internal error: attempted to emit into terminated basic block", "QC-S261");
         return;
     }
     if (auto mret = safe_get<MultiReturnNode>(node)) {
         llvm::Type* retTy = currentFunction->getReturnType();
         if (!retTy->isStructTy()) {
-            cg_error(mret->pos, "multi-return in non-multi-return function");
+            cg_error(mret->pos, "multi-return in non-multi-return function", "QC-S262");
             return;
         }
         emitDefersDownTo(0);
@@ -15652,7 +15605,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (isUnionType(destTy, &unionName)) {
                     int tag = findUnionVariantTag(unionName, mret->values[i], val);
                     if (tag == -1) {
-                        cg_error(mret->pos, "return value doesn't match union variant");
+                        cg_error(mret->pos, "return value doesn't match union variant", "QC-S263");
                         return;
                     }
 
@@ -15680,7 +15633,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (!isEnumType(srcTy) && isEnumType(destTy)) {
                     int tag = findEnumVariantTag(enumName, mret->values[i], val);
                     if (tag == -1) {
-                        cg_error(mret->pos, "return value doesn't match enum variant");
+                        cg_error(mret->pos, "return value doesn't match enum variant", "QC-S264");
                         return;
                     }
 
@@ -15766,7 +15719,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (currentFunction->getReturnType()->isVoidTy()) {
                 builder->CreateRetVoid();
             } else {
-                cg_error((*ret)->pos, "return without value in non-void function");
+                cg_error((*ret)->pos, "return without value in non-void function", "QC-S265");
             }
             return;
         }
@@ -15807,7 +15760,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!isUnionType(srcTy) && destTy == unionTy) {
                 int tag = findUnionVariantTag(unionName, (*ret)->value, v);
                 if (tag == -1) {
-                    cg_error((*ret)->pos, "return value doesn't match union variant");
+                    cg_error((*ret)->pos, "return value doesn't match union variant", "QC-S263");
                     return;
                 }
 
@@ -15835,7 +15788,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!isEnumType(srcTy) && destTy == enumTy) {
                 int tag = findEnumVariantTag(enumName, (*ret)->value, v);
                 if (tag == -1) {
-                    cg_error((*ret)->pos, "return value doesn't match enum variant");
+                    cg_error((*ret)->pos, "return value doesn't match enum variant", "QC-S264");
                     return;
                 }
 
@@ -15854,13 +15807,13 @@ void LLVMCompiler::emitStmt(AnyNode node) {
     } else if (auto mv = safe_get<MultiVarDeclNode>(node)) {
         llvm::Value* callVal = emitExpr(mv->value);
         if (!callVal) {
-            cg_error(mv->var_names[0].pos, "failed to compile multi-var initializer");
+            cg_error(mv->var_names[0].pos, "failed to compile multi-var initializer", "QC-S266");
             return;
         }
 
         llvm::Type* retTy = callVal->getType();
         if (!retTy->isStructTy() || retTy->getStructNumElements() != mv->var_names.size()) {
-            cg_error(mv->var_names[0].pos, "multi-return arity/type mismatch");
+            cg_error(mv->var_names[0].pos, "multi-return arity/type mismatch", "QC-T055");
             return;
         }
 
@@ -15918,7 +15871,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (if_node->is_comptime) {
             comptimeValue = llvm::dyn_cast<llvm::ConstantInt>(cond);
             if (!comptimeValue) {
-                cg_error(get_pos(if_node->condition), "comptime if condition must be evaluatable at compile time.");
+                cg_error(get_pos(if_node->condition), "comptime if condition must be evaluatable at compile time.", "QC-S267");
                 return;
             }
             llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
@@ -15931,8 +15884,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     llvm::Value* elifCond = emitExpr(if_node->elif_branches[i].first);
                     comptimeValue = llvm::dyn_cast<llvm::ConstantInt>(elifCond);
                     if (!comptimeValue) {
-                        cg_error(get_pos(if_node->elif_branches[i].first),
-                                 "all conditions including else ifs in a comptime if must be evaluatable at compile time.");
+                        cg_error(get_pos(if_node->elif_branches[i].first), "all conditions including else ifs in a comptime if must be evaluatable at compile time.", "QC-S268");
                         return;
                     }
                     if (comptimeValue->getZExtValue() != 0) {
@@ -16072,14 +16024,14 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             if (!loopStack.empty()) emitDefersDownTo(loopStack.back());
             builder->CreateBr(currentBreakBB);
         } else {
-            cg_error(get_pos(node), "break outside of loop/switch");
+            cg_error(get_pos(node), "break outside of loop/switch", "QC-S269");
         }
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
             if (!loopStack.empty()) emitDefersDownTo(loopStack.back());
             builder->CreateBr(currentContinueBB);
         } else {
-            cg_error(get_pos(node), "continue outside of loop");
+            cg_error(get_pos(node), "continue outside of loop", "QC-S270");
         }
     } else if (auto for_node = safe_get<ForNode>(node)) {
         size_t outerDepth = defersStack.size();
@@ -16335,7 +16287,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         enterScope();
         llvm::Value* qb_val = emitExpr(qsw->value);
         if (!qb_val) {
-            cg_error(get_pos(qsw), "failed to compile qswitch value");
+            cg_error(get_pos(qsw), "failed to compile qswitch value", "QC-S271");
             return;
         }
         for (auto& [enumName, enumTy] : enumTypes) {
@@ -16350,7 +16302,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
         qb_val = normalizeValue(qb_val, qsw->value);
         if (qb_val->getType() != builder->getIntNTy(2)) {
-            cg_error(get_pos(qsw), "qswitch requires qbool type");
+            cg_error(get_pos(qsw), "qswitch requires qbool type", "QC-T056");
             return;
         }
         llvm::BasicBlock* check_true = llvm::BasicBlock::Create(context, "qsw.check_true", currentFunction);
@@ -16434,7 +16386,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         }
         llvm::Type* elemTy = llvmTypeFor(elemType);
         if (!elemTy) {
-            cg_error(arrDecl->type_tok.pos, "unknown array element type: " + elemType);
+            cg_error(arrDecl->type_tok.pos, "unknown array element type: " + elemType, "QC-T057");
             return;
         }
         arrayTypeStrings[name] = elemType;
@@ -16454,7 +16406,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* lengthValue = emitExpr((*arrLit)->length);
                 auto* lengthConstant = llvm::dyn_cast<llvm::ConstantInt>(lengthValue);
                 if (!lengthConstant) {
-                    cg_error(get_pos(*arrLit), "array length must be constant");
+                    cg_error(get_pos(*arrLit), "array length must be constant", "QC-S272");
                     return;
                 }
                 uint64_t length = lengthConstant->getZExtValue();
@@ -16634,22 +16586,22 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             std::string ptrTy = getExpressionType(arrAcc->base);
             if (ptrTy.ends_with("*") || ptrTy == "@nullptr") {
                 if (ptrTy == "@nullptr") {
-                    cg_error(get_pos(arrAcc), "attempted to dereference nullptr");
+                    cg_error(get_pos(arrAcc), "attempted to dereference nullptr", "QC-S238");
                     return;
                 }
                 if (ptrTy == "void*") {
-                    cg_error(get_pos(arrAcc), "you cannot dereference or indice void*");
+                    cg_error(get_pos(arrAcc), "you cannot dereference or indice void*", "QC-S273");
                     return;
                 }
                 std::string valueTy = getExpressionType(arrAcc->indices[0]);
                 if (valueTy != "int") {
                     cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a "
-                                                          "non-integer value.");
+                                                          "non-integer value.", "QC-S239");
                     return;
                 }
                 llvm::Value* value = emitExpr(arrAcc->indices[0]);
                 if (!value) {
-                    cg_error(get_pos(arrAcc->indices[0]), "failed to emit index for pointer index.");
+                    cg_error(get_pos(arrAcc->indices[0]), "failed to emit index for pointer index.", "QC-S274");
                     return;
                 }
                 ptrTy.pop_back();
@@ -16662,7 +16614,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* idx = emitExpr(arrAcc->indices[0]);
                 llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
                 if (!ref) {
-                    cg_error(get_pos(arrAcc->base), ptrTy + " does not have operator[]");
+                    cg_error(get_pos(arrAcc->base), ptrTy + " does not have operator[]", "QC-S240");
                     return;
                 }
                 llvm::Value* val = emitExpr(arrAssign->value);
@@ -16674,7 +16626,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 if (hasJaggedArray(name)) {
                     auto jagIt = findJaggedArray(name);
                     if (!hasLocal(name)) {
-                        cg_error(get_pos(varAcc), "unknown jagged array: " + name);
+                        cg_error(get_pos(varAcc), "unknown jagged array: " + name, "QC-S241");
                         return;
                     }
                     auto it = findLocal(name);
@@ -16727,7 +16679,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 }
                 llvm::Value* alloc = getVarAddress(name);
                 if (!alloc) {
-                    cg_error(get_pos(arrAcc->base), "unknown array: " + name);
+                    cg_error(get_pos(arrAcc->base), "unknown array: " + name, "QC-S242");
                     return;
                 }
 
@@ -17299,7 +17251,7 @@ std::vector<CTError> LLVMCompiler::compile(
                                 builder->CreateCall(parentCtor, allArgs);
                             }
                         } else {
-                            cg_error(get_pos(method.parentConstructorCall), "parent class '" + info.baseClassName + "' has no matching constructor");
+                            cg_error(get_pos(method.parentConstructorCall), "parent class '" + info.baseClassName + "' has no matching constructor", "QC-S275");
                             addConstructorNotes(info.baseClassName, parentArgs, get_pos(method.parentConstructorCall));
                         }
                     }
@@ -17318,7 +17270,7 @@ std::vector<CTError> LLVMCompiler::compile(
                 for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
                     Token modTok = method.modifiers[i];
                     if (!modifiers.count(modTok.value)) {
-                        cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                        cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'", "QC-S112");
                         continue;
                     }
                     ModifierInfo& modInfo = modifiers[modTok.value];
@@ -17420,7 +17372,7 @@ std::vector<CTError> LLVMCompiler::compile(
                 llvm::Value* result = builder->CreateCall(userEntry, user_entry_args, "entry_result");
                 builder->CreateRet(result);
             } else {
-                cg_error(Position("", "", 0, 0, 0), "entrypoint function '" + entrypointName + "' not defined");
+                cg_error(Position("", "", 0, 0, 0), "entrypoint function '" + entrypointName + "' not defined", "QC-S276");
             }
         }
     }

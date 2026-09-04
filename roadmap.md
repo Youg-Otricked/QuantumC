@@ -32,6 +32,10 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - cpp contracts
 - has_method, has_field, at
 - rule usertypes so userdefined const equiveleants and stuff
+- conversion operators (operator int, .... I already have _eval (to bool) and _repr (to string))
+- operator co_await once i add co_await
+- operator cast
+
 TOP PRIORITY:
 1. Generics in header
 2. Tuples + Destruturing

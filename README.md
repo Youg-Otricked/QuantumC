@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.4 = "New Loops"
+Current Version: x1.0.41 = "New Loops"
 Next Version: x1.0.5 = "Generics In Headers"
 
 # Current Version Highlights

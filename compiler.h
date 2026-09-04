@@ -1140,7 +1140,7 @@ class Parser {
         return parseTypeString();
     }
     Token consume_qualified_name() {
-        if (current_tok.type != TokenType::IDENTIFIER) { throw InvalidSyntaxError("Expected identifier", current_tok.pos); }
+        if (current_tok.type != TokenType::IDENTIFIER) { throw InvalidSyntaxError("QC-S279: Expected identifier", current_tok.pos); }
 
         Position start_pos = current_tok.pos;
         std::string qualified = current_tok.value;
@@ -1148,7 +1148,7 @@ class Parser {
         while (current_tok.type == TokenType::SCOPE) {
             this->advance();
 
-            if (current_tok.type != TokenType::IDENTIFIER) { throw InvalidSyntaxError("Expected identifier after '::'", current_tok.pos); }
+            if (current_tok.type != TokenType::IDENTIFIER) { throw InvalidSyntaxError("QC-S280: Expected identifier after '::'", current_tok.pos); }
 
             qualified += "::" + current_tok.value;
             this->advance();
@@ -1316,7 +1316,7 @@ class Parser {
             type += "fn";
             this->advance();
             if (this->current_tok.type != TokenType::LPAREN) {
-                throw InvalidSyntaxError("`fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
+                throw InvalidSyntaxError("QC-T058: `fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
             }
             this->advance();
             type += "(";
@@ -1326,12 +1326,12 @@ class Parser {
                 type += ", " + parseTypeString();
             }
             if (this->current_tok.type != TokenType::RPAREN) {
-                throw InvalidSyntaxError("`fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
+                throw InvalidSyntaxError("QC-T058: `fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
             }
             this->advance();
             type += ")";
             if (this->current_tok.type != TokenType::ARROW) {
-                throw InvalidSyntaxError("`fn` must have a `->` before the return type.", this->current_tok.pos);
+                throw InvalidSyntaxError("QC-T059: `fn` must have a `->` before the return type.", this->current_tok.pos);
             }
             type += " -> ";
             this->advance();
@@ -1418,7 +1418,7 @@ class Parser {
                 stmts.push_back(any_stmt);
             }
             if (this->current_tok.type != TokenType::RBRACE) {
-                res.failure(new InvalidSyntaxError("Expected '}' after block", this->current_tok.pos));
+                res.failure(new InvalidSyntaxError("QC-S281: Expected '}' after block", this->current_tok.pos));
                 return false;
             }
             this->advance();
@@ -1949,7 +1949,7 @@ class LLVMCompiler {
                                         llvm::Value* startIndex);
     template <typename MapType> auto findInStack(std::vector<MapType>& stack, const std::string& key) {
         if (stack.empty()) {
-            cg_error(Position("", "", 0, 0, 0), "Stack is empty");
+            cg_error(Position("", "", 0, 0, 0), "Stack is empty", "QC-S282");
             return stack.back().end();
         }
         for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
@@ -2165,7 +2165,7 @@ class LLVMCompiler {
                 if (funcName == "`typeof") { return "string"; }
                 if (funcName == "`ternary") {
                     if ((*callNode)->arg_nodes.size() < 3) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `ternary");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `ternary", "QC-S283");
                         cg_note((*varAcc)->var_name_tok.pos, "`ternary expects 3 arguments: condition, true_value, false_value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2174,7 +2174,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`next") {
                     if ((*callNode)->arg_nodes.size() < 2) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `next");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `next", "QC-S284");
                         cg_note((*varAcc)->var_name_tok.pos, "`next expects 2 arguments");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2185,14 +2185,14 @@ class LLVMCompiler {
                     } else if (auto ty = std::get_if<TypeValueNode>(&node)) {
                         return resolveTypeName(substituteGenerics(ty->tok.value), false);
                     } else {
-                        cg_error((*varAcc)->var_name_tok.pos, "arg 2 to `next is a comptime string");
+                        cg_error((*varAcc)->var_name_tok.pos, "arg 2 to `next is a comptime string", "QC-S285");
                         cg_note((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
                         return "unknown";
                     }
                 }
                 if (funcName == "`extract") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `extract");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `extract", "QC-S286");
                         cg_note((*varAcc)->var_name_tok.pos, "`extract expects 1 arguments");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2208,7 +2208,7 @@ class LLVMCompiler {
                 if (funcName == "`lseek") return "long int";
                 if (funcName == "`cast") {
                     if ((*callNode)->arg_nodes.size() < 2) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `cast");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `cast", "QC-S287");
                         cg_note((*varAcc)->var_name_tok.pos, "`cast expects 2 arguments");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2221,7 +2221,7 @@ class LLVMCompiler {
                 if (funcName == "`double_bits") return "double";
                 if (funcName == "`atomic_load") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_load");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_load", "QC-S288");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_load expects 1 argument: atomic variable");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2232,7 +2232,7 @@ class LLVMCompiler {
                 if (funcName == "`atomic_store") { return "void"; }
                 if (funcName == "`atomic_exchange") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_exchange");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_exchange", "QC-S289");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_exchange expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2242,7 +2242,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_add") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_add");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_add", "QC-S290");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_add expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2252,7 +2252,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_sub") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_sub");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_sub", "QC-S291");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_sub expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2262,7 +2262,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_and") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_and");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_and", "QC-S292");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_and expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2272,7 +2272,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_or") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_or");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_or", "QC-S293");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_or expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2282,7 +2282,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_xor") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_xor");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_xor", "QC-S294");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_xor expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2292,7 +2292,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_nand") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_nand");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_nand", "QC-S295");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_nand expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2302,7 +2302,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_min") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_min");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_min", "QC-S296");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_min expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2312,7 +2312,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_max") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_max");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_max", "QC-S297");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_max expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2322,7 +2322,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_umin") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umin");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umin", "QC-S298");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_umin expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2332,7 +2332,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_umax") {
                     if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umax");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_umax", "QC-S299");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_umax expects 2 arguments: atomic variable, value");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2342,7 +2342,7 @@ class LLVMCompiler {
                 }
                 if (funcName == "`atomic_cmpxchg") {
                     if ((*callNode)->arg_nodes.size() < 3) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_cmpxchg");
+                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `atomic_cmpxchg", "QC-S300");
                         cg_note((*varAcc)->var_name_tok.pos, "`atomic_cmpxchg expects 3 arguments: atomic variable, expected, desired");
                         cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
                         return "unknown";
@@ -2442,12 +2442,12 @@ class LLVMCompiler {
         for (int i = (int)node->modifiers.size() - 1; i >= 0; --i) {
             Token modTok = node->modifiers[i];
             if (!modifiers.count(modTok.value)) {
-                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'", "QC-S112");
                 return nullptr;
             }
             ModifierInfo& modInfo = modifiers[modTok.value];
             if (!modInfo.onUse) {
-                cg_error(modTok.pos, "modifier '" + modTok.value + "' has no 'on_use' handler");
+                cg_error(modTok.pos, "modifier '" + modTok.value + "' has no 'on_use' handler", "QC-S301");
                 return nullptr;
             }
             static unsigned onUseId = 0;
@@ -2523,7 +2523,7 @@ class LLVMCompiler {
             llvm::StructType* classTy = genericiseOrFindClass(typeName);
             int fieldIdx = getFlattenedFieldIndex(baseTypeName(typeName), propName);
             if (fieldIdx == -1) {
-                cg_error(prop.property_name.pos, "field " + propName + " not found in class " + typeName);
+                cg_error(prop.property_name.pos, "field " + propName + " not found in class " + typeName, "QC-S247");
                 if (propName.length() > 3) {
                     std::vector<std::pair<int, std::string>> suggestions;
                     for (auto& field : userTypes[baseTypeName(typeName)].classFields) {
@@ -2541,7 +2541,7 @@ class LLVMCompiler {
             }
             auto [fieldOwnerClass, fieldAccess] = getFieldOwner(baseTypeName(typeName), propName);
             if (!canAccessField(currentClassName, fieldOwnerClass, fieldAccess)) {
-                cg_error(prop.property_name.pos, "cannot access " + fieldAccess + " field " + propName);
+                cg_error(prop.property_name.pos, "cannot access " + fieldAccess + " field " + propName, "QC-S248");
                 return nullptr;
             }
             return builder->CreateStructGEP(classTy, baseAddr, fieldIdx, propName + "_ptr");
@@ -2557,7 +2557,7 @@ class LLVMCompiler {
                 }
             }
             if (fieldIdx == -1) {
-                cg_error(prop.property_name.pos, "field " + propName + " not found in struct " + typeName);
+                cg_error(prop.property_name.pos, "field " + propName + " not found in struct " + typeName, "QC-S302");
                 if (propName.length() > 3) {
                     std::vector<std::pair<int, std::string>> suggestions;
                     for (auto& field : userTypes[baseTypeName(typeName)].fields) {
@@ -2604,7 +2604,7 @@ class LLVMCompiler {
                 }
             }
         }
-        cg_error(prop.property_name.pos, "cannot resolve address for property '" + propName + "' on type '" + typeName + "'");
+        cg_error(prop.property_name.pos, "cannot resolve address for property '" + propName + "' on type '" + typeName + "'", "QC-T060");
         return nullptr;
     }
     llvm::StructType* getOrCreateStructType(std::vector<llvm::Type*> fields, const std::string& name) {
@@ -2624,7 +2624,7 @@ class LLVMCompiler {
                 if (currentThis) {
                     return currentThis;
                 } else {
-                    cg_error((*var)->var_name_tok.pos, "'this' used outside class method");
+                    cg_error((*var)->var_name_tok.pos, "'this' used outside class method", "QC-S150");
                     return nullptr;
                 }
             }
@@ -2656,7 +2656,7 @@ class LLVMCompiler {
                 std::string elementName = ptrTy.substr(0, ptrTy.size() - 2);
                 llvm::Type* elementTy = llvmTypeFor(elementName);
                 if (!elementTy) {
-                    cg_error(get_pos((*arrAcc)->base), "invalid array element type: " + elementName);
+                    cg_error(get_pos((*arrAcc)->base), "invalid array element type: " + elementName, "QC-T061");
                     return nullptr;
                 }
                 llvm::Value* dataPtr = builder->CreateLoad(builder->getPtrTy(), slot, "array_data");
@@ -2668,7 +2668,7 @@ class LLVMCompiler {
                 if (!base) { return nullptr; }
                 llvm::Type* arrayTy = llvmTypeFor(ptrTy);
                 if (!arrayTy->isArrayTy()) {
-                    cg_error(get_pos((*arrAcc)->base), "invalid array type for indexing");
+                    cg_error(get_pos((*arrAcc)->base), "invalid array type for indexing", "QC-T062");
                     return nullptr;
                 }
                 return builder->CreateGEP(arrayTy, base, {builder->getInt32(0), index}, "lval_arr_addr");
@@ -2806,7 +2806,7 @@ class LLVMCompiler {
         }
 
         if (fnName.empty() || !retTy) {
-            cg_error(pos, "Cannot convert to " + target);
+            cg_error(pos, "Cannot convert to " + target, "QC-S303");
             return nullptr;
         }
 
@@ -2861,7 +2861,7 @@ class LLVMCompiler {
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
-                cg_error(pos, "Unknown conversion target: " + target);
+                cg_error(pos, "Unknown conversion target: " + target, "QC-S304");
                 return nullptr;
             }
 
@@ -2929,7 +2929,7 @@ class LLVMCompiler {
             else if (target == "qbool")
                 resultTy = builder->getIntNTy(2);
             else {
-                cg_error(pos, "Unknown conversion target: " + target);
+                cg_error(pos, "Unknown conversion target: " + target, "QC-S304");
                 return nullptr;
             }
 
@@ -2991,7 +2991,7 @@ class LLVMCompiler {
             if (!isUnionType(srcTy) && paramTy == unionTy) {
                 int tag = findUnionVariantTag(unionName, argNode, v);
                 if (tag == -1) {
-                    cg_error(get_pos(argNode), "argument doesn't match union variant for " + unionName + " parameter " + std::to_string(argIndex));
+                    cg_error(get_pos(argNode), "argument doesn't match union variant for " + unionName + " parameter " + std::to_string(argIndex), "QC-S305");
                     return nullptr;
                 }
 
@@ -3023,7 +3023,7 @@ class LLVMCompiler {
             if (!isEnumType(srcTy) && paramTy == enumTy) {
                 int tag = findEnumVariantTag(enumName, argNode, v);
                 if (tag == -1) {
-                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex));
+                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex), "QC-S306");
                     return nullptr;
                 }
 
@@ -3068,14 +3068,14 @@ class LLVMCompiler {
             if (i < paramTypeStrings.size() && paramTypeStrings[i].ends_with("&")) {
                 v = emitLValue(argNode);
                 if (!v) {
-                    cg_error(get_pos(argNode), "L-value required for reference parameter");
+                    cg_error(get_pos(argNode), "L-value required for reference parameter", "QC-S307");
                     return {};
                 }
             } else {
                 v = emitExpr(argNode);
             }
             if (!v) {
-                cg_error(get_pos(argNode), "Failed to emit argument");
+                cg_error(get_pos(argNode), "Failed to emit argument", "QC-S308");
                 return {};
             }
             if (i < fnTy->getNumParams()) {
@@ -3417,7 +3417,7 @@ class LLVMCompiler {
                 value = emitExpr(argNodes[i]);
             }
             if (!value) {
-                cg_error(get_pos(argNodes[i]), "failed to emit method argument");
+                cg_error(get_pos(argNodes[i]), "failed to emit method argument", "QC-S309");
                 return {};
             }
             if (paramTy) {
@@ -3737,7 +3737,7 @@ class LLVMCompiler {
             for (int i = (int)method.modifiers.size() - 1; i >= 0; --i) {
                 Token modTok = method.modifiers[i];
                 if (!modifiers.count(modTok.value)) {
-                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'");
+                    cg_error(modTok.pos, "unknown modifier '" + modTok.value + "'", "QC-S112");
                     continue;
                 }
                 ModifierInfo& modInfo = modifiers[modTok.value];
@@ -3905,8 +3905,7 @@ class LLVMCompiler {
                         pos = t.find("[]", pos + 2);
                     }
                     if (dims > 0) {
-                        cg_warn(get_pos(funcDef),
-                                "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                        cg_warn(get_pos(funcDef), "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
                                     size_t pos = 0;
                                     while ((pos = str.find("[]", pos)) != std::string::npos) {
                                         str.replace(pos, 2, "*");
@@ -3915,7 +3914,7 @@ class LLVMCompiler {
                                     return str;
                                 }(t)) +
                                     ". Please consider changing the type of this parameter to that type instead, and if you need the length "
-                                    "property (which won't exist on pointers), add an additional length parameter.");
+                                    "property (which won't exist on pointers), add an additional length parameter.", "W004");
                     }
                     if (dims > 1) {
                         std::string base = t.substr(0, t.find("[]"));
@@ -4109,7 +4108,7 @@ class LLVMCompiler {
             std::string mapKey = proof.proverName.value;
             auto userIt = userTypes.find(baseTypeName(resolveTypeName(mapKey)));
             if (userIt == userTypes.end()) {
-                cg_error(proof.proverName.pos, "Failed to find type " + baseTypeName(resolveTypeName(mapKey)));
+                cg_error(proof.proverName.pos, "Failed to find type " + baseTypeName(resolveTypeName(mapKey)), "QC-T063");
                 continue;
             }
             UserTypeInfo userInfo = userIt->second;
@@ -4235,7 +4234,7 @@ class LLVMCompiler {
                 }
                 if (failed && !block.second.has_value()) {
                     if (requiredCount >= 0) {
-                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey, "QC-C019");
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(block.first.constraint.pos,
                                 (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfilled"
@@ -4248,7 +4247,7 @@ class LLVMCompiler {
                         cg_note(proof.proverName.pos, "passed constraints were:");
                         for (auto& passedConstraintPos : passedConstraints) { cg_note(passedConstraintPos, ""); }
                     } else {
-                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey, "QC-C019");
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
@@ -4363,7 +4362,7 @@ class LLVMCompiler {
             std::string conceptName = proof.conceptName.value;
             auto [conceptInfo, exists] = genericiseOrFindConcept(resolveTypeName(conceptName, false));
             if (!exists) {
-                cg_error(proof.conceptName.pos, "Unknown concept '" + conceptName + "'");
+                cg_error(proof.conceptName.pos, "Unknown concept '" + conceptName + "'", "QC-C020");
                 continue;
             }
             std::unordered_set<std::string> additionalProofNames;
@@ -4488,7 +4487,7 @@ class LLVMCompiler {
                 }
                 if (failed && !block.second.has_value()) {
                     if (requiredCount >= 0) {
-                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey, "QC-C019");
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(block.first.constraint.pos,
                                 (isAtLeast ? "less than " + std::to_string(requiredCount) + " constraints were fulfiled"
@@ -4502,7 +4501,7 @@ class LLVMCompiler {
                         for (auto& passedConstraintPos : passedConstraints) { cg_note(passedConstraintPos, ""); }
 
                     } else {
-                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey);
+                        cg_error(proof.proverName.pos, "failed to prove concept " + conceptName + " for type " + mapKey, "QC-C019");
                         cg_note(block.first.constraint.pos, "due to this constraint block");
                         cg_note(proof.proverName.pos, "failed constraints were:");
                         for (auto& [failedConstraintPos, additionalMessage] : failedConstraints) {
@@ -4636,7 +4635,7 @@ class LLVMCompiler {
             llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
                                                                genericParamsFromName(baseName));
             if (structTy == nullptr) {
-                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of struct " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of struct " + baseTypeName(baseName), "QC-S310");
                 return nullptr;
             }
             return structTy;
@@ -4648,7 +4647,7 @@ class LLVMCompiler {
             if (unionTypes.count(baseName)) return substitutedUnions[baseName];
             UserTypeInfo unionInfo = generateGenericUnion(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (static_cast<int>(unionInfo.kind) == 0) {
-                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName), "QC-S311");
                 return {};
             }
             return unionInfo;
@@ -4660,7 +4659,7 @@ class LLVMCompiler {
             if (typeAliases.count(baseName)) return resolveTypeName(typeAliases[baseName]);
             std::string newAlias = generateGenericAlias(baseTypeName(baseName), userTypes[baseTypeName(baseName)], genericParamsFromName(baseName));
             if (newAlias == "") {
-                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName));
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of union " + baseTypeName(baseName), "QC-S311");
                 return "";
             }
             return resolveTypeName(newAlias);
