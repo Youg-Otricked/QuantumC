@@ -28,22 +28,28 @@ __qc_debug_build() — a bool baked in at compile time indicating whether this w
 - dynamic field access
 - has field, has method
 - _generic- manal overloading
-- rust like tags for enums
+- rust like tags for enums, make enums whole numebers only again, match.
 - cpp contracts
 - has_method, has_field, at
 - rule usertypes so userdefined const equiveleants and stuff
 - conversion operators (operator int, .... I already have _eval (to bool) and _repr (to string))
 - operator co_await once i add co_await
-- operator cast
-
+- operator cast<T>
+    `cast primitive operator overload
+- operator imp_cast<T>
+    implicit cast operator overload
+- alloca builtin
+- unreachable
+- panic, assume
 TOP PRIORITY:
-1. Generics in header
-2. Tuples + Destruturing
-2. Function Pointers
-2. Tagged enums
-2. CQB
-3. Other stuff (private/protected inheritance) + Variadic Generics, operator.
-4. Metadata
+1. Labels & goto/br, unreachable
+2. Generics in header
+3. Tuples + Destruturing
+3. Function Pointers
+3. Tagged enums, match
+3. CQB
+4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
+5. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
 ?inline? - pls inline >-<
@@ -65,12 +71,12 @@ TOP PRIORITY:
 ?experimental? - states that this tool is janky, subject to change, or flaky/expremintal
 ?unstable? - states this tool is janky, flaky, or unstable, but api won't change
 ?sentinel(value, msg, value, msg....)? - states this tool returns sentinel values with special meaning
-5. Preproccessers
+6. Preproccessers
 #line - somthing idk
-6. User-Defined metadata
-7. User-Defined macro _functions_ (the only good thing in rust)
-8. User defined literals
-9. co_await
+7. User-Defined metadata
+8. User-Defined macro _functions_ (the only good thing in rust)
+9. User defined literals
+10. co_await
 ## 1\. Concurrency
 
 ### Stdlib

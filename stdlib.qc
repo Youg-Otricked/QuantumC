@@ -541,7 +541,7 @@ namespace Math {
     double pi() {
         return 3.14159265358979323846;
     }
-    type Number = int | float | double;
+    type Number = int | float | double | long int | short int | long double | addr_t | byte | nibble;
     Number max(Number a, Number b) {
         if (a > b) {
             return a;
@@ -1335,6 +1335,9 @@ namespace Filesystem {
         Path& operator=(string other) {
             this->path = other;
             return *this;
+        }
+        string _repr() {
+            return this->path;
         }
         string toString() {
             return this->path;
