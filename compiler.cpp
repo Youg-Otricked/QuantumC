@@ -17898,8 +17898,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
             llvm::LLVMContext context;
             auto master_module = new llvm::Module("master_module", context);
 #ifdef __EMSCRIPTEN__
-            llvm::InitializeAllTargets();
-            llvm::InitializeAllTargetMCs();
+            LLVMInitializeAArch64TargetInfo();
+            LLVMInitializeAArch64Target();
+            LLVMInitializeAArch64TargetMC();
+            LLVMInitializeARMTargetInfo();
+            LLVMInitializeARMTarget();
+            LLVMInitializeARMTargetMC();
+            LLVMInitializeX86TargetInfo();
+            LLVMInitializeX86Target();
+            LLVMInitializeX86TargetMC();
+            LLVMInitializeWebAssemblyTargetInfo();
+            LLVMInitializeWebAssemblyTarget();
+            LLVMInitializeWebAssemblyTargetMC();
 
             llvm::Triple triple("wasm32-unknown-unknown");
             master_module->setTargetTriple(triple);
@@ -17914,8 +17924,18 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                 delete TM;
             }
 #else
-            llvm::InitializeAllTargets();
-            llvm::InitializeAllTargetMCs();
+            LLVMInitializeAArch64TargetInfo();
+            LLVMInitializeAArch64Target();
+            LLVMInitializeAArch64TargetMC();
+            LLVMInitializeARMTargetInfo();
+            LLVMInitializeARMTarget();
+            LLVMInitializeARMTargetMC();
+            LLVMInitializeX86TargetInfo();
+            LLVMInitializeX86Target();
+            LLVMInitializeX86TargetMC();
+            LLVMInitializeWebAssemblyTargetInfo();
+            LLVMInitializeWebAssemblyTarget();
+            LLVMInitializeWebAssemblyTargetMC();
 
             llvm::Triple triple(config.target.empty() ? llvm::sys::getDefaultTargetTriple() : config.target);
             master_module->setTargetTriple(triple);
