@@ -16594,7 +16594,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     return;
                 }
                 std::string valueTy = getExpressionType(arrAcc->indices[0]);
-                if (valueTy != "int") {
+                if (llvm::Type *ty = llvmTypeFor(valueTy); !ty || !ty->isIntegerTy()) {
                     cg_error(get_pos(arrAcc->indices[0]), "attempted to index a pointer with a "
                                                           "non-integer value.", "QC-S239");
                     return;
