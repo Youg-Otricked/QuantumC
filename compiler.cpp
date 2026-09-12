@@ -12133,7 +12133,7 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                                                                                   {"`open", "qc_open"},
                                                                                   {"`close", "qc_close"},
                                                                                   {"`read", "qc_read"},
-                                                                                  {"`write", "qc_write"},
+                                                                                  {"`write", ""},
                                                                                   {"`malloc", "qc_malloc"},
                                                                                   {"`calloc", "qc_calloc"},
                                                                                   {"`free", "qc_free"},
@@ -12502,6 +12502,11 @@ llvm::Value* LLVMCompiler::emitExpr(AnyNode node) {
                         typeName = "pointer";
                     if (auto structTy = llvm::dyn_cast<llvm::StructType>(argTy)) typeName = structTy->getName().str();
                     return builder->CreateGlobalString(typeName);
+                } else if (funcName == "`write" && !call.arg_nodes.empty()) {
+                    if (call.arg_nodes.size() == 3)
+                        runtimeName = "qc_write_sized";
+                    else
+                        runtimeName = "qc_write";
                 } else if (funcName == "`random" && !call.arg_nodes.empty()) {
                     if (call.arg_nodes.size() == 1)
                         runtimeName = "qc_random_int";

@@ -648,6 +648,11 @@ void qc_write(int fd, const char* data) {
         len -= n;
     }
 } // self hosted
+ssize_t qc_write_sized(int fd, const char* data, ssize_t bc) {
+    if (!data) return -1;
+    return write(fd, data, bc);
+} // self hosted
+
 typedef struct {
     void** items;
     int count;
