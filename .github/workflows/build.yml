@@ -59,7 +59,7 @@ jobs:
       
       - name: Build (Linux)
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release . -DCXX_RUNTIME=ON
+          CC=clang-22 CXX=clang++-22 cmake -DCMAKE_BUILD_TYPE=Release -DCXX_RUNTIME=ON .
           cmake --build . -j$(nproc)
           mv qc qc-linux
 
