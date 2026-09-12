@@ -55,7 +55,7 @@ jobs:
           apt install -y llvm-22 llvm-22-dev clang-22 libffi-dev pkg-config cmake git libzstd-dev
       
       - name: Generate runtime.ll
-        run: clang-22 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
+        run: clang++-22 -S -emit-llvm -O0 -o runtime.ll runtime.cpp
       
       - name: Build (Linux)
         run: |
