@@ -17617,11 +17617,27 @@ std::string removeExtension(const std::string& filename) {
     return filename.substr(0, lastDot);
 }
 int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, std::string tgt = "") {
+    LLVMInitializeAArch64TargetInfo();
+    LLVMInitializeAArch64Target();
+    LLVMInitializeAArch64TargetMC();
+    LLVMInitializeAArch64AsmPrinter();
+    LLVMInitializeAArch64AsmParser();
+    LLVMInitializeARMTargetInfo();
+    LLVMInitializeARMTarget();
+    LLVMInitializeARMTargetMC();
+    LLVMInitializeARMAsmPrinter();
+    LLVMInitializeARMAsmParser();
+    LLVMInitializeX86TargetInfo();
+    LLVMInitializeX86Target();
+    LLVMInitializeX86TargetMC();
+    LLVMInitializeX86AsmPrinter();
+    LLVMInitializeX86AsmParser();
+    LLVMInitializeWebAssemblyTargetInfo();
+    LLVMInitializeWebAssemblyTarget();
+    LLVMInitializeWebAssemblyTargetMC();
+    LLVMInitializeWebAssemblyAsmPrinter();
+    LLVMInitializeWebAssemblyAsmParser();
 #ifdef __EMSCRIPTEN__
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmPrinters();
-    llvm::InitializeAllAsmParsers();
     llvm::Triple triple("wasm32-unknown-unknown");
     M.setTargetTriple(triple);
     std::string err;
@@ -17650,10 +17666,6 @@ int emitObjectFile(llvm::Module& M, const std::string& outputPath, bool debug, s
     delete TM;
     return 0;
 #else
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmPrinters();
-    llvm::InitializeAllAsmParsers();
     llvm::Triple triple(tgt.empty() ? llvm::sys::getDefaultTargetTriple() : tgt);
     M.setTargetTriple(triple);
     std::string err;
