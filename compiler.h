@@ -1560,7 +1560,7 @@ struct RunConfig {
 #ifdef __mips64
     {"__mips64", "1"},
 #endif
-    {"__quantumc", "\"x1.0.43R\""}
+    {"__quantumc", "\"x1.0.431R\""}
 };
     bool progress = false;
 };
@@ -2775,10 +2775,10 @@ class LLVMCompiler {
             retTy = builder->getInt8Ty();
             if (ty->isPointerTy())
                 fnName = "qc_to_char_from_string";
-            else if (ty->isIntegerTy(32))
-                return builder->CreateTrunc(arg, retTy);
             else if (ty->isIntegerTy(8))
                 return arg;
+            else if (ty->isIntegerTy())
+                return builder->CreateSExtOrTrunc(arg, retTy);
         } else if (target == "addr_t") {
             retTy = builder->getIntNTy(getPtrSize());
             if (ty->isPointerTy())
