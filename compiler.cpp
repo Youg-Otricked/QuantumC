@@ -3546,10 +3546,6 @@ Prs Parser::statement() {
         }
         this->advance();
 
-        if (this->current_tok.type != TokenType::KEYWORD) {
-            res.failure(new InvalidSyntaxError("QC-T003: Expected type in foreach", this->current_tok.pos));
-            return res.to_prs();
-        }
         Token elem_type = this->current_tok;
         elem_type.value = parseTypeString();
         if (this->current_tok.type != TokenType::IDENTIFIER) {
