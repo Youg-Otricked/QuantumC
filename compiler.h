@@ -1560,7 +1560,7 @@ struct RunConfig {
 #ifdef __mips64
     {"__mips64", "1"},
 #endif
-    {"__quantumc", "\"x1.0.432R\""}
+    {"__quantumc", "\"x1.0.4321R\""}
 };
     bool progress = false;
 };

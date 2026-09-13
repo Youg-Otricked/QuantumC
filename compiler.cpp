@@ -7618,8 +7618,18 @@ void LLVMCompiler::createUserTypes() {
                     if (!classIfo.baseClassName.empty()) {
                         std::string baseFullName = classIfo.baseClassName;
                         for (auto& [gname, gval] : genericSubs) {
-                            size_t pos;
-                            while ((pos = baseFullName.find(gname)) != std::string::npos) baseFullName.replace(pos, gname.size(), gval);
+                            size_t pos = 0;
+                            while ((pos = baseFullName.find(gname, pos)) != std::string::npos) {
+                                size_t end = pos + gname.size();
+                                bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(baseFullName[pos - 1])) || baseFullName[pos - 1] == '_');
+                                bool rightOk = end == baseFullName.size() || !(std::isalnum(static_cast<unsigned char>(baseFullName[end])) || baseFullName[end] == '_');
+                                if (leftOk && rightOk) {
+                                    baseFullName.replace(pos, gname.size(), gval);
+                                    pos += gval.size();
+                                } else {
+                                    pos += gname.size();
+                                }
+                            }
                         }
                         std::unordered_map<std::string, std::string> baseSubs;
                         auto baseIt = userTypes.find(baseTypeName(baseFullName));
@@ -7638,8 +7648,18 @@ void LLVMCompiler::createUserTypes() {
                             resolvedType = cname + "*";
                         } else {
                             for (auto& [gname, gval] : genericSubs) {
-                                size_t pos;
-                                while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
+                                size_t pos = 0;
+                                while ((pos = resolvedType.find(gname, pos)) != std::string::npos) {
+                                    size_t end = pos + gname.size();
+                                    bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(resolvedType[pos - 1])) || resolvedType[pos - 1] == '_');
+                                    bool rightOk = end == resolvedType.size() || !(std::isalnum(static_cast<unsigned char>(resolvedType[end])) || resolvedType[end] == '_');
+                                    if (leftOk && rightOk) {
+                                        resolvedType.replace(pos, gname.size(), gval);
+                                        pos += gval.size();
+                                    } else {
+                                        pos += gname.size();
+                                    }
+                                }
                             }
                         }
                         if (field.isStatic) {
@@ -16827,7 +16847,17 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 std::string gname = baseInfo->second.generics[i].name;
                 std::string gval = concreteParams[i];
                 size_t pos;
-                while ((pos = iterTypeName.find(gname)) != std::string::npos) iterTypeName.replace(pos, gname.size(), gval);
+                while ((pos = iterTypeName.find(gname)) != std::string::npos) {
+                    size_t end = pos + gname.size();
+                    bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(iterTypeName[pos - 1])) || iterTypeName[pos - 1] == '_');
+                    bool rightOk = end == iterTypeName.size() || !(std::isalnum(static_cast<unsigned char>(iterTypeName[end])) || iterTypeName[end] == '_');
+                    if (leftOk && rightOk) {
+                        iterTypeName.replace(pos, gname.size(), gval);
+                        pos += gval.size();
+                    } else {
+                        pos += gname.size();
+                    }
+                }
             }
             iterLLVMTy = llvmTypeFor(iterTypeName);
             iterObjAlloc = createEntryAlloca("__iter_" + elemName, iterLLVMTy);
