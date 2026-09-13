@@ -16847,7 +16847,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 std::string gname = baseInfo->second.generics[i].name;
                 std::string gval = concreteParams[i];
                 size_t pos;
-                while ((pos = iterTypeName.find(gname)) != std::string::npos) {
+                while ((pos = iterTypeName.find(gname, pos)) != std::string::npos) {
                     size_t end = pos + gname.size();
                     bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(iterTypeName[pos - 1])) || iterTypeName[pos - 1] == '_');
                     bool rightOk = end == iterTypeName.size() || !(std::isalnum(static_cast<unsigned char>(iterTypeName[end])) || iterTypeName[end] == '_');
