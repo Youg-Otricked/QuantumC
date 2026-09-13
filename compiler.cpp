@@ -7043,8 +7043,18 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
             if (!classIfo.baseClassName.empty()) {
                 std::string baseFullName = classIfo.baseClassName;
                 for (auto& [gname, gval] : genericSubs) {
-                    size_t pos;
-                    while ((pos = baseFullName.find(gname)) != std::string::npos) baseFullName.replace(pos, gname.size(), gval);
+                    size_t pos = 0;
+                    while ((pos = baseFullName.find(gname, pos)) != std::string::npos) {
+                        size_t end = pos + gname.size();
+                        bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(baseFullName[pos - 1])) || baseFullName[pos - 1] == '_');
+                        bool rightOk = end == baseFullName.size() || !(std::isalnum(static_cast<unsigned char>(baseFullName[end])) || baseFullName[end] == '_');
+                        if (leftOk && rightOk) {
+                            baseFullName.replace(pos, gname.size(), gval);
+                            pos += gval.size();
+                        } else {
+                            pos += gname.size();
+                        }
+                    }
                 }
                 std::unordered_map<std::string, std::string> baseSubs;
                 std::string baseRaw = this->baseTypeName(baseFullName);
@@ -7065,8 +7075,18 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                     resolvedType = mangled_class_name + "*";
                 } else {
                     for (auto& [gname, gval] : genericSubs) {
-                        size_t pos;
-                        while ((pos = resolvedType.find(gname)) != std::string::npos) resolvedType.replace(pos, gname.size(), gval);
+                        size_t pos = 0;
+                        while ((pos = resolvedType.find(gname, pos)) != std::string::npos) {
+                            size_t end = pos + gname.size();
+                            bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(resolvedType[pos - 1])) || resolvedType[pos - 1] == '_');
+                            bool rightOk = end == resolvedType.size() || !(std::isalnum(static_cast<unsigned char>(resolvedType[end])) || resolvedType[end] == '_');
+                            if (leftOk && rightOk) {
+                                resolvedType.replace(pos, gname.size(), gval);
+                                pos += gval.size();
+                            } else {
+                                pos += gname.size();
+                            }
+                        }
                     }
                 }
                 if (field.isStatic) {
@@ -16613,6 +16633,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::Value* addr = builder->CreateGEP(llvmTypeFor(ptrTy), emitExpr(arrAcc->base), value, "ptr_arr_asi");
                 llvm::Value* valToStore = emitExpr(arrAssign->value);
                 builder->CreateStore(valToStore, addr);
+                return;
             }
             if (genericiseOrFindClass(ptrTy)) {
                 llvm::Value* obj = emitLValue(arrAcc->base);

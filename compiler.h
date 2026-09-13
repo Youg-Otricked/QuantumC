@@ -1560,7 +1560,7 @@ struct RunConfig {
 #ifdef __mips64
     {"__mips64", "1"},
 #endif
-    {"__quantumc", "\"x1.0.42R\""}
+    {"__quantumc", "\"x1.0.43R\""}
 };
     bool progress = false;
 };
@@ -4108,7 +4108,7 @@ class LLVMCompiler {
             std::string mapKey = proof.proverName.value;
             auto userIt = userTypes.find(baseTypeName(resolveTypeName(mapKey)));
             if (userIt == userTypes.end()) {
-                cg_error(proof.proverName.pos, "Failed to find type " + baseTypeName(resolveTypeName(mapKey)), "QC-T063");
+                namespaceStack = oldNamespaceStack;
                 continue;
             }
             UserTypeInfo userInfo = userIt->second;
