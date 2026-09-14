@@ -6,22 +6,18 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <dirent.h>
 #include <unistd.h>
 #include <unwind.h>
-#include <dirent.h>
 extern "C" {
 DIR* qc_opendir(const char* path) {
     return opendir(path);
 }
 bool qc_readdir(DIR* dir, char* buffer, size_t size) {
     struct dirent* entry = readdir(dir);
-    if (entry == NULL) {
-        return false;
-    }
+    if (entry == NULL) { return false; }
     size_t length = strlen(entry->d_name);
-    if (length + 1 > size) {
-        return false;
-    }
+    if (length + 1 > size) { return false; }
     memcpy(buffer, entry->d_name, length + 1);
     return true;
 }

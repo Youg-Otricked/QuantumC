@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.4321 = "Fixed Bug"
+Current Version: x1.0.433 = "Fixed Bug"
 Next Version: x1.0.5 = "Generics In Headers"
 
 # Current Version Highlights
@@ -265,7 +265,7 @@ Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/
 | **Multi-return**            | Structs              | Tuples           | Tuples           | **Native**          |
 | **Generics**                | Templates + Concepts | Type as Argument | Trait Based      | Constraint-Based    |
 
-Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig. Current benchmarks are being improved, and results should be considered preliminary.
+Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig.According to most recent benchmarks, in tested cases C^4 runs either at a similar or faster speed than C++, with equal or faster compiles. 
 
 ---
 
@@ -791,9 +791,83 @@ int main() {
 ## Self Hosted Runtime
 There is currently an unknown bug with the self-hosted runtime.
 
-## Performance Comparison
+# Benchmarks
 
-Benchmarks are currently unreliable and show significant fluctuations between runs, or things like a 0-millisecond runtime in O1 but 30 in O3. Results should be treated as preliminary rather than definitive. A more robust benchmarking system with better workload scaling and measurement methodology is planned after version x1.0.0.
+All benchmarks were executed on Linux (`x86_64`) using `/usr/bin/time` across **500 runs per optimization tier** (4,000 total benchmark runs). Workload: identical compute-heavy arithmetic and bitwise algorithm global state.
+Src can be found in the bench<...> files in the project root.
+
+---
+
+## 1. Executive Summary
+
+| Category                        | Winner     | Advantage                                              |
+| :------------------------------ | :--------- | :----------------------------------------------------- |
+| Compilation Speed               | C^4 (`qc`) | ~1.85x faster (up to 47.3% lower latency)              |
+| Compiler Memory (Peak RSS)      | C^4 (`qc`) | 31.6% less RAM (~60 MB leaner)                         |
+| Compiler OS Page Faults         | C^4 (`qc`) | 68.4% fewer page faults (~10,000 fewer faults/compile) |
+| Unoptimized Runtime (`-O0`)     | C^4 (`qc`) | 2.0x faster (50.0% reduction in execution time)        |
+| Optimized Runtime (`-O1`–`-O3`) | Tie        | Exact Parity (Both clock identical 30.00 ms)           |
+| Binary Runtime Memory           | C^4 (`qc`) | 44.7% less memory (2.11 MB vs 3.81 MB)                 |
+
+## 2. Compilation Performance (500 Runs Averaged)
+
+### Speed & CPU Overhead
+
+| Opt Level | Compiler   | Elapsed Time | User CPU Time | Sys CPU Time | CPU Util | Relative Speed        |
+| :-------- | :--------- | :----------- | :------------ | :----------- | :------- | :-------------------- |
+| `-O0`     | Clang C++  | 301.54 ms    | 271.60 ms     | 23.82 ms     | 99.0%    | 1.00x                 |
+|           | C^4 (`qc`) | 159.02 ms    | 95.40 ms      | 8.50 ms      | 68.7%    | 1.90x faster (-47.3%) |
+| `-O1`     | Clang C++  | 313.14 ms    | 282.86 ms     | 23.64 ms     | 99.0%    | 1.00x                 |
+|           | C^4 (`qc`) | 168.74 ms    | 48.28 ms      | 11.22 ms     | 39.0%    | 1.86x faster (-46.1%) |
+| `-O2`     | Clang C++  | 314.12 ms    | 283.80 ms     | 24.12 ms     | 99.0%    | 1.00x                 |
+|           | C^4 (`qc`) | 169.04 ms    | 49.26 ms      | 11.40 ms     | 39.5%    | 1.86x faster (-46.2%) |
+| `-O3`     | Clang C++  | 315.72 ms    | 284.98 ms     | 23.88 ms     | 99.0%    | 1.00x                 |
+|           | C^4 (`qc`) | 171.54 ms    | 55.04 ms      | 11.78 ms     | 42.6%    | 1.84x faster (-45.7%) |
+
+> _Note: At `-O3`, C^4 uses 5.2x less User CPU time (55.04 ms vs 284.98 ms) by eliminating C++ preprocessor and template instantiation overhead._
+
+### Memory & System Overhead
+
+| Opt Level | Compiler   | Peak RSS (MB)          | Minor Page Faults | Major Faults | I/O (Out) |
+| :-------- | :--------- | :--------------------- | :---------------- | :----------- | :-------- |
+| `-O0`     | Clang C++  | 177.84 MB (182,110 KB) | 14,777.7          | 0            | 40.0      |
+|           | C^4 (`qc`) | 129.70 MB (132,818 KB) | 5,080.1           | 0            | 416.0     |
+|           | _Delta_    | _-27.1% RAM_           | _-65.6% faults_   | —            | —         |
+| `-O1`     | Clang C++  | 177.97 MB (182,239 KB) | 14,802.2          | 0            | 40.0      |
+|           | C^4 (`qc`) | 128.79 MB (131,886 KB) | 4,625.0           | 0            | 72.0      |
+|           | _Delta_    | _-27.6% RAM_           | _-68.8% faults_   | —            | —         |
+| `-O2`     | Clang C++  | 177.97 MB (182,244 KB) | 14,835.1          | 0            | 40.0      |
+|           | C^4 (`qc`) | 128.75 MB (131,841 KB) | 4,627.8           | 0            | 72.0      |
+|           | _Delta_    | _-27.6% RAM_           | _-68.8% faults_   | —            | —         |
+| `-O3`     | Clang C++  | 188.09 MB (192,601 KB) | 14,635.2          | 0            | 40.0      |
+|           | C^4 (`qc`) | 128.73 MB (131,819 KB) | 4,620.6           | 0            | 72.0      |
+|           | _Delta_    | -31.6% RAM (-59.4 MB)  | -68.4% faults     | —            | —         |
+
+---
+
+## 3. Binary Runtime & Efficiency (500 Runs Averaged)
+
+### Execution Time
+
+| Opt Level | Clang (C++) Binary | C^4 Binary | Speedup / Delta              |
+| :-------- | :----------------- | :--------- | :--------------------------- |
+| `-O0`     | 60.00 ms           | 30.00 ms   | 2.00x faster (+100% speedup) |
+| `-O1`     | 30.00 ms           | 30.00 ms   | Parity (1.00x)               |
+| `-O2`     | 30.00 ms           | 30.00 ms   | Parity (1.00x)               |
+| `-O3`     | 30.00 ms           | 30.00 ms   | Parity (1.00x)               |
+
+### Runtime Memory & Footprint
+
+| Opt Level | Binary     | Peak RSS (KB)   | Peak RSS (MB) | Minor Faults    |
+| :-------- | :--------- | :-------------- | :------------ | :-------------- |
+| `-O0`     | Clang C++  | 3,891.34 KB     | 3.80 MB       | 150.9           |
+|           | C^4 (`qc`) | 2,334.83 KB     | 2.28 MB       | 97.9            |
+|           | _Delta_    | _-39.9% memory_ | —             | _-35.1% faults_ |
+| `-O1`     | Clang C++  | 3,892.55 KB     | 3.80 MB       | 150.7           |
+|           | C^4 (`qc`) | 2,156.53 KB     | 2.11 MB       | 90.6            |
+|           | _Delta_    | _-44.6% memory_ | —             | _-39.9% faults_ |
+| `-O2`     | Clang C++  | 3,898.58 KB     | 3.81 MB       | 150.8           |
+|           | C^4 (`qc`) |
 
 ## Known Limitations
 

@@ -52,20 +52,67 @@ template <typename T, typename V> T* safe_get(V& variant) {
     if (ptr_to_ptr != nullptr) { return *ptr_to_ptr; }
     return nullptr;
 }
+struct SourceFile {
+    std::string filename;
+    std::string content;
+};
 class Position {
-  public:
-    std::string Filename;
-    std::string Filetxt;
+public:
+    static constexpr uint32_t INVALID_FILE_ID = ~uint32_t(0);
+    uint32_t file_id;
     size_t index;
     size_t line;
     size_t column;
     size_t length = 1;
     Position();
+    bool is_valid() const {
+        return file_id != INVALID_FILE_ID;
+    }
     std::string arrow_string(size_t context = 2) const;
-    Position(std::string, std::string, size_t, size_t, size_t);
+    Position(uint32_t, size_t, size_t, size_t);
     void advance(char current_char);
     Position copy();
     bool operator==(const Position&) const = default;
+};
+
+class SourceManager {
+private:
+    const SourceFile INVALID = SourceFile{
+        "<scratch>",
+        "scratchscratchscratchscratchscratchscratchscratchscratchscratchscratch...",
+    };
+    std::vector<SourceFile> files;
+    std::unordered_map<std::string, uint32_t> path_to_id;
+public:
+    static SourceManager& instance() {
+        static SourceManager sm;
+        return sm;
+    }
+    std::optional<uint32_t> get_id(const std::string& filepath) const {
+        if (filepath == "<scratch>") return Position::INVALID_FILE_ID;
+        auto it = path_to_id.find(filepath);
+        if (it != path_to_id.end()) {
+            return it->second;
+        }
+        return std::nullopt;
+    }
+    uint32_t add_file(std::string filepath, std::string text) {
+        if (filepath == "<scratch>") return Position::INVALID_FILE_ID;
+        if (auto id = get_id(filepath)) {
+            return *id;
+        }
+        uint32_t new_id = static_cast<uint32_t>(files.size());
+        path_to_id[filepath] = new_id;
+        files.push_back({std::move(filepath), std::move(text)});
+        return new_id;
+    }
+    bool has_id(uint32_t id) const {
+        return id < files.size();
+    }
+    const SourceFile& get(uint32_t id) const {
+        if (id == Position::INVALID_FILE_ID) return INVALID;
+        return files.at(id);
+    }
 };
 
 // Forward declarations
@@ -274,7 +321,7 @@ class Note {
         result += message;
         result += "\n";
         result += "   --> ";
-        result += pos.Filename;
+        result += SourceManager::instance().get(pos.file_id).filename;
         result += ":";
         result += std::to_string(pos.line + 1);
         result += ":";
@@ -299,7 +346,7 @@ class CTError : public Error {
         if (!this->details.empty()) { result += ": " + this->details; }
         result += "\n";
         result += " --> ";
-        result += this->pos.Filename;
+        result += SourceManager::instance().get(this->pos.file_id).filename;
         result += ":";
         result += std::to_string(this->pos.line + 1);
         result += ":";
@@ -415,7 +462,7 @@ class StatementsNode {
     std::vector<AnyNode> statements;
     bool is_block = false;
     bool is_scoped = false;
-    Position getPos() { return statements.empty() ? Position("", "", 0, 0, 0) : get_pos(statements[0]); }
+    Position getPos() { return statements.empty() ? Position(-1, 0, 0, 0) : get_pos(statements[0]); }
     StatementsNode(std::vector<AnyNode> stmts, bool is_block = false, bool is_scoped = false)
         : statements(stmts), is_block(is_block), is_scoped(is_scoped) {}
     std::string print() const;
@@ -1066,6 +1113,626 @@ class InterpEer {
 ////////////////////////////////////////////////////////////////////////////////////////////
 class Parser {
   public:
+    [[gnu::noinline]]
+    void parseGenerics(std::vector<GenericType>& genericsM, ParseResult& res) {
+        if (this->current_tok.type == TokenType::LESS) {
+            this->advance();
+            while (true) {
+                GenericType curr;
+                if (this->current_tok.type != TokenType::IDENTIFIER) {
+                    if (this->current_tok.type == TokenType::KEYWORD &&
+                        std::unordered_set<std::string>({"int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
+                            .contains(this->current_tok.value)) {
+                        curr.isNonType = true;
+                        curr.nonTypeKind = this->current_tok.value;
+                    } else if (this->current_tok.value == "long" || this->current_tok.value == "short") {
+                        std::string prev = this->current_tok.value;
+                        this->advance();
+                        if (this->current_tok.value != "int" && this->current_tok.value != "double") {
+                            res.failure(
+                                new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            return;
+                        }
+                        curr.isNonType = true;
+                        curr.nonTypeKind = prev + " " + this->current_tok.value;
+                    } else {
+                        res.failure(new InvalidSyntaxError("QC-G003: Expected generic typename to be a identifier ([_a-zA-Z][0-9a-zA-Z_]*)",
+                                                           this->current_tok.pos));
+                        return;
+                    }
+                    this->advance();
+                }
+                curr.name = this->current_tok.value;
+                this->advance();
+                if (this->current_tok.type == TokenType::LPAREN && !curr.isNonType) {
+                    this->advance();
+                    if (this->current_tok.type != TokenType::COLON) {
+                        if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.value == "proves") {
+                            curr.constraint = (std::unordered_set<std::string>({"usertype", "primitive", "numeric", "pointer"})
+                                                       .contains(this->current_tok.value)
+                                                   ? this->current_tok.value
+                                                   : parseTypeString());
+                        } else {
+                            res.failure(new InvalidSyntaxError(
+                                "QC-C007: Expected : or a concept: or a usertype:, primitive:, or callable: before generic constraint list",
+                                this->current_tok.pos));
+                            return;
+                        }
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
+                            this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                            this->advance();
+                    } else {
+                        curr.constraint = "";
+                    }
+                    this->advance();
+                    if (this->current_tok.type == TokenType::NOT) {
+                        curr.negated = true;
+                        this->advance();
+                    }
+                    while (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        curr.subconstraints.push_back(this->current_tok.value);
+                        this->advance();
+                        if (this->current_tok.type == TokenType::PIPE) { this->advance(); }
+                    }
+                    if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("QC-C008: Expected ) after generic type constraint list.", this->current_tok.pos));
+                        return;
+                    }
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::EQ) {
+                    this->advance();
+                    curr.defaultValue = this->current_tok.value;
+                    this->advance();
+                }
+                if (this->current_tok.type != TokenType::COMMA && this->current_tok.type != TokenType::MORE) {
+                    res.failure(new InvalidSyntaxError("QC-G004: Expected > or , after generic type.", this->current_tok.pos));
+                    return;
+                }
+                genericsM.push_back(curr);
+                if (this->current_tok.type == TokenType::MORE) {
+                    this->advance();
+                    break;
+                }
+                this->advance();
+            }
+        }
+    }
+    [[gnu::noinline]]
+    void fn(std::vector<ConceptInfo::Block>& blockList, ParseResult& res, std::vector<ConceptInfo::Block>& blocks, std::vector<std::pair<int, ConceptInfo::DefaultBlock>>& defaultBlocks) {
+        ConceptInfo::Block block;
+        bool is_at_least = false;
+        Token is_at_least_tok;
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "at_least") {
+            is_at_least = true;
+            is_at_least_tok = this->current_tok;
+            this->advance();
+        }
+        std::string num = "";
+        if (this->current_tok.type == TokenType::INT) {
+            num = this->current_tok.value;
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "all_of" || this->current_tok.value == "_of")) {
+            if (is_at_least) block.constraint = is_at_least_tok;
+            std::vector<ConceptInfo::Block> subblocks;
+            block.constraint.pos = this->current_tok.pos;
+            block.constraint.value += ((this->current_tok.value == "_of") ? (is_at_least ? " " : "") + num + "_of" : "all_of");
+            this->advance();
+            std::vector<std::pair<std::string, std::string>> params;
+            if (this->current_tok.type == TokenType::LPAREN) {
+                this->advance();
+                while (this->current_tok.type != TokenType::RPAREN && this->current_tok.type != TokenType::EOFT) {
+                    std::string type = parseTypeString();
+                    if (this->current_tok.type != TokenType::IDENTIFIER) {
+                        res.failure(new InvalidSyntaxError("QC-C002: Expected parameter name in concept block", this->current_tok.pos));
+                        return;
+                    }
+                    params.push_back(std::make_pair(type, this->current_tok.value));
+                    this->advance();
+                    if (this->current_tok.type == TokenType::COMMA) {
+                        this->advance();
+                    } else if (this->current_tok.type != TokenType::RPAREN) {
+                        res.failure(new InvalidSyntaxError("QC-C003: Expected ',' or ')' after parameter", this->current_tok.pos));
+                        return;
+                    }
+                }
+                if (this->current_tok.type != TokenType::RPAREN) {
+                    res.failure(new InvalidSyntaxError("QC-C004: Expected ')' closing parameter list", this->current_tok.pos));
+                    return;
+                }
+                this->advance();
+            }
+            block.params = params;
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept name", this->current_tok.pos));
+                return;
+            }
+            this->advance();
+            while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                if (this->current_tok.type == TokenType::KEYWORD &&
+                        std::unordered_set<std::string>({"at_least", "default", "all_of"}).contains(this->current_tok.value) ||
+                    this->current_tok.type == TokenType::INT) {
+                    fn(subblocks, res, blocks, defaultBlocks);
+                    if (res.error) return;
+                    continue;
+                }
+                std::vector<Token> modifiers;
+                if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                    user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                    modifiers.push_back(this->current_tok);
+                    this->advance();
+                }
+                if (!is_known_type(this->current_tok.value) && !is_primitive_type(this->current_tok.value)) {
+                    auto node = res.reg(this->ternary());
+                    block.nodes.push_back(modifiers.empty() ? node : new ModifierNode(modifiers, node));
+                    if (res.error) return;
+                    if (this->current_tok.type != TokenType::SEMICOLON) {
+                        res.failure(new InvalidSyntaxError("QC-C001: Expected ; after concept expression", this->current_tok.pos));
+                        return;
+                    }
+                    this->advance();
+                    continue;
+                }
+                if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
+                    this->advance();
+                    block.requiredConcepts.push_back(Token(TokenType::IDENTIFIER, parseTypeString(), this->current_tok.pos));
+                    this->advance();
+                    continue;
+                }
+                std::vector<Token> type_list;
+                auto parse_one_type_into = [&](Token& out_tok) -> bool {
+                    std::string field_type = parseTypeString();
+                    out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
+                    return true;
+                };
+                {
+                    Token t;
+                    if (!parse_one_type_into(t)) return;
+                    type_list.push_back(t);
+                }
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    Token t;
+                    if (!parse_one_type_into(t)) return;
+                    type_list.push_back(t);
+                }
+                Token name_tok;
+                if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
+                    name_tok = this->current_tok;
+                    this->advance();
+                } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "operator") {
+                    this->advance();
+                    Token op_tok = this->current_tok;
+                    Token long_ops[2] = {};
+                    switch (op_tok.type) {
+                    case TokenType::PLUS:
+                    case TokenType::MINUS:
+                    case TokenType::MUL:
+                    case TokenType::DIV:
+                    case TokenType::EQ_TO:
+                    case TokenType::NOT_EQ:
+                    case TokenType::EQ:
+                    case TokenType::NOT:
+                    case TokenType::AND:
+                    case TokenType::OR:
+                    case TokenType::MORE:
+                    case TokenType::LESS:
+                    case TokenType::MORE_EQ:
+                    case TokenType::LESS_EQ:
+                    case TokenType::POWER:
+                    case TokenType::MOD:
+                    case TokenType::XOR:
+                    case TokenType::QNOT:
+                    case TokenType::QAND:
+                    case TokenType::QOR:
+                    case TokenType::QXOR:
+                    case TokenType::INCREMENT:
+                    case TokenType::DECREMENT:
+                    case TokenType::BITWISE_NOT:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                    case TokenType::R_ROT:
+                    case TokenType::LSHIFT:
+                    case TokenType::L_ROT:
+                    case TokenType::BITWISE_XOR:
+                    case TokenType::PIPE:
+                    case TokenType::AMPERSAND:
+                    case TokenType::COLLAPSE_OR:
+                    case TokenType::PLUS_EQ:
+                    case TokenType::MINUS_EQ:
+                    case TokenType::MUL_EQ:
+                    case TokenType::DIV_EQ:
+                    case TokenType::MOD_EQ:
+                    case TokenType::BIT_X_EQ:
+                    case TokenType::BIT_A_EQ:
+                    case TokenType::BIT_O_EQ:
+                    case TokenType::LSH_EQ:
+                    case TokenType::RSH_EQ:
+                    case TokenType::LRSH_EQ:
+                    case TokenType::RROT_EQ:
+                    case TokenType::LROT_EQ:
+                    case TokenType::COLLAPSE_AND: break;
+                    case TokenType::LPAREN:
+                        this->advance();
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
+                            return;
+                        }
+                        break;
+                    case TokenType::LBRACKET:
+                        this->advance();
+                        if (this->current_tok.type == TokenType::RBRACKET) {
+                            long_ops[0] = this->current_tok;
+                            if (this->peek().type == TokenType::EQ) {
+                                this->advance();
+                                long_ops[1] = this->current_tok;
+                                break;
+                            }
+                            long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
+                            break;
+                        } else {
+                            res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
+                            return;
+                        }
+                    default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return;
+                    }
+                    std::string op_name;
+                    switch (op_tok.type) {
+                    case TokenType::PLUS: op_name = "operator+"; break;
+                    case TokenType::MINUS: op_name = "operator-"; break;
+                    case TokenType::MUL: op_name = "operator*"; break;
+                    case TokenType::DIV: op_name = "operator/"; break;
+                    case TokenType::EQ_TO: op_name = "operator=="; break;
+                    case TokenType::NOT_EQ: op_name = "operator!="; break;
+                    case TokenType::EQ: op_name = "operator="; break;
+                    case TokenType::NOT: op_name = "operator!"; break;
+                    case TokenType::AND: op_name = "operator&&"; break;
+                    case TokenType::OR: op_name = "operator||"; break;
+                    case TokenType::MORE: op_name = "operator>"; break;
+                    case TokenType::LESS: op_name = "operator<"; break;
+                    case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                    case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                    case TokenType::MUL_EQ: op_name = "operator*="; break;
+                    case TokenType::DIV_EQ: op_name = "operator/="; break;
+                    case TokenType::MOD_EQ: op_name = "operator%="; break;
+                    case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                    case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                    case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                    case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                    case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                    case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                    case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                    case TokenType::LROT_EQ: op_name = "operator<<<="; break;
+                    case TokenType::MORE_EQ: op_name = "operator>="; break;
+                    case TokenType::LESS_EQ: op_name = "operator<="; break;
+                    case TokenType::POWER: op_name = "operator#^"; break;
+                    case TokenType::MOD: op_name = "operator%"; break;
+                    case TokenType::XOR: op_name = "operator^"; break;
+                    case TokenType::QNOT: op_name = "operator!!"; break;
+                    case TokenType::QAND: op_name = "operator&&&"; break;
+                    case TokenType::QOR: op_name = "operator|||"; break;
+                    case TokenType::QXOR: op_name = "operator^^"; break;
+                    case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
+                    case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                    case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                    case TokenType::LPAREN: op_name = "operator()"; break;
+                    case TokenType::INCREMENT: op_name = "operator++"; break;
+                    case TokenType::DECREMENT: op_name = "operator--"; break;
+                    case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                    case TokenType::RSHIFT: op_name = "operator|>"; break;
+                    case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                    case TokenType::R_ROT: op_name = "operator|>>"; break;
+                    case TokenType::LSHIFT: op_name = "operator<<"; break;
+                    case TokenType::L_ROT: op_name = "operator<<<"; break;
+                    case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                    case TokenType::PIPE: op_name = "operator|"; break;
+                    case TokenType::AMPERSAND: op_name = "operator&"; break;
+                    default: break;
+                    }
+                    name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                    this->advance();
+                } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                    this->advance();
+                    Token op_tok = this->current_tok;
+                    Token long_ops[2] = {};
+                    switch (op_tok.type) {
+                    case TokenType::MINUS:
+                    case TokenType::DIV:
+                    case TokenType::POWER:
+                    case TokenType::MOD:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                    case TokenType::R_ROT:
+                    case TokenType::LSHIFT:
+                    case TokenType::L_ROT: break;
+                    default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return;
+                    }
+                    std::string op_name;
+                    switch (op_tok.type) {
+                    case TokenType::MINUS: op_name = "operator-"; break;
+                    case TokenType::DIV: op_name = "operator/"; break;
+                    case TokenType::POWER: op_name = "operator#^"; break;
+                    case TokenType::MOD: op_name = "operator%"; break;
+                    case TokenType::RSHIFT: op_name = "operator|>"; break;
+                    case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                    case TokenType::R_ROT: op_name = "operator|>>"; break;
+                    case TokenType::LSHIFT: op_name = "operator<<"; break;
+                    case TokenType::L_ROT: op_name = "operator<<<"; break;
+                    default: break;
+                    }
+                    name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                    this->advance();
+                } else {
+                    res.failure(new InvalidSyntaxError("QC-T007: Expected method name after type(s)", this->current_tok.pos));
+                    return;
+                }
+                std::vector<GenericType> genericsM;
+                parseGenerics(genericsM, res);
+                if (res.error) return;
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
+                    if (std::holds_alternative<Error*>(m_pr)) return;
+                    auto fn = std::get<FuncDefNode*>(m_pr);
+                    block.signatures.push_back(ConceptInfo::FunctionSignature(
+                        name_tok, type_list, std::vector<Parameter>(fn->params.begin(), fn->params.end()), genericsM));
+                    continue;
+                }
+            }
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(new InvalidSyntaxError("QC-S003: Expected '}' after concept block", this->current_tok.pos));
+                return;
+            }
+            this->advance();
+            block.subblocks = subblocks;
+            blockList.push_back(block);
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "default")) {
+            ConceptInfo::DefaultBlock defBlock;
+            this->advance();
+            if (this->current_tok.type != TokenType::LBRACE) {
+                res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after concept block name", this->current_tok.pos));
+                return;
+            }
+            this->advance();
+            std::string modifier = "else";
+            while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
+                if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "class") {
+                    modifier = "class";
+                    this->advance();
+                    this->advance();
+                }
+                if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "else") {
+                    modifier = "else";
+                    this->advance();
+                    this->advance();
+                }
+                std::vector<Token> modifiers;
+                if (this->current_tok.type == TokenType::IDENTIFIER && user_types.find(this->current_tok.value) != user_types.end() &&
+                    user_types[this->current_tok.value].kind == UserTypeKind::Modifier) {
+                    modifiers.push_back(this->current_tok);
+                    this->advance();
+                }
+                if (this->current_tok.type != TokenType::KEYWORD && this->current_tok.type != TokenType::IDENTIFIER) {
+                    res.failure(new InvalidSyntaxError("QC-T008: Expected method type in default block", this->current_tok.pos));
+                    return;
+                }
+                std::vector<Token> type_list;
+                auto parse_one_type_into = [&](Token& out_tok) -> bool {
+                    std::string field_type = parseTypeString();
+                    out_tok = Token(TokenType::KEYWORD, field_type, this->current_tok.pos);
+                    return true;
+                };
+                {
+                    Token t;
+                    if (!parse_one_type_into(t)) return;
+                    type_list.push_back(t);
+                }
+                while (this->current_tok.type == TokenType::COMMA) {
+                    this->advance();
+                    Token t;
+                    if (!parse_one_type_into(t)) return;
+                    type_list.push_back(t);
+                }
+                Token name_tok;
+                if (this->current_tok.type == TokenType::IDENTIFIER && this->current_tok.value != "operator") {
+                    name_tok = this->current_tok;
+                    this->advance();
+                } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "operator") {
+                    this->advance();
+                    Token op_tok = this->current_tok;
+                    Token long_ops[2] = {};
+                    switch (op_tok.type) {
+                    case TokenType::PLUS:
+                    case TokenType::MINUS:
+                    case TokenType::MUL:
+                    case TokenType::DIV:
+                    case TokenType::EQ_TO:
+                    case TokenType::NOT_EQ:
+                    case TokenType::EQ:
+                    case TokenType::NOT:
+                    case TokenType::AND:
+                    case TokenType::OR:
+                    case TokenType::MORE:
+                    case TokenType::LESS:
+                    case TokenType::MORE_EQ:
+                    case TokenType::LESS_EQ:
+                    case TokenType::POWER:
+                    case TokenType::MOD:
+                    case TokenType::XOR:
+                    case TokenType::QNOT:
+                    case TokenType::QAND:
+                    case TokenType::QOR:
+                    case TokenType::QXOR:
+                    case TokenType::INCREMENT:
+                    case TokenType::DECREMENT:
+                    case TokenType::BITWISE_NOT:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                    case TokenType::R_ROT:
+                    case TokenType::LSHIFT:
+                    case TokenType::L_ROT:
+                    case TokenType::BITWISE_XOR:
+                    case TokenType::PIPE:
+                    case TokenType::AMPERSAND:
+                    case TokenType::COLLAPSE_OR:
+                    case TokenType::PLUS_EQ:
+                    case TokenType::MINUS_EQ:
+                    case TokenType::MUL_EQ:
+                    case TokenType::DIV_EQ:
+                    case TokenType::MOD_EQ:
+                    case TokenType::BIT_X_EQ:
+                    case TokenType::BIT_A_EQ:
+                    case TokenType::BIT_O_EQ:
+                    case TokenType::LSH_EQ:
+                    case TokenType::RSH_EQ:
+                    case TokenType::LRSH_EQ:
+                    case TokenType::RROT_EQ:
+                    case TokenType::LROT_EQ:
+                    case TokenType::COLLAPSE_AND: break;
+                    case TokenType::LPAREN:
+                        this->advance();
+                        if (this->current_tok.type != TokenType::RPAREN) {
+                            res.failure(new InvalidSyntaxError("QC-S094: expected closing paren in operator()", op_tok.pos));
+                            return;
+                        }
+                        break;
+                    case TokenType::LBRACKET:
+                        this->advance();
+                        if (this->current_tok.type == TokenType::RBRACKET) {
+                            long_ops[0] = this->current_tok;
+                            if (this->peek().type == TokenType::EQ) {
+                                this->advance();
+                                long_ops[1] = this->current_tok;
+                                break;
+                            }
+                            long_ops[1] = Token(TokenType::EOFT, "N/A", op_tok.pos);
+                            break;
+                        } else {
+                            res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos));
+                            return;
+                        }
+                    default: res.failure(new InvalidSyntaxError("QC-S095: Unsupported operator in operator method", op_tok.pos)); return;
+                    }
+                    std::string op_name;
+                    switch (op_tok.type) {
+                    case TokenType::PLUS: op_name = "operator+"; break;
+                    case TokenType::MINUS: op_name = "operator-"; break;
+                    case TokenType::MUL: op_name = "operator*"; break;
+                    case TokenType::DIV: op_name = "operator/"; break;
+                    case TokenType::EQ_TO: op_name = "operator=="; break;
+                    case TokenType::NOT_EQ: op_name = "operator!="; break;
+                    case TokenType::EQ: op_name = "operator="; break;
+                    case TokenType::NOT: op_name = "operator!"; break;
+                    case TokenType::AND: op_name = "operator&&"; break;
+                    case TokenType::OR: op_name = "operator||"; break;
+                    case TokenType::MORE: op_name = "operator>"; break;
+                    case TokenType::LESS: op_name = "operator<"; break;
+                    case TokenType::PLUS_EQ: op_name = "operator+="; break;
+                    case TokenType::MINUS_EQ: op_name = "operator-="; break;
+                    case TokenType::MUL_EQ: op_name = "operator*="; break;
+                    case TokenType::DIV_EQ: op_name = "operator/="; break;
+                    case TokenType::MOD_EQ: op_name = "operator%="; break;
+                    case TokenType::BIT_X_EQ: op_name = "operator$="; break;
+                    case TokenType::BIT_A_EQ: op_name = "operator&="; break;
+                    case TokenType::BIT_O_EQ: op_name = "operator|="; break;
+                    case TokenType::LSH_EQ: op_name = "operator<<="; break;
+                    case TokenType::RSH_EQ: op_name = "operator|>="; break;
+                    case TokenType::LRSH_EQ: op_name = "operator:>="; break;
+                    case TokenType::RROT_EQ: op_name = "operator|>>="; break;
+                    case TokenType::LROT_EQ: op_name = "operator<<<="; break;
+                    case TokenType::MORE_EQ: op_name = "operator>="; break;
+                    case TokenType::LESS_EQ: op_name = "operator<="; break;
+                    case TokenType::POWER: op_name = "operator#^"; break;
+                    case TokenType::MOD: op_name = "operator%"; break;
+                    case TokenType::XOR: op_name = "operator^"; break;
+                    case TokenType::QNOT: op_name = "operator!!"; break;
+                    case TokenType::QAND: op_name = "operator&&&"; break;
+                    case TokenType::QOR: op_name = "operator|||"; break;
+                    case TokenType::QXOR: op_name = "operator^^"; break;
+                    case TokenType::COLLAPSE_OR: op_name = "operator|&|"; break;
+                    case TokenType::COLLAPSE_AND: op_name = "operator&|&"; break;
+                    case TokenType::LBRACKET: op_name = ((long_ops[1].type == TokenType::EQ) ? "operator[]=" : "operator[]"); break;
+                    case TokenType::LPAREN: op_name = "operator()"; break;
+                    case TokenType::INCREMENT: op_name = "operator++"; break;
+                    case TokenType::DECREMENT: op_name = "operator--"; break;
+                    case TokenType::BITWISE_NOT: op_name = "operator~"; break;
+                    case TokenType::RSHIFT: op_name = "operator|>"; break;
+                    case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                    case TokenType::R_ROT: op_name = "operator|>>"; break;
+                    case TokenType::LSHIFT: op_name = "operator<<"; break;
+                    case TokenType::L_ROT: op_name = "operator<<<"; break;
+                    case TokenType::BITWISE_XOR: op_name = "operator$"; break;
+                    case TokenType::PIPE: op_name = "operator|"; break;
+                    case TokenType::AMPERSAND: op_name = "operator&"; break;
+                    default: break;
+                    }
+                    name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                    this->advance();
+                } else if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "roperator") {
+                    this->advance();
+                    Token op_tok = this->current_tok;
+                    Token long_ops[2] = {};
+                    switch (op_tok.type) {
+                    case TokenType::MINUS:
+                    case TokenType::DIV:
+                    case TokenType::POWER:
+                    case TokenType::MOD:
+                    case TokenType::RSHIFT:
+                    case TokenType::LOGICAL_RSHIFT:
+                    case TokenType::R_ROT:
+                    case TokenType::LSHIFT:
+                    case TokenType::L_ROT: break;
+                    default: res.failure(new InvalidSyntaxError("QC-S096: Unsupported operator in roperator method", op_tok.pos)); return;
+                    }
+                    std::string op_name;
+                    switch (op_tok.type) {
+                    case TokenType::MINUS: op_name = "operator-"; break;
+                    case TokenType::DIV: op_name = "operator/"; break;
+                    case TokenType::POWER: op_name = "operator#^"; break;
+                    case TokenType::MOD: op_name = "operator%"; break;
+                    case TokenType::RSHIFT: op_name = "operator|>"; break;
+                    case TokenType::LOGICAL_RSHIFT: op_name = "operator:>"; break;
+                    case TokenType::R_ROT: op_name = "operator|>>"; break;
+                    case TokenType::LSHIFT: op_name = "operator<<"; break;
+                    case TokenType::L_ROT: op_name = "operator<<<"; break;
+                    default: break;
+                    }
+                    name_tok = Token(TokenType::IDENTIFIER, op_name, op_tok.pos);
+                    this->advance();
+                } else {
+                    res.failure(new InvalidSyntaxError("QC-T007: Expected method name after type(s)", this->current_tok.pos));
+                    return;
+                }
+                std::vector<GenericType> genericsM;
+                parseGenerics(genericsM, res); 
+                if (res.error) return;
+                if (this->current_tok.type == TokenType::LPAREN) {
+                    ClassMethodInfo mi;
+                    mi.name_tok = name_tok;
+                    auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
+                    if (std::holds_alternative<Error*>(m_pr)) return;
+                    auto fn = std::get<FuncDefNode*>(m_pr);
+                    mi.params.clear();
+                    mi.modifiers = fn->modifiers;
+                    mi.params.reserve(fn->params.size());
+                    for (auto it = fn->params.begin(); it != fn->params.end(); ++it) { mi.params.push_back(*it); }
+                    mi.return_types = fn->return_types;
+                    mi.body = fn->body;
+                    mi.is_constructor = false;
+                    mi.generics = genericsM;
+                    defBlock.definitions.push_back(std::make_pair(Token(TokenType::IDENTIFIER, modifier, this->current_tok.pos), mi));
+                    continue;
+                }
+            }
+            if (this->current_tok.type != TokenType::RBRACE) {
+                res.failure(new InvalidSyntaxError("QC-S003: Expected '}' after concept block", this->current_tok.pos));
+                return;
+            }
+            this->advance();
+            defaultBlocks.push_back(std::make_pair(blocks.size() - 1, defBlock));
+        }
+    }
     std::vector<GenericType> current_generics;
     std::string base_type_name(std::string full_type) {
         size_t open_bracket = full_type.find('<');
@@ -1468,100 +2135,99 @@ struct RunConfig {
     std::vector<std::string> link_with = {};
     std::unordered_map<std::string, std::string> definitions = {
 #ifdef _WIN32
-    {"_WIN32", "1"},
+        {"_WIN32", "1"},
 #endif
 #ifdef _WIN64
-    {"_WIN64", "1"},
+        {"_WIN64", "1"},
 #endif
 #ifdef __APPLE__
-    {"__APPLE__", "1"},
+        {"__APPLE__", "1"},
 #endif
 #ifdef __MACH__
-    {"__MACH__", "1"},
+        {"__MACH__", "1"},
 #endif
 #ifdef __linux__
-    {"__linux__", "1"},
+        {"__linux__", "1"},
 #endif
 #ifdef __linux
-    {"__linux", "1"},
+        {"__linux", "1"},
 #endif
 #ifdef __ANDROID__
-    {"__ANDROID__", "1"},
+        {"__ANDROID__", "1"},
 #endif
 #ifdef __FreeBSD__
-    {"__FreeBSD__", "1"},
+        {"__FreeBSD__", "1"},
 #endif
 #ifdef __OpenBSD__
-    {"__OpenBSD__", "1"},
+        {"__OpenBSD__", "1"},
 #endif
 #ifdef __NetBSD__
-    {"__NetBSD__", "1"},
+        {"__NetBSD__", "1"},
 #endif
 #ifdef __unix__
-    {"__unix__", "1"},
+        {"__unix__", "1"},
 #endif
 #ifdef __unix
-    {"__unix", "1"},
+        {"__unix", "1"},
 #endif
 #ifdef __i386__
-    {"__i386__", "1"},
+        {"__i386__", "1"},
 #endif
 #ifdef __i386
-    {"__i386", "1"},
+        {"__i386", "1"},
 #endif
 #ifdef __x86_64__
-    {"__x86_64__", "1"},
+        {"__x86_64__", "1"},
 #endif
 #ifdef __x86_64
-    {"__x86_64", "1"},
+        {"__x86_64", "1"},
 #endif
 #ifdef _M_IX86
-    {"_M_IX86", "1"},
+        {"_M_IX86", "1"},
 #endif
 #ifdef _M_X64
-    {"_M_X64", "1"},
+        {"_M_X64", "1"},
 #endif
 #ifdef __arm__
-    {"__arm__", "1"},
+        {"__arm__", "1"},
 #endif
 #ifdef __aarch64__
-    {"__aarch64__", "1"},
+        {"__aarch64__", "1"},
 #endif
 #ifdef _M_ARM
-    {"_M_ARM", "1"},
+        {"_M_ARM", "1"},
 #endif
 #ifdef _M_ARM64
-    {"_M_ARM64", "1"},
+        {"_M_ARM64", "1"},
 #endif
 #ifdef __riscv
-    {"__riscv", "1"},
+        {"__riscv", "1"},
 #endif
 #ifdef __riscv_xlen
-    {"__riscv_xlen", "1"},
+        {"__riscv_xlen", "1"},
 #endif
 #ifdef __wasm32__
-    {"__wasm32__", "1"},
+        {"__wasm32__", "1"},
 #endif
 #ifdef __wasm64__
-    {"__wasm64__", "1"},
+        {"__wasm64__", "1"},
 #endif
 #ifdef __powerpc__
-    {"__powerpc__", "1"},
+        {"__powerpc__", "1"},
 #endif
 #ifdef __powerpc64__
-    {"__powerpc64__", "1"},
+        {"__powerpc64__", "1"},
 #endif
 #ifdef __powerpc64le__
-    {"__powerpc64le__", "1"},
+        {"__powerpc64le__", "1"},
 #endif
 #ifdef __mips__
-    {"__mips__", "1"},
+        {"__mips__", "1"},
 #endif
 #ifdef __mips64
-    {"__mips64", "1"},
+        {"__mips64", "1"},
 #endif
-    {"__quantumc", "\"x1.0.4321R\""}
-};
+        {"__quantumc", "\"x1.0.433R\""}};
     bool progress = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -1675,13 +2341,34 @@ class LLVMCompiler {
     std::string getMethodReturnTypeName(const std::string& typeName, const std::string& methodName) {
         auto it = userTypes.find(baseTypeName(typeName));
         if (it == userTypes.end()) return "";
-
+        std::string returnType;
         for (auto& method : it->second.classMethods) {
             if (method.name_tok.value == methodName) {
-                if (!method.return_types.empty()) { return method.return_types[0].value; }
+                if (method.return_types.empty()) return "";
+                returnType = method.return_types[0].value;
+                break;
             }
         }
-        return "";
+        if (returnType.empty()) return "";
+        auto concreteParams = genericParamsFromName(typeName);
+        auto& generics = it->second.generics;
+        for (size_t i = 0; i < generics.size() && i < concreteParams.size(); ++i) {
+            const std::string& genericName = generics[i].name;
+            const std::string& concreteType = concreteParams[i];
+            size_t pos = 0;
+            while ((pos = returnType.find(genericName, pos)) != std::string::npos) {
+                size_t end = pos + genericName.size();
+                bool leftOk = pos == 0 || !(std::isalnum(static_cast<unsigned char>(returnType[pos - 1])) || returnType[pos - 1] == '_');
+                bool rightOk = end == returnType.size() || !(std::isalnum(static_cast<unsigned char>(returnType[end])) || returnType[end] == '_');
+                if (leftOk && rightOk) {
+                    returnType.replace(pos, genericName.size(), concreteType);
+                    pos += concreteType.size();
+                } else {
+                    pos += genericName.size();
+                }
+            }
+        }
+        return returnType;
     }
     llvm::Value* createEnumData(const std::string& type, const std::string& value) {
         if (type == "string") {
@@ -1949,7 +2636,7 @@ class LLVMCompiler {
                                         llvm::Value* startIndex);
     template <typename MapType> auto findInStack(std::vector<MapType>& stack, const std::string& key) {
         if (stack.empty()) {
-            cg_error(Position("", "", 0, 0, 0), "Stack is empty", "QC-S282");
+            cg_error(Position(Position::INVALID_FILE_ID, 0, 0, 0), "Stack is empty", "QC-S282");
             return stack.back().end();
         }
         for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
@@ -2991,7 +3678,8 @@ class LLVMCompiler {
             if (!isUnionType(srcTy) && paramTy == unionTy) {
                 int tag = findUnionVariantTag(unionName, argNode, v);
                 if (tag == -1) {
-                    cg_error(get_pos(argNode), "argument doesn't match union variant for " + unionName + " parameter " + std::to_string(argIndex), "QC-S305");
+                    cg_error(get_pos(argNode), "argument doesn't match union variant for " + unionName + " parameter " + std::to_string(argIndex),
+                             "QC-S305");
                     return nullptr;
                 }
 
@@ -3023,7 +3711,8 @@ class LLVMCompiler {
             if (!isEnumType(srcTy) && paramTy == enumTy) {
                 int tag = findEnumVariantTag(enumName, argNode, v);
                 if (tag == -1) {
-                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex), "QC-S306");
+                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex),
+                             "QC-S306");
                     return nullptr;
                 }
 
@@ -3905,7 +4594,8 @@ class LLVMCompiler {
                         pos = t.find("[]", pos + 2);
                     }
                     if (dims > 0) {
-                        cg_warn(get_pos(funcDef), "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
+                        cg_warn(get_pos(funcDef),
+                                "Using type " + t + " as parameter to function, which will degrade to " + ([](std::string str) {
                                     size_t pos = 0;
                                     while ((pos = str.find("[]", pos)) != std::string::npos) {
                                         str.replace(pos, 2, "*");
@@ -3914,7 +4604,8 @@ class LLVMCompiler {
                                     return str;
                                 }(t)) +
                                     ". Please consider changing the type of this parameter to that type instead, and if you need the length "
-                                    "property (which won't exist on pointers), add an additional length parameter.", "W004");
+                                    "property (which won't exist on pointers), add an additional length parameter.",
+                                "W004");
                     }
                     if (dims > 1) {
                         std::string base = t.substr(0, t.find("[]"));
@@ -4635,7 +5326,8 @@ class LLVMCompiler {
             llvm::StructType* structTy = generateGenericStruct(baseTypeName(baseName), userTypes[baseTypeName(baseName)],
                                                                genericParamsFromName(baseName));
             if (structTy == nullptr) {
-                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of struct " + baseTypeName(baseName), "QC-S310");
+                cg_error(userTypes[baseTypeName(baseName)].pos, "Failed to create specialized version of struct " + baseTypeName(baseName),
+                         "QC-S310");
                 return nullptr;
             }
             return structTy;
@@ -5171,7 +5863,31 @@ class LLVMCompiler {
     std::unordered_map<std::string, llvm::Function*> functions;
     llvm::Function* currentFunction = nullptr;
     llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);
-    llvm::Value* emitExpr(AnyNode node);
+    llvm::Value* emitExpr(const AnyNode& node);
+    [[gnu::noinline]]
+    llvm::Value* emitBinOp(BinOpNode* const*bin);
+    [[gnu::noinline]]
+    llvm::Value* emitVarAssign(VarAssignNode* const*va);
+    [[gnu::noinline]]
+    llvm::Value* emitVarAccess(VarAccessNode* const*acc);
+    [[gnu::noinline]]
+    llvm::Value* emitAssignExpr(AssignExprNode* const*asn);
+    [[gnu::noinline]]
+    llvm::Value* emitUnaryOp(UnaryOpNode* const*unary);
+    [[gnu::noinline]]
+    llvm::Value* emitMapLit(MapLiteralNode* const*mapLit);
+    [[gnu::noinline]]
+    llvm::Value* emitArrLit(ArrayLiteralNode* const*arrLit);
+    [[gnu::noinline]]
+    llvm::Value* emitCall(CallNode* const*callPtr);
+    [[gnu::noinline]]
+    llvm::Value* emitArrAcc(ArrayAccessNode *arrAcc);
+    [[gnu::noinline]]
+    llvm::Value* emitPropAcc(PropertyAccessNode* const*propAccess);
+    [[gnu::noinline]]
+    llvm::Value* emitMthdCall(MethodCallNode* const*methodCall);
+    [[gnu::noinline]]
+    llvm::Value* emitFieldAssign(FieldAssignNode* const*fieldAssign);
     llvm::Value* extractUnionToBestGuess(llvm::Value* unionVal) {
         std::string unionName;
         if (!isUnionType(unionVal->getType(), &unionName)) { return unionVal; }

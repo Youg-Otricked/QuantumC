@@ -1,5 +1,5 @@
-volatile long long sink = 0;
-#include <cstdio>
+long long sink = 0;
+#include <iostream>
 
 long long heavy_compute(int n) {
     long long x = 1;
@@ -21,18 +21,15 @@ int main() {
     const int inner = 200000;
     long long total = 0;
 
-    std::printf("Starting heavy benchmark...\n");
+    std::cout << "Starting heavy benchmark...\n";
 
     for (int i = 0; i < outer; i++) {
         long long result = heavy_compute(inner);
         total += result;
-        std::printf("Run %d result: %lld\n", i, result);
+        std::cout << "Run " << i << " result: " << result << '\n';
     }
-
     sink = total;
-
-    std::printf("Final sink: %lld\n", sink);
-    std::printf("Done.\n");
+    std::cout << "Final sink: " << sink << "\nDone.\n";
 
     return 0;
 }

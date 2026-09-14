@@ -20,14 +20,14 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x1.0.4321";
+const std::string ver = "x1.0.433";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
     if (!slow) {
         std::cout << color << text << RESET;
     } else {
-        std::mt19937 rng(std::random_device{}());
+        static std::mt19937 rng(std::random_device{}());
         std::uniform_int_distribution<int> chunk_size_dist(1, 5);
         std::uniform_int_distribution<int> delay_dist(min_delay_ms, max_delay_ms);
 
@@ -495,9 +495,7 @@ Examples:
         bool has_warnings = false;
         if (config.dump_tokens) return 0;
         if (!config.quiet_mode) { slow_print("=== Diagnostics ===\n", BOLD); }
-        if (result.tokens.error) {
-            slow_print(result.tokens.error->as_string() + "\n", RED);
-        }
+        if (result.tokens.error) { slow_print(result.tokens.error->as_string() + "\n", RED); }
         for (const auto& diag : result.errors) {
             std::string color;
 
@@ -565,28 +563,26 @@ const char* run_quantumc_code(const char* code) {
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     // wow. comments in my codebase? crazy.
     auto result = tkz::run("<wasm>", code,
-                           tkz::RunConfig{
-                               true,             // use_context
-                               false,            // looser_types
-                               false,            // print_ast
-                               false,            // print_tokens
-                               false,            // show_time
-                               false,            // quiet_mode
-                               false,            // raw
-                               false,            // bst
-                               false,             // compile_mode
-                               false,            // interpret_mode
-                               false,            // compile_only
-                               true,             // object_only
-                               false,            // debug
-                               false,            // optimize
-                               "O0",             // opt_level
-                               "/working/a.out", // output_file
-                               false,            // output_wasm
-                               true,             // link runtime
-                               false, // dump tokens
-                               "x86_64-unknown-linux-gnu"
-                           });
+                           tkz::RunConfig{true,             // use_context
+                                          false,            // looser_types
+                                          false,            // print_ast
+                                          false,            // print_tokens
+                                          false,            // show_time
+                                          false,            // quiet_mode
+                                          false,            // raw
+                                          false,            // bst
+                                          false,            // compile_mode
+                                          false,            // interpret_mode
+                                          false,            // compile_only
+                                          true,             // object_only
+                                          false,            // debug
+                                          false,            // optimize
+                                          "O0",             // opt_level
+                                          "/working/a.out", // output_file
+                                          false,            // output_wasm
+                                          true,             // link runtime
+                                          false,            // dump tokens
+                                          "x86_64-unknown-linux-gnu"});
     if (result.ast.error) {
         output = result.ast.error->as_string();
         std::cout.rdbuf(old);
