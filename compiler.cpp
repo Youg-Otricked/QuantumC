@@ -1910,7 +1910,12 @@ Prs Parser::atom() {
                             this->advance();
                             break;
                         }
-                    } else {
+                    } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        just_incremented = false;
+                        next_comma = true;
+                        name += this->parseNoGenericString();
+                        continue;
+                    } else {//need to copy like 50 times
                         just_incremented = false;
                     }
                     if (this->current_tok.type != TokenType::MORE) next_comma = !next_comma;
@@ -1989,6 +1994,11 @@ Prs Parser::atom() {
                         this->advance();
                         break;
                     }
+                } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                        just_incremented = false;
+                        next_comma = true;
+                        name += this->parseNoGenericString();
+                        continue;
                 } else {
                     just_incremented = false;
                 }
@@ -2161,6 +2171,11 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                            just_incremented = false;
+                            next_comma = true;
+                            name += this->parseNoGenericString();
+                            continue;
                         } else {
                             just_incremented = false;
                         }
@@ -2290,6 +2305,11 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                            just_incremented = false;
+                            next_comma = true;
+                            name += this->parseNoGenericString();
+                            continue;
                         } else {
                             just_incremented = false;
                         }
@@ -2452,6 +2472,11 @@ Prs Parser::atom() {
                                     this->advance();
                                     break;
                                 }
+                            } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                                just_incremented = false;
+                                next_comma = true;
+                                name += this->parseNoGenericString();
+                                continue;
                             } else {
                                 just_incremented = false;
                             }
@@ -2581,6 +2606,11 @@ Prs Parser::atom() {
                                     this->advance();
                                     break;
                                 }
+                            } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                                just_incremented = false;
+                                next_comma = true;
+                                name += this->parseNoGenericString();
+                                continue;
                             } else {
                                 just_incremented = false;
                             }
@@ -2742,6 +2772,11 @@ Prs Parser::atom() {
                                 this->advance();
                                 break;
                             }
+                        } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
+                            just_incremented = false;
+                            next_comma = true;
+                            property_name.value += this->parseNoGenericString();
+                            continue;
                         } else {
                             just_incremented = false;
                         }
@@ -9381,7 +9416,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const*va) {
             if (destLen > srcLen) {
                 llvm::Value* zeroStart = builder->CreateGEP(destArrTy, newArr, {builder->getInt32(0), builder->getInt32(srcLen)});
                 uint64_t zeroBytes = (destLen - srcLen) * srcArrTy->getElementType()->getPrimitiveSizeInBits() / 8;
-                builder->CreateMemSet(zeroStart, builder->getInt8(0), zeroBytes, llvm::MaybeAlign());
+                if (config.use_runtime) builder->CreateMemSet(zeroStart, builder->getInt8(0), zeroBytes, llvm::MaybeAlign());
             }
             rhs = newArr;
         } else if (srcTy->isDoubleTy() && destTy->isFloatTy()) {
@@ -9404,7 +9439,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const*va) {
     }
     if (llvm::isa<llvm::ConstantAggregateZero>(rhs) && srcTy->isArrayTy()) {
         uint64_t bytes = module->getDataLayout().getTypeAllocSize(srcTy);
-        builder->CreateMemSet(alloc, builder->getInt8(0), bytes, llvm::MaybeAlign(), isVolatile);
+        if (config.use_runtime) builder->CreateMemSet(alloc, builder->getInt8(0), bytes, llvm::MaybeAlign(), isVolatile);
     } else {
         builder->CreateStore(rhs, alloc, isVolatile);
     }
@@ -10699,11 +10734,47 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const*callPtr) {
                                                                               {"`lseek", "qc_lseek"},
                                                                               {"`opendir", "qc_opendir"},
                                                                               {"`readdir", "qc_readdir"},
-                                                                              {"`closedir", "qc_closedir"}};
+                                                                              {"`closedir", "qc_closedir"},
+                                                                              {"`memset", ""},
+                                                                              {"`memmove", ""},
+                                                                              {"`memcpy", ""}};
         auto it = builtins.find(funcName);
 
         if (it != builtins.end()) {
             std::string runtimeName = it->second;
+            if (funcName == "`memset") {
+                if (call.arg_nodes.size() != 3) {
+                    cg_error(get_pos(&call), "`memset expectes exactly 3 arguments", "QC-S172");
+                    return nullptr;
+                }
+                llvm::Value *dest_ptr = emitExpr(call.arg_nodes.front());
+                llvm::Value *size = emitExpr(call.arg_nodes.back());
+                llvm::Value *value = emitExpr(*std::next(call.arg_nodes.begin(), 1));
+                builder->CreateMemSet(dest_ptr, value, size, llvm::MaybeAlign(), false);
+                return nullptr;
+            }
+            if (funcName == "`memmove") {
+                if (call.arg_nodes.size() != 3) {
+                    cg_error(get_pos(&call), "`memmove expectes exactly 3 arguments", "QC-S172");
+                    return nullptr;
+                }
+                llvm::Value *dest_ptr = emitExpr(call.arg_nodes.front());
+                llvm::Value *size = emitExpr(call.arg_nodes.back());
+                llvm::Value *src_ptr = emitExpr(*std::next(call.arg_nodes.begin(), 1));
+                builder->CreateMemMove(dest_ptr, llvm::MaybeAlign(), src_ptr, llvm::MaybeAlign(), size, false);
+                return nullptr;
+            }
+            if (funcName == "`memcpy") {
+                if (call.arg_nodes.size() != 3) {
+                    cg_error(get_pos(&call), "`memcpy expectes exactly 3 arguments", "QC-S172");
+                    return nullptr;
+                }
+                llvm::Value *dest_ptr = emitExpr(call.arg_nodes.front());
+                llvm::Value *size = emitExpr(call.arg_nodes.back());
+                llvm::Value *src_ptr = emitExpr(*std::next(call.arg_nodes.begin(), 1));
+                builder->CreateMemCpy(dest_ptr, llvm::MaybeAlign(), src_ptr, llvm::MaybeAlign(), size, false);
+                return nullptr;
+            }
             if (funcName == "`atomic_load") {
                 if (call.arg_nodes.size() != 1) {
                     cg_error(get_pos(*callPtr), "`atomic_load expects exactly one argument", "QC-S172");
@@ -14016,7 +14087,7 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm:
     }
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(), currentFunction->getEntryBlock().begin());
     llvm::AllocaInst* alloc = tmp.CreateAlloca(ty, nullptr, name);
-    builder->CreateMemSet(alloc, builder->getInt8(0), module->getDataLayout().getTypeAllocSize(ty), alloc->getAlign());
+    if (config.use_runtime) builder->CreateMemSet(alloc, builder->getInt8(0), module->getDataLayout().getTypeAllocSize(ty), alloc->getAlign());
     return alloc;
 }
 llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
@@ -15159,7 +15230,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 auto* arrTy = llvm::ArrayType::get(elemTy, length);
                 auto* alloc = createEntryAlloca(name, arrTy);
                 uint64_t bytes = module->getDataLayout().getTypeAllocSize(arrTy).getFixedValue();
-                builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(bytes), llvm::MaybeAlign(1), isVolatile);
+                if (config.use_runtime) builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(bytes), llvm::MaybeAlign(1), isVolatile);
                 locals[name] = alloc;
                 arrayTypeStrings[name] = elemType;
                 arrayLengths[name] = length;
@@ -15318,7 +15389,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 llvm::AllocaInst* alloc = createEntryAlloca(name, arrTy);
                 const llvm::DataLayout& dl = module->getDataLayout();
                 uint64_t sizeBytes = dl.getTypeAllocSize(arrTy).getFixedValue();
-                builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(sizeBytes), llvm::MaybeAlign(1), isVolatile);
+                if (config.use_runtime) builder->CreateMemSet(alloc, builder->getInt8(0), builder->getInt64(sizeBytes), llvm::MaybeAlign(1), isVolatile);
                 locals[name] = alloc;
                 arrayTypeStrings[name] = elemType;
                 arrayLengths[name] = arraySize;

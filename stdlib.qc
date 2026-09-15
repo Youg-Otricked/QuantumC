@@ -135,7 +135,7 @@ namespace Array {
                 this->data[i] = data[i];
             }
         }
-        T& operator[](int index) {
+        T& operator[](addr_t index) {
             return this->data[index];
         }
         Iterator::It<T> _begin() {
@@ -248,7 +248,7 @@ namespace Vector {
         void shrinkToFit() {
             this->reserve(this->size);
         }
-        void operator[]=(T* data, int length) {
+        void operator[]=(T* data, addr_t length) {
             if (this->size != 0) `free(this->data);
             this->capacity = length;
             this->size = length;
@@ -257,7 +257,7 @@ namespace Vector {
                 this->data[i] = data[i];
             }
         }
-        T& operator[](int index) {
+        T& operator[](addr_t index) {
             return this->data[index];
         }
         Iterator::It<T> _begin() {
@@ -454,14 +454,14 @@ namespace List {
             this->tail = nullptr;
             this->size = -1;
         }
-        T& operator[](int index) {
+        T& operator[](addr_t index) {
             Node<T>* node = this->_getNode(index);
             if (node == nullptr) {
                 return nullptr;
             }
             return node.data;
         }
-        void operator[]=(T* data, int length) {
+        void operator[]=(T* data, addr_t length) {
             while (this->size != 0) this->popBack();
             this->head = nullptr;
             this->tail = nullptr;
@@ -746,17 +746,17 @@ namespace Span {
     class Span<T> {
         T* data;
         int length;
-        T& operator[](int index) {
+        T& operator[](addr_t index) {
             if (index >= this->length) throw "Cannot index past end of a Span";
             return this->data[index];
         }
         Span() {
-            this.length = 0;
-            this.data = nullptr;
+            this->length = 0;
+            this->data = nullptr;
         }
-        void operator[]=(T *data, int length) {
-            this.length = length;
-            this.data = data;
+        void operator[]=(T *data, addr_t length) {
+            this->length = length;
+            this->data = data;
         }
         Iterator::It<T> _begin() {
             return Iterator::It<T>(this->data, this->length, false);
@@ -996,7 +996,7 @@ namespace Unordered {
                 this->buckets[i] = nullptr;
             }
         }
-        void operator[]=(T *data, int length) {
+        void operator[]=(T *data, addr_t length) {
             if (num_buckets == 0) this->Set();
             for (int i = 0; i < length; i++) {
                 this->add(data[i]);

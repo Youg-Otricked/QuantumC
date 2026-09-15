@@ -1900,6 +1900,78 @@ class Parser {
     Parameter parse_parameter(bool type_only);
     bool in_extern = false;
     bool in_foreign = false;
+    std::string parseNoGenericString() {
+        std::string type = "";
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "volatile") {
+            type += "volatile ";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "atomic") {
+            type += "atomic ";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "fn") {
+            type += "fn";
+            this->advance();
+            if (this->current_tok.type != TokenType::LPAREN) {
+                throw InvalidSyntaxError("QC-T058: `fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
+            }
+            this->advance();
+            type += "(";
+            type += parseTypeString();
+            while (this->current_tok.type == TokenType::COMMA) {
+                this->advance();
+                type += ", " + parseTypeString();
+            }
+            if (this->current_tok.type != TokenType::RPAREN) {
+                throw InvalidSyntaxError("QC-T058: `fn` is not a standalone type and must also have its () and return type", this->current_tok.pos);
+            }
+            this->advance();
+            type += ")";
+            if (this->current_tok.type != TokenType::ARROW) {
+                throw InvalidSyntaxError("QC-T059: `fn` must have a `->` before the return type.", this->current_tok.pos);
+            }
+            type += " -> ";
+            this->advance();
+            type += parseTypeString();
+            return type;
+        }
+        if (this->current_tok.type == TokenType::KEYWORD && (this->current_tok.value == "short" || this->current_tok.value == "long")) {
+            type += this->current_tok.value + " ";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::KEYWORD || this->current_tok.type == TokenType::IDENTIFIER) {
+            type += this->current_tok.value;
+            this->advance();
+        } else {
+            return "";
+        }
+        while (this->current_tok.type == TokenType::SCOPE) {
+            this->advance();
+            type += "::" + this->current_tok.value;
+            this->advance();
+        }
+        while (this->current_tok.type == TokenType::LBRACKET) {
+            this->advance();
+            if (this->current_tok.type == TokenType::INT) {
+                type += "[" + this->current_tok.value + "]";
+                this->advance();
+            } else {
+                type += "[]";
+            }
+            this->advance();
+        }
+        while (this->current_tok.type == TokenType::MUL) {
+            type += "*";
+            this->advance();
+        }
+        if (this->current_tok.type == TokenType::AMPERSAND) {
+            type += "&";
+            this->advance();
+        }
+
+        return type;
+    }
     std::string parseTypeString() {
         std::string type = "";
         if (this->current_tok.type == TokenType::KEYWORD && this->current_tok.value == "proves") {
@@ -2227,7 +2299,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.433R\""}};
+        {"__quantumc", "\"x1.0.434R\""}};
     bool progress = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -4081,6 +4153,16 @@ class LLVMCompiler {
                 reconciled.push_back(actual);
             } else if (!expected->isPointerTy() && actual->getType()->isPointerTy()) {
                 reconciled.push_back(builder->CreateLoad(expected, actual));
+            } else if (expected->isIntegerTy() && actual->getType()->isIntegerTy()) {
+                unsigned expBits = expected->getIntegerBitWidth();
+                unsigned actBits = actual->getType()->getIntegerBitWidth();
+                if (actBits > expBits) {
+                    reconciled.push_back(builder->CreateTrunc(actual, expected));
+                } else if (actBits < expBits) {
+                    reconciled.push_back(builder->CreateSExt(actual, expected));
+                } else {
+                    reconciled.push_back(actual);
+                }
             } else {
                 reconciled.push_back(builder->CreateBitCast(actual, expected));
             }
@@ -4132,16 +4214,28 @@ class LLVMCompiler {
         }
         return declaredClass;
     }
-
+    int implicitCastPenalty(llvm::Type* expected, llvm::Type* actual) {
+        if (expected == actual) return 0;
+        auto isCharLike = [](llvm::Type* t) -> bool {
+            if (t->isPointerTy()) return true;
+            if (t->isArrayTy() && t->getArrayElementType()->isIntegerTy(8)) return true;
+            return false;
+        };
+        if (isCharLike(expected) && isCharLike(actual)) return 0;
+        if (expected->isIntegerTy() && actual->isIntegerTy()) {
+            unsigned expBits = expected->getIntegerBitWidth();
+            unsigned actBits = actual->getIntegerBitWidth();
+            return expBits >= actBits ? 2 : 1;
+        }
+        return -1;
+    }
     llvm::Function* findMethodOverload(const std::string& className, const std::string& methodName, const std::vector<llvm::Value*>& args) {
         std::string resolvedClassName = className;
         if (className.find("::") == std::string::npos && !getCurrentNamespace().empty()) {
             std::string qualifiedName = getCurrentNamespace() + "::" + className;
             if (classMethods.find(qualifiedName) != classMethods.end()) { resolvedClassName = qualifiedName; }
         }
-
         std::string currentClass = resolvedClassName;
-
         while (!currentClass.empty()) {
             auto classIt = classMethods.find(currentClass);
             if (classIt != classMethods.end()) {
@@ -4174,6 +4268,8 @@ class LLVMCompiler {
                                 if (expected != actual) {
                                     if (expected->isPointerTy() || actual->isPointerTy()) {
                                         currentScore += 1;
+                                    } else if (int cast = implicitCastPenalty(expected, actual); cast >= 0) {
+                                        currentScore += cast;
                                     } else {
                                         matches = false;
                                         break;
@@ -5423,6 +5519,10 @@ class LLVMCompiler {
         std::string typeStr = resolveVarType(name);
         if (typeStr.empty()) {
             llvm::Value* ptr = resolveVariable(name);
+            if (!ptr) {
+                cg_error(Position(Position::INVALID_FILE_ID, 0, 0, 0), "Failed to resolve var type");
+                return nullptr;
+            }
             if (auto* alloca = llvm::dyn_cast<llvm::AllocaInst>(ptr)) { return alloca->getAllocatedType(); }
             if (auto* gv = llvm::dyn_cast<llvm::GlobalVariable>(ptr)) { return gv->getValueType(); }
             return nullptr;
