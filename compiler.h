@@ -4296,6 +4296,8 @@ class LLVMCompiler {
                                     if (expected->isPointerTy() || actual->isPointerTy() || expected->isArrayTy() && actual->isPointerTy() ||
                                         expected->isPointerTy() && actual->isArrayTy()) {
                                         currentScore += 1;
+                                    } else if (int cast = implicitCastPenalty(expected, actual); cast >= 0) {
+                                        currentScore += cast;
                                     } else {
                                         matches = false;
                                         break;
