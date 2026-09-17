@@ -2209,4 +2209,23 @@ namespace Filesystem {
         output.close();
     }
 }
-
+#depends(Owned: CoreConcepts)
+namespace Owned {
+    class Owned<T> {
+        private T *data;
+        Owned(T *data) {
+            this->data = data;
+        }
+        T *own() {
+            return this->data;
+        }
+        void ignore() {
+            `free(this->data);
+            this->data = nullptr;
+        }
+        void _destroy() {
+            `free(this->data);
+        }
+    }
+    Owned proves CoreConcepts::Allocated;
+}

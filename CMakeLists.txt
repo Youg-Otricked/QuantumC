@@ -78,6 +78,7 @@ target_compile_options(qc PRIVATE
     $<$<CONFIG:Release>:-O3>
     --std=c++23
     $<$<CONFIG:RelWithDebInfo>:-O2>
+    $<$<CONFIG:Debug>:-fstandalone-debug>
 )
 if(ENABLE_LLVM)
     separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND "${LLVM_DEFINITIONS}")

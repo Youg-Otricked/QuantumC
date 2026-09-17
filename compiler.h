@@ -2361,6 +2361,11 @@ class LLVMCompiler {
     void generateStructReprFunctions();
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
     void createUserTypes();
+    static bool isIndirectType(const std::string& t) {
+        return !t.empty() && (t.back() == '*' || t.back() == '&');
+    }
+    void generateStruct(const std::string& mapKey, const UserTypeInfo& info);
+    void generateClass(const std::string& mapKey, const UserTypeInfo& info);
     llvm::Value* convertToString(llvm::Value* val, AnyNode& expr, Position pos);
     LLVMCompiler(std::unordered_map<std::string, UserTypeInfo>& userTys, llvm::Module* mod, llvm::LLVMContext& ctx, bool is_main = false);
     std::vector<CTError> compile(
@@ -3269,7 +3274,7 @@ class LLVMCompiler {
         if (!pointeeTy || pointeeTy->isVoidTy()) return val;
         return builder->CreateLoad(pointeeTy, val, "deref_ref");
     }
-    llvm::Value* emitPropertyAddress(PropertyAccessNode& prop) {
+    llvm::Value* emitPropertyAddress(PropertyAccessNode& prop, bool fallback = false) {
         std::string propName = prop.property_name.value;
         llvm::Value* baseAddr = emitLValue(*prop.base);
         if (!baseAddr) {
@@ -3363,6 +3368,7 @@ class LLVMCompiler {
                 }
             }
         }
+        if (fallback) return emitExpr(&prop);
         cg_error(prop.property_name.pos, "cannot resolve address for property '" + propName + "' on type '" + typeName + "'", "QC-T060");
         return nullptr;
     }
@@ -3376,7 +3382,16 @@ class LLVMCompiler {
         auto* newTy = llvm::StructType::create(context, name);
         return newTy;
     }
-    llvm::Value* emitLValue(AnyNode& node) {
+    #if !defined(__OPTIMIZE__)
+    template <typename T>
+    void dump_val(T* v) {
+        if (v) {
+            v->dump();
+            llvm::errs() << "\n";
+        }
+    }
+#endif
+    llvm::Value* emitLValue(AnyNode& node, bool fallback = false) {
         if (auto var = std::get_if<VarAccessNode*>(&node)) {
             std::string name = (*var)->var_name_tok.value;
             if (name == "this") {
@@ -3388,24 +3403,30 @@ class LLVMCompiler {
                 }
             }
             llvm::Value* addr = getVarAddress(name);
+            if (!addr && fallback) return emitExpr(node);
             return addr;
         } else if (auto unary = std::get_if<UnaryOpNode*>(&node)) {
             if ((*unary)->op_tok.type == TokenType::MUL) { return emitExpr((*unary)->node); }
             if ((*unary)->op_tok.type == TokenType::AMPERSAND) { return emitLValue((*unary)->node); }
+            if (fallback) return emitExpr(node);
         } else if (auto prop = std::get_if<PropertyAccessNode*>(&node)) {
-            return emitPropertyAddress(**prop);
+            return emitPropertyAddress(**prop, fallback);
         } else if (auto call = std::get_if<CallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
             if (retType.ends_with("&") || retType.ends_with("*")) { return emitExpr(node); }
+            if (fallback) return emitExpr(node);
         } else if (auto method = std::get_if<MethodCallNode*>(&node)) {
             std::string retType = getExpressionType(node, false);
             if (retType.ends_with("&") || retType.ends_with("*")) { return emitExpr(node); }
+            if (fallback) return emitExpr(node);
         } else if (auto arrAcc = std::get_if<ArrayAccessNode*>(&node)) {
             std::string ptrTy = getExpressionType((*arrAcc)->base);
             if (ptrTy.ends_with("*")) {
                 ptrTy.pop_back();
                 llvm::Value* base = emitExpr((*arrAcc)->base);
+                if (!base) return nullptr;
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
+                if (!idx) return nullptr;
                 return builder->CreateGEP(llvmTypeFor(ptrTy), base, idx, "lval_ptr_arr_addr");
             }
             if (ptrTy.ends_with("[]")) {
@@ -3427,17 +3448,20 @@ class LLVMCompiler {
                 if (!base) { return nullptr; }
                 llvm::Type* arrayTy = llvmTypeFor(ptrTy);
                 if (!arrayTy->isArrayTy()) {
+                    if (fallback) return emitExpr(node);
                     cg_error(get_pos((*arrAcc)->base), "invalid array type for indexing", "QC-T062");
                     return nullptr;
                 }
                 return builder->CreateGEP(arrayTy, base, {builder->getInt32(0), index}, "lval_arr_addr");
             }
             if (genericiseOrFindClass(ptrTy)) {
-                llvm::Value* obj = emitLValue((*arrAcc)->base);
+                llvm::Value* obj = emitLValue((*arrAcc)->base, true);
                 llvm::Value* idx = emitExpr((*arrAcc)->indices[0]);
                 return emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
             }
+            if (fallback) return emitExpr(node);
         }
+        if (fallback) return emitExpr(node);
         return nullptr;
     }
     std::string getElementType(std::string fullType) {
@@ -4402,12 +4426,18 @@ class LLVMCompiler {
             if (indexIt != slotIt->second.end()) {
                 int slotIndex = indexIt->second;
                 llvm::StructType* classTy = genericiseOrFindClass(ty);
-                llvm::Value* vptrField = builder->CreateStructGEP(classTy, payload, 0, "vptr_field");
+                llvm::Value* objPtr = payload;
+                llvm::Value* vptrField;
+                if (!objPtr->getType()->isPointerTy()) {
+                    llvm::AllocaInst* tempSlot = createEntryAlloca("vcall_temp", objPtr->getType());
+                    builder->CreateStore(objPtr, tempSlot);
+                    objPtr = tempSlot;
+                }
+                vptrField = builder->CreateStructGEP(classTy, objPtr, 0, "vptr_field");
                 llvm::Value* vptr = builder->CreateLoad(builder->getPtrTy(), vptrField, "vptr");
                 llvm::Value* fnPtrAddr = builder->CreateGEP(builder->getPtrTy(), vptr, builder->getInt32(slotIndex), "vtable_slot");
                 llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
-                std::vector<llvm::Value*> allArgs = {payload};
-                allArgs.insert(allArgs.end(), args.begin(), args.end());
+                std::vector<llvm::Value*> allArgs = reconcileArgs(method, objPtr, args);
                 if (insideTry()) {
                     auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
                     llvm::InvokeInst* invoke = builder->CreateInvoke(method->getFunctionType(), fnPtr, contBB, currentLandingPad(), allArgs);

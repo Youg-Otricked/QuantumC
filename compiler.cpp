@@ -5769,6 +5769,14 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                         }
                     }
                 }
+                if (!resolveTypeName(resolvedType, false).ends_with("*")) {
+                    std::string resolved = resolveTypeName(resolvedType, false);
+                    if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                        generateStruct(resolved, userTypes.at(resolved));
+                    } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                        generateClass(resolved, userTypes.at(resolved));
+                    }
+                }
                 if (field.isStatic) {
                     llvm::Type* fieldTy = llvmTypeFor(resolvedType);
                     std::string mangledName = mangled_class_name + "::" + field.name;
@@ -6118,6 +6126,14 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     }
     std::vector<llvm::Type*> fieldTypes;
     for (auto& field : structInfo.fields) {
+        if (!resolveTypeName(field.type, false).ends_with("*")) {
+            std::string resolved = resolveTypeName(field.type, false);
+            if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                generateStruct(resolved, userTypes.at(resolved));
+            } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                generateClass(resolved, userTypes.at(resolved));
+            }
+        }
         llvm::Type* ty = llvmTypeFor(field.type);
         fieldTypes.push_back(ty);
     }
@@ -6213,6 +6229,150 @@ std::string LLVMCompiler::generateGenericAlias(std::string aliasName, UserTypeIn
     currentNonTypeGenericValues = oldNonTypeGenerics;
     return substituted;
 }
+void LLVMCompiler::generateStruct(const std::string& mapKey, const UserTypeInfo& info) {
+    if (!info.generics.empty()) return;
+    if (!structTypes.count(mapKey) || !structTypes[mapKey]->isOpaque()) return;
+    std::vector<llvm::Type*> fieldTypes;
+    auto oldNamespaceStack = namespaceStack;
+    namespaceStack.clear();
+    if (!info.namespace_path.empty()) {
+        size_t start = 0;
+        size_t pos;
+        while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+            namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+            start = pos + 2;
+        }
+        namespaceStack.push_back(info.namespace_path.substr(start));
+    }
+    for (auto& field : info.fields) {
+        if (!resolveTypeName(field.type, false).ends_with("*")) {
+            std::string resolved = resolveTypeName(field.type, false);
+            if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                generateStruct(resolved, userTypes.at(resolved));
+            } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                generateClass(resolved, userTypes.at(resolved));
+            }
+        }
+        llvm::Type* ty = llvmTypeFor(field.type);
+        fieldTypes.push_back(ty);
+    }
+    structTypes[mapKey]->setBody(fieldTypes);
+    namespaceStack = oldNamespaceStack;
+}
+void LLVMCompiler::generateClass(const std::string& mapKey, const UserTypeInfo& info) {
+    if (!info.generics.empty()) return;
+    if (!classTypes.count(mapKey) || !classTypes[mapKey]->isOpaque()) return;
+    if (!info.baseClassName.empty()) {
+        auto base_it = userTypes.find(baseTypeName(info.baseClassName));
+        if (base_it != userTypes.end() && base_it->second.is_final_class) {
+            cg_error(info.pos, "cannot inherit from final class '" + info.baseClassName + "'", "QC-S113");
+            return;
+        }
+    }
+    auto oldNamespaceStack = namespaceStack;
+    namespaceStack.clear();
+    if (!info.namespace_path.empty()) {
+        size_t start = 0;
+        size_t pos;
+        while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
+            namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
+            start = pos + 2;
+        }
+        namespaceStack.push_back(info.namespace_path.substr(start));
+    }
+    std::vector<llvm::Type*> fieldTypes;
+    std::function<void(const std::string&, std::unordered_map<std::string, std::string>)> collectFields =
+        [&](const std::string& cname, std::unordered_map<std::string, std::string> genericSubs) {
+            auto it = userTypes.find(baseTypeName(cname));
+            if (it == userTypes.end()) { throw std::string("Class not found: ") + cname; }
+            auto& classIfo = it->second;
+            if (!classIfo.baseClassName.empty()) {
+                std::string baseFullName = classIfo.baseClassName;
+                for (auto& [gname, gval] : genericSubs) {
+                    size_t pos = 0;
+                    while ((pos = baseFullName.find(gname, pos)) != std::string::npos) {
+                        size_t end = pos + gname.size();
+                        bool leftOk = pos == 0 ||
+                                      !(std::isalnum(static_cast<unsigned char>(baseFullName[pos - 1])) || baseFullName[pos - 1] == '_');
+                        bool rightOk = end == baseFullName.size() ||
+                                       !(std::isalnum(static_cast<unsigned char>(baseFullName[end])) || baseFullName[end] == '_');
+                        if (leftOk && rightOk) {
+                            baseFullName.replace(pos, gname.size(), gval);
+                            pos += gval.size();
+                        } else {
+                            pos += gname.size();
+                        }
+                    }
+                }
+                std::unordered_map<std::string, std::string> baseSubs;
+                auto baseIt = userTypes.find(baseTypeName(baseFullName));
+                if (baseIt != userTypes.end()) {
+                    genericiseOrFindClass(baseFullName);
+                    auto baseArgs = genericParamsFromName(baseFullName);
+                    for (size_t i = 0; i < baseIt->second.generics.size() && i < baseArgs.size(); i++) {
+                        baseSubs[baseIt->second.generics[i].name] = baseArgs[i];
+                    }
+                }
+                collectFields(baseFullName, baseSubs);
+            }
+            for (auto& field : classIfo.classFields) {
+                std::string resolvedType = field.type;
+                if (field.name == "__vptr") {
+                    resolvedType = cname + "*";
+                } else {
+                    for (auto& [gname, gval] : genericSubs) {
+                        size_t pos = 0;
+                        while ((pos = resolvedType.find(gname, pos)) != std::string::npos) {
+                            size_t end = pos + gname.size();
+                            bool leftOk = pos == 0 ||
+                                          !(std::isalnum(static_cast<unsigned char>(resolvedType[pos - 1])) || resolvedType[pos - 1] == '_');
+                            bool rightOk = end == resolvedType.size() ||
+                                           !(std::isalnum(static_cast<unsigned char>(resolvedType[end])) || resolvedType[end] == '_');
+                            if (leftOk && rightOk) {
+                                resolvedType.replace(pos, gname.size(), gval);
+                                pos += gval.size();
+                            } else {
+                                pos += gname.size();
+                            }
+                        }
+                    }
+                }
+                if (!resolveTypeName(resolvedType, false).ends_with("*")) {
+                    std::string resolved = resolveTypeName(resolvedType, false);
+                    if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                        generateStruct(resolved, userTypes.at(resolved));
+                    } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                        generateClass(resolved, userTypes.at(resolved));
+                    }
+                }
+                if (field.isStatic) {
+                    llvm::Type* fieldTy = llvmTypeFor(resolvedType);
+                    std::string mangledName = cname + "::" + field.name;
+                    if (!module->getNamedGlobal(mangledName)) {
+                        llvm::Constant* initVal = !std::holds_alternative<std::monostate>(field.defaultValue)
+                                                      ? llvm::dyn_cast<llvm::Constant>(emitExpr(field.defaultValue))
+                                                      : llvm::Constant::getNullValue(fieldTy);
+                        if (!initVal) { initVal = llvm::Constant::getNullValue(fieldTy); }
+
+                        globals[mangledName] = new llvm::GlobalVariable(*module, fieldTy, false, llvm::GlobalValue::ExternalLinkage, initVal,
+                                                                        mangledName);
+                        varTypes[mangledName] = resolvedType;
+                        volatileVars[mangledName] = false;
+                    }
+                } else {
+                    if (!std::holds_alternative<std::monostate>(field.defaultValue)) {
+                        cg_warn(get_pos(field.defaultValue), "default values do not exist on non-static members", "W001");
+                    }
+                    fieldTypes.push_back(llvmTypeFor(resolvedType));
+                }
+            }
+        };
+    collectFields(mapKey, {});
+    if (fieldTypes.empty()) { fieldTypes.push_back(builder->getInt8Ty()); }
+
+    classTypes[mapKey]->setBody(fieldTypes);
+    namespaceStack = oldNamespaceStack;
+}
 
 void LLVMCompiler::createUserTypes() {
     auto getFullName = [](const std::string& name, const UserTypeInfo& info) {
@@ -6273,112 +6433,7 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Class) {
-            if (!info.generics.empty()) continue;
-            if (!info.baseClassName.empty()) {
-                auto base_it = userTypes.find(baseTypeName(info.baseClassName));
-                if (base_it != userTypes.end() && base_it->second.is_final_class) {
-                    cg_error(info.pos, "cannot inherit from final class '" + info.baseClassName + "'", "QC-S113");
-                    continue;
-                }
-            }
-            auto oldNamespaceStack = namespaceStack;
-            namespaceStack.clear();
-            if (!info.namespace_path.empty()) {
-                size_t start = 0;
-                size_t pos;
-                while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
-                    namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
-                    start = pos + 2;
-                }
-                namespaceStack.push_back(info.namespace_path.substr(start));
-            }
-
-            std::vector<llvm::Type*> fieldTypes;
-
-            std::function<void(const std::string&, std::unordered_map<std::string, std::string>)> collectFields =
-                [&](const std::string& cname, std::unordered_map<std::string, std::string> genericSubs) {
-                    auto it = userTypes.find(baseTypeName(cname));
-                    if (it == userTypes.end()) { throw std::string("Class not found: ") + cname; }
-                    auto& classIfo = it->second;
-                    if (!classIfo.baseClassName.empty()) {
-                        std::string baseFullName = classIfo.baseClassName;
-                        for (auto& [gname, gval] : genericSubs) {
-                            size_t pos = 0;
-                            while ((pos = baseFullName.find(gname, pos)) != std::string::npos) {
-                                size_t end = pos + gname.size();
-                                bool leftOk = pos == 0 ||
-                                              !(std::isalnum(static_cast<unsigned char>(baseFullName[pos - 1])) || baseFullName[pos - 1] == '_');
-                                bool rightOk = end == baseFullName.size() ||
-                                               !(std::isalnum(static_cast<unsigned char>(baseFullName[end])) || baseFullName[end] == '_');
-                                if (leftOk && rightOk) {
-                                    baseFullName.replace(pos, gname.size(), gval);
-                                    pos += gval.size();
-                                } else {
-                                    pos += gname.size();
-                                }
-                            }
-                        }
-                        std::unordered_map<std::string, std::string> baseSubs;
-                        auto baseIt = userTypes.find(baseTypeName(baseFullName));
-                        if (baseIt != userTypes.end()) {
-                            genericiseOrFindClass(baseFullName);
-                            auto baseArgs = genericParamsFromName(baseFullName);
-                            for (size_t i = 0; i < baseIt->second.generics.size() && i < baseArgs.size(); i++) {
-                                baseSubs[baseIt->second.generics[i].name] = baseArgs[i];
-                            }
-                        }
-                        collectFields(baseFullName, baseSubs);
-                    }
-                    for (auto& field : classIfo.classFields) {
-                        std::string resolvedType = field.type;
-                        if (field.name == "__vptr") {
-                            resolvedType = cname + "*";
-                        } else {
-                            for (auto& [gname, gval] : genericSubs) {
-                                size_t pos = 0;
-                                while ((pos = resolvedType.find(gname, pos)) != std::string::npos) {
-                                    size_t end = pos + gname.size();
-                                    bool leftOk = pos == 0 ||
-                                                  !(std::isalnum(static_cast<unsigned char>(resolvedType[pos - 1])) || resolvedType[pos - 1] == '_');
-                                    bool rightOk = end == resolvedType.size() ||
-                                                   !(std::isalnum(static_cast<unsigned char>(resolvedType[end])) || resolvedType[end] == '_');
-                                    if (leftOk && rightOk) {
-                                        resolvedType.replace(pos, gname.size(), gval);
-                                        pos += gval.size();
-                                    } else {
-                                        pos += gname.size();
-                                    }
-                                }
-                            }
-                        }
-                        if (field.isStatic) {
-                            llvm::Type* fieldTy = llvmTypeFor(resolvedType);
-                            std::string mangledName = cname + "::" + field.name;
-                            if (!module->getNamedGlobal(mangledName)) {
-                                llvm::Constant* initVal = !std::holds_alternative<std::monostate>(field.defaultValue)
-                                                              ? llvm::dyn_cast<llvm::Constant>(emitExpr(field.defaultValue))
-                                                              : llvm::Constant::getNullValue(fieldTy);
-
-                                if (!initVal) { initVal = llvm::Constant::getNullValue(fieldTy); }
-
-                                globals[mangledName] = new llvm::GlobalVariable(*module, fieldTy, false, llvm::GlobalValue::ExternalLinkage, initVal,
-                                                                                mangledName);
-                                varTypes[mangledName] = resolvedType;
-                                volatileVars[mangledName] = false;
-                            }
-                        } else {
-                            if (!std::holds_alternative<std::monostate>(field.defaultValue)) {
-                                cg_warn(get_pos(field.defaultValue), "default values do not exist on non-static members", "W001");
-                            }
-                            fieldTypes.push_back(llvmTypeFor(resolvedType));
-                        }
-                    }
-                };
-            collectFields(mapKey, {});
-            if (fieldTypes.empty()) { fieldTypes.push_back(builder->getInt8Ty()); }
-
-            classTypes[mapKey]->setBody(fieldTypes);
-            namespaceStack = oldNamespaceStack;
+            generateClass(mapKey, info);
         }
     }
     for (auto& [mapKey, info] : userTypes) {
@@ -6522,26 +6577,7 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Struct) {
-            if (!info.generics.empty()) continue;
-            std::vector<llvm::Type*> fieldTypes;
-            auto oldNamespaceStack = namespaceStack;
-            namespaceStack.clear();
-            if (!info.namespace_path.empty()) {
-                size_t start = 0;
-                size_t pos;
-                while ((pos = info.namespace_path.find("::", start)) != std::string::npos) {
-                    namespaceStack.push_back(info.namespace_path.substr(start, pos - start));
-                    start = pos + 2;
-                }
-                namespaceStack.push_back(info.namespace_path.substr(start));
-            }
-            for (auto& field : info.fields) {
-                llvm::Type* ty = llvmTypeFor(field.type);
-                fieldTypes.push_back(ty);
-            }
-
-            structTypes[mapKey]->setBody(fieldTypes);
-            namespaceStack = oldNamespaceStack;
+            generateStruct(mapKey, info);
         }
     }
     for (auto& [mapKey, info] : userTypes) {
@@ -9642,7 +9678,10 @@ llvm::Value* LLVMCompiler::emitAssignExpr(AssignExprNode* const*asn) {
             return rhs;
         }
     }
-    llvm::Value* oldVal = builder->CreateLoad(destTy, alloc, resolveVolatileVar(name), "assign_lhs_val");
+    llvm::Value* oldVal = nullptr;
+    if ((*asn)->op_tok.type != TokenType::EQ) {
+        oldVal = builder->CreateLoad(destTy, alloc, resolveVolatileVar(name), "assign_lhs_val");
+    }
     llvm::Value* rhsVal = nullptr;
     if (destTy->isPointerTy() && classTypes.count(getExpressionType((*asn)->value))) {
         rhsVal = emitLValue((*asn)->value);
@@ -10178,6 +10217,14 @@ llvm::Value* LLVMCompiler::emitUnaryOp(UnaryOpNode* const*unary) {
         const llvm::DataLayout& dl = module->getDataLayout();
         uint64_t size;
         if (StringNode* val = std::get_if<StringNode>(&(*unary)->node)) {
+            if (!resolveTypeName(val->tok.value, false).ends_with("*")) {
+                std::string resolved = resolveTypeName(val->tok.value, false);
+                if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                    generateStruct(resolved, userTypes.at(resolved));
+                } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                    generateClass(resolved, userTypes.at(resolved));
+                }
+            }
             llvm::Type* ty = llvmTypeFor(val->tok.value);
             if (ty) {
                 size = dl.getTypeAllocSize(ty);
@@ -10185,6 +10232,14 @@ llvm::Value* LLVMCompiler::emitUnaryOp(UnaryOpNode* const*unary) {
                 size = dl.getTypeAllocSize(operand->getType());
             }
         } else if (TypeValueNode* t = std::get_if<TypeValueNode>(&(*unary)->node)) {
+            if (!resolveTypeName(t->tok.value, false).ends_with("*")) {
+                std::string resolved = resolveTypeName(t->tok.value, false);
+                if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                    generateStruct(resolved, userTypes.at(resolved));
+                } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                    generateClass(resolved, userTypes.at(resolved));
+                }
+            }
             llvm::Type* ty = llvmTypeFor(t->tok.value);
             if (ty) {
                 size = dl.getTypeAllocSize(ty);
@@ -12439,7 +12494,7 @@ llvm::Value* LLVMCompiler::emitArrAcc(ArrayAccessNode *arrAcc) {
         return builder->CreateLoad(llvmTypeFor(ptrTy), addr, "ptr_arr_val");
     }
     if (genericiseOrFindClass(ptrTy)) {
-        llvm::Value* obj = emitLValue(arrAcc->base);
+        llvm::Value* obj = emitLValue(arrAcc->base, true);
         llvm::Value* idx = emitExpr(arrAcc->indices[0]);
         llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
         if (!ref) {
@@ -12625,52 +12680,17 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
             if (allocTy && allocTy->isArrayTy()) { return builder->getInt32(allocTy->getArrayNumElements()); }
         }
     }
-    llvm::Value* baseVal = emitExpr(*(*propAccess)->base);
+    llvm::Value* baseVal = emitLValue(*(*propAccess)->base, true);
     if (!baseVal) return nullptr;
     llvm::Type* baseTy = baseVal->getType();
+    bool isPtr = baseVal->getType()->isPointerTy();
     if (baseTy->isPointerTy()) {
-        if (auto varAccess = std::get_if<VarAccessNode*>(&*(*propAccess)->base)) {
-            std::string varName = (*varAccess)->var_name_tok.value;
-            llvm::Value* locAlloc = getVarAddress(varName);
-            if (locAlloc) {
-                llvm::Type* allocTy = getPointeeType(varName);
-                if (auto structTy = llvm::dyn_cast<llvm::StructType>(allocTy)) {
-                    std::string structName = structTy->getName().str();
-                    auto userTypeIt = userTypes.find(baseTypeName(structName));
-                    if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Struct) {
-                        int fieldIdx = -1;
-                        for (size_t i = 0; i < userTypeIt->second.fields.size(); i++) {
-                            if (userTypeIt->second.fields[i].name == propName) {
-                                fieldIdx = i;
-                                break;
-                            }
-                        }
-
-                        if (fieldIdx == -1) {
-                            cg_error(get_pos(*varAccess), "struct " + structName + " has no field " + propName, "QC-S246");
-                            if (propName.length() > 3) {
-                                std::vector<std::pair<int, std::string>> suggestions;
-                                for (auto& field : userTypes[baseTypeName(structName)].fields) {
-                                    int distance = levenshteinDistance(propName, field.name);
-                                    if (distance <= 2) { suggestions.push_back({distance, field.name}); }
-                                }
-                                std::sort(suggestions.begin(), suggestions.end());
-                                if (!suggestions.empty()) {
-                                    std::string note = "similar fields:";
-                                    for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
-                                    cg_note(get_pos(*varAccess), note);
-                                }
-                            }
-                            return nullptr;
-                        }
-
-                        llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, locAlloc, fieldIdx, propName + "_ptr");
-                        llvm::Type* fieldTy = structTy->getElementType(fieldIdx);
-                        return builder->CreateLoad(fieldTy, fieldPtr, propName);
-                    }
-                }
-            }
+        llvm::Type* allocTy = llvmTypeFor(getExpressionType(*(*propAccess)->base, false));
+        if (!allocTy) {
+            cg_error(get_pos(*propAccess), "failed to resolve propaccess base", "QC-S246");
+            return nullptr;
         }
+        baseTy = allocTy;
     }
     if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
         std::string structName = structTy->getName().str();
@@ -12703,8 +12723,12 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
 
                 return nullptr;
             }
-            llvm::Value* result = builder->CreateExtractValue(baseVal, fieldIdx, propName);
-            return result;
+            if (isPtr) {
+                llvm::Value* fieldPtr = builder->CreateStructGEP(structTy, baseVal, fieldIdx, propName + "_ptr");
+                return builder->CreateLoad(structTy->getElementType(fieldIdx), fieldPtr, propName);
+            } else {
+                return builder->CreateExtractValue(baseVal, fieldIdx, propName);
+            }
         }
     }
     for (auto& [className, classTy] : classTypes) {
@@ -12733,27 +12757,22 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
                 cg_error(get_pos(*propAccess), "cannot access " + fieldAccess + " field " + propName, "QC-S248");
                 return nullptr;
             }
-
             llvm::Type* fieldTy = classTy->getElementType(fieldIdx);
             for (auto& [unionName, unionTy] : unionTypes) {
                 if (fieldTy == unionTy) {
-                    llvm::AllocaInst* temp = createEntryAlloca("temp_obj", baseTy);
-                    builder->CreateStore(baseVal, temp);
-                    llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, temp, fieldIdx);
-                    return builder->CreateLoad(unionTy, fieldPtr, "union_field");
+                    if (isPtr) {
+                        llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, baseVal, fieldIdx);
+                        return builder->CreateLoad(unionTy, fieldPtr, "union_field");
+                    }
+                    return builder->CreateExtractValue(baseVal, fieldIdx, "union_field");
                 }
             }
-            llvm::Value* ptr;
-            if (baseTy->isPointerTy()) {
-                ptr = baseVal;
+            if (isPtr) {
+                llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, baseVal, fieldIdx);
+                return builder->CreateLoad(fieldTy, fieldPtr, propName);
             } else {
-                llvm::AllocaInst* temp = createEntryAlloca("temp_obj", baseTy);
-                builder->CreateStore(baseVal, temp);
-                ptr = temp;
+                return builder->CreateExtractValue(baseVal, fieldIdx, propName);
             }
-
-            llvm::Value* fieldPtr = builder->CreateStructGEP(classTy, ptr, fieldIdx);
-            return builder->CreateLoad(fieldTy, fieldPtr, propName);
         }
     }
     for (auto& [unionName, unionTy] : unionTypes) {
@@ -12975,7 +12994,7 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const*methodCall) {
             }
         }
     } else if (auto propAcc = safe_get<PropertyAccessNode>((*call)->base)) {
-        llvm::Value* baseAddr = emitExpr(*(propAcc->base));
+        llvm::Value* baseAddr = emitLValue(*(propAcc->base), true);
         std::string ownerClass = getExpressionType(*(propAcc->base));
         llvm::Type* baseTy = baseAddr->getType();
         if (auto* st = llvm::dyn_cast<llvm::StructType>(baseTy)) {
@@ -13116,7 +13135,7 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const*methodCall) {
         AnyNode temp = AnyNode(propAcc);
         targetClass = getExpressionType(temp);
     } else {
-        llvm::Value* baseVal = emitExpr((*call)->base);
+        llvm::Value* baseVal = emitLValue((*call)->base, true);
         if (!baseVal) {
             cg_error(get_pos(*call), "Failed to emit base of callnode", "QC-S252");
             return nullptr;
@@ -13236,13 +13255,21 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const*methodCall) {
             thisPtr = baseVal;
         } else if (auto* sTy = llvm::dyn_cast<llvm::StructType>(baseVal->getType())) {
             targetClass = sTy->getName().str();
-            llvm::Value* lvalue = emitLValue((*call)->base);
-            if (lvalue) {
-                thisPtr = lvalue;
+            if (baseVal->getType()->isPointerTy()) {
+                thisPtr = baseVal;
             } else if (auto* sTy = llvm::dyn_cast<llvm::StructType>(baseVal->getType())) {
                 targetClass = sTy->getName().str();
                 thisPtr = createEntryAlloca("temp_this", sTy);
                 builder->CreateStore(baseVal, thisPtr);
+            }
+        } else {
+            if (baseVal->getType()->isPointerTy()) {
+                thisPtr = baseVal;
+                targetClass = exprTy;
+            } else {
+                llvm::AllocaInst *alloc = createEntryAlloca("base_ptr", baseTy);
+                builder->CreateStore(alloc, baseVal);
+                thisPtr = alloc;
             }
         }
     }
@@ -14087,7 +14114,6 @@ llvm::AllocaInst* LLVMCompiler::createEntryAlloca(const std::string& name, llvm:
     }
     llvm::IRBuilder<> tmp(&currentFunction->getEntryBlock(), currentFunction->getEntryBlock().begin());
     llvm::AllocaInst* alloc = tmp.CreateAlloca(ty, nullptr, name);
-    if (config.use_runtime) builder->CreateMemSet(alloc, builder->getInt8(0), module->getDataLayout().getTypeAllocSize(ty), alloc->getAlign());
     return alloc;
 }
 llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
@@ -15430,7 +15456,7 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 return;
             }
             if (genericiseOrFindClass(ptrTy)) {
-                llvm::Value* obj = emitLValue(arrAcc->base);
+                llvm::Value* obj = emitLValue(arrAcc->base, true);
                 llvm::Value* idx = emitExpr(arrAcc->indices[0]);
                 llvm::Value* ref = emitVirtualOrDirectCall(ptrTy, "operator[]", obj, {idx});
                 if (!ref) {
@@ -16005,7 +16031,7 @@ std::vector<CTError> LLVMCompiler::compile(
                         if (param.signature.has_value()) {
                             expectedType = llvm::PointerType::get(context, 0);
                         } else {
-                            std::string resolvedType = resolveTypeName(param.type.value);
+                            std::string resolvedType = resolveTypeName(param.type.value, false);
                             expectedType = llvmTypeFor(resolvedType);
                         }
                         llvm::Type* actualType = overload->getFunctionType()->getParamType(i + expectedParamOffset);
@@ -16051,8 +16077,12 @@ std::vector<CTError> LLVMCompiler::compile(
                     typeDescriptor = "fn";
                     lambdaTypes[param.name.value] = llvmFuncTypeFor(param.signature->return_types, param.signature->params);
                 } else {
-                    typeDescriptor = resolveTypeName(param.type.value);
+                    typeDescriptor = resolveTypeName(param.type.value, false);
                     paramTy = llvmTypeFor(typeDescriptor);
+                }
+                if (!paramTy) {
+                    cg_error(param.name.pos, "could not resolve type '" + typeDescriptor + "' for parameter '" + param.name.value + "'", "QC-T999");
+                    return errors;
                 }
                 llvm::AllocaInst* alloc = createEntryAlloca(param.name.value, paramTy);
                 llvm::Value* argVal = currentTarget->getArg(i + expectedParamOffset);
@@ -16929,11 +16959,29 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     std::cout << "[OPTIMIZING] " << file << '\n';
                     std::cout.flush();
                 }
-                llvm::PassBuilder PB;
+                llvm::Triple triple(config.target.empty() ? llvm::sys::getDefaultTargetTriple() : config.target);
+                std::string target_err;
+                const llvm::Target* target = llvm::TargetRegistry::lookupTarget(triple, target_err);
+                llvm::TargetMachine* TM = nullptr;
+                if (target) {
+                    llvm::TargetOptions opt;
+                    TM = target->createTargetMachine(triple, "generic", "", opt, llvm::Reloc::PIC_);
+                }
                 llvm::LoopAnalysisManager LAM;
                 llvm::FunctionAnalysisManager FAM;
                 llvm::CGSCCAnalysisManager CGAM;
                 llvm::ModuleAnalysisManager MAM;
+                llvm::PassInstrumentationCallbacks PIC;
+                if (config.debug) PIC.registerBeforeNonSkippedPassCallback([](llvm::StringRef PassID, llvm::Any IR) {
+                    if (const auto **F = llvm::any_cast<const llvm::Function*>(&IR)) {
+                        llvm::errs() << "[" << PassID << "] on: " << (*F)->getName() << "\n";
+                    }
+                });
+
+                llvm::PassBuilder PB(TM, llvm::PipelineTuningOptions(), std::nullopt, &PIC);
+                if (TM) {
+                    FAM.registerPass([&] { return TM->getTargetIRAnalysis(); });
+                }
                 PB.registerModuleAnalyses(MAM);
                 PB.registerCGSCCAnalyses(CGAM);
                 PB.registerFunctionAnalyses(FAM);
@@ -16962,6 +17010,7 @@ Mer run(std::string file, std::string text, RunConfig config = {}) {
                     std::cout << "[DONE OPTIMIZING] " << file << '\n';
                     std::cout.flush();
                 }
+                delete TM;
             }
 #endif
             master_module->print(out, nullptr);
