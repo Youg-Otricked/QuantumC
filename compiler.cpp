@@ -4500,8 +4500,16 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         Token enum_name = this->current_tok;
+        std::string enum_type = "int";
         this->advance();
-
+        if (this->current_tok.type == TokenType::COLON) {
+            this->advance();
+            if (!is_primint_type(this->current_tok)) {
+                res.failure(new InvalidSyntaxError("QC-S277: Expected a numeric new type to follow ':' in enum declaration", this->current_tok.pos));
+                return res.to_prs();
+            }
+            enum_type = this->current_tok.value;
+        }
         if (this->current_tok.type != TokenType::LBRACE) {
             res.failure(new InvalidSyntaxError("QC-S003: Expected '{' after enum name", this->current_tok.pos));
             return res.to_prs();
@@ -4509,42 +4517,35 @@ Prs Parser::statement() {
         this->advance();
         std::vector<UnionMember> members;
         std::vector<EnumEntry> entries;
-        auto parse_type_atom = [&](Token tok) -> std::string {
-            switch (tok.type) {
-            case TokenType::STRING: return "string:\"" + tok.value + "\"";
-            case TokenType::INT: return "int:" + tok.value;
-            case TokenType::FLOAT: return "float:" + tok.value;
-            case TokenType::DOUBLE: return "double:" + tok.value;
-            case TokenType::LONG_INT: return "long_int:" + tok.value;
-            case TokenType::SHORT_INT: return "short_int:" + tok.value;
-            case TokenType::LONG_DOUBLE: return "long_double:" + tok.value;
-            case TokenType::ADDR_T: return "addr_t:" + tok.value;
-            case TokenType::BYTE: return "byte:" + tok.value;
-            case TokenType::NIBBLE: return "nibble:" + tok.value;
-            case TokenType::CHAR: return "char:" + tok.value;
-            case TokenType::BOOL: return "bool:" + tok.value;
-            case TokenType::QBOOL: return "qbool:" + tok.value;
-            default: return tok.value;
-            }
-        };
+        uint64_t counter = 0;
+        bool is_signed_type = enum_type.contains("int");
+        bool can_auto = true;
         while (this->current_tok.type != TokenType::RBRACE && this->current_tok.type != TokenType::EOFT) {
             if (this->current_tok.type != TokenType::IDENTIFIER) {
                 res.failure(new InvalidSyntaxError("QC-S081: Expected enum member name", this->current_tok.pos));
                 return res.to_prs();
             }
             Token member_name = this->current_tok;
+            std::string value = "";
             this->advance();
             if (this->current_tok.type != TokenType::EQ) {
-                res.failure(
-                    new InvalidSyntaxError("QC-S082: Expected '=' after enum member name '" + member_name.value + "'", this->current_tok.pos));
-                return res.to_prs();
+                if (!can_auto) {
+                    res.failure(new InvalidSyntaxError("QC-EM01: Enums may not use implicit value increment after explicit value increment", this->current_tok.pos));
+                    return res.to_prs();
+                }
+                if (is_signed_type) {
+                    value = std::to_string(static_cast<int64_t>(counter));
+                } else {
+                    value = std::to_string(counter);
+                }
+                counter++; 
+            } else {
+                this->advance();
+                value = this->current_tok.value;
+                can_auto = false;
+                this->advance();
             }
-            this->advance();
-            Token value_tok = this->current_tok;
-            this->advance();
-            std::string typeAtom = parse_type_atom(value_tok);
-            members.push_back(UnionMember{typeAtom});
-            entries.push_back(EnumEntry{member_name.value, typeAtom});
+            entries.push_back(EnumEntry{member_name.value, value});
             if (this->current_tok.type != TokenType::SEMICOLON) {
                 res.failure(new InvalidSyntaxError("QC-S083: Expected ';' after enum member", this->current_tok.pos));
                 return res.to_prs();
@@ -4556,12 +4557,13 @@ Prs Parser::statement() {
             return res.to_prs();
         }
         this->advance();
+        if (this->current_tok.type == TokenType::SEMICOLON) this->advance();
         std::string full_key = currentNamespace.empty() ? enum_name.value : currentNamespace + "::" + enum_name.value;
         UserTypeInfo info;
         info.pos = enum_name.pos;
+        info.enumType = enum_type;
         info.kind = UserTypeKind::Enum;
         info.baseFile = SourceManager::instance().get(this->current_tok.pos.file_id).filename;
-        info.members = members;
         info.enumEntries = entries;
         info.namespace_path = currentNamespace;
         user_types[base_type_name(full_key)] = info;
@@ -6391,21 +6393,11 @@ void LLVMCompiler::createUserTypes() {
     }
     for (auto& [mapKey, info] : userTypes) {
         if (info.kind == UserTypeKind::Enum) {
-            size_t lastColon = mapKey.rfind("::");
-            std::string actualName = (lastColon == std::string::npos) ? mapKey : mapKey.substr(lastColon + 2);
-
-            std::vector<llvm::Type*> fields = {builder->getInt32Ty(), llvm::PointerType::get(context, 0)};
-            llvm::StructType* enumTy = getOrCreateStructType(fields, mapKey);
-            enumTypes[mapKey] = enumTy;
+            enumTypes[mapKey] = llvmTypeFor(info.enumType);
             for (size_t i = 0; i < info.enumEntries.size(); i++) {
                 auto& entry = info.enumEntries[i];
                 std::string fullName = mapKey + "." + entry.memberName;
-
-                size_t colonPos = entry.typeAtom.find(':');
-                std::string type = entry.typeAtom.substr(0, colonPos);
-                std::string value = entry.typeAtom.substr(colonPos + 1);
-
-                enumMemberInfo[fullName] = {(int)i, type, value};
+                enumMemberInfo[fullName] = entry.value;
             }
         }
     }
@@ -7060,9 +7052,6 @@ llvm::Value* LLVMCompiler::emitBinOp(BinOpNode* const*bin) {
         std::string lUnionName, rUnionName;
         bool lIsUnion = isUnionType(lTy, &lUnionName);
         bool rIsUnion = isUnionType(rTy, &rUnionName);
-        std::string lEnumName, rEnumName;
-        bool lIsEnum = isEnumType(lTy, &lEnumName);
-        bool rIsEnum = isEnumType(rTy, &rEnumName);
         if (lIsUnion && !rIsUnion) {
             auto match = matchValueToUnionVariant(lUnionName, (*bin)->right_node, R);
 
@@ -7218,211 +7207,6 @@ llvm::Value* LLVMCompiler::emitBinOp(BinOpNode* const*bin) {
                 builder->SetInsertPoint(caseBB);
 
                 std::string typeStr = members[i].type;
-                size_t colonPos = typeStr.find(':');
-                if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
-
-                llvm::Type* memberTy = llvmTypeFor(typeStr);
-
-                llvm::Value *lhsVal, *rhsVal;
-
-                if (memberTy->isPointerTy()) {
-                    lhsVal = builder->CreateBitCast(lhsPayload, memberTy);
-                    rhsVal = builder->CreateBitCast(rhsPayload, memberTy);
-                } else {
-                    llvm::Value* lhsTyped = builder->CreateBitCast(lhsPayload, llvm::PointerType::get(context, 0));
-                    llvm::Value* rhsTyped = builder->CreateBitCast(rhsPayload, llvm::PointerType::get(context, 0));
-                    lhsVal = builder->CreateLoad(memberTy, lhsTyped);
-                    rhsVal = builder->CreateLoad(memberTy, rhsTyped);
-                }
-                llvm::Value* cmp;
-                if (memberTy->isIntegerTy()) {
-                    cmp = builder->CreateICmpEQ(lhsVal, rhsVal);
-                } else if (memberTy->isFloatingPointTy()) {
-                    cmp = builder->CreateFCmpOEQ(lhsVal, rhsVal);
-                } else if (memberTy->isPointerTy()) {
-                    llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
-                    cmp = builder->CreateCall(strcmp_fn, {lhsVal, rhsVal});
-                    cmp = builder->CreateTrunc(cmp, builder->getInt1Ty());
-                } else {
-                    cmp = builder->getTrue();
-                }
-
-                caseResults.push_back({caseBB, cmp});
-                builder->CreateBr(payloadEndBB);
-            }
-            builder->SetInsertPoint(defaultBB);
-            builder->CreateBr(payloadEndBB);
-            builder->SetInsertPoint(payloadEndBB);
-            llvm::PHINode* payloadPhi = builder->CreatePHI(builder->getInt1Ty(), caseResults.size());
-            for (auto& [bb, val] : caseResults) { payloadPhi->addIncoming(val, bb); }
-            payloadPhi->addIncoming(builder->getFalse(), defaultBB);
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(tagMismatchBB);
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(endBB);
-            llvm::PHINode* finalPhi = builder->CreatePHI(builder->getInt1Ty(), 2);
-            finalPhi->addIncoming(payloadPhi, payloadEndBB);
-            finalPhi->addIncoming(builder->getFalse(), tagMismatchBB);
-
-            llvm::Value* result = finalPhi;
-            if (isNe) { result = builder->CreateNot(result); }
-            return result;
-        } else if (lIsEnum && !rIsEnum && !rIsUnion) {
-            auto match = matchValueToEnumMember(lEnumName, (*bin)->right_node, R);
-            if (!match) {
-                llvm::Value* res = builder->getFalse();
-                if (isNe) res = builder->CreateNot(res);
-                return res;
-            }
-
-            auto info = *match;
-            llvm::Value* tag = builder->CreateExtractValue(L, 0, "union_tag");
-            llvm::Value* dataPtr = builder->CreateExtractValue(L, 1, "union_data");
-
-            llvm::Value* tagMatch = builder->CreateICmpEQ(tag, builder->getInt32(info.tagIndex), "union_tag_match");
-            llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
-            llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
-            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
-
-            builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
-
-            builder->SetInsertPoint(matchBB);
-            llvm::Value* payloadMatch = nullptr;
-
-            if (!info.memberTypeStr.empty()) {
-                llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
-
-                if (memberTy->isPointerTy()) {
-                    llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
-
-                    llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
-                    if (!strcmp_fn) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
-                        strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_string_eq", module);
-                    }
-                    payloadMatch = builder->CreateCall(strcmp_fn, {payload, R}, "payload_str_eq");
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
-
-                    if (memberTy->isIntegerTy()) {
-                        payloadMatch = builder->CreateICmpEQ(payload, R, "union_int_eq");
-                    } else if (memberTy->isFloatingPointTy()) {
-                        payloadMatch = builder->CreateFCmpOEQ(payload, R, "union_fp_eq");
-                    }
-                }
-            }
-
-            llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
-            if (fullMatch->getType() != builder->getInt1Ty()) { fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty()); }
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(mismatchBB);
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(endBB);
-            llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
-            phi->addIncoming(fullMatch, matchBB);
-            phi->addIncoming(builder->getFalse(), mismatchBB);
-
-            llvm::Value* result = phi;
-            if (isNe) { result = builder->CreateNot(result); }
-            return result;
-        }
-
-        else if (!lIsUnion && !lIsEnum && rIsEnum) {
-            auto match = matchValueToEnumMember(rEnumName, (*bin)->left_node, L);
-            if (!match) {
-                llvm::Value* res = builder->getFalse();
-                if (isNe) res = builder->CreateNot(res);
-                return res;
-            }
-
-            auto info = *match;
-            llvm::Value* tag = builder->CreateExtractValue(R, 0, "union_tag");
-            llvm::Value* dataPtr = builder->CreateExtractValue(R, 1, "union_data");
-
-            llvm::Value* tagMatch = builder->CreateICmpEQ(tag, builder->getInt32(info.tagIndex), "union_tag_match");
-
-            llvm::BasicBlock* matchBB = llvm::BasicBlock::Create(context, "tag_matches", currentFunction);
-            llvm::BasicBlock* mismatchBB = llvm::BasicBlock::Create(context, "tag_mismatch", currentFunction);
-            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "cmp_end", currentFunction);
-
-            builder->CreateCondBr(tagMatch, matchBB, mismatchBB);
-
-            builder->SetInsertPoint(matchBB);
-            llvm::Value* payloadMatch = nullptr;
-
-            if (!info.memberTypeStr.empty()) {
-                llvm::Type* memberTy = llvmTypeFor(info.memberTypeStr);
-
-                if (memberTy->isPointerTy()) {
-                    llvm::Value* payload = builder->CreateBitCast(dataPtr, memberTy);
-
-                    llvm::Function* strcmp_fn = module->getFunction("qc_string_eq");
-                    if (!strcmp_fn) {
-                        auto* i8Ptr = llvm::PointerType::get(context, 0);
-                        auto* fnTy = llvm::FunctionType::get(builder->getInt1Ty(), {i8Ptr, i8Ptr}, false);
-                        strcmp_fn = llvm::Function::Create(fnTy, llvm::Function::InternalLinkage, "qc_string_eq", module);
-                    }
-                    payloadMatch = builder->CreateCall(strcmp_fn, {L, payload}, "payload_str_eq");
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    llvm::Value* payload = builder->CreateLoad(memberTy, typedPtr, "union_payload");
-
-                    if (memberTy->isIntegerTy()) {
-                        payloadMatch = builder->CreateICmpEQ(L, payload, "union_int_eq");
-                    } else if (memberTy->isFloatingPointTy()) {
-                        payloadMatch = builder->CreateFCmpOEQ(L, payload, "union_fp_eq");
-                    }
-                }
-            }
-
-            llvm::Value* fullMatch = payloadMatch ? payloadMatch : builder->getTrue();
-            if (fullMatch->getType() != builder->getInt1Ty()) { fullMatch = builder->CreateTrunc(fullMatch, builder->getInt1Ty()); }
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(mismatchBB);
-            builder->CreateBr(endBB);
-
-            builder->SetInsertPoint(endBB);
-            llvm::PHINode* phi = builder->CreatePHI(builder->getInt1Ty(), 2, "cmp_result");
-            phi->addIncoming(fullMatch, matchBB);
-            phi->addIncoming(builder->getFalse(), mismatchBB);
-
-            llvm::Value* result = phi;
-            if (isNe) { result = builder->CreateNot(result); }
-            return result;
-        } else if (lIsEnum && rIsEnum) {
-            llvm::Value* lhsTag = builder->CreateExtractValue(L, 0, "lhs_tag");
-            llvm::Value* rhsTag = builder->CreateExtractValue(R, 0, "rhs_tag");
-            llvm::Value* tagsEqual = builder->CreateICmpEQ(lhsTag, rhsTag, "tags_equal");
-
-            llvm::BasicBlock* tagMatchBB = llvm::BasicBlock::Create(context, "tags_match", currentFunction);
-            llvm::BasicBlock* tagMismatchBB = llvm::BasicBlock::Create(context, "tags_mismatch", currentFunction);
-            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "union_cmp_end", currentFunction);
-
-            builder->CreateCondBr(tagsEqual, tagMatchBB, tagMismatchBB);
-            builder->SetInsertPoint(tagMatchBB);
-
-            llvm::Value* lhsPayload = builder->CreateExtractValue(L, 1, "lhs_payload");
-            llvm::Value* rhsPayload = builder->CreateExtractValue(R, 1, "rhs_payload");
-
-            auto& entries = userTypes.at(baseTypeName(lEnumName)).enumEntries;
-            llvm::BasicBlock* payloadEndBB = llvm::BasicBlock::Create(context, "payload_cmp_end", currentFunction);
-            llvm::BasicBlock* defaultBB = llvm::BasicBlock::Create(context, "cmp_default", currentFunction);
-            llvm::SwitchInst* sw = builder->CreateSwitch(lhsTag, defaultBB, entries.size());
-            std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> caseResults;
-
-            for (size_t i = 0; i < entries.size(); i++) {
-                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "cmp_case_" + std::to_string(i), currentFunction);
-                sw->addCase(builder->getInt32(i), caseBB);
-                builder->SetInsertPoint(caseBB);
-
-                std::string typeStr = entries[i].typeAtom;
                 size_t colonPos = typeStr.find(':');
                 if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
 
@@ -9303,7 +9087,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const*va) {
         return nullptr;
     }
     if (userTypeIt != userTypes.end() && userTypeIt->second.kind == UserTypeKind::Enum) {
-        llvm::StructType* enumTy = enumTypes[qcType];
+        llvm::Type* enumTy = enumTypes[qcType];
         llvm::Value* enumAlloc = getVarAddress(name);
         if (!enumAlloc) enumAlloc = createEntryAlloca(name, enumTy);
         llvm::Value* rhs = emitExpr((*va)->value_node);
@@ -9403,21 +9187,6 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const*va) {
         }
 
         srcTy = destTy;
-    }
-    for (auto& [enumName, enumTy] : enumTypes) {
-        if (srcTy == enumTy) {
-            llvm::Value* dataPtr = builder->CreateExtractValue(rhs, 1, "enum_data");
-
-            if (destTy->isPointerTy()) {
-                rhs = builder->CreateBitCast(dataPtr, destTy);
-            } else {
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                rhs = builder->CreateLoad(destTy, typedPtr);
-            }
-
-            srcTy = destTy;
-            break;
-        }
     }
     if (srcTy != destTy) {
         if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
@@ -9667,15 +9436,6 @@ llvm::Value* LLVMCompiler::emitAssignExpr(AssignExprNode* const*asn) {
 
             builder->CreateStore(unionVal, alloc, resolveVolatileVar(name));
             return unionVal;
-        }
-    }
-    for (auto& [enumName, enumTy] : enumTypes) {
-        if (destTy == enumTy) {
-            llvm::Value* rhs = emitExpr((*asn)->value);
-            if (!rhs) return nullptr;
-
-            builder->CreateStore(rhs, alloc, resolveVolatileVar(name));
-            return rhs;
         }
     }
     llvm::Value* oldVal = nullptr;
@@ -10031,28 +9791,6 @@ llvm::Value* LLVMCompiler::emitUnaryOp(UnaryOpNode* const*unary) {
     llvm::Type* operandTy = operand->getType();
     for (auto& [unionName, unionTy] : unionTypes) {
         if (fixMangling(getExpressionType((*unary)->node)) == unionName) {
-            llvm::Type* targetTy = nullptr;
-
-            if (op == TokenType::MINUS) {
-                targetTy = builder->getInt32Ty();
-            } else if (op == TokenType::NOT) {
-                targetTy = builder->getInt1Ty();
-            } else if (op == TokenType::QNOT) {
-                targetTy = builder->getIntNTy(2);
-            } else if (op == TokenType::MUL) {
-                targetTy = builder->getPtrTy();
-            }
-            if (targetTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(operand, 1);
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                operand = builder->CreateLoad(targetTy, typedPtr);
-                operandTy = targetTy;
-            }
-            break;
-        }
-    }
-    for (auto& [enumName, enumTy] : enumTypes) {
-        if (operandTy == enumTy) {
             llvm::Type* targetTy = nullptr;
 
             if (op == TokenType::MINUS) {
@@ -10764,7 +10502,6 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const*callPtr) {
                                                                               {"`flush", "qc_flush"},
                                                                               {"`next", ""},
                                                                               {"`is_empty", ""},
-                                                                              {"`extract", ""},
                                                                               {"`cast", ""},
                                                                               {"`float_bits", ""},
                                                                               {"`double_bits", ""},
@@ -11028,17 +10765,6 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const*callPtr) {
                 }
                 cg_note(get_pos(node), n->tok.value);
                 return nullptr;
-            } else if (funcName == "`extract" && !call.arg_nodes.empty()) {
-                std::string out;
-                llvm::Value* value = emitExpr(call.arg_nodes.front());
-                if (!value) return nullptr;
-                if (isEnumType(value->getType(), &out)) {
-                    std::optional<EnumMatchInfo> matchInfo = matchValueToEnumMember(out, call.arg_nodes.front(), value);
-                    value = normalizeValue(value, call.arg_nodes.front());
-                    if (!matchInfo.has_value()) return nullptr;
-                    return builder->CreateLoad(llvmTypeFor(matchInfo.value().memberTypeStr), value);
-                }
-                return nullptr;
             } else if (funcName == "`float_bits" && !call.arg_nodes.empty()) {
                 llvm::Value* value = emitExpr(call.arg_nodes.front());
                 if (!value) return nullptr;
@@ -11108,27 +10834,6 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const*callPtr) {
                         }
                         builder->SetInsertPoint(endBB);
                         return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc, "typeof_result");
-                    }
-                }
-                for (auto& [enumName, enumTy] : enumTypes) {
-                    if (argTy == enumTy) {
-                        llvm::Value* tag = builder->CreateExtractValue(arg, 0);
-                        auto& entries = userTypes.at(baseTypeName(enumName)).enumEntries;
-                        llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "typeof_end", currentFunction);
-                        llvm::AllocaInst* resultAlloc = createEntryAlloca("typeof_result", llvm::PointerType::get(context, 0));
-                        llvm::SwitchInst* switchInst = builder->CreateSwitch(tag, endBB, entries.size());
-                        for (size_t i = 0; i < entries.size(); i++) {
-                            llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "case", currentFunction);
-                            builder->SetInsertPoint(caseBB);
-                            size_t colonPos = entries[i].typeAtom.find(':');
-                            std::string type = entries[i].typeAtom.substr(0, colonPos);
-                            llvm::Value* typeStr = builder->CreateGlobalString(type);
-                            builder->CreateStore(typeStr, resultAlloc);
-                            builder->CreateBr(endBB);
-                            switchInst->addCase(builder->getInt32(i), caseBB);
-                        }
-                        builder->SetInsertPoint(endBB);
-                        return builder->CreateLoad(llvm::PointerType::get(context, 0), resultAlloc);
                     }
                 }
                 if (auto varAccess = std::get_if<VarAccessNode*>(&argNode)) {
@@ -12631,21 +12336,9 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
             isEnum = true;
             std::string fullName = resolved + "." + propName;
             auto memberIt = enumMemberInfo.find(fullName);
-
             if (memberIt != enumMemberInfo.end()) {
-                int tag = memberIt->second.tag;
-                std::string type = memberIt->second.type;
-                std::string value = memberIt->second.value;
-
-                llvm::StructType* enumTy = enumTypes[resolved];
-                llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
-
-                enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
-
-                llvm::Value* dataPtr = createEnumData(type, value);
-                enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
-
-                return enumVal;
+                std::string value = memberIt->second;
+                return llvm::ConstantInt::get(enumIt->second, std::stoull(value), userTypes.at(baseTypeName(resolved)).enumType.contains("int"));
             } else {
                 cg_error(get_pos(*varAccess), "enum " + baseName + " has no member " + propName, "QC-S244");
                 std::vector<std::pair<int, std::string>> suggestions;
@@ -12655,7 +12348,7 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
                 }
                 std::sort(suggestions.begin(), suggestions.end());
                 if (!suggestions.empty()) {
-                    std::string note = "similar entrys:";
+                    std::string note = "similar entries:";
                     for (auto& [distance, name] : suggestions) { note += "\n  - `" + name + "`"; }
                     cg_note(get_pos(*varAccess), note);
                 }
@@ -13448,8 +13141,7 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const*methodCall) {
             llvm::Value* vptr = builder->CreateLoad(builder->getPtrTy(), vptrField, "vptr");
             llvm::Value* fnPtrAddr = builder->CreateGEP(builder->getPtrTy(), vptr, builder->getInt32(slotIndex), "vtable_slot");
             llvm::Value* fnPtr = builder->CreateLoad(builder->getPtrTy(), fnPtrAddr, "fn_ptr");
-            std::vector<llvm::Value*> allArgs = {thisPtr};
-            allArgs.insert(allArgs.end(), args.begin(), args.end());
+            std::vector<llvm::Value*> allArgs = reconcileArgs(method, thisPtr, args);
             if (insideTry()) {
                 auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
                 llvm::InvokeInst* invoke = builder->CreateInvoke(method->getFunctionType(), fnPtr, contBB, currentLandingPad(), allArgs);
@@ -13473,6 +13165,11 @@ llvm::Value* LLVMCompiler::emitFieldAssign(FieldAssignNode* const*fieldAssign) {
     llvm::Value* valueVal = nullptr;
     if (!valueVal) { valueVal = emitExpr((*fieldAssign)->value); }
     if (!valueVal) return nullptr;
+    if (valueVal->getType()->isPointerTy()) {
+        if (getExpressionType((*fieldAssign)->value, false).ends_with("&")) {
+            valueVal = builder->CreateLoad(llvmTypeFor(getExpressionType((*fieldAssign)->value)), valueVal, "load_ref");
+        }
+    }
     if (auto varAccess = std::get_if<VarAccessNode*>(&(*fieldAssign)->base)) {
         if ((*varAccess)->var_name_tok.value == "this" && currentThis && !currentClassName.empty()) {
             int fieldIdx = getFlattenedFieldIndex(baseTypeName(currentClassName), fieldName);
@@ -13499,10 +13196,8 @@ llvm::Value* LLVMCompiler::emitFieldAssign(FieldAssignNode* const*fieldAssign) {
     if (auto propPtr = std::get_if<PropertyAccessNode*>(&tempVariant)) { (*fieldAssign)->base = *(*propPtr)->base; }
     if (!fieldPtr) return nullptr;
     llvm::Type* destTy = llvmTypeFor(fieldTypeStr);
-    llvm::Value* rhsVal = emitExpr((*fieldAssign)->value);
-    if (!rhsVal) return nullptr;
-    builder->CreateStore(rhsVal, fieldPtr);
-    return rhsVal;
+    builder->CreateStore(valueVal, fieldPtr);
+    return valueVal;
 }
 llvm::Value* LLVMCompiler::emitExpr(const AnyNode& node) {
     if (auto num = std::get_if<NumberNode>(&node)) {
@@ -13845,12 +13540,6 @@ llvm::Value* LLVMCompiler::convertToString(llvm::Value* val, AnyNode& expr, Posi
                     return builder->CreateCall(reprMethod, args, "repr_result");
                 }
             }
-        }
-    }
-    for (auto& [enumName, enumTy] : enumTypes) {
-        if (ty == enumTy) {
-            llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "enum_data");
-            return builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
         }
     }
     std::string unionName;
@@ -14460,35 +14149,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                     break;
                 }
             }
-            for (auto& [enumName, enumTy] : enumTypes) {
-                if (isEnumType(srcTy) && !isEnumType(destTy)) {
-                    llvm::Value* dataPtr = builder->CreateExtractValue(val, 1, "enum_data");
-                    if (destTy->isPointerTy()) {
-                        val = builder->CreateBitCast(dataPtr, destTy);
-                    } else {
-                        llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                        val = builder->CreateLoad(destTy, typedPtr);
-                    }
-                    srcTy = destTy;
-                    break;
-                }
-                if (!isEnumType(srcTy) && isEnumType(destTy)) {
-                    int tag = findEnumVariantTag(enumName, mret->values[i], val);
-                    if (tag == -1) {
-                        cg_error(mret->pos, "return value doesn't match enum variant", "QC-S264");
-                        return;
-                    }
-
-                    llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
-                    enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
-                    llvm::Value* dataPtr = storeAndGetPointer(val);
-                    enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
-
-                    val = enumVal;
-                    srcTy = destTy;
-                    break;
-                }
-            }
             agg = builder->CreateInsertValue(agg, val, i);
         }
 
@@ -14615,35 +14275,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
                 return;
             }
         }
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (srcTy == enumTy && !isEnumType(destTy)) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
-                if (destTy->isPointerTy()) {
-                    v = builder->CreateBitCast(dataPtr, destTy);
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    v = builder->CreateLoad(destTy, typedPtr);
-                }
-                srcTy = destTy;
-                break;
-            }
-            if (!isEnumType(srcTy) && destTy == enumTy) {
-                int tag = findEnumVariantTag(enumName, (*ret)->value, v);
-                if (tag == -1) {
-                    cg_error((*ret)->pos, "return value doesn't match enum variant", "QC-S264");
-                    return;
-                }
-
-                llvm::Value* enumVal = llvm::ConstantAggregateZero::get(enumTy);
-                enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
-                llvm::Value* dataPtr = storeAndGetPointer(v);
-                enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
-
-                builder->CreateRet(enumVal);
-                return;
-            }
-        }
-
         builder->CreateRet(v);
         return;
     } else if (auto mv = safe_get<MultiVarDeclNode>(node)) {
@@ -14673,19 +14304,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             for (auto& [unionName, unionTy] : unionTypes) {
                 if (srcTy == unionTy && !isUnionType(destTy)) {
                     llvm::Value* dataPtr = builder->CreateExtractValue(field, 1, "union_data");
-                    if (destTy->isPointerTy()) {
-                        field = builder->CreateBitCast(dataPtr, destTy);
-                    } else {
-                        llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                        field = builder->CreateLoad(destTy, typedPtr);
-                    }
-                    srcTy = destTy;
-                    break;
-                }
-            }
-            for (auto& [enumName, enumTy] : enumTypes) {
-                if (srcTy == enumTy && !isEnumType(destTy)) {
-                    llvm::Value* dataPtr = builder->CreateExtractValue(field, 1, "enum_data");
                     if (destTy->isPointerTy()) {
                         field = builder->CreateBitCast(dataPtr, destTy);
                     } else {
@@ -14755,17 +14373,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             exitScope();
             builder->SetInsertPoint(mergeBB);
         } else {
-            for (auto& [enumName, enumTy] : enumTypes) {
-                if (cond->getType() == enumTy) {
-                    llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
-
-                    llvm::Type* targetTy = builder->getInt1Ty();
-
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    cond = builder->CreateLoad(targetTy, typedPtr);
-                    break;
-                }
-            }
             cond = normalizeValue(cond, if_node->condition);
             cond = toTruthiness(cond, get_pos(if_node->condition));
             if (!cond) return;
@@ -14838,15 +14445,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(condBB);
         llvm::Value* cond = emitExpr(while_node->condition);
         if (!cond) return;
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (cond->getType() == enumTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
-                llvm::Type* targetTy = builder->getInt1Ty();
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                cond = builder->CreateLoad(targetTy, typedPtr);
-                break;
-            }
-        }
         cond = normalizeValue(cond, while_node->condition);
         cond = toTruthiness(cond, get_pos(while_node->condition));
         if (!cond) return;
@@ -14893,16 +14491,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         builder->SetInsertPoint(condBB);
         llvm::Value* cond = emitExpr(for_node->condition);
         if (!cond) return;
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (cond->getType() == enumTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(cond, 1);
-                llvm::Type* targetTy = builder->getInt1Ty();
-
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                cond = builder->CreateLoad(targetTy, typedPtr);
-                break;
-            }
-        }
         cond = normalizeValue(cond, for_node->condition);
         cond = toTruthiness(cond, get_pos(for_node->condition));
         if (!cond) return;
@@ -14930,13 +14518,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::Type* switchTy = switchVal->getType();
 
         bool canUseSwitch = switchTy->isIntegerTy();
-
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (switchTy == enumTy) {
-                canUseSwitch = false;
-                break;
-            }
-        }
 
         for (auto& [unionName, unionTy] : unionTypes) {
             if (switchTy == unionTy) {
@@ -15047,16 +14628,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "qif.end", currentFunction);
 
         llvm::Value* qifCond = emitExpr(qif_node->condition);
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (qifCond->getType() == enumTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(qifCond, 1);
-                llvm::Type* targetTy = builder->getIntNTy(2);
-
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                qifCond = builder->CreateLoad(targetTy, typedPtr);
-                break;
-            }
-        }
         qifCond = normalizeValue(qifCond, qif_node->condition);
         llvm::Value* qifBit1 = builder->CreateAnd(qifCond, builder->getIntN(2, 0b10));
         llvm::Value* qif_is_true = builder->CreateICmpNE(qifBit1, builder->getIntN(2, 0));
@@ -15132,16 +14703,6 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         if (!qb_val) {
             cg_error(get_pos(qsw), "failed to compile qswitch value", "QC-S271");
             return;
-        }
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (qb_val->getType() == enumTy) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(qb_val, 1);
-                llvm::Type* targetTy = builder->getIntNTy(2);
-
-                llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                qb_val = builder->CreateLoad(targetTy, typedPtr);
-                break;
-            }
         }
         qb_val = normalizeValue(qb_val, qsw->value);
         if (qb_val->getType() != builder->getIntNTy(2)) {
@@ -15761,6 +15322,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
         return;
     } else if (auto trycatch = safe_get<TryCatchNode>(node)) {
+        if (insideTry()) {
+            cg_error(get_pos(trycatch), "You cannot have nested try catch blocks. Why would you need them", "QC-TC01");
+            return;
+        }
         size_t outerScope = defersStack.size();
         enterScope();
         auto* tryBB = llvm::BasicBlock::Create(context, "try.start", currentFunction);

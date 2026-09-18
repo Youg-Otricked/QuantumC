@@ -23,7 +23,7 @@
 - dynamic field access
 - has field, has method
 - _generic- manal overloading
-- rust like tags for enums, make enums whole numebers only again, match.
+- rust like tags for enums, match.
 - cpp contracts
 - has_method, has_field, at
 - rule usertypes so userdefined const equiveleants and stuff

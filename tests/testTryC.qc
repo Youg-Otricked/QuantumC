@@ -30,22 +30,9 @@ void test_catch_all() {
         `qout("caught anything\n");
     }
 }
-void test_nested()
-{
-    try {
-        try {
-            throwB();
-        } catch(int e) {
-            `qout("inner wrong\n");
-        }
-    } catch(double e) {
-        `qout("outer caught ErrorB\n");
-    }
-}
 int main() {
     test_single();
     test_multiple();
     test_catch_all();
-    test_nested();
     return 0;
 }

@@ -19,3 +19,5 @@ int main() {
     }
 }
 ```
+
+However nested try catch is not allowed, as it is additional obfuscation for no reason.

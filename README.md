@@ -116,8 +116,8 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.434 = "Fixed casting bug in overload resolution"
-Next Version: x1.0.5 = "Generics In Headers"
+Current Version: x1.0.45 = "Ouch"
+Next Version: x1.0.5 = "`goto hell`"
 
 # Current Version Highlights
 
@@ -503,7 +503,11 @@ QuantumC also has a special operator for _logical_ right shift: :>. This is beca
 
 1. Built-in rotations: `<<<` and `|>>` and `LROT` and `RROT`, allowing 1 instruction rotations instead of 6+.
 2. + and - have lower priority than shifts. `3 << 3 + 2 == 26`. This is because the shift expression `l << r` is equivalent to `l * 2 ^ r`. If r was 2 + 2, that would be `l * 2 ^ 2 + 2`, which would be l * 4 + 2.
-    
+   
+## Inheritance
+
+All methods are virtual. If you want to use polymorphism, inherited methods MUST be defined in the same order as the parent class, and new methods must be defined after.
+
 ## Generics
 
 QuantumC generics have simple syntax:
@@ -711,6 +715,7 @@ MyResult myThing() {
 }
 ```
 
+Nested try/catch blocks are not allowed becuase they just obfuscate what your code is doing without adding any new functionality.
 ## Defer
 
 C^4 has `defer`, like Go and Zig.

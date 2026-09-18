@@ -521,7 +521,7 @@ struct StructField {
 };
 struct EnumEntry {
     std::string memberName;
-    std::string typeAtom;
+    std::string value;
 };
 struct ClassField {
     std::string name;
@@ -616,6 +616,7 @@ class ConceptProvee {
 
 struct UserTypeInfo {
     Position pos;
+    std::string enumType;
     UserTypeKind kind;
     ModifierInfo modifierInfo;
     std::vector<ConceptProvee> provees;
@@ -1753,7 +1754,12 @@ class Parser {
     std::string currentNamespace;
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
-    bool is_primitive_type(std::string name) {
+    bool is_primint_type(const Token& name) {
+        return std::unordered_set<std::string>({"int", "byte", "nibble", "addr_t", "short int", "long int"})
+            .contains(name.value);
+    }
+
+    bool is_primitive_type(std::string& name) {
         return std::unordered_set<std::string>({"void", "int", "double", "float", "byte", "nibble", "addr_t", "string", "char", "bool", "qbool"})
             .contains(name);
     }
@@ -2299,7 +2305,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.434R\""}};
+        {"__quantumc", "\"x1.0.45R\""}};
     bool progress = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -2398,23 +2404,7 @@ class LLVMCompiler {
         if (outName) *outName = name;
         return true;
     }
-    bool isEnumType(llvm::Type* ty, std::string* outName = nullptr) {
-        auto* st = llvm::dyn_cast<llvm::StructType>(ty);
-        if (!st) return false;
-
-        std::string name = st->getName().str();
-        auto it = enumTypes.find(name);
-        if (it == enumTypes.end()) return false;
-
-        if (outName) *outName = name;
-        return true;
-    }
     std::unordered_map<std::string, UserTypeInfo>& userTypes;
-    struct EnumMemberValue {
-        int tag;
-        std::string type;
-        std::string value;
-    };
     std::string getMethodReturnTypeName(const std::string& typeName, const std::string& methodName) {
         auto it = userTypes.find(baseTypeName(typeName));
         if (it == userTypes.end()) return "";
@@ -2447,83 +2437,8 @@ class LLVMCompiler {
         }
         return returnType;
     }
-    llvm::Value* createEnumData(const std::string& type, const std::string& value) {
-        if (type == "string") {
-            std::string str = value.substr(1, value.length() - 2);
-            return builder->CreateGlobalString(str);
-        } else if (type == "int") {
-            int i = std::stoi(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_int", builder->getInt32Ty());
-            builder->CreateStore(builder->getInt32(i), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "long int") {
-            long long i = std::stoll(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_long_int", builder->getIntNTy(getPtrSize()));
-            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), i, true), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "short int") {
-            long long i = std::stoll(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_short_int", builder->getInt16Ty());
-            builder->CreateStore(builder->getInt16(i), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "addr_t") {
-            long long i = std::stoll(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_addr_t", builder->getIntNTy(getPtrSize()));
-            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(getPtrSize()), i, false), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "byte") {
-            long long i = std::stoll(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_byte", builder->getInt8Ty());
-            builder->CreateStore(builder->getInt8(i), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "nibble") {
-            long long i = std::stoll(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_nibble", builder->getIntNTy(4));
-            builder->CreateStore(llvm::ConstantInt::get(builder->getIntNTy(4), i, false), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "float") {
-            float f = std::stof(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_float", builder->getFloatTy());
-            builder->CreateStore(llvm::ConstantFP::get(builder->getFloatTy(), f), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "double") {
-            double d = std::stod(value);
-            llvm::AllocaInst* temp = createEntryAlloca("enum_double", builder->getDoubleTy());
-            builder->CreateStore(llvm::ConstantFP::get(builder->getDoubleTy(), d), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "bool") {
-            bool b = (value == "true");
-            llvm::AllocaInst* temp = createEntryAlloca("enum_bool", builder->getInt1Ty());
-            builder->CreateStore(builder->getInt1(b), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        } else if (type == "char") {
-            std::string charStr = value.substr(1, value.length() - 2);
-
-            char c;
-            if (charStr.length() == 1) {
-                c = charStr[0];
-            } else if (charStr[0] == '\\') {
-                switch (charStr[1]) {
-                case 'n': c = '\n'; break;
-                case 't': c = '\t'; break;
-                case 'r': c = '\r'; break;
-                case '\\': c = '\\'; break;
-                case '\'': c = '\''; break;
-                default: c = charStr[1]; break;
-                }
-            } else {
-                c = charStr[0];
-            }
-
-            llvm::AllocaInst* temp = createEntryAlloca("enum_char", builder->getInt8Ty());
-            builder->CreateStore(builder->getInt8(c), temp);
-            return builder->CreateBitCast(temp, llvm::PointerType::get(context, 0));
-        }
-
-        return nullptr;
-    }
-    std::unordered_map<std::string, EnumMemberValue> enumMemberInfo;
-    std::unordered_map<std::string, llvm::StructType*> enumTypes;
+    std::unordered_map<std::string, std::string> enumMemberInfo;
+    std::unordered_map<std::string, llvm::Type*> enumTypes;
     std::unordered_map<std::string, std::string> typeAliases;
     std::unordered_map<std::string, llvm::StructType*> structTypes;
     std::unordered_map<std::string, llvm::StructType*> unionTypes;
@@ -2843,14 +2758,7 @@ class LLVMCompiler {
                 std::string resolved = resolveTypeName(baseName);
                 auto enumIt = enumTypes.find(resolved);
                 if (enumIt != enumTypes.end()) {
-                    bool isEnum = true;
-                    std::string fullName = resolved + "." + (*propAcc)->property_name.value;
-                    auto memberIt = enumMemberInfo.find(fullName);
-                    if (memberIt != enumMemberInfo.end()) {
-                        int tag = memberIt->second.tag;
-                        std::string type = memberIt->second.type;
-                        return type.substr(0, type.find(":"));
-                    }
+                    return userTypes.at(baseTypeName(resolved)).enumType;
                 }
             }
             std::string currentType = getExpressionType(*((*propAcc)->base));
@@ -2953,18 +2861,6 @@ class LLVMCompiler {
                         cg_note((*varAcc)->var_name_tok.pos, "expected comptime string, got " + getExpressionType(node));
                         return "unknown";
                     }
-                }
-                if (funcName == "`extract") {
-                    if ((*callNode)->arg_nodes.size() < 1) {
-                        cg_error((*varAcc)->var_name_tok.pos, "too few arguments to `extract", "QC-S286");
-                        cg_note((*varAcc)->var_name_tok.pos, "`extract expects 1 arguments");
-                        cg_note((*varAcc)->var_name_tok.pos, "got " + std::to_string((*callNode)->arg_nodes.size()) + " arguments");
-                        return "unknown";
-                    }
-                    auto node = (*callNode)->arg_nodes.back();
-                    std::optional<EnumMatchInfo> matchInfo = matchValueToEnumMember(getExpressionType(node), (*callNode)->arg_nodes.back());
-                    if (!matchInfo.has_value()) return "unknown";
-                    return matchInfo->memberTypeStr;
                 }
                 if (funcName == "`opendir") return "void*";
                 if (funcName == "`readdir") return "bool";
@@ -3265,7 +3161,6 @@ class LLVMCompiler {
     };
     */
     llvm::Value* derefIfReference(llvm::Value* val, AnyNode& argNode) {
-        if (val && isEnumType(val->getType())) { return builder->CreateExtractValue(val, 0); }
         if (!val || !val->getType()->isPointerTy()) return val;
         std::string qcType = substituteGenerics(getExpressionType(argNode, false));
         if (!qcType.ends_with("&")) return val;
@@ -3682,82 +3577,17 @@ class LLVMCompiler {
             for (auto& [bb, val] : incoming) { phi->addIncoming(val, bb); }
             return phi;
         }
-
-        std::string enumName;
-        if (isEnumType(rawArg->getType(), &enumName)) {
-            llvm::Value* tag = builder->CreateExtractValue(rawArg, 0, "conv_enum_tag");
-            llvm::Value* payload = builder->CreateExtractValue(rawArg, 1, "conv_enum_payload");
-
-            auto& entries = userTypes[enumName].enumEntries;
-            llvm::Type* resultTy = nullptr;
-
-            if (target == "int")
-                resultTy = builder->getInt32Ty();
-            else if (target == "float")
-                resultTy = builder->getFloatTy();
-            else if (target == "double")
-                resultTy = builder->getDoubleTy();
-            else if (target == "bool")
-                resultTy = builder->getInt1Ty();
-            else if (target == "char")
-                resultTy = builder->getInt8Ty();
-            else if (target == "addr_t" || target == "long int")
-                resultTy = builder->getIntNTy(getPtrSize());
-            else if (target == "short int")
-                resultTy = builder->getInt16Ty();
-            else if (target == "nibble")
-                resultTy = builder->getIntNTy(4);
-            else if (target == "byte")
-                resultTy = builder->getInt8Ty();
-            else if (target == "qbool")
-                resultTy = builder->getIntNTy(2);
-            else {
-                cg_error(pos, "Unknown conversion target: " + target, "QC-S304");
-                return nullptr;
-            }
-
-            llvm::BasicBlock* endBB = llvm::BasicBlock::Create(context, "conv_enum_end", currentFunction);
-            llvm::BasicBlock* failBB = llvm::BasicBlock::Create(context, "conv_enum_fail", currentFunction);
-            llvm::SwitchInst* sw = builder->CreateSwitch(tag, failBB, entries.size());
-
-            std::vector<std::pair<llvm::BasicBlock*, llvm::Value*>> incoming;
-
-            for (size_t i = 0; i < entries.size(); i++) {
-                llvm::BasicBlock* caseBB = llvm::BasicBlock::Create(context, "conv_enum_case_" + std::to_string(i), currentFunction);
-                sw->addCase(builder->getInt32(i), caseBB);
-                builder->SetInsertPoint(caseBB);
-
-                std::string typeStr = entries[i].typeAtom;
-                size_t colonPos = typeStr.find(':');
-                if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
-
-                llvm::Type* memberTy = llvmTypeFor(typeStr);
-                llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
-                llvm::Value* loaded = builder->CreateLoad(memberTy, typedPtr, "conv_enum_loaded");
-
-                llvm::Value* converted = emitPrimitiveConversion(loaded, target, pos);
-                if (!converted) return nullptr;
-
-                incoming.push_back({builder->GetInsertBlock(), converted});
-                builder->CreateBr(endBB);
-            }
-
-            builder->SetInsertPoint(failBB);
-            builder->CreateUnreachable();
-
-            builder->SetInsertPoint(endBB);
-            llvm::PHINode* phi = builder->CreatePHI(resultTy, incoming.size(), "conv_enum_phi");
-            for (auto& [bb, val] : incoming) { phi->addIncoming(val, bb); }
-            return phi;
-        }
-
         return emitPrimitiveConversion(rawArg, target, pos);
     }
     llvm::Value* adaptArgumentForParam(llvm::Value* v, AnyNode& argNode, llvm::Type* paramTy, size_t argIndex) {
         if (!v) return nullptr;
 
         llvm::Type* srcTy = v->getType();
-
+        if (srcTy->isPointerTy() && !paramTy->isPointerTy()) {
+            if (getExpressionType(argNode, false).ends_with("&")) {
+                v = builder->CreateLoad(paramTy, v, "strip_ref");
+            }
+        }
         for (auto& [unionName, unionTy] : unionTypes) {
             if (srcTy == unionTy && !isUnionType(paramTy)) {
                 llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "union_data");
@@ -3786,39 +3616,6 @@ class LLVMCompiler {
                 unionVal = builder->CreateInsertValue(unionVal, dataPtr, 1);
 
                 v = unionVal;
-                srcTy = paramTy;
-                break;
-            }
-        }
-
-        for (auto& [enumName, enumTy] : enumTypes) {
-            if (srcTy == enumTy && !isEnumType(paramTy)) {
-                llvm::Value* dataPtr = builder->CreateExtractValue(v, 1, "enum_data");
-                if (paramTy->isPointerTy()) {
-                    v = builder->CreateBitCast(dataPtr, paramTy);
-                } else {
-                    llvm::Value* typedPtr = builder->CreateBitCast(dataPtr, llvm::PointerType::get(context, 0));
-                    v = builder->CreateLoad(paramTy, typedPtr);
-                }
-                srcTy = paramTy;
-                break;
-            }
-
-            if (!isEnumType(srcTy) && paramTy == enumTy) {
-                int tag = findEnumVariantTag(enumName, argNode, v);
-                if (tag == -1) {
-                    cg_error(get_pos(argNode), "argument doesn't match enum variant for " + enumName + " parameter " + std::to_string(argIndex),
-                             "QC-S306");
-                    return nullptr;
-                }
-
-                llvm::Value* enumVal = llvm::UndefValue::get(enumTy);
-                enumVal = builder->CreateInsertValue(enumVal, builder->getInt32(tag), 0);
-
-                llvm::Value* dataPtr = storeAndGetPointer(v);
-                enumVal = builder->CreateInsertValue(enumVal, dataPtr, 1);
-
-                v = enumVal;
                 srcTy = paramTy;
                 break;
             }
@@ -6051,14 +5848,11 @@ class LLVMCompiler {
     }
     llvm::Value* normalizeValue(llvm::Value* v, AnyNode& expr) {
         llvm::Type* ty = v->getType();
-
-        std::string unionName, enumName;
+        std::string unionName;
         bool isUnion = isUnionType(ty, &unionName);
-        bool isEnum = isEnumType(ty, &enumName);
+        if (!isUnion) { return v; }
 
-        if (!isUnion && !isEnum) { return v; }
-
-        std::string typeName = isUnion ? unionName : enumName;
+        std::string typeName = unionName;
         auto utIt = userTypes.find(typeName);
         if (utIt == userTypes.end()) return v;
 
@@ -6070,7 +5864,7 @@ class LLVMCompiler {
         llvm::Type* voidPtrTy = llvm::PointerType::get(context, 0);
         llvm::AllocaInst* tmp = createEntryAlloca("norm_tmp", voidPtrTy);
 
-        size_t memberCount = isUnion ? utIt->second.members.size() : utIt->second.enumEntries.size();
+        size_t memberCount = utIt->second.members.size();
 
         llvm::SwitchInst* sw = builder->CreateSwitch(tag, endBB, memberCount);
 
@@ -6084,12 +5878,7 @@ class LLVMCompiler {
                 typeStr = utIt->second.members[i].type;
                 size_t colonPos = typeStr.find(':');
                 if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
-            } else {
-                typeStr = utIt->second.enumEntries[i].typeAtom;
-                size_t colonPos = typeStr.find(':');
-                if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
-            }
-
+            } 
             llvm::Type* memberTy = llvmTypeFor(typeStr);
 
             llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));
@@ -6100,66 +5889,8 @@ class LLVMCompiler {
             builder->CreateStore(asVoidPtr, tmp);
             builder->CreateBr(endBB);
         }
-
         builder->SetInsertPoint(endBB);
-
         return builder->CreateLoad(voidPtrTy, tmp, "normalized");
-    }
-    struct EnumMatchInfo {
-        int tagIndex;
-        std::string memberTypeStr;
-        std::string memberValue;
-    };
-    int findEnumVariantTag(const std::string& enumName, AnyNode& valueNode, llvm::Value* val) {
-        auto match = matchValueToEnumMember(enumName, valueNode, val);
-        if (match) { return match->tagIndex; }
-        return -1;
-    }
-    std::optional<EnumMatchInfo> matchValueToEnumMember(const std::string& enumName, AnyNode& valueNode, llvm::Value* val = nullptr) {
-        if (auto* propNode = safe_get<PropertyAccessNode>(valueNode)) {
-            auto* baseVarNode = safe_get<VarAccessNode>(*propNode->base);
-            if (!baseVarNode) return std::nullopt;
-            std::string accessedEnumName = baseVarNode->var_name_tok.value;
-            std::string memberName = propNode->property_name.value;
-            auto it = enumMemberInfo.find(accessedEnumName + "." + memberName);
-            if (it == enumMemberInfo.end()) return std::nullopt;
-            return EnumMatchInfo{it->second.tag, it->second.type, it->second.value};
-        }
-        auto typeIt = userTypes.find(enumName);
-        if (typeIt == userTypes.end() || typeIt->second.kind != UserTypeKind::Enum) { return std::nullopt; }
-        auto& entries = typeIt->second.enumEntries;
-        for (size_t i = 0; i < entries.size(); i++) {
-            auto& entry = entries[i];
-            size_t colonPos = entry.typeAtom.find(':');
-            if (colonPos == std::string::npos) continue;
-            std::string type = entry.typeAtom.substr(0, colonPos);
-            std::string value = entry.typeAtom.substr(colonPos + 1);
-            bool matches = false;
-            if (type == "int" || type == "float" || type == "double" || type == "addr_t" || type == "long int" || type == "short int" ||
-                type == "long double" || type == "nibble" || type == "byte") {
-                if (auto numNode = std::get_if<NumberNode>(&valueNode)) {
-                    if (numNode->tok.value == value) { matches = true; }
-                }
-            } else if (type == "string") {
-                if (auto strNode = std::get_if<StringNode>(&valueNode)) {
-                    std::string strValue = value.substr(1, value.length() - 2);
-                    if (strNode->tok.value == strValue) { matches = true; }
-                }
-            } else if (type == "char") {
-                if (auto charNode = std::get_if<CharNode>(&valueNode)) {
-                    char c = value[1];
-                    if (charNode->tok.value[0] == c) { matches = true; }
-                }
-            } else if (type == "bool") {
-                if (auto boolNode = std::get_if<BoolNode>(&valueNode)) {
-                    if (boolNode->tok.value == value) { matches = true; }
-                }
-            }
-
-            if (matches) { return EnumMatchInfo{(int)i, type, value}; }
-        }
-
-        return std::nullopt;
     }
     void emitStmt(AnyNode node);
 };
