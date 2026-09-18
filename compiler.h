@@ -129,6 +129,7 @@ class BoolNode;
 class IfNode;
 class SwitchNode;
 class BreakNode;
+class UnreachableNode;
 class WhileNode;
 class ForNode;
 class CallNode;
@@ -160,7 +161,7 @@ class DeferNode;
 class ModifierNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode*, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
-                             QSwitchNode*, BreakNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
+                             QSwitchNode*, BreakNode*, UnreachableNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
                              MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
                              SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*,
                              TypeValueNode, DeferNode*, ModifierNode*>;
@@ -791,6 +792,13 @@ class BreakNode {
     Position getPos() { return tok.pos; }
 };
 
+class UnreachableNode {
+  public:
+    Token tok;
+    UnreachableNode(Token t) : tok(t) {}
+    std::string print() { return "(unreachable)"; }
+    Position getPos() { return tok.pos; }
+};
 class WhileNode {
   public:
     AnyNode condition;
@@ -1080,7 +1088,7 @@ class NamespaceNode {
 ////////////////////////////////////////////////////////////////////////////////////////////
 class ParseResult;
 using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, BinOpNode*, Error*, UnaryOpNode*, VarAccessNode*,
-                         VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
+                         VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, UnreachableNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
                          CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
                          QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode*,
@@ -2305,7 +2313,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.45R\""}};
+        {"__quantumc", "\"x1.0.452R\""}};
     bool progress = false;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////

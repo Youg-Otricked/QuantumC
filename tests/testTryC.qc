@@ -9,7 +9,7 @@ void test_single() {
     try {
         throwA();
     } catch(int e) {
-        `qout("caught ErrorA\n");
+        `qout("caught ErrorA: %i\n", e);
     }
 }
 

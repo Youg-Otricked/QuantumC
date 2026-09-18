@@ -675,6 +675,9 @@ struct __qc_exception {
     char* type;
     void* value;
 };
+void* __qc_exception_get_value(__qc_exception* e) {
+    return e->value;
+}
 static void __qc_cleanup(_Unwind_Reason_Code reason, _Unwind_Exception* exception) {
     (void)reason;
     __qc_exception* e = (__qc_exception*)exception;

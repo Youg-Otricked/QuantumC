@@ -398,6 +398,8 @@ std::string printAny(const AnyNode& node) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, ContinueNode*>) {
                 return arg->print();
+            } else if constexpr (std::is_same_v<T, UnreachableNode*>) {
+                return arg->print();
             } else if constexpr (std::is_same_v<T, BreakNode*>) {
                 return arg->print();
             } else if constexpr (std::is_same_v<T, SwitchNode*>) {
@@ -580,6 +582,8 @@ Prs ParseResult::success(AnyNode node) {
             } else if constexpr (std::is_same_v<T, IfNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, TryCatchNode*>) {
+                return Prs{arg};
+            } else if constexpr (std::is_same_v<T, UnreachableNode*>) {
                 return Prs{arg};
             } else if constexpr (std::is_same_v<T, BreakNode*>) {
                 return Prs{arg};
@@ -3267,7 +3271,7 @@ AnyNode to_any_node(Prs prs) {
                                  std::is_same_v<T, MultiReturnNode*> || std::is_same_v<T, MultiVarDeclNode*> || std::is_same_v<T, ArrayDeclNode*> ||
                                  std::is_same_v<T, ArrayLiteralNode*> || std::is_same_v<T, ArrayAccessNode*> || std::is_same_v<T, QIfNode*> ||
                                  std::is_same_v<T, QSwitchNode*> || std::is_same_v<T, FieldAssignNode*> || std::is_same_v<T, MapLiteralNode*> ||
-                                 std::is_same_v<T, NamespaceNode*> || std::is_same_v<T, TryCatchNode*>) {
+                                 std::is_same_v<T, NamespaceNode*> || std::is_same_v<T, TryCatchNode*> || std::is_same_v<T, UnreachableNode*>) {
                 return arg;
             } else {
                 return arg;
@@ -3662,6 +3666,15 @@ Prs Parser::statement() {
         }
         this->advance();
         return res.success(new BreakNode(tok));
+    }
+    if (tok.type == TokenType::KEYWORD && tok.value == "unreachable") {
+        this->advance();
+        if (current_tok.type != TokenType::SEMICOLON) {
+            res.failure(new MissingSemicolonError(current_tok.pos));
+            return res.to_prs();
+        }
+        this->advance();
+        return res.success(new UnreachableNode(tok));
     }
     bool is_abstract_class = false;
     bool is_final_class = false;
@@ -9995,9 +10008,19 @@ llvm::Value* LLVMCompiler::emitUnaryOp(UnaryOpNode* const*unary) {
     if ((*unary)->op_tok.type == TokenType::THROW) {
         llvm::Value* type = getStringConstant(getExpressionType((*unary)->node));
         llvm::Value* value = emitExpr((*unary)->node);
-        llvm::Value* storage = builder->CreateAlloca(value->getType());
-        builder->CreateStore(value, storage);
-        value = storage;
+        auto* valTy = value->getType();
+        if (valTy->isFloatingPointTy()) {
+            if (valTy->isFloatTy()) { 
+                value = builder->CreateBitCast(value, builder->getInt32Ty());
+                value = builder->CreateZExt(value, builder->getInt64Ty());
+            } else if (valTy->isDoubleTy()) {
+                value = builder->CreateBitCast(value, builder->getInt64Ty());
+            }
+            value = builder->CreateIntToPtr(value, builder->getPtrTy());
+        } else if (valTy->isIntegerTy()) {
+            llvm::Value* int64Val = builder->CreateZExtOrTrunc(value, builder->getInt64Ty());
+            value = builder->CreateIntToPtr(int64Val, builder->getPtrTy());
+        }
         llvm::Function* createFn = module->getFunction("__qc_create_exception");
         llvm::Value* exception = builder->CreateCall(createFn, {type, value}, "exception");
         llvm::Function* throwFn = module->getFunction("__qc_throw");
@@ -14467,6 +14490,9 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         } else {
             cg_error(get_pos(node), "break outside of loop/switch", "QC-S269");
         }
+    } else if (std::holds_alternative<UnreachableNode*>(node)) {
+        emitDefersDownTo(defersStack.size());
+        builder->CreateUnreachable(); 
     } else if (std::holds_alternative<ContinueNode*>(node)) {
         if (currentContinueBB) {
             if (!loopStack.empty()) emitDefersDownTo(loopStack.back());
@@ -15386,13 +15412,28 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             enterScope();
             if (!c.var_name.empty()) {
                 std::string name = getCurrentNamespace().empty() ? c.var_name : getCurrentNamespace() + c.var_name;
-                auto* payloadPtr = builder->CreateStructGEP(exceptionType, exception, 1, "exception.value.ptr");
-                auto* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr, "exception.value");
-                auto* catchLLVMType = llvmTypeFor(c.var_type);
-                auto* catchValue = builder->CreateLoad(catchLLVMType, payload, "caught.value");
+                llvm::Value* payload = builder->CreateCall(module->getFunction("__qc_exception_get_value"), {exception});
+                llvm::Type* catchLLVMType = llvmTypeFor(c.var_type);
+                llvm::Value* catchValue = nullptr;
+                if (catchLLVMType->isFloatingPointTy()) {
+                    llvm::Value* int64Val = builder->CreatePtrToInt(payload, builder->getInt64Ty());
+                    if (catchLLVMType->isFloatTy()) {
+                        llvm::Value* int32Val = builder->CreateTrunc(int64Val, builder->getInt32Ty());
+                        catchValue = builder->CreateBitCast(int32Val, builder->getFloatTy());
+                    } else {
+                        catchValue = builder->CreateBitCast(int64Val, builder->getDoubleTy());
+                    }
+                } else if (catchLLVMType->isIntegerTy()) {
+                    llvm::Value* int64Val = builder->CreatePtrToInt(payload, builder->getInt64Ty());
+                    catchValue = builder->CreateTruncOrBitCast(int64Val, catchLLVMType);
+
+                } else {
+                    catchValue = payload;
+                }
                 auto* alloc = createEntryAlloca(name, catchLLVMType);
                 builder->CreateStore(catchValue, alloc);
                 locals[name] = alloc;
+                varTypes[name] = resolveTypeName(c.var_type, false);
             }
             emitStmt(c.body);
             if (!builder->GetInsertBlock()->getTerminator()) {
@@ -16846,7 +16887,7 @@ Token Lexer::make_identifier() {
         /* switch */ id == "case" || id == "switch" || id == "default" ||
         /* if else */ id == "if" || id == "else" ||
         /* loops */ id == "break" || id == "while" || id == "loop" || id == "do" || id == "for" || id == "continue" || id == "foreach" ||
-        id == "in" ||
+        id == "in" || id == "unreachable" ||
         /* special types */ id == "void" || id == "auto" ||
         /* functions / lambdas */ id == "return" || id == "function" || id == "fn" ||
         /* q stuff */ id == "qif" || id == "qelse" || id == "qelif" || id == "qswitch" ||

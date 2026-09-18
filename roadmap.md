@@ -37,13 +37,13 @@
 - unreachable
 - panic, assume
 TOP PRIORITY:
-1. Labels & goto/br, unreachable
+1. Labels & goto/br
 2. Generics in header
 3. Tuples + Destruturing
 3. Function Pointers
 3. Tagged enums, match
 3. CQB
-4. Other stuff (private/protected inheritance) + Variadic Generics, operator.
+4. Other stuff (private/protected inheritance) + Variadic Generics, EVEN FANCIER OPERATOR OVERLOADS
 5. Metadata
 ?likely? - likely marked
 ?unlikely? - marked unlikely
