@@ -117,7 +117,7 @@ Unlike semantic versioning, QuantumC versions describe the scale and category of
 # Development Status
 
 Current Version: x1.0.452 = "I actually fixed try catch"
-Next Version: x1.0.5 = "`goto hell`"
+Next Version: x1.0.5 = "Probably tagged enums"
 
 # Current Version Highlights
 

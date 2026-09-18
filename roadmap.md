@@ -37,11 +37,10 @@
 - unreachable
 - panic, assume
 TOP PRIORITY:
-1. Labels & goto/br
-2. Generics in header
-3. Tuples + Destruturing
-3. Function Pointers
-3. Tagged enums, match
+1. Generics in header
+2. Tuples + Destruturing
+1. Function Pointers
+1. Tagged enums, match
 3. CQB
 4. Other stuff (private/protected inheritance) + Variadic Generics, EVEN FANCIER OPERATOR OVERLOADS
 5. Metadata
@@ -71,7 +70,8 @@ TOP PRIORITY:
 7. User-Defined metadata
 8. User-Defined macro _functions_ (the only good thing in rust)
 9. User defined literals
-10. co_await
+10. Labels & goto/br
+11. co_await
 ## 1\. Concurrency
 
 ### Stdlib
