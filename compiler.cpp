@@ -13918,6 +13918,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                     builder->CreateRetVoid();
                 } else {
                     warn("missing-return", implNameTok.pos, "control reaches end of non-void function without return", "QC-W017");
+                    builder->CreateRet(llvm::ConstantAggregateZero::get(fTy->getReturnType()));
                 }
             }
             if (savedInsertBlock) { builder->SetInsertPoint(savedInsertBlock); }
@@ -14030,6 +14031,7 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
 
     if (!builder->GetInsertBlock()->getTerminator()) {
         if (fn.is_multi_return()) {
+            warn("missing-return", fn.getPos(), "control reaches end of non-void function without return", "QC-W017");
             llvm::Type* retTy = fTy->getReturnType();
             builder->CreateRet(llvm::ConstantAggregateZero::get(retTy));
         } else {
@@ -14038,7 +14040,13 @@ llvm::Function* LLVMCompiler::emitFuncDef(const FuncDefNode& fn) {
                 builder->CreateRetVoid();
             } else {
                 warn("missing-return", fn.getPos(), "control reaches end of non-void function without return", "QC-W017");
-                if (name == entrypointName) builder->CreateRet(llvm::ConstantInt::get(retTy, 0));
+                if (retTy->isIntegerTy()) {
+                    builder->CreateRet(llvm::ConstantInt::get(retTy, 0));
+                } else if (retTy->isFloatingPointTy()) {
+                    builder->CreateRet(llvm::ConstantFP::get(retTy, 0.0));
+                } else {
+                    builder->CreateRet(llvm::ConstantAggregateZero::get(retTy));
+                }
             }
         }
     }
