@@ -205,7 +205,6 @@ clean     Code cleanup, refactoring, or technical debt
 errors    Changes to diagnostics, warnings, or error handling / adding more errors, warnings, notes, help, suggestions, etc
 fix       Bug fixes
 ```
-
 For example:
 
 ```text
@@ -215,12 +214,21 @@ clean(compiler): simplify type checking
 fix(codegen): handle missing returns in main
 improve(lexer): reduce tokenization overhead
 ```
+If your commit is about multiple catagorys, comma-seperate.
+
+```text
+errors(warnings),feat(cli-flags): added warnings & -W flags
+```
 
 But at least make your commits sensical. Unlike mine
 ```commit 
 FINALLY IM DONE WHY DID THAT TAKE 5 DAYS AAGHAGAHGAH IT WORKS
 ```
 Please don't.
+If you forgot something in a previous commit, i like to use
+```text
+oops(README): forgot to re-add readme.md
+```
 
 ---
  
