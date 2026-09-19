@@ -57,7 +57,7 @@ struct SourceFile {
     std::string content;
 };
 class Position {
-public:
+  public:
     static constexpr uint32_t INVALID_FILE_ID = ~uint32_t(0);
     uint32_t file_id;
     size_t index;
@@ -65,9 +65,7 @@ public:
     size_t column;
     size_t length = 1;
     Position();
-    bool is_valid() const {
-        return file_id != INVALID_FILE_ID;
-    }
+    bool is_valid() const { return file_id != INVALID_FILE_ID; }
     std::string arrow_string(size_t context = 2) const;
     Position(uint32_t, size_t, size_t, size_t);
     void advance(char current_char);
@@ -76,14 +74,15 @@ public:
 };
 
 class SourceManager {
-private:
+  private:
     const SourceFile INVALID = SourceFile{
         "<scratch>",
         "scratchscratchscratchscratchscratchscratchscratchscratchscratchscratch...",
     };
     std::vector<SourceFile> files;
     std::unordered_map<std::string, uint32_t> path_to_id;
-public:
+
+  public:
     static SourceManager& instance() {
         static SourceManager sm;
         return sm;
@@ -91,24 +90,18 @@ public:
     std::optional<uint32_t> get_id(const std::string& filepath) const {
         if (filepath == "<scratch>") return Position::INVALID_FILE_ID;
         auto it = path_to_id.find(filepath);
-        if (it != path_to_id.end()) {
-            return it->second;
-        }
+        if (it != path_to_id.end()) { return it->second; }
         return std::nullopt;
     }
     uint32_t add_file(std::string filepath, std::string text) {
         if (filepath == "<scratch>") return Position::INVALID_FILE_ID;
-        if (auto id = get_id(filepath)) {
-            return *id;
-        }
+        if (auto id = get_id(filepath)) { return *id; }
         uint32_t new_id = static_cast<uint32_t>(files.size());
         path_to_id[filepath] = new_id;
         files.push_back({std::move(filepath), std::move(text)});
         return new_id;
     }
-    bool has_id(uint32_t id) const {
-        return id < files.size();
-    }
+    bool has_id(uint32_t id) const { return id < files.size(); }
     const SourceFile& get(uint32_t id) const {
         if (id == Position::INVALID_FILE_ID) return INVALID;
         return files.at(id);
@@ -161,10 +154,10 @@ class DeferNode;
 class ModifierNode;
 using AnyNode = std::variant<std::monostate, NumberNode, StringNode, CharNode, BoolNode, QInNode, QBoolNode, RefVarDeclNode*, NullptrNode, BinOpNode*,
                              UnaryOpNode*, VarAccessNode*, VarAssignNode*, AssignExprNode*, IfNode*, QIfNode*, StatementsNode*, SwitchNode*,
-                             QSwitchNode*, BreakNode*, UnreachableNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*,
-                             MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*,
-                             SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*,
-                             TypeValueNode, DeferNode*, ModifierNode*>;
+                             QSwitchNode*, BreakNode*, UnreachableNode*, WhileNode*, ForNode*, ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*,
+                             MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*, ArrayAccessNode*, MethodCallNode*,
+                             PropertyAccessNode*, SpreadNode*, ForeachNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*,
+                             TryCatchNode*, TypeValueNode, DeferNode*, ModifierNode*>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // ENUMS & CONSTANTS ////////////////////////////////////////////////////////////////////////
@@ -1088,8 +1081,8 @@ class NamespaceNode {
 ////////////////////////////////////////////////////////////////////////////////////////////
 class ParseResult;
 using Prs = std::variant<std::monostate, ParseResult, NumberNode, StringNode, CharNode, BoolNode, BinOpNode*, Error*, UnaryOpNode*, VarAccessNode*,
-                         VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, UnreachableNode*, SwitchNode*, WhileNode*, ForNode*, ContinueNode*,
-                         CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
+                         VarAssignNode*, AssignExprNode*, StatementsNode*, IfNode*, BreakNode*, UnreachableNode*, SwitchNode*, WhileNode*, ForNode*,
+                         ContinueNode*, CallNode*, FuncDefNode*, ReturnNode*, MultiReturnNode*, MultiVarDeclNode*, ArrayDeclNode*, ArrayLiteralNode*,
                          ArrayAccessNode*, MethodCallNode*, PropertyAccessNode*, SpreadNode*, ForeachNode*, QBoolNode, QInNode, QIfNode*,
                          QSwitchNode*, ArrayAssignNode*, FieldAssignNode*, MapLiteralNode*, NamespaceNode*, TryCatchNode*, RefVarDeclNode*,
                          NullptrNode, TypeValueNode, DeferNode*, ModifierNode*>;
@@ -1138,8 +1131,7 @@ class Parser {
                         std::string prev = this->current_tok.value;
                         this->advance();
                         if (this->current_tok.value != "int" && this->current_tok.value != "double") {
-                            res.failure(
-                                new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
+                            res.failure(new InvalidSyntaxError("QC-S087: Expected 'int' or 'double' after '" + prev + "'", this->current_tok.pos));
                             return;
                         }
                         curr.isNonType = true;
@@ -1167,8 +1159,8 @@ class Parser {
                                 this->current_tok.pos));
                             return;
                         }
-                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" ||
-                            this->current_tok.value == "numeric" || this->current_tok.value == "pointer")
+                        if (this->current_tok.value == "usertype" || this->current_tok.value == "primitive" || this->current_tok.value == "numeric" ||
+                            this->current_tok.value == "pointer")
                             this->advance();
                     } else {
                         curr.constraint = "";
@@ -1208,7 +1200,8 @@ class Parser {
         }
     }
     [[gnu::noinline]]
-    void fn(std::vector<ConceptInfo::Block>& blockList, ParseResult& res, std::vector<ConceptInfo::Block>& blocks, std::vector<std::pair<int, ConceptInfo::DefaultBlock>>& defaultBlocks) {
+    void fn(std::vector<ConceptInfo::Block>& blockList, ParseResult& res, std::vector<ConceptInfo::Block>& blocks,
+            std::vector<std::pair<int, ConceptInfo::DefaultBlock>>& defaultBlocks) {
         ConceptInfo::Block block;
         bool is_at_least = false;
         Token is_at_least_tok;
@@ -1483,8 +1476,8 @@ class Parser {
                     auto m_pr = this->func_def_multi(type_list, std::make_optional(name_tok), genericsM, true, false, modifiers);
                     if (std::holds_alternative<Error*>(m_pr)) return;
                     auto fn = std::get<FuncDefNode*>(m_pr);
-                    block.signatures.push_back(ConceptInfo::FunctionSignature(
-                        name_tok, type_list, std::vector<Parameter>(fn->params.begin(), fn->params.end()), genericsM));
+                    block.signatures.push_back(
+                        ConceptInfo::FunctionSignature(name_tok, type_list, std::vector<Parameter>(fn->params.begin(), fn->params.end()), genericsM));
                     continue;
                 }
             }
@@ -1714,7 +1707,7 @@ class Parser {
                     return;
                 }
                 std::vector<GenericType> genericsM;
-                parseGenerics(genericsM, res); 
+                parseGenerics(genericsM, res);
                 if (res.error) return;
                 if (this->current_tok.type == TokenType::LPAREN) {
                     ClassMethodInfo mi;
@@ -1763,8 +1756,7 @@ class Parser {
     Parser(std::vector<Token> tokens, std::unordered_map<std::string, UserTypeInfo> user_types = {});
     std::string qualify_name(const std::string& name);
     bool is_primint_type(const Token& name) {
-        return std::unordered_set<std::string>({"int", "byte", "nibble", "addr_t", "short int", "long int"})
-            .contains(name.value);
+        return std::unordered_set<std::string>({"int", "byte", "nibble", "addr_t", "short int", "long int"}).contains(name.value);
     }
 
     bool is_primitive_type(std::string& name) {
@@ -2192,7 +2184,7 @@ class Parser {
     }
     Prs assignment_expr();
 };
-
+enum class WarningLevel { Disabled, None, Warning, Error };
 struct RunConfig {
     bool use_context = true;
     bool looser_types = false;
@@ -2313,8 +2305,9 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.452R\""}};
+        {"__quantumc", "\"x1.0.453R\""}};
     bool progress = false;
+    std::unordered_map<std::string, WarningLevel> warnings;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
 // COMPILER /////////////////////////////////////////////////////////////////////////////////
@@ -2338,6 +2331,37 @@ struct ExceptionHandlerInfo {
 class LLVMCompiler {
   public:
     RunConfig config;
+    const std::unordered_set<std::string> core = {"unreachable-code",   "missing-return",    "null-deref",     "asm-clobber-stack-pointer",
+                                                  "fn-conflict",        "fn-redecl",         "default-member", "truncation",
+                                                  "implicit-int-float", "constant-condition"};
+    const std::unordered_set<std::string> extra = {"large-by-value",  "float-equal",       "auto",       "shadow",
+                                                   "implicit-extend", "array-param-decay", "empty-body", "empty-catch"};
+    const std::unordered_set<std::string> pedantic = {"struct-like-class"};
+    WarningLevel getWarningLevel(const std::string& warningClass) {
+        auto level = config.warnings[warningClass];
+        if (level != WarningLevel::Disabled) return level;
+        if (core.contains(warningClass)) {
+            level = config.warnings["core"];
+            if (level != WarningLevel::Disabled) return level;
+        }
+        if (extra.contains(warningClass)) {
+            level = config.warnings["extra"];
+            if (level != WarningLevel::Disabled) return level;
+        }
+        if (pedantic.contains(warningClass)) {
+            level = config.warnings["pedantic"];
+            if (level != WarningLevel::Disabled) return level;
+        }
+        return config.warnings["all"];
+    }
+    void warn(const std::string& warningClass, const Position& pos, const std::string& error_text, const std::string& error_code) {
+        WarningLevel level = getWarningLevel(warningClass);
+        if (level == WarningLevel::Warning) {
+            cg_warn(pos, error_text + " [-W" + warningClass + "]", error_code);
+        } else if (level == WarningLevel::Error) {
+            cg_error(pos, error_text + " [-E" + warningClass + "]", error_code);
+        }
+    }
     llvm::LLVMContext& context;
     llvm::Module* module;
     llvm::IRBuilder<>* builder;
@@ -2375,9 +2399,7 @@ class LLVMCompiler {
     void generateStructReprFunctions();
     llvm::Value* callStringConcat(llvm::Value* a, llvm::Value* b);
     void createUserTypes();
-    static bool isIndirectType(const std::string& t) {
-        return !t.empty() && (t.back() == '*' || t.back() == '&');
-    }
+    static bool isIndirectType(const std::string& t) { return !t.empty() && (t.back() == '*' || t.back() == '&'); }
     void generateStruct(const std::string& mapKey, const UserTypeInfo& info);
     void generateClass(const std::string& mapKey, const UserTypeInfo& info);
     llvm::Value* convertToString(llvm::Value* val, AnyNode& expr, Position pos);
@@ -2765,9 +2787,7 @@ class LLVMCompiler {
                 auto baseName = (*varAccess)->var_name_tok.value;
                 std::string resolved = resolveTypeName(baseName);
                 auto enumIt = enumTypes.find(resolved);
-                if (enumIt != enumTypes.end()) {
-                    return userTypes.at(baseTypeName(resolved)).enumType;
-                }
+                if (enumIt != enumTypes.end()) { return userTypes.at(baseTypeName(resolved)).enumType; }
             }
             std::string currentType = getExpressionType(*((*propAcc)->base));
             if (currentType.ends_with("*") || currentType.ends_with("&")) { currentType.pop_back(); }
@@ -3285,9 +3305,8 @@ class LLVMCompiler {
         auto* newTy = llvm::StructType::create(context, name);
         return newTy;
     }
-    #if !defined(__OPTIMIZE__)
-    template <typename T>
-    void dump_val(T* v) {
+#if !defined(__OPTIMIZE__)
+    template <typename T> void dump_val(T* v) {
         if (v) {
             v->dump();
             llvm::errs() << "\n";
@@ -3592,9 +3611,7 @@ class LLVMCompiler {
 
         llvm::Type* srcTy = v->getType();
         if (srcTy->isPointerTy() && !paramTy->isPointerTy()) {
-            if (getExpressionType(argNode, false).ends_with("&")) {
-                v = builder->CreateLoad(paramTy, v, "strip_ref");
-            }
+            if (getExpressionType(argNode, false).ends_with("&")) { v = builder->CreateLoad(paramTy, v, "strip_ref"); }
         }
         for (auto& [unionName, unionTy] : unionTypes) {
             if (srcTy == unionTy && !isUnionType(paramTy)) {
@@ -5802,29 +5819,29 @@ class LLVMCompiler {
     llvm::AllocaInst* createEntryAlloca(const std::string& name, llvm::Type* ty);
     llvm::Value* emitExpr(const AnyNode& node);
     [[gnu::noinline]]
-    llvm::Value* emitBinOp(BinOpNode* const*bin);
+    llvm::Value* emitBinOp(BinOpNode* const* bin);
     [[gnu::noinline]]
-    llvm::Value* emitVarAssign(VarAssignNode* const*va);
+    llvm::Value* emitVarAssign(VarAssignNode* const* va);
     [[gnu::noinline]]
-    llvm::Value* emitVarAccess(VarAccessNode* const*acc);
+    llvm::Value* emitVarAccess(VarAccessNode* const* acc);
     [[gnu::noinline]]
-    llvm::Value* emitAssignExpr(AssignExprNode* const*asn);
+    llvm::Value* emitAssignExpr(AssignExprNode* const* asn);
     [[gnu::noinline]]
-    llvm::Value* emitUnaryOp(UnaryOpNode* const*unary);
+    llvm::Value* emitUnaryOp(UnaryOpNode* const* unary);
     [[gnu::noinline]]
-    llvm::Value* emitMapLit(MapLiteralNode* const*mapLit);
+    llvm::Value* emitMapLit(MapLiteralNode* const* mapLit);
     [[gnu::noinline]]
-    llvm::Value* emitArrLit(ArrayLiteralNode* const*arrLit);
+    llvm::Value* emitArrLit(ArrayLiteralNode* const* arrLit);
     [[gnu::noinline]]
-    llvm::Value* emitCall(CallNode* const*callPtr);
+    llvm::Value* emitCall(CallNode* const* callPtr);
     [[gnu::noinline]]
-    llvm::Value* emitArrAcc(ArrayAccessNode *arrAcc);
+    llvm::Value* emitArrAcc(ArrayAccessNode* arrAcc);
     [[gnu::noinline]]
-    llvm::Value* emitPropAcc(PropertyAccessNode* const*propAccess);
+    llvm::Value* emitPropAcc(PropertyAccessNode* const* propAccess);
     [[gnu::noinline]]
-    llvm::Value* emitMthdCall(MethodCallNode* const*methodCall);
+    llvm::Value* emitMthdCall(MethodCallNode* const* methodCall);
     [[gnu::noinline]]
-    llvm::Value* emitFieldAssign(FieldAssignNode* const*fieldAssign);
+    llvm::Value* emitFieldAssign(FieldAssignNode* const* fieldAssign);
     llvm::Value* extractUnionToBestGuess(llvm::Value* unionVal) {
         std::string unionName;
         if (!isUnionType(unionVal->getType(), &unionName)) { return unionVal; }
@@ -5886,7 +5903,7 @@ class LLVMCompiler {
                 typeStr = utIt->second.members[i].type;
                 size_t colonPos = typeStr.find(':');
                 if (colonPos != std::string::npos) { typeStr = typeStr.substr(0, colonPos); }
-            } 
+            }
             llvm::Type* memberTy = llvmTypeFor(typeStr);
 
             llvm::Value* typedPtr = builder->CreateBitCast(payload, llvm::PointerType::get(context, 0));

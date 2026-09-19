@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(qc LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+option(X86_ONLY "Build for X86 only" OFF)
 if(APPLE OR EMSCRIPTEN)
     set(CMAKE_CXX_STANDARD 20)
 endif()
@@ -74,6 +75,10 @@ set(SOURCES
     ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
 )
 add_executable(qc ${SOURCES})
+if(X86_ONLY)
+    target_compile_definitions(qc PRIVATE X86_ONLY)
+endif()
+
 target_compile_options(qc PRIVATE
     $<$<CONFIG:Release>:-O3>
     --std=c++23

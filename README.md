@@ -116,7 +116,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.452 = "I actually fixed try catch"
+Current Version: x1.0.453 = "I actually fixed try catch"
 Next Version: x1.0.5 = "Probably tagged enums"
 
 # Current Version Highlights
@@ -186,9 +186,41 @@ Concepts as constraints must start with `proves`
 See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md).
 # Contributing
 
-Found a bug? Have a feature request? Open an [Issue!](https://github.com/Youg-Otricked/QuantumC/issues)!
+If you want to contribute to C^4, fork the repository, make your changes, and open a pull request.
 
-Want to contribute? PRs welcome!
+## Commit Syntax
+
+Commits should follow this format:
+
+```text
+category(thing): message
+```
+
+Available categories:
+
+```text
+improve   Improvements to existing functionality
+feat      New functionality or language features
+clean     Code cleanup, refactoring, or technical debt
+errors    Changes to diagnostics, warnings, or error handling / adding more errors, warnings, notes, help, suggestions, etc
+fix       Bug fixes
+```
+
+For example:
+
+```text
+feat(parser, compiler): add modifier support
+errors(warnings, diagnostics, help, suggestions): add help suggestions to warnings
+clean(compiler): simplify type checking
+fix(codegen): handle missing returns in main
+improve(lexer): reduce tokenization overhead
+```
+
+But at least make your commits sensical. Unlike mine
+```commit 
+FINALLY IM DONE WHY DID THAT TAKE 5 DAYS AAGHAGAHGAH IT WORKS
+```
+Please don't.
 
 ---
  

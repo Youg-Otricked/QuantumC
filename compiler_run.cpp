@@ -20,7 +20,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <print>
 #endif
-const std::string ver = "x1.0.452";
+const std::string ver = "x1.0.453";
 #include <random>
 bool slow = false;
 void slow_print(const std::string& text, const std::string& color = "\033[0m", int min_delay_ms = 100, int max_delay_ms = 450) {
@@ -257,6 +257,12 @@ int main(int argc, char* argv[]) {
             config.link_with.push_back(arg.substr(4));
         } else if (arg == "-d" || arg == "--debug") {
             config.debug = true;
+        } else if (arg.starts_with("-Wno-")) {
+            config.warnings[arg.substr(5)] = tkz::WarningLevel::None;
+        } else if (arg.starts_with("-W")) {
+            config.warnings[arg.substr(2)] = tkz::WarningLevel::Warning;
+        } else if (arg.starts_with("-E")) {
+            config.warnings[arg.substr(2)] = tkz::WarningLevel::Error;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
 Quantum C Compiler )" << ver
