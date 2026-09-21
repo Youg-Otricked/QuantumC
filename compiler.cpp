@@ -2174,7 +2174,7 @@ Prs Parser::atom() {
                         } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
                             just_incremented = false;
                             next_comma = true;
-                            name += this->parseNoGenericString();
+                            property_name.value += this->parseNoGenericString();
                             continue;
                         } else {
                             just_incremented = false;
@@ -2308,7 +2308,7 @@ Prs Parser::atom() {
                         } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
                             just_incremented = false;
                             next_comma = true;
-                            name += this->parseNoGenericString();
+                            property_name.value += this->parseNoGenericString();
                             continue;
                         } else {
                             just_incremented = false;
@@ -2475,7 +2475,7 @@ Prs Parser::atom() {
                             } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
                                 just_incremented = false;
                                 next_comma = true;
-                                name += this->parseNoGenericString();
+                                property_name.value += this->parseNoGenericString();
                                 continue;
                             } else {
                                 just_incremented = false;
@@ -2609,7 +2609,7 @@ Prs Parser::atom() {
                             } else if (this->current_tok.type == TokenType::IDENTIFIER || this->current_tok.type == TokenType::KEYWORD) {
                                 just_incremented = false;
                                 next_comma = true;
-                                name += this->parseNoGenericString();
+                                property_name.value += this->parseNoGenericString();
                                 continue;
                             } else {
                                 just_incremented = false;
@@ -6405,7 +6405,8 @@ void LLVMCompiler::generateClass(const std::string& mapKey, const UserTypeInfo& 
         };
     collectFields(mapKey, {});
     if (fieldTypes.empty()) { fieldTypes.push_back(builder->getInt8Ty()); }
-    if (noParent && noAccess && noMethods) warn("struct-like-class", info.pos, "class has no access control, parent classes, or methods; consider using a struct instead", "QC-W020");
+    if (noParent && noAccess && noMethods)
+        warn("struct-like-class", info.pos, "class has no access control, parent classes, or methods; consider using a struct instead", "QC-W020");
     classTypes[mapKey]->setBody(fieldTypes);
     namespaceStack = oldNamespaceStack;
 }
@@ -8546,7 +8547,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
                             allArgs.insert(allArgs.end(), args.begin(), args.end());
                             if (insideTry()) {
                                 auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
-                                llvm::InvokeInst* invk = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                                builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
                                 builder->SetInsertPoint(contBB);
                             } else {
                                 builder->CreateCall(ctor, allArgs);
@@ -9009,9 +9010,8 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
                             allArgs.insert(allArgs.end(), args.begin(), args.end());
                             if (insideTry()) {
                                 auto contBB = llvm::BasicBlock::Create(context, "invoke.cont." + std::to_string(invokeCounter++), currentFunction);
-                                llvm::InvokeInst* invk = builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
+                                builder->CreateInvoke(ctor, contBB, currentLandingPad(), allArgs);
                                 builder->SetInsertPoint(contBB);
-                                return invk;
                             } else {
                                 builder->CreateCall(ctor, allArgs);
                             }
@@ -10306,34 +10306,32 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const* callPtr) {
                                 className, buildMangledName("operator()", genericParamsFromName(funcName)),
                                 methodCallFromCall(*callPtr, buildMangledName("operator()", genericParamsFromName(funcName))), v))
                             return val;
-                    if (auto methodIt = std::find_if(
-                            userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(),
-                            [&](const ClassMethodInfo& method) { return method.name_tok.value == "operator()" && method.generics.empty(); });
-                        methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
-                        size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
-                        auto& info = userTypes[baseTypeName(className)].classMethods[methodIdx];
-                        MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
-                        auto args = prepareArgs(&info, n->args);
-                        delete n;
-                        bool isVariadic = !info.params.empty() && info.params.back().type.value == "...";
-                        if (isVariadic) {
-                            size_t numFixedParams = info.params.size() - 1;
-                            std::vector<llvm::Value*> varVals;
-                            if (args.size() > numFixedParams) {
-                                varVals.assign(args.begin() + numFixedParams, args.end());
-                                args.resize(numFixedParams);
-                            }
-                            args.push_back(packVariadicArgs(varVals));
-                        }
-                        llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
-                        if (!opMethod) {
-                            cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
-                            return nullptr;
-                        }
-                        return emitMethodCall(opMethod, v, args, "operator()");
+                    std::vector<std::string> argTypes;
+                    for (auto& arg : call.arg_nodes) { argTypes.push_back(getExpressionType(arg)); }
+                    ClassMethodInfo* info = findMethodInfo(className, "operator()", argTypes);
+                    if (!info) {
+                        cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
+                        return nullptr;
                     }
-                    cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className, "QC-S167");
-                    return nullptr;
+                    MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
+                    auto args = prepareArgs(info, n->args);
+                    delete n;
+                    bool isVariadic = !info->params.empty() && info->params.back().type.value == "...";
+                    if (isVariadic) {
+                        size_t numFixedParams = info->params.size() - 1;
+                        std::vector<llvm::Value*> varVals;
+                        if (args.size() > numFixedParams) {
+                            varVals.assign(args.begin() + numFixedParams, args.end());
+                            args.resize(numFixedParams);
+                        }
+                        args.push_back(packVariadicArgs(varVals));
+                    }
+                    llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
+                    if (!opMethod) {
+                        cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
+                        return nullptr;
+                    }
+                    return emitMethodCall(opMethod, v, args, "operator()");
                 }
             }
         }
@@ -12054,34 +12052,32 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const* callPtr) {
     if (llvm::Value* v = emitExpr(call.node_to_call)) {
         if (std::string className = getExpressionType(call.node_to_call); !className.empty()) {
             if (classTypes.find(className) != classTypes.end()) {
-                if (auto methodIt = std::find_if(
-                        userTypes[baseTypeName(className)].classMethods.begin(), userTypes[baseTypeName(className)].classMethods.end(),
-                        [&](const ClassMethodInfo& method) { return method.name_tok.value == "operator()" && method.generics.empty(); });
-                    methodIt != userTypes[baseTypeName(className)].classMethods.end()) {
-                    size_t methodIdx = std::distance(userTypes[baseTypeName(className)].classMethods.begin(), methodIt);
-                    auto& info = userTypes[baseTypeName(className)].classMethods[methodIdx];
-                    MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
-                    auto args = prepareArgs(&info, n->args);
-                    delete n;
-                    bool isVariadic = !info.params.empty() && info.params.back().type.value == "...";
-                    if (isVariadic) {
-                        size_t numFixedParams = info.params.size() - 1;
-                        std::vector<llvm::Value*> varVals;
-                        if (args.size() > numFixedParams) {
-                            varVals.assign(args.begin() + numFixedParams, args.end());
-                            args.resize(numFixedParams);
-                        }
-                        args.push_back(packVariadicArgs(varVals));
-                    }
-                    llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
-                    if (!opMethod) {
-                        cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
-                        return nullptr;
-                    }
-                    return emitMethodCall(opMethod, v, args, "operator()");
+                std::vector<std::string> argTypes;
+                for (auto& arg : call.arg_nodes) { argTypes.push_back(getExpressionType(arg)); }
+                ClassMethodInfo* info = findMethodInfo(className, "operator()", argTypes);
+                if (!info) {
+                    cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
+                    return nullptr;
                 }
-                cg_error(get_pos(*callPtr), "no matching operator( ) for class " + className, "QC-S167");
-                return nullptr;
+                MethodCallNode* n = methodCallFromCall(*callPtr, "operator()");
+                auto args = prepareArgs(info, n->args);
+                delete n;
+                bool isVariadic = !info->params.empty() && info->params.back().type.value == "...";
+                if (isVariadic) {
+                    size_t numFixedParams = info->params.size() - 1;
+                    std::vector<llvm::Value*> varVals;
+                    if (args.size() > numFixedParams) {
+                        varVals.assign(args.begin() + numFixedParams, args.end());
+                        args.resize(numFixedParams);
+                    }
+                    args.push_back(packVariadicArgs(varVals));
+                }
+                llvm::Function* opMethod = findMethodOverload(className, "operator()", args);
+                if (!opMethod) {
+                    cg_error(get_pos(*callPtr), "no matching operator() overload for class " + className, "QC-O002");
+                    return nullptr;
+                }
+                return emitMethodCall(opMethod, v, args, "operator()");
             }
         }
     }
@@ -12636,13 +12632,9 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const* methodCall) {
                         builder->SetInsertPoint(caseBB);
                         llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, unionPtr, 1);
                         llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
-                        ClassMethodInfo* info = nullptr;
-                        for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
-                            if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
-                                info = &m2;
-                                break;
-                            }
-                        }
+                        std::vector<std::string> argTypes;
+                        for (auto& arg : (*call)->args) { argTypes.push_back(getExpressionType(arg)); }
+                        ClassMethodInfo* info = findMethodInfo(ty, (*call)->method_name.value, argTypes);
                         if (!info) {
                             cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                             struct Candidate {
@@ -12758,13 +12750,9 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const* methodCall) {
                     builder->SetInsertPoint(caseBB);
                     llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, unionPtr, 1);
                     llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
-                    ClassMethodInfo* info = nullptr;
-                    for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
-                        if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
-                            info = &m2;
-                            break;
-                        }
-                    }
+                    std::vector<std::string> argTypes;
+                    for (auto& arg : (*call)->args) { argTypes.push_back(getExpressionType(arg)); }
+                    ClassMethodInfo* info = findMethodInfo(ty, (*call)->method_name.value, argTypes);
                     if (!info) {
                         cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                         struct Candidate {
@@ -12901,13 +12889,9 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const* methodCall) {
                     builder->SetInsertPoint(caseBB);
                     llvm::Value* payloadPtr = builder->CreateStructGEP(unionIt->second, baseVal, 1);
                     llvm::Value* payload = builder->CreateLoad(builder->getPtrTy(), payloadPtr);
-                    ClassMethodInfo* info = nullptr;
-                    for (auto& m2 : userTypes.at(baseTypeName(baseTypeName(ty))).classMethods) {
-                        if (m2.name_tok.value == methodName && m2.params.size() == (*call)->args.size()) {
-                            info = &m2;
-                            break;
-                        }
-                    }
+                    std::vector<std::string> argTypes;
+                    for (auto& arg : (*call)->args) { argTypes.push_back(getExpressionType(arg)); }
+                    ClassMethodInfo* info = findMethodInfo(ty, (*call)->method_name.value, argTypes);
                     if (!info) {
                         cg_error((*call)->method_name.pos, "no overload found", "QC-O003");
                         struct Candidate {
@@ -13092,41 +13076,9 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const* methodCall) {
         }
     }
     if (llvm::Value* specializedCall = tryHandleSpecialized(targetClass, methodName, *call, thisPtr)) { return specializedCall; }
-    ClassMethodInfo* info = nullptr;
-    std::string searchClass = baseTypeName(targetClass);
-    while (!searchClass.empty() && !info) {
-        ClassMethodInfo* bestCandidate = nullptr;
-        int bestScore = 999;
-        for (auto& m : userTypes.at(baseTypeName(searchClass)).classMethods) {
-            bool isVar = !m.params.empty() && m.params.back().type.value == "...";
-            if (m.name_tok.value != methodName) continue;
-            if (isVar) {
-                if ((*call)->args.size() >= m.params.size() - 1) {
-                    bestCandidate = &m;
-                    bestScore = 0;
-                    break;
-                }
-                continue;
-            }
-            if (m.params.size() != (*call)->args.size()) continue;
-            int currentScore = 0;
-            bool matches = true;
-            for (size_t i = 0; i < m.params.size(); i++) {
-                std::string argTypeStr = getExpressionType((*call)->args[i]);
-                std::string paramTypeStr = m.params[i].type.value;
-                if (argTypeStr == paramTypeStr) continue;
-                matches = false;
-                break;
-            }
-            if (matches && currentScore < bestScore) {
-                bestCandidate = &m;
-                bestScore = currentScore;
-                if (bestScore == 0) break;
-            }
-        }
-        if (bestCandidate) info = bestCandidate;
-        searchClass = userTypes.at(baseTypeName(searchClass)).baseClassName;
-    }
+    std::vector<std::string> argTypes;
+    for (auto& arg : (*call)->args) { argTypes.push_back(getExpressionType(arg)); }
+    ClassMethodInfo* info = findMethodInfo(targetClass, methodName, argTypes);
     auto args = prepareArgs(info, (*call)->args);
     llvm::StructType* VariadicStructTy = llvm::StructType::get(context, {builder->getPtrTy(), builder->getInt32Ty(), builder->getInt32Ty()});
     bool isVariadic = (info && !info->params.empty() && info->params.back().type.value == "...");
@@ -14613,6 +14565,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
 
                 for (auto& caseLabel : section.cases) {
                     llvm::Value* caseVal = emitExpr(caseLabel.expr);
+                    if (!caseVal) {
+                        cg_error(get_pos(caseLabel.expr), "Failed to emit switch case value", "QC-S278");
+                        return;
+                    }
                     if (auto constInt = llvm::dyn_cast<llvm::ConstantInt>(caseVal)) { switchInst->addCase(constInt, sectionBlocks[i]); }
                 }
             }
@@ -15811,7 +15767,6 @@ std::vector<CTError> LLVMCompiler::compile(
                     } else {
                         currentThis = nullptr;
                     }
-                    currentThis = oldThis;
                     for (size_t pIdx = 0; pIdx < method.params.size(); pIdx++) {
                         auto& param = method.params[pIdx];
                         llvm::Value* argVal = layerFunc->getArg(pIdx + 1);

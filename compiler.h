@@ -2305,7 +2305,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.455R\""}};
+        {"__quantumc", "\"x1.0.46R\""}};
     bool progress = false;
     std::unordered_map<std::string, WarningLevel> warnings;
 };
@@ -4017,7 +4017,8 @@ class LLVMCompiler {
     }
     std::vector<llvm::Value*> prepareArgs(ClassMethodInfo* info, std::vector<AnyNode>& argNodes) {
         std::vector<llvm::Value*> args;
-        for (size_t i = 0; i < argNodes.size(); ++i) {
+        size_t explicitArgCount = argNodes.size();
+        for (size_t i = 0; i < explicitArgCount; ++i) {
             llvm::Type* paramTy = nullptr;
             bool isRef = false;
             if (info && i < info->params.size()) {
@@ -4028,8 +4029,6 @@ class LLVMCompiler {
             llvm::Value* value = nullptr;
             if (isRef) {
                 value = emitLValue(argNodes[i]);
-            } else if (paramTy && paramTy->isPointerTy()) {
-                value = emitExpr(argNodes[i]);
             } else {
                 value = emitExpr(argNodes[i]);
             }
@@ -4043,7 +4042,30 @@ class LLVMCompiler {
             }
             args.push_back(value);
         }
-
+        if (info && explicitArgCount < info->params.size()) {
+            for (size_t i = explicitArgCount; i < info->params.size(); ++i) {
+                const auto& param = info->params[i];
+                if (param.type.value == "...") {
+                    break; 
+                }
+                if (!param.default_value.has_value()) {
+                    cg_error(info->name_tok.pos, "missing required argument for parameter '" + param.name.value + "'", "QC-S169");
+                    return {};
+                }
+                AnyNode& defaultRef = const_cast<AnyNode&>(param.default_value.value());
+                llvm::Value* defVal = emitExpr(defaultRef);
+                if (!defVal) {
+                    cg_error(info->name_tok.pos, "failed to evaluate default parameter for '" + param.name.value + "'", "QC-S168");
+                    return {};
+                }
+                llvm::Type* paramTy = llvmTypeFor(param.type.value);
+                if (paramTy) {
+                    defVal = adaptArgumentForParam(defVal, defaultRef, paramTy, i);
+                    if (!defVal) return {};
+                }
+                args.push_back(defVal);
+            }
+        }
         return args;
     }
     llvm::Value* emitMethodCall(llvm::Function* method, llvm::Value* thisPtr, const std::vector<llvm::Value*>& args, const std::string& name);
@@ -4074,6 +4096,90 @@ class LLVMCompiler {
             return expBits >= actBits ? 2 : 1;
         }
         return -1;
+    }
+    ClassMethodInfo* findMethodInfo(const std::string& className, const std::string& methodName, const std::vector<std::string>& argTypes) {
+        std::string resolvedClassName = className;
+        if (className.find("::") == std::string::npos && !getCurrentNamespace().empty()) {
+            std::string qualifiedName = getCurrentNamespace() + "::" + className;
+            if (userTypes.find(qualifiedName) != userTypes.end()) { resolvedClassName = qualifiedName; }
+        }
+        std::string currentClass = resolvedClassName;
+        while (!currentClass.empty()) {
+            std::string baseName = baseTypeName(currentClass);
+            if (baseName.find('<') != std::string::npos) { baseName = baseName.substr(0, baseName.find('<')); }
+            auto typeIt = userTypes.find(baseName);
+            if (typeIt != userTypes.end()) {
+                ClassMethodInfo* bestMatch = nullptr;
+                int bestScore = 999999;
+                for (auto& method : typeIt->second.classMethods) {
+                    if (method.name_tok.value != methodName) continue;
+                    size_t totalParams = method.params.size();
+                    bool isVariadic = !method.params.empty() && method.params.back().type.value == "...";
+                    size_t requiredParams = 0;
+                    for (const auto& p : method.params) {
+                        if (p.default_value.has_value() || p.type.value == "...") break;
+                        requiredParams++;
+                    }
+                    size_t argCount = argTypes.size();
+                    if (isVariadic) {
+                        if (argCount < totalParams - 1) continue;
+                    } else {
+                        if (argCount < requiredParams || argCount > totalParams) continue;
+                    }
+                    int currentScore = 0;
+                    bool compatible = true;
+                    for (size_t i = 0; i < argCount; ++i) {
+                        if (isVariadic && i >= totalParams - 1) {
+                            currentScore += 2;
+                            continue;
+                        }
+                        std::string expected = resolveTypeName(method.params[i].type.value, false);
+                        std::string actual = resolveTypeName(argTypes[i], false);
+                        if (expected == actual) {
+                            currentScore += 0;
+                        } else if (expected.ends_with("&") && expected.substr(0, expected.size() - 1) == actual) {
+                            currentScore += 1;
+                        } else if ((expected.ends_with("*") || expected.ends_with("[]")) &&
+                                   (actual.ends_with("*") || actual.ends_with("[]") || actual == "nullptr")) {
+                            currentScore += 2;
+                        } else if (llvmTypeFor(expected) && llvmTypeFor(actual)) {
+                            llvm::Type* expTy = llvmTypeFor(expected);
+                            llvm::Type* actTy = llvmTypeFor(actual);
+                            int castPenalty = implicitCastPenalty(expTy, actTy);
+                            if (castPenalty >= 0) {
+                                currentScore += 3 + castPenalty;
+                            } else {
+                                compatible = false;
+                                break;
+                            }
+                        } else {
+                            compatible = false;
+                            break;
+                        }
+                    }
+                    if (!compatible) continue;
+                    if (argCount < totalParams && !isVariadic) { currentScore += (int)(totalParams - argCount) * 5; }
+                    if (currentScore < bestScore) {
+                        bestScore = currentScore;
+                        bestMatch = &method;
+                        if (bestScore == 0) return bestMatch;
+                    }
+                }
+                if (bestMatch) return bestMatch;
+                currentClass = typeIt->second.baseClassName;
+                if (!currentClass.empty() && currentClass.find("::") == std::string::npos) {
+                    size_t lastColon = resolvedClassName.rfind("::");
+                    if (lastColon != std::string::npos) {
+                        std::string ns = resolvedClassName.substr(0, lastColon);
+                        std::string qualifiedBase = ns + "::" + currentClass;
+                        if (userTypes.find(qualifiedBase) != userTypes.end()) { currentClass = qualifiedBase; }
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        return nullptr;
     }
     llvm::Function* findMethodOverload(const std::string& className, const std::string& methodName, const std::vector<llvm::Value*>& args) {
         std::string resolvedClassName = className;
@@ -4442,6 +4548,8 @@ class LLVMCompiler {
         namespaceStack = savedNamespaceStack;
         currentFunction = savedFunction;
         globals = savedGlobals;
+        currentThis = savedThis;
+        currentClassName = savedClassName;
         this->currentGenericTypes = oldGenericTypes;
         currentGenericTypeStrings = oldGenericTypeStrings;
         currentNonTypeGenericValues = oldNonTypeGenerics;
@@ -4478,6 +4586,10 @@ class LLVMCompiler {
             currentNonTypeGenericValues = oldNonTypeGenerics;
             return nullptr;
         }
+        llvm::Value* savedThis = currentThis;
+        std::string savedClassName = currentClassName;
+        currentThis = nullptr;
+        currentClassName = "";
         if (!funcDef->modifiers.empty()) {
             FuncDefNode specFn = *funcDef;
             specFn.generics.clear();
@@ -4586,6 +4698,8 @@ class LLVMCompiler {
                 builder->CreateRet(llvm::Constant::getNullValue(fnTy->getReturnType()));
             }
         }
+        currentThis = savedThis;
+        currentClassName = savedClassName;
         exitScope();
         namespaceStack = savedNamespaceStack;
         currentFunction = savedFunction;
