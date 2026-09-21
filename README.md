@@ -39,8 +39,7 @@ Install the binaries from GitHub, use the [Package & Version Manager](https://gi
 
 #### Dependencies
 
-You must have `clang` installed (or the path /usr/lib/clang/<VERSION>/include/unwind.h must exist)
-Also, if cloning a binary and not building from source, you must have the current latest libstdc++ (if on linux).
+You must have `clang` installed. (Obviously, it's a clang project) 
 
 ---
 
