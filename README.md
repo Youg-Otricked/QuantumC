@@ -13,8 +13,8 @@ int main() {
 }
 ```
 
-Check the web-demo out at [learnhardcode.dpdns.org/QuantumC/qc.html](https://learnhardcode.dpdns.org/QuantumC/qc.html).
-Or go to the docs right [here](https://youg-otricked.github.io/QuantumC/).
+Docs are [here](https://youg-otricked.github.io/QuantumC/).
+Book coming soon.
 
 **More Powerful Than Explosives™**/j
 
