@@ -29,7 +29,7 @@ qc -sv
 ```sh
 git clone https://github.com/Youg-Otricked/QuantumC
 cd QuantumC
-./install.sh
+./scripts/install.sh
 qc -sv
 ```
 

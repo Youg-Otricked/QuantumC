@@ -68,7 +68,7 @@ if [ -d "$QC_LIB" ]; then
 fi
 
 echo -e "${BLUE}Compiling QC compiler...${NC}"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR/.."
 
 if [ ! -f "compiler.cpp" ]; then
     echo -e "${RED}Error: compiler.cpp not found!${NC}"
@@ -76,7 +76,7 @@ if [ ! -f "compiler.cpp" ]; then
 fi
 rm -rf CMakeCache.txt CMakeFiles
 cmake .
-cmake --build . -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4) 2>build.log
+CC=clang CXX=clang++ cmake --build . -j$(nproc 2>/dev/null || sysctl -n hw.logicalcpu 2>/dev/null || echo 4) -DCMAKE_BUILD_TYPE=Debug   -DCXX_RUNTIME=ON 2>build.log
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}Compilation failed!${NC}"
@@ -89,9 +89,9 @@ echo ""
 echo -e "${BLUE}Installing standard library...${NC}"
 mkdir -p ~/.qc/bin
 mkdir -p ~/.qc/lib
-if [ -f "$SCRIPT_DIR/stdlib.qc" ]; then
-    cp "$SCRIPT_DIR/stdlib.qc" $QC_LIB
-    cp "$SCRIPT_DIR/syntax.qc" $QC_LIB
+if [ -f "$SCRIPT_DIR/../stdlib.qc" ]; then
+    cp "$SCRIPT_DIR/../stdlib.qc" $QC_LIB
+    cp "$SCRIPT_DIR/../syntax.qc" $QC_LIB
     echo -e "${GREEN}stdlib.qc installed to $QC_LIB${NC}"
 else
     echo -e "${YELLOW}Warning: stdlib.qc not found (will be created later)${NC}"
@@ -99,7 +99,7 @@ else
 fi
 
 echo -e "${BLUE}Installing qc compiler...${NC}"
-cp "$SCRIPT_DIR/qc" ~/.qc/bin/qc
+cp "$SCRIPT_DIR/../qc" ~/.qc/bin/qc
 chmod +x ~/.qc/bin/qc
 echo -e "${GREEN}qc installed to ~/.qc/bin/${NC}"
 echo ""

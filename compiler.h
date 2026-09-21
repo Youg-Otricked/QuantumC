@@ -66,6 +66,7 @@ class Position {
     size_t length = 1;
     Position();
     bool is_valid() const { return file_id != INVALID_FILE_ID; }
+    std::string string(size_t context = 2) const;
     std::string arrow_string(size_t context = 2) const;
     Position(uint32_t, size_t, size_t, size_t);
     void advance(char current_char);
@@ -325,6 +326,40 @@ class Note {
         return result;
     }
 };
+class Help {
+  public:
+    Position pos;
+    std::string message;
+    Help(const Position& pos, const std::string& message) : pos(pos), message(message) {}
+    std::string as_string() const {
+        std::string result;
+        result += "help: ";
+        result += message;
+        result += "\n";
+        result += "   --> ";
+        result += SourceManager::instance().get(pos.file_id).filename;
+        result += ":";
+        result += std::to_string(pos.line + 1);
+        result += ":";
+        result += std::to_string(pos.column + 1);
+        result += "\n";
+        result += pos.string(0);
+        return result;
+    }
+};
+class Insight {
+  public:
+    std::string message;
+    Insight(const std::string& message) : message(message) {}
+    std::string as_string() const {
+        std::string result;
+        result += "insight: ";
+        result += message;
+        result += "\n";
+        return result;
+    }
+};
+
 class CTError : public Error {
   public:
     CTError(std::string d, Position pos, bool is_warning = false, std::string code = "", std::vector<Note> notes = {}) : Error(code, d, pos) {
@@ -333,6 +368,8 @@ class CTError : public Error {
     }
     bool is_warning = false;
     std::vector<Note> notes;
+    std::vector<Help> helps;
+    std::vector<Insight> insights;
     std::string as_string() override {
         std::string result;
         result += (is_warning ? "warning " : "error ");
@@ -350,6 +387,16 @@ class CTError : public Error {
         for (const auto& note : notes) {
             result += "\n\033[0m\033[36m  ";
             result += note.as_string();
+            result += "\033[0m";
+        }
+        for (const auto& help : helps) {
+            result += "\n\033[0m\033[34m  ";
+            result += help.as_string();
+            result += "\033[0m";
+        }
+        for (const auto& insight : insights) {
+            result += "\n\033[0m\033[32m  ";
+            result += insight.as_string();
             result += "\033[0m";
         }
         return result;
@@ -2417,6 +2464,14 @@ class LLVMCompiler {
     void cg_note(const Position& pos, const std::string& msg) {
         if (errors.empty()) return;
         errors.back().notes.emplace_back(pos, msg);
+    }
+    void cg_help(const Position& pos, const std::string& msg) {
+        if (errors.empty()) return;
+        errors.back().helps.emplace_back(pos, msg);
+    }
+    void cg_insight(const std::string& msg) {
+        if (errors.empty()) return;
+        errors.back().insights.emplace_back(msg);
     }
     std::vector<CTError> errors;
     llvm::BasicBlock* currentBreakBB = nullptr;

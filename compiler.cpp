@@ -94,6 +94,30 @@ namespace tkz {
 ////////////////////////////////////////////////////////////////////////////////////////////
 Position::Position() {
 }
+std::string Position::string(size_t context) const {
+    const auto& file = SourceManager::instance().get(this->file_id);
+    if (file.content.empty() || index > file.content.size()) { return "\n"; }
+    std::vector<std::string> lines;
+    std::stringstream ss(file.content);
+    std::string temp;
+    while (std::getline(ss, temp)) { lines.push_back(temp); }
+    if (lines.empty()) return "\n";
+    size_t current = std::min<size_t>(line, lines.size() - 1);
+    size_t first = (current >= context) ? current - context : 0;
+    size_t last = std::min(current + context, lines.size() - 1);
+    std::string result;
+    size_t width = std::to_string(last + 1).size();
+    for (size_t i = first; i <= last; i++) {
+        std::string num = std::to_string(i + 1);
+        result += "  ";
+        result += std::string(width - num.size(), ' ');
+        result += num;
+        result += " | ";
+        result += lines[i];
+        result += "\n";
+    }
+    return result;
+}
 std::string Position::arrow_string(size_t context) const {
     const auto& file = SourceManager::instance().get(this->file_id);
     if (file.content.empty() || index > file.content.size()) { return "\n"; }

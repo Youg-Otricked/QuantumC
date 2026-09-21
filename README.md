@@ -24,15 +24,6 @@ C⁴ combines explicitness and simplicity to produce readable code, improving bo
 
 ## What is QuantumC?
 QuantumC (C⁴/C^4) is a compiled, statically typed C-Style Systems programming language, focusing on clean code and low global scope pollution.
-## Features
-
-- **Modern Syntax** - Clean, intuitive, no boilerplate (other than main)
-- **Functions & Lambdas** - First-class functions with `fn` syntax for lambdas and `type name(args-type args-name)` syntax for normal functions
-- **Multi-Return Values** - Return multiple values without structs
-- **Type Safety** - Strong typing with `auto` inference
-- **Quantum Booleans** - Superposition of true/false
-- **F-Strings** - Python-style string interpolation
-- **Special class methods** - Representation, evaluation, and operator overloading
 
 ---
 
