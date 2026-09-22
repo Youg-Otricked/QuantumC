@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
 
 
-# Welcome To The Quantum-C Documentation!
+# Welcome To The Quartic-C Documentation!
 
 ```cpp
 int main() {
@@ -17,7 +17,7 @@ int main() {
 <div style="position: relative; padding-bottom: calc(51.0933% + 41px); height: 0; width: 100%; max-width: 900px; margin: 0 auto;">
   <iframe
     src="https://demo.arcade.software/YKKoQ8dvslZT7VIXJVgH?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
-    title="Run and Test C Code in Quantum C Playground"
+    title="Run and Test C Code in Quartic C Playground"
     frameborder="0"
     loading="lazy"
     webkitallowfullscreen
@@ -29,7 +29,7 @@ int main() {
 </div>
 
 ## NOTE:
-# **THIS IS NOT A QCL (Quantum Computation Language)**
+# **THIS IS NOT A QCL (Quartic Computation Language)**
 
 ### Pages:
 [Getting started](./getStart.md)
@@ -93,22 +93,22 @@ int main() {
 - Errors should be as loud and early as possible, not console filling variant messes
 - If something is complex, it is documented as complex
 
-Quantum C favors clarity over convenience, and explicitness over brevity.
+Quartic C favors clarity over convenience, and explicitness over brevity.
 
 ## Non-goals
 
-- Quantum C is not trying to do 'hand-holding' or be beginner - friendly.  
+- Quartic C is not trying to do 'hand-holding' or be beginner - friendly.  
   It is designed to be **used**, **taught**, and **to teach** — and this can be **verified directly**:  
   simply pass `-a -tkn -r` before any input file to see the compiler output that demonstrates all three.
 
-- Quantum C does not hide memory costs
-- Quantum C does not auto-correct ambiguous logic
-- Quantum C does not _make_ ambiguous logic
-- Quantum C does not _allow_ ambiguous logic
+- Quartic C does not hide memory costs
+- Quartic C does not auto-correct ambiguous logic
+- Quartic C does not _make_ ambiguous logic
+- Quartic C does not _allow_ ambiguous logic
 `
 ## Versioning
 
-QuantumC uses the following versioning scheme:
+QuarticC uses the following versioning scheme:
 `cMa.Mo.MiP`
 Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
 For the version
@@ -119,7 +119,7 @@ For the version
 `Mi` = `3`
 `P` = `4`
 
-Critical versions represent the largest generational milestones in QuantumC's development.
+Critical versions represent the largest generational milestones in QuarticC's development.
 
 v = Interpreter
 x = Compiler (Current)
@@ -135,7 +135,7 @@ be in development simultaneously.
 
 Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
 
-Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
+Unlike semantic versioning, QuarticC versions describe the scale and category of language evolution rather than API compatibility.
 
 ### Legacy Versions
 

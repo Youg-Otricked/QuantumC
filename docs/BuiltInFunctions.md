@@ -4,8 +4,8 @@
 
 [Back to Home](./index.md)
 
-Quantum C has various built in functions, which are functions that are hard coded in the language, instead of you needing to manualy write them
-All QuantumC intrinsics begin with a backtick (`). The backtick is omitted from signatures in this table for readability.
+QuarticC has various built in functions, which are functions that are hard coded in the language, instead of you needing to manualy write them
+All QuarticC intrinsics begin with a backtick (`). The backtick is omitted from signatures in this table for readability.
 
 | Function          | Use                                                                                                                                                                                                                                                                                                                                       | Signature                                                                     | Example call                                                                                  |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

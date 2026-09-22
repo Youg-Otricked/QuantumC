@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
 
-# Quantum Control Flow
+# Quartic Control Flow
 
 [Back to Home](./index.md)
 

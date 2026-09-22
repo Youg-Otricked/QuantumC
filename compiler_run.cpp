@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
 [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m
 [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m[37m [0m
 
-        Quantum C (C⁴) )"
+        QuarticC (C⁴) )"
                       << ver << R"(
 
         The 4th Evolution of C
@@ -169,15 +169,8 @@ int main(int argc, char* argv[]) {
         Now officaly past version 1(byte)
         ITS OVER... NINE.
         Yes it did drop from 12.0.0 to 0.15.1 i forgor to put a 0. before 12
-        Features:
-        ✓ C++ Performance -- without the 20 #includes
-        ✓ C# Ergonomics  
-        ✓ Rust Safety
-        ✓ Quantum Booleans
-        ✓ Multi-return
-        ✓ Type Unions
 
-        github.com/Youg-Otricked/QuantumC
+        github.com/Youg-Otricked/QuarticC
         )" << RESET << std::endl;
             return 0;
         } else if (arg == "--ast" || arg == "-a") {
@@ -265,7 +258,7 @@ int main(int argc, char* argv[]) {
             config.warnings[arg.substr(2)] = tkz::WarningLevel::Error;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
-Quantum C Compiler )" << ver
+QuarticC Compiler )" << ver
                       << R"(
 
 Usage: ./qc [options] <file>
@@ -335,8 +328,11 @@ Examples:
     if (filename.empty()) {
 
         // REPL mode
+        std::cout << BOLD << MAGENTA << "REPL is curently disabled" << RESET;
+        return 1;
+        /*
         std::vector<std::string> history;
-        std::cout << GREEN << "Quantum C REPL " << ver << RESET << std::endl;
+        std::cout << GREEN << "QuarticC REPL " << ver << RESET << std::endl;
         std::cout << CYAN << "Type !@run to execute, !@clear to discard buffer, exit to quit" << RESET << std::endl;
         if (!config.use_context) { std::cout << CYAN << "(Context disabled)" << RESET << std::endl; }
 
@@ -488,7 +484,7 @@ Examples:
                 code_buffer += line + "\n";
             }
         }
-
+        */
     } else {
         // File mode
         std::string code = read_source_file(filename);

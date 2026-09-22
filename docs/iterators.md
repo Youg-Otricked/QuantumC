@@ -4,7 +4,7 @@
 
 [Back to Home](./index.md)
 
-QuantumC's iterator system is designed to be simple to implement while providing a consistent interface for users.
+QuarticC's iterator system is designed to be simple to implement while providing a consistent interface for users.
 
 Iterators work as follows:
 

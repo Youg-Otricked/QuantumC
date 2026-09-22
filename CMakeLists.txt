@@ -118,7 +118,7 @@ if(EMSCRIPTEN)
             --preload-file ${CMAKE_SOURCE_DIR}/stdlib.qc@/stdlib.qc \
             -s STACK_SIZE=134217728 \
             -s MODULARIZE=1 \
-            -s EXPORT_NAME=\"QuantumC\" \
+            -s EXPORT_NAME=\"QuarticC\" \
             -s TOTAL_MEMORY=805306368 \
             -s ASSERTIONS=1 \
             -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE='[\"$stackSave\",\"$stackRestore\",\"$stackAlloc\"]'\

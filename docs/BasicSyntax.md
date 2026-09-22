@@ -34,7 +34,7 @@ Modulo returns the remainder of a division.
 
 ### Boiler Plate
 
-Function syntax will be coverd later, but the boilerplate for Quantum C is simple.
+Function syntax will be coverd later, but the boilerplate for QuarticC is simple.
 ```cpp
 int main() {
     // Code Goes Here
@@ -43,7 +43,7 @@ int main() {
 No includes, no nothing.
 
 ### Variables
-Variables in Quantum C are declared as follows:
+Variables in QuarticC are declared as follows:
 ```cpp 
 type name = value;
 // OR
@@ -68,7 +68,7 @@ int main() {
 
 # Console Output
 
-The main way to output to the console in Quantum C is `\`qout`.
+The main way to output to the console in Quartic C is `\`qout`.
 
 Example:
 ```cpp

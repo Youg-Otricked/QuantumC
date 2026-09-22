@@ -1,10 +1,6 @@
-# QuantumC (C⁴/C^4)
+# QuarticC (C⁴/C^4)
 
 ### The 4th Evolution of C
-
-QuantumC (C⁴) is a general-purpose systems programming language.
-It is **not** a quantum computing language. It does not simulate quantum logic,
-compile to quantum circuits, or run on quantum hardware. QuantumC (C^4) is unrelated to the C99-to-OpenQASM compiler, QuantumC
 
 ```qc
 int main() {
@@ -13,7 +9,7 @@ int main() {
 }
 ```
 
-Docs are [here](https://youg-otricked.github.io/QuantumC/).
+Docs are [here](https://youg-otricked.github.io/QuarticC/).
 Book coming soon.
 
 **More Powerful Than Explosives™**/j
@@ -22,18 +18,18 @@ C⁴ combines explicitness and simplicity to produce readable code, improving bo
 
 ---
 
-## What is QuantumC?
-QuantumC (C⁴/C^4) is a compiled, statically typed C-Style Systems programming language, focusing on clean code and low global scope pollution.
+## What is QuarticC?
+C⁴ is a compiled, statically typed C-style systems programming language, focusing on no global scope polution and clean code while still giving you minute control.
 
 ---
 
 # Video
 
-Go to the [docs](https://youg-otricked.github.io/QuantumC/)
+Go to the [docs](https://youg-otricked.github.io/QuarticC/)
 
 ## Quick Start
 
-Install the binaries from GitHub, use the [Package & Version Manager](https://github.com/Youg-Otricked/quantum-c-version-manager), or:
+Install the binaries from GitHub, use the [Package & Version Manager](https://github.com/Youg-Otricked/quartic-c-manager), or:
 
 ### Installation
 
@@ -46,7 +42,7 @@ You must have `clang` installed. (Obviously, it's a clang project)
 After cloning the repo to your machine, run.
 
 ```bash
-cd QuantumC
+cd QuarticC
 chmod +x install.sh
 ./install.sh
 # Now, you can type
@@ -64,7 +60,7 @@ qc [flags]
 - [Roadmap](#feature-roadmap)
 - [Manual Memory Management](#manual-memory-management)
 - [Include System](#include-system)
-- [Why QuantumC?](#why-quantumc)
+- [Why QuarticC?](#why-quarticc)
 - [Code Conventions](#conventions)
 - [Type collections and aliases](#type-collections-and-aliases)
 - [Systems-y stuff](#c-interop-and-inline-asm)
@@ -75,7 +71,7 @@ qc [flags]
 
 # Versioning Scheme
 
-QuantumC uses the following versioning scheme:
+QuarticC uses the following versioning scheme:
 `cMa.Mo.MiP`
 , where `c` is critical, for massive additions, such as the compiler being added, `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme, and `P` being the patch version. 
 For the version
@@ -87,7 +83,7 @@ For the version
 `P` = `4`
 
 P is omitted if it is 0.
-Critical versions represent the largest generational milestones in QuantumC's development.
+Critical versions represent the largest generational milestones in QuarticC's development.
 
 v = Interpreter
 x = Compiler (Current)
@@ -103,7 +99,7 @@ be in development simultaneously.
 
 Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 9, the next release increments the moderate version instead.
 
-Unlike semantic versioning, QuantumC versions describe the scale and category of language evolution rather than API compatibility.
+Unlike semantic versioning, QuarticC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
 Current Version: x1.0.47 = "I actually fixed try catch"
@@ -125,7 +121,7 @@ Minor
 └─ Filesystem
 
 Patch
-└─ Fixed default args on namespaced functions
+└─ Nonsense
 ```
 
 # Recent Deprecations / Breaking Changes
@@ -173,7 +169,7 @@ Concepts as constraints must start with `proves`
 |                     | Try/Catch and `throw`                                                  | Done        |
 |                     | Error message quality and helpfulness upgrade                          | Done        |
 
-See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuantumC/blob/master/roadmap.md).
+See the full list of remaining features in the [roadmap](https://github.com/Youg-Otricked/QuarticC/blob/master/roadmap.md).
 # Contributing
 
 If you want to contribute to C^4, fork the repository, make your changes, and open a pull request.
@@ -281,12 +277,12 @@ namespace x { /* uses y::Something internally */ }
 namespace y { /* ... */ }
 ```
 
-Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuantumC/include.html).
+Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/QuarticC/include.html).
 
 ---
-## Why QuantumC?
+## Why QuarticC?
 
-| **Feature**                 | **C++**              | **Zig**          | **Rust**         | **QuantumC**        |
+| **Feature**                 | **C++**              | **Zig**          | **Rust**         | **QuarticC**        |
 | --------------------------- | -------------------- | ---------------- | ---------------- | ------------------- |
 | **Total Runtime**           | Medium               | Medium           | Medium           | Medium              |
 | **Compile Time (relative)** | Slow                 | Medium           | Medium           | Medium              |
@@ -295,13 +291,13 @@ Want to learn more? Check out the [docs for it](https://youg-otricked.github.io/
 | **Multi-return**            | Structs              | Tuples           | Tuples           | **Native**          |
 | **Generics**                | Templates + Concepts | Type as Argument | Trait Based      | Constraint-Based    |
 
-Based on the last reliable benchmark results, QuantumC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig.According to most recent benchmarks, in tested cases C^4 runs either at a similar or faster speed than C++, with equal or faster compiles. 
+Based on the last reliable benchmark results, QuarticC showed performance in the same general range as C++, while offering a similar set of quality-of-life improvements found in languages such as Zig.According to most recent benchmarks, in tested cases C^4 runs either at a similar or faster speed than C++, with equal or faster compiles. 
 
 ---
 
 ## Conventions
 
-QuantumC has unusual naming conventions:
+QuarticC has unusual naming conventions:
 
 | **Type**                               | **Convention**         | **Why?**                                                                                                                     |
 | -------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -344,7 +340,7 @@ int** *x;
 int* ptr_add(int *p) ...
 ```
 Files are `kebab-case`. This is optional.
-QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
+QuarticC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
 My rule: `RTFM` once, not `RTMSCE5S` (Read The Manual and Source Code Every 5 Seconds), and these conventions make things hard to forget or mis-type, unlike C/C++ where every library uses entirely different conventions.
 
 Example:
@@ -365,16 +361,16 @@ namespace Not_Embezzeling { // Intentionally formatted as a non-inclusion namesp
 ```
 ## Ideals
 
-QuantumC follows four core rules:
+QuarticC follows four core rules:
 
-- Forced Cleanliness: QuantumC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent; it is self-explanatory.
-- Your Memory, Your Problem: QuantumC does not prevent dangerous code. It expects the programmer to understand the consequences. If you want, you can write a segfault handler with a segfault in it. QuantumC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuantumC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
-- No Hiding: QuantumC is an explicit language, so your code does what it looks like it does. Nothing is hidden inside the parser while pretending to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
+- Forced Cleanliness: QuarticC is designed to reward readable code. Language features should make the obvious solution the clean solution. Clean is not defined as 'Convenient for language', it means what it should be. Clean is not a "pythonic" equivalent; it is self-explanatory.
+- Your Memory, Your Problem: QuarticC does not prevent dangerous code. It expects the programmer to understand the consequences. If you want, you can write a segfault handler with a segfault in it. QuarticC is strongly typed, but union types are designed to be ergonomic rather than restrictive. Unlike Rust or TypeScript, QuarticC does not force exhaustive narrowing before every union operation. I will give you a loaded shotgun. If you blow your leg off, don't blame the gunsmith.
+- No Hiding: QuarticC is an explicit language, so your code does what it looks like it does. Nothing is hidden inside the parser while pretending to be stdlib, nothing is hidden away in some back catacomb. If it is an intrinsic, it says it is.
 - No Excessive Syntax: No capture lists on lambdas, no templates, no infinite <>, no Rust "bird droppings", no ! and @ everywhere.
 
 ## Compiler Architecture
 
-QuantumC uses a classic multi-pass compilation pipeline:
+QuarticC uses a classic multi-pass compilation pipeline:
 1. **Lexical Analysis / Preprocessing:** Custom lexer converts text to tokens in one loop.
 2. **AST Parsing:** Recursive descent parser generating a strongly typed Abstract Syntax Tree.
 3. **Type Checking & Semantic Analysis:** Resolves user-defined types, namespaces, and TypeScript-style union types. The unique thing is that this pass is _merged with the compilation/codegen phase_
@@ -433,7 +429,7 @@ int do_some_c_stuff(int x);
 ```
 
 ---
-The QuantumC inline ASM syntax is like a simplified version of the GCC syntax:
+The QuarticC inline ASM syntax is like a simplified version of the GCC syntax:
 
 ```cpp
 inline(R"(
@@ -451,7 +447,7 @@ You can also use AT&T ASM syntax by making sure the first 5 characters of your A
 
 ## Storage & Argument Specifiers
 
-QuantumC has 4 special (non-`const`) storage modifiers.
+QuarticC has 4 special (non-`const`) storage modifiers.
 
 1. `volatile`
 Volatile means the compiler won't optimize it. It can be used before variable declarations, or on function definitions. On methods, it must go after the access modifier and `final`, and before the return type.
@@ -494,7 +490,7 @@ void rw(inout int p) {
 
 ## Variadic arguments
 
-QuantumC variadic arguments look like this:
+QuarticC variadic arguments look like this:
 ```cpp
 int add_all(...args) {
     int res = 0;
@@ -517,7 +513,7 @@ void printf(char* fmt, ...);
 
 ## Bitwise logic
 
-QuantumC has all the standard bitwise logic operators; however, it has a non-standard XOR and Right-Shift token.
+QuarticC has all the standard bitwise logic operators; however, it has a non-standard XOR and Right-Shift token.
 The Bitwise XOR operator in C^4 is `$`. It is `$` because ^ and ^^ are already used tokens, and C^4 avoids repeating tokens to improve quick readability.
 The same logic applies for right-shift: `|>` is the right-shift token, because it allows the parser to immediately determine:
 ```
@@ -527,9 +523,9 @@ This is easy to determine (because it would be illegal for rshift to be there); 
 ```
 Node<Vector<X>> // This is unrelated to RSHIFT
 ```
-QuantumC also has a special operator for _logical_ right shift: :>. This is because it allows avoiding constantly casting between signed and unsigned integer types, unlike C++'s "arithmetic if signed, logical if unsigned"
+QuarticC also has a special operator for _logical_ right shift: :>. This is because it allows avoiding constantly casting between signed and unsigned integer types, unlike C++'s "arithmetic if signed, logical if unsigned"
 
-2 more unique bitwise things QuantumC does:
+2 more unique bitwise things QuarticC does:
 
 1. Built-in rotations: `<<<` and `|>>` and `LROT` and `RROT`, allowing 1 instruction rotations instead of 6+.
 2. + and - have lower priority than shifts. `3 << 3 + 2 == 26`. This is because the shift expression `l << r` is equivalent to `l * 2 ^ r`. If r was 2 + 2, that would be `l * 2 ^ 2 + 2`, which would be l * 4 + 2.
@@ -540,7 +536,7 @@ All methods are virtual. If you want to use polymorphism, inherited methods MUST
 
 ## Generics
 
-QuantumC generics have simple syntax:
+QuarticC generics have simple syntax:
 ```
 class C<T> {
     T x;
@@ -552,7 +548,7 @@ int main() {
 }
 ```
 Generics are allowed on `struct`s, `class`es, `concept`s, unions, aliases, functions, and methods.
-The unique thing about QuantumC's generics is its constraint system:
+The unique thing about QuarticC's generics is its constraint system:
 The constraint system follows this syntax:
 ```
 <T([constraint]:[[!]<[typename]'|'...>]>
@@ -575,7 +571,7 @@ The subconstraint system is like this:
 ```
 This means "T can be any type other than int or string".
 The ! means not anything in this set, and the type|type means these types.
-QuantumC also has non-type generic parameters.
+QuarticC also has non-type generic parameters.
 ```
 <int S> // S is a non-type generic parameter (a compile time int)
 ```

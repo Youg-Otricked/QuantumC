@@ -4,7 +4,7 @@
 
 [Back to Home](./index.md)
 
-QuantumC generics allow types and functions to work with multiple different types while keeping compile-time type safety.
+QuarticC generics allow types and functions to work with multiple different types while keeping compile-time type safety.
 
 Generics are available on:
 
@@ -135,7 +135,7 @@ This means:
 
 # Non-Type Generic Parameters
 
-QuantumC also supports generic parameters that are values known at compile time.
+QuarticC also supports generic parameters that are values known at compile time.
 
 Example:
 
@@ -178,7 +178,7 @@ Usage:
 int x = max<int>(10, 20);
 double y = max<double>(1.5, 2.5);
 ```
-Because QuantumC prioritizes explicitness, generic parameters are not inferred. You must provide them manually.
+Because QuarticC prioritizes explicitness, generic parameters are not inferred. You must provide them manually.
 
 ---
 
@@ -217,9 +217,9 @@ int* x;
 
 ---
 
-# Why QuantumC Generics Are Different
+# Why QuarticC Generics Are Different
 
-QuantumC generics use constraint-based typing.
+QuarticC generics use constraint-based typing.
 Other languages often express simple requirements using large collections of traits, concepts, or template checks.
 For example, a numeric constraint in Rust may require listing many traits:
 
@@ -227,7 +227,7 @@ For example, a numeric constraint in Rust may require listing many traits:
 T: Add + Sub + Mul + Div + PartialOrd + Copy
 ```
 
-In QuantumC:
+In QuarticC:
 
 ```qc
 T(numeric:)

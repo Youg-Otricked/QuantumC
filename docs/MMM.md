@@ -139,7 +139,7 @@ Decimal
 
 ## Converting Pointers To Addresses (and vis-verca)
 
-QuantumC has simple helpers for that.
+QuarticC has simple helpers for that.
 ```
 long int y = 9l;
 long int* x = &y;
@@ -150,7 +150,7 @@ long int* ptr_from_addr = `mapped_ptr(ptr_addr);
 ## The Heap
 
 While the stack is cool and allows us to have easy pointers we all need the heap.
-The heap is just like C in QuantumC.
+The heap is just like C in QuarticC.
 ```
 void* `malloc(addr_t sizeInBytes)
 ```
@@ -159,10 +159,10 @@ The full cstdlib mem group (realloc calloc free) is also available.
 To get the size of a type in bytes, you use the `sizeof` helper.
 
 ```
-sizeof "int"; // a stringified type, returns 4 (size of the "int" type)
+sizeof int; // a type, returns 4 (size of the "int" type)
 int x = 0;
-sizeof x; // a non-constant non-string, returns 4 (the size of x's type)
-int* p = `malloc(sizeof "int");
+sizeof x; // a non-constant, returns 4 (the size of x's type)
+int* p = `malloc(sizeof int);
 *p = 42;
 
 `free(p);

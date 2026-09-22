@@ -60,5 +60,5 @@ Sorry this one is a bit confusing
 |**qtrue**|true|true|true|true|
 |**both**|true|true|true|true|
 
-# And thats the core of QuantumC's i2 type.
+# And thats the core of QuarticC's i2 type.
 

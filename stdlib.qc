@@ -1,8 +1,7 @@
-// This is the Quantum C Standerd Library
-// Bro why u readin this do i need to make my docs beter?
+// This is the QuarticC Standerd Library
 
 int main() {
-    `qout("Quantum C Standerd Lib. Don't run this file. include from it\n");
+    `qout("QuarticC Standerd Lib. Don't run this file. include from it\n");
     return 0;
 }
 namespace Exported {

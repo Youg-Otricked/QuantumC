@@ -12,7 +12,7 @@ Inheritance lets one class **reuse and extend** another class.
 - The new class is the **derived class** (or **child**).
 - The child gets all the fields and methods of the parent, and can add more or override some.
 
-In Quantum C you write:
+In Quartic C you write:
 
 ```cpp
 class Base {

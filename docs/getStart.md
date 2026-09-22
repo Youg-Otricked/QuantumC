@@ -27,8 +27,8 @@ qc -sv
 ## Building from source
 
 ```sh
-git clone https://github.com/Youg-Otricked/QuantumC
-cd QuantumC
+git clone https://github.com/Youg-Otricked/QuarticC
+cd QuarticC
 ./scripts/install.sh
 qc -sv
 ```

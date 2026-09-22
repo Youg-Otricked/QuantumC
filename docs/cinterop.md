@@ -4,13 +4,13 @@
 
 [Back to home](./index.md)
 
-QuantumC uses the C ABI for external interoperability.
+QuarticC uses the C ABI for external interoperability.
 
 There are two directions:
 
-## 1. Export QuantumC code
+## 1. Export QuarticC code
 
-To expose QuantumC functions to other languages through the C ABI:
+To expose QuarticC functions to other languages through the C ABI:
 
 ```qc
 extern:

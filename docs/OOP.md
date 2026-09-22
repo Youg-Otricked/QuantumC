@@ -43,7 +43,7 @@ Now, time to get to access specifiers, and what they are for, which is somthing 
 
 Encapsulation is when you hide eveything that the user doesn't need.
 
-In Quantum C, you do that with somthing called _Access Specifiers_.
+In QuarticC, you do that with somthing called _Access Specifiers_.
 The 2 most common access specifiers are **_public_ and _private_**.
 public means it can be accessed **by any class member and any class and any code** but private means **only this class can access it**
 ```cpp

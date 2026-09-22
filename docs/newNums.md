@@ -5,7 +5,7 @@
 
 Short page.
 
-QuantumC exposes _every_ integer bitwidth from 1 to 64 (or 1 to 32 if your running a 32 bit system) as a primitive type.
+QuarticC exposes _every_ integer bitwidth from 1 to 64 (or 1 to 32 if your running a 32 bit system) as a primitive type.
 ```
 bool = u1
 qbool = u2

@@ -4,7 +4,7 @@
 
 [Back to Home](./index.md)
 
-QuantumC has rather unique naming conventions:
+QuarticC has rather unique naming conventions:
 
 | **Type**                               | **Convention**         | **Why?**                                                                                                                     |
 | -------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -56,7 +56,7 @@ int** *x;
 int* ptr_add(int *p) ...
 ```
 Files are `kebab-case` (optional, sometimes I dont follow this)
-QuantumC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
+QuarticC naming conventions are designed to make code readable without requiring the reader to inspect library code. Names should provide immediate context.
 
 ## Philosophy
 

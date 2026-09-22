@@ -2352,7 +2352,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.47R\""}};
+        {"__quarticc", "\"x1.0.47R\""}};
     bool progress = false;
     std::unordered_map<std::string, WarningLevel> warnings;
 };

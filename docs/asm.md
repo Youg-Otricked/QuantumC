@@ -4,7 +4,7 @@
 
 [Back to Home](./index.md)
 
-QuantumC provides inline assembly similar to GCC's inline `asm`, but with a simplified syntax.
+QuarticC provides inline assembly similar to GCC's inline `asm`, but with a simplified syntax.
 
 ## Signature
 
