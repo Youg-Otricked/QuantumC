@@ -353,7 +353,7 @@ class Insight {
     Insight(const std::string& message) : message(message) {}
     std::string as_string() const {
         std::string result;
-        result += "insight: ";
+        result += "= insight: ";
         result += message;
         result += "\n";
         return result;
@@ -2352,7 +2352,7 @@ struct RunConfig {
 #ifdef __mips64
         {"__mips64", "1"},
 #endif
-        {"__quantumc", "\"x1.0.46R\""}};
+        {"__quantumc", "\"x1.0.47R\""}};
     bool progress = false;
     std::unordered_map<std::string, WarningLevel> warnings;
 };
@@ -3261,7 +3261,7 @@ class LLVMCompiler {
             builder->CreateStore(rval, baseAddr);
         }
         std::string typeName = getExpressionType(*prop.base);
-        if (classTypes.count(typeName) || genericClasses.count(baseTypeName(typeName))) {
+        if (classTypes.count(typeName) || (genericClasses.count(baseTypeName(typeName)) && genericClasses[baseTypeName(typeName)])) {
             llvm::StructType* classTy = genericiseOrFindClass(typeName);
             int fieldIdx = getFlattenedFieldIndex(baseTypeName(typeName), propName);
             if (fieldIdx == -1) {
@@ -3288,7 +3288,7 @@ class LLVMCompiler {
             }
             return builder->CreateStructGEP(classTy, baseAddr, fieldIdx, propName + "_ptr");
         }
-        if (structTypes.count(typeName) || genericStructs.count(baseTypeName(typeName))) {
+        if (structTypes.count(typeName) || (genericStructs.count(baseTypeName(typeName)) && genericStructs[baseTypeName(typeName)])) {
             auto structTy = genericiseOrFindStruct(typeName);
             auto& info = userTypes[baseTypeName(typeName)];
             int fieldIdx = -1;
@@ -3318,7 +3318,7 @@ class LLVMCompiler {
             }
             return builder->CreateStructGEP(structTy, baseAddr, fieldIdx, propName + "_ptr");
         }
-        if (unionTypes.count(typeName) || genericUnions.count(baseTypeName(typeName))) {
+        if (unionTypes.count(typeName) || (genericUnions.count(baseTypeName(typeName)) && genericUnions[baseTypeName(typeName)])) {
             auto unionInfo = genericiseOrFindUnion(typeName);
             llvm::StructType* unionTy = unionTypes[typeName];
             for (auto& member : unionInfo.members) {
@@ -4903,9 +4903,12 @@ class LLVMCompiler {
         try {
             size_t size = errors.size();
             llvm::Value* val = emitExpr(expr);
-            valid = size == errors.size();
-        } catch (...) { valid = false; }
-        dummyBB->eraseFromParent();
+            valid = (size == errors.size()) && (val != nullptr);
+        } catch (...) {
+            valid = false;
+        }
+        dummyBB->dropAllReferences();
+        dummy_fn->eraseFromParent();
         builder->restoreIP(saved_ip);
         return valid;
     }

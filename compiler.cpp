@@ -5416,14 +5416,17 @@ llvm::Type* LLVMCompiler::llvmTypeFor(std::string qcType) {
     if (type == "qbool") return builder->getIntNTy(2);
     if (type == "string") return llvm::PointerType::get(context, 0);
     if (type == "@nullptr") return builder->getPtrTy();
-    if (classTypes.find(type) != classTypes.end() || genericClasses.find(baseTypeName(type)) != genericClasses.end()) {
+    if (classTypes.find(type) != classTypes.end() ||
+        (genericClasses.find(baseTypeName(type)) != genericClasses.end() && genericClasses[baseTypeName(type)])) {
         return genericiseOrFindClass(resolveTypeName(qcType, false));
     }
-    if (structTypes.find(type) != structTypes.end() || genericStructs.find(baseTypeName(type)) != genericStructs.end()) {
+    if (structTypes.find(type) != structTypes.end() ||
+        (genericStructs.find(baseTypeName(type)) != genericStructs.end() && genericStructs[baseTypeName(type)])) {
         return genericiseOrFindStruct(type);
     }
     if (enumTypes.find(type) != enumTypes.end()) { return enumTypes[type]; }
-    if (unionTypes.find(type) != unionTypes.end() || genericUnions.find(baseTypeName(type)) != genericUnions.end()) {
+    if (unionTypes.find(type) != unionTypes.end() ||
+        (genericUnions.find(baseTypeName(type)) != genericUnions.end() && genericUnions[baseTypeName(type)])) {
         genericiseOrFindUnion(type);
         return unionTypes[type];
     }
@@ -5816,10 +5819,12 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
                 }
                 if (!resolveTypeName(resolvedType, false).ends_with("*")) {
                     std::string resolved = resolveTypeName(resolvedType, false);
-                    if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
-                        generateStruct(resolved, userTypes.at(resolved));
-                    } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
-                        generateClass(resolved, userTypes.at(resolved));
+                    if (!resolved.contains("<")) {
+                        if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                            generateStruct(resolved, userTypes.at(resolved));
+                        } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                            generateClass(resolved, userTypes.at(resolved));
+                        }
                     }
                 }
                 if (field.isStatic) {
@@ -5844,7 +5849,7 @@ llvm::StructType* LLVMCompiler::generateGenericClass(std::string className, User
     std::unordered_map<std::string, std::string> rootSubs;
     for (size_t i = 0; i < classInfo.generics.size() && i < genericParams.size(); i++) { rootSubs[classInfo.generics[i].name] = genericParams[i]; }
     collectFields(mangled_class_name, rootSubs);
-    classTypes[mangled_class_name]->setBody(fieldTypes);
+    if (classTypes[mangled_class_name]->isOpaque()) { classTypes[mangled_class_name]->setBody(fieldTypes); }
     if (!classInfo.baseClassName.empty()) {
         auto base_it = userTypes.find(resolveTypeName(classInfo.baseClassName));
         if (base_it != userTypes.end()) {
@@ -6182,17 +6187,19 @@ llvm::StructType* LLVMCompiler::generateGenericStruct(std::string structName, Us
     for (auto& field : structInfo.fields) {
         if (!resolveTypeName(field.type, false).ends_with("*")) {
             std::string resolved = resolveTypeName(field.type, false);
-            if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
-                generateStruct(resolved, userTypes.at(resolved));
-            } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
-                generateClass(resolved, userTypes.at(resolved));
+            if (!resolved.contains("<")) {
+                if (structTypes.count(resolved) && structTypes.at(resolved)->isOpaque()) {
+                    generateStruct(resolved, userTypes.at(resolved));
+                } else if (classTypes.count(resolved) && classTypes.at(resolved)->isOpaque()) {
+                    generateClass(resolved, userTypes.at(resolved));
+                }
             }
         }
         llvm::Type* ty = llvmTypeFor(field.type);
         fieldTypes.push_back(ty);
     }
     proveConceptsForTypeInfo(mangled_struct_name, structInfo);
-    structTypes[mangled_struct_name]->setBody(fieldTypes);
+    if (structTypes[mangled_struct_name]->isOpaque()) { structTypes[mangled_struct_name]->setBody(fieldTypes); }
     namespaceStack = oldNamespaceStack;
     inProgressGenerics.erase(mangled_struct_name);
     if (this->config.use_runtime) { generateStructReprFunction(mangled_struct_name, structInfo); }
@@ -6310,7 +6317,7 @@ void LLVMCompiler::generateStruct(const std::string& mapKey, const UserTypeInfo&
         llvm::Type* ty = llvmTypeFor(field.type);
         fieldTypes.push_back(ty);
     }
-    structTypes[mapKey]->setBody(fieldTypes);
+    if (structTypes[mapKey]->isOpaque()) { structTypes[mapKey]->setBody(fieldTypes); }
     namespaceStack = oldNamespaceStack;
 }
 void LLVMCompiler::generateClass(const std::string& mapKey, const UserTypeInfo& info) {
@@ -6431,7 +6438,7 @@ void LLVMCompiler::generateClass(const std::string& mapKey, const UserTypeInfo& 
     if (fieldTypes.empty()) { fieldTypes.push_back(builder->getInt8Ty()); }
     if (noParent && noAccess && noMethods)
         warn("struct-like-class", info.pos, "class has no access control, parent classes, or methods; consider using a struct instead", "QC-W020");
-    classTypes[mapKey]->setBody(fieldTypes);
+    if (classTypes[mapKey]->isOpaque()) { classTypes[mapKey]->setBody(fieldTypes); }
     namespaceStack = oldNamespaceStack;
 }
 
@@ -8593,6 +8600,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
                     warn("uninitialized", get_pos(*va), "declared variable without initializer", "QC-W010");
                     return nullptr;
                 }
+                if (rhs->getType()->isPointerTy()) {
+                    if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(classTy)) {
+                        rhs = builder->CreateLoad(classTy, rhs, "strip_ref");
+                    }
+                }
                 if (rhs->getType() != classTy) {
                     cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                     return nullptr;
@@ -8627,6 +8639,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
             if (!rhs) {
                 warn("uninitialized", get_pos(*va), "declared variable without initializer", "QC-W010");
                 return nullptr;
+            }
+            if (rhs->getType()->isPointerTy()) {
+                if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(classTy)) {
+                    rhs = builder->CreateLoad(classTy, rhs, "strip_ref");
+                }
             }
             if (rhs->getType() != classTy) {
                 cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
@@ -8767,6 +8784,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
             llvm::StructType* structTy = genericiseOrFindStruct(buildMangledName(qcType, genericParams));
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
+            if (rhs->getType()->isPointerTy()) {
+                if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(structTy)) {
+                    rhs = builder->CreateLoad(structTy, rhs, "strip_ref");
+                }
+            }
             if (rhs->getType() != structTy) {
                 cg_error((*va)->var_name_tok.pos, "cannot initialize " + buildMangledName(qcType, genericParams) + " from struct of different type.",
                          "QC-T028");
@@ -8870,6 +8892,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
                 }
                 structVal = builder->CreateInsertValue(structVal, val, i);
             }
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             llvm::Value* structAlloc = getVarAddress(name);
             if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                 auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
@@ -8884,7 +8907,6 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
 
                 builder->CreateStore(structVal, structAlloc, isVolatile);
             }
-            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             locals[fullName] = llvm::cast<llvm::AllocaInst>(structAlloc);
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
@@ -8934,7 +8956,7 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
 
                 structVal = builder->CreateInsertValue(structVal, fieldValue, fieldIndex);
             }
-
+            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
             llvm::Value* structAlloc = getVarAddress(name);
             if (auto* gv = llvm::dyn_cast_or_null<llvm::GlobalVariable>(structAlloc)) {
                 auto* constant = llvm::dyn_cast<llvm::Constant>(structVal);
@@ -8949,8 +8971,6 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
 
                 builder->CreateStore(structVal, structAlloc, isVolatile);
             }
-            std::string fullName = getCurrentNamespace().empty() ? name : getCurrentNamespace() + "::" + name;
-
             locals[fullName] = llvm::cast<llvm::AllocaInst>(structAlloc);
             varTypes[fullName] = qcType;
             volatileVars[fullName] = isVolatile;
@@ -8959,6 +8979,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
             llvm::StructType* structTy = genericiseOrFindStruct(qcType);
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
+            if (rhs->getType()->isPointerTy()) {
+                if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(structTy)) {
+                    rhs = builder->CreateLoad(structTy, rhs, "strip_ref");
+                }
+            }
             if (rhs->getType() != structTy) {
                 cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from struct of different type.", "QC-T028");
                 return nullptr;
@@ -9052,6 +9077,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
             if (!handled) {
                 llvm::Value* rhs = emitExpr((*va)->value_node);
                 if (!rhs) return nullptr;
+                if (rhs->getType()->isPointerTy()) {
+                    if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(classTy)) {
+                        rhs = builder->CreateLoad(classTy, rhs, "strip_ref");
+                    }
+                }
                 if (rhs->getType() != classTy) {
                     cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                     return nullptr;
@@ -9083,6 +9113,11 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
         } else {
             llvm::Value* rhs = emitExpr((*va)->value_node);
             if (!rhs) return nullptr;
+            if (rhs->getType()->isPointerTy()) {
+                if (llvmTypeFor(getExpressionType((*va)->value_node)) == llvm::dyn_cast_or_null<llvm::Type>(classTy)) {
+                    rhs = builder->CreateLoad(classTy, rhs, "strip_ref");
+                }
+            }
             if (rhs->getType() != classTy) {
                 cg_error((*va)->var_name_tok.pos, "cannot initialize " + qcType + " from class of different type.", "QC-T028");
                 return nullptr;
@@ -9250,6 +9285,13 @@ llvm::Value* LLVMCompiler::emitVarAssign(VarAssignNode* const* va) {
         srcTy = destTy;
     }
     if (srcTy != destTy) {
+        if (srcTy->isPointerTy() && !destTy->isPointerTy()) {
+            llvm::Type* newbase = llvmTypeFor(getExpressionType((*va)->value_node));
+            if (!newbase->isPointerTy()) {
+                rhs = builder->CreateLoad(newbase, rhs);
+                srcTy = newbase;
+            }
+        }
         if (srcTy->isFloatTy() && destTy->isDoubleTy()) {
             warn("implicit-extend", get_pos(*va), "implicit extension in assignment", "QC-W012");
             rhs = builder->CreateFPExt(rhs, destTy, "f2d");
@@ -12440,7 +12482,9 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
     llvm::Type* baseTy = baseVal->getType();
     bool isPtr = baseVal->getType()->isPointerTy();
     if (baseTy->isPointerTy()) {
-        llvm::Type* allocTy = llvmTypeFor(getExpressionType(*(*propAccess)->base, false));
+        std::string exprType = getExpressionType(*(*propAccess)->base, false);
+        if (exprType.ends_with("&")) { exprType = exprType.substr(0, exprType.size() - 1); }
+        llvm::Type* allocTy = llvmTypeFor(exprType);
         if (!allocTy) {
             cg_error(get_pos(*propAccess), "failed to resolve propaccess base", "QC-S246");
             return nullptr;
@@ -12867,12 +12911,22 @@ llvm::Value* LLVMCompiler::emitMthdCall(MethodCallNode* const* methodCall) {
         }
         unsigned fieldIndex = 0;
         bool found = false;
-        const auto& fields = userTypes.at(baseTypeName(baseTypeName(ownerClass))).classFields;
-        for (size_t i = 0; i < fields.size(); ++i) {
-            if (fields[i].name == propAcc->property_name.value) {
-                fieldIndex = (unsigned)i;
-                found = true;
-                break;
+        const auto& uType = userTypes.at(baseTypeName(baseTypeName(ownerClass)));
+        if (uType.kind == UserTypeKind::Struct) {
+            for (size_t i = 0; i < uType.fields.size(); ++i) {
+                if (uType.fields[i].name == propAcc->property_name.value) {
+                    fieldIndex = (unsigned)i;
+                    found = true;
+                    break;
+                }
+            }
+        } else {
+            for (size_t i = 0; i < uType.classFields.size(); ++i) {
+                if (uType.classFields[i].name == propAcc->property_name.value) {
+                    fieldIndex = (unsigned)i;
+                    found = true;
+                    break;
+                }
             }
         }
         if (!found) { return (cg_error((*call)->method_name.pos, "field not found", "QC-S251"), nullptr); }
@@ -14348,7 +14402,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
         enterScope();
         if (if_node->init.has_value()) { emitStmt(if_node->init.value()); }
         llvm::Value* cond = emitExpr(if_node->condition);
-        if (!cond) return;
+        if (!cond) {
+            exitScope();
+            return;
+        }
         llvm::ConstantInt* comptimeValue = nullptr;
         if (if_node->is_comptime) {
             comptimeValue = llvm::dyn_cast<llvm::ConstantInt>(cond);
@@ -14403,7 +14460,10 @@ void LLVMCompiler::emitStmt(AnyNode node) {
             }
             cond = normalizeValue(cond, if_node->condition);
             cond = toTruthiness(cond, get_pos(if_node->condition));
-            if (!cond) return;
+            if (!cond) {
+                exitScope();
+                return;
+            }
             llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(context, "then", currentFunction);
             llvm::BasicBlock* mergeBB = llvm::BasicBlock::Create(context, "ifcont", currentFunction);
             std::vector<std::pair<llvm::BasicBlock*, llvm::BasicBlock*>> elifBlocks;
