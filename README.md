@@ -102,7 +102,7 @@ Minor (Mi) is always a single decimal digit (0-9). Once a minor version reaches 
 Unlike semantic versioning, QuarticC versions describe the scale and category of language evolution rather than API compatibility.
 # Development Status
 
-Current Version: x1.0.47 = "I actually fixed try catch"
+Current Version: x1.0.48 = "I actually fixed try catch"
 Next Version: x1.0.5 = "Probably tagged enums"
 
 # Current Version Highlights
