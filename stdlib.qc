@@ -129,7 +129,7 @@ namespace Array {
             } else {
                 this->size = `ternary((length > S), S, length);
             }
-            this->data = `malloc(sizeof "T" * this->size);
+            this->data = `malloc((sizeof T) * this->size);
             for (int i = 0; i < this->size; i++) {
                 this->data[i] = data[i];
             }
@@ -218,7 +218,7 @@ namespace Vector {
                 return;
             }
 
-            T* new_data = `realloc(this->data, sizeof "T" * cap);
+            T* new_data = `realloc(this->data, (sizeof T) * cap);
             if (new_data == nullptr) {
                 return;
             }

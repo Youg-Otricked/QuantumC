@@ -1,4 +1,4 @@
-#include "./compiler.h"
+#include "main.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -75,7 +75,7 @@ std::string trim_ws(const std::string& s) {
 }
 int main(int argc, char* argv[]) {
 
-    tkz::RunConfig config;
+    run::RunConfig config;
     std::string filename = "";
 
     // Parse arguments
@@ -251,11 +251,11 @@ int main(int argc, char* argv[]) {
         } else if (arg == "-d" || arg == "--debug") {
             config.debug = true;
         } else if (arg.starts_with("-Wno-")) {
-            config.warnings[arg.substr(5)] = tkz::WarningLevel::None;
+            config.warnings[arg.substr(5)] = run::WarningLevel::None;
         } else if (arg.starts_with("-W")) {
-            config.warnings[arg.substr(2)] = tkz::WarningLevel::Warning;
+            config.warnings[arg.substr(2)] = run::WarningLevel::Warning;
         } else if (arg.starts_with("-E")) {
-            config.warnings[arg.substr(2)] = tkz::WarningLevel::Error;
+            config.warnings[arg.substr(2)] = run::WarningLevel::Error;
         } else if (arg == "--help" || arg == "-h") {
             std::cout << GREEN << R"(
 QuarticC Compiler )" << ver
@@ -349,7 +349,7 @@ Examples:
                 std::thread spin_thread(spinner);
                 running = true;
                 history.push_back(code_buffer);
-                auto result = tkz::run("<stdin>", code_buffer, config);
+                auto result = run::run("<stdin>", code_buffer, config);
                 running = false;
                 spin_thread.join();
                 bool has_fatal = false;
@@ -490,7 +490,7 @@ Examples:
         std::string code = read_source_file(filename);
         std::thread spin_thread(spinner);
         running = true;
-        auto result = tkz::run(filename, code, config);
+        auto result = run::run(filename, code, config);
         running = false;
         spin_thread.join();
         bool has_fatal = false;
@@ -564,8 +564,8 @@ const char* run_quantumc_code(const char* code) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     // wow. comments in my codebase? crazy.
-    auto result = tkz::run("<wasm>", code,
-                           tkz::RunConfig{true,             // use_context
+    auto result = run::run("<wasm>", code,
+                           run::RunConfig{true,             // use_context
                                           false,            // looser_types
                                           false,            // print_ast
                                           false,            // print_tokens

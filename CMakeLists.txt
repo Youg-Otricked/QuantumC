@@ -70,11 +70,19 @@ add_custom_command(
     VERBATIM
 )
 set(SOURCES
-    compiler.cpp
-    compiler_run.cpp
+    impl/parser.cpp
+    impl/main.cpp
+    impl/lexer.cpp
+    impl/nodes.cpp
+    impl/token.cpp
+    impl/errors.cpp
+    impl/preproccesser.cpp
+    impl/compiler.cpp
+    impl/compiler_run.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/runtime_embed.cpp
 )
 add_executable(qc ${SOURCES})
+target_include_directories(qc PRIVATE intf)
 if(X86_ONLY)
     target_compile_definitions(qc PRIVATE X86_ONLY)
 endif()
