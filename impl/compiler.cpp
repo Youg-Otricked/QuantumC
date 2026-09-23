@@ -1,7 +1,8 @@
 #define QC_EXCEPTION_CLASS 0x5143455843455054ULL
 #include "compiler.h"
+#include "parser.h"
+#include "shared_globals.h"
 #include <algorithm>
-#include <ranges>
 #include <cstdlib>
 #include <ctime>
 #include <filesystem>
@@ -12,14 +13,13 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
-#include "parser.h"
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
-#include "shared_globals.h"
 #ifdef ENABLE_LLVM
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/IR/BasicBlock.h>
@@ -5408,8 +5408,8 @@ llvm::Value* LLVMCompiler::emitCall(CallNode* const* callPtr) {
                                                                               {"`open", "qc_open"},
                                                                               {"`close", "qc_close"},
                                                                               {"`read", "qc_read"},
-                                                                              {"`typeof", ""}, 
-                                                                              {"`cast", ""}, 
+                                                                              {"`typeof", ""},
+                                                                              {"`cast", ""},
                                                                               {"`write", ""},
                                                                               {"`malloc", "qc_malloc"},
                                                                               {"`calloc", "qc_calloc"},
@@ -7273,20 +7273,20 @@ llvm::Value* LLVMCompiler::emitPropAcc(PropertyAccessNode* const* propAccess) {
             if (allocTy && allocTy->isArrayTy()) { return builder->getInt32(allocTy->getArrayNumElements()); }
         }
     }
+    std::string exprType = getExpressionType(*(*propAccess)->base, false);
     llvm::Value* baseVal = emitLValue(*(*propAccess)->base, true);
     if (!baseVal) return nullptr;
-    llvm::Type* baseTy = baseVal->getType();
-    bool isPtr = baseVal->getType()->isPointerTy();
-    if (baseTy->isPointerTy()) {
-        std::string exprType = getExpressionType(*(*propAccess)->base, false);
-        if (exprType.ends_with("&")) { exprType = exprType.substr(0, exprType.size() - 1); }
-        llvm::Type* allocTy = llvmTypeFor(exprType);
-        if (!allocTy) {
-            cg_error(get_pos(*propAccess), "failed to resolve propaccess base", "QC-S246");
-            return nullptr;
+    while (exprType.ends_with("*&") || exprType.ends_with("**")) {
+        baseVal = builder->CreateLoad(builder->getPtrTy(), baseVal, "load_object_ptr");
+        if (exprType.ends_with("*&")) {
+            exprType.erase(exprType.size() - 2);
+        } else {
+            exprType.pop_back();
         }
-        baseTy = allocTy;
     }
+    if (exprType.ends_with("*") || exprType.ends_with("&")) { exprType.pop_back(); }
+    llvm::Type* baseTy = llvmTypeFor(exprType);
+    bool isPtr = baseVal->getType()->isPointerTy();
     if (auto structTy = llvm::dyn_cast<llvm::StructType>(baseTy)) {
         std::string structName = structTy->getName().str();
 

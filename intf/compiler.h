@@ -1354,7 +1354,7 @@ class LLVMCompiler {
         if (!v) return nullptr;
 
         llvm::Type* srcTy = v->getType();
-        if (srcTy->isPointerTy() && !paramTy->isPointerTy()) {
+        if (srcTy->isPointerTy()) {
             if (getExpressionType(argNode, false).ends_with("&")) { v = builder->CreateLoad(paramTy, v, "strip_ref"); }
         }
         for (auto& [unionName, unionTy] : unionTypes) {

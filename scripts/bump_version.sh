@@ -8,9 +8,9 @@ OLD="$1"
 NEW="$2"
 FILES=(
     "version.txt"
-    "compiler.h"
+    "intf/compiler.h"
     "runtime.cpp"
-    "compiler_run.cpp"
+    "impl/compiler_run.cpp"
     "README.md"
 )
 for file in "${FILES[@]}"; do
