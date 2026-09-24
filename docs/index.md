@@ -1,6 +1,5 @@
 <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
 
-
 # Welcome To The Quartic-C Documentation!
 
 ```cpp
@@ -28,10 +27,8 @@ int main() {
   ></iframe>
 </div>
 
-## NOTE:
-# **THIS IS NOT A QCL (Quartic Computation Language)**
-
 ### Pages:
+
 [Getting started](./getStart.md)
 
 [Basics](./BasicSyntax.md)
@@ -105,12 +102,13 @@ Quartic C favors clarity over convenience, and explicitness over brevity.
 - Quartic C does not auto-correct ambiguous logic
 - Quartic C does not _make_ ambiguous logic
 - Quartic C does not _allow_ ambiguous logic
-`
+  `
+
 ## Versioning
 
 QuarticC uses the following versioning scheme:
 `cMa.Mo.MiP`
-Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version. 
+Where `c` is critical (massive additions, such as the compiler being added), `Ma` being major versions, tracking large collections of features, `Mo` being moderate versions, tracking collections of similar features, `Mi` being minor versions, which track individual feature milestones within the current moderate version's theme., and `P` being the patch version.
 For the version
 `x1.2.34`
 `c` = `x`
